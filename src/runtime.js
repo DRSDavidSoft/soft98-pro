@@ -5,6 +5,7 @@
   const DATA_HREF = "data-soft98-adblocker-href";
   const DATA_STATE = "data-soft98-adblocker-state";
   const DATA_PATCHED = "data-soft98-adblocker-patched-script";
+  const FAVICON_ID = "soft98-pro-favicon";
   const enqueueMicrotask = window.queueMicrotask ? window.queueMicrotask.bind(window) : (callback) => Promise.resolve().then(callback);
   const nativeEval = typeof window.eval === "function" ? window.eval : null;
   const nativeFetch = window.fetch ? window.fetch.bind(window) : null;
@@ -80,6 +81,7 @@
   let recoveryStarted = false;
   let originalTitle = document.title || "";
   let successAnnounced = false;
+  let faviconState = "";
   let settings = readSettings();
 
   const SELECTORS = {
@@ -557,6 +559,7 @@
     if (previous) previous.remove();
     if (!settings.pro || !settings.darkDesign) {
       document.documentElement.classList.remove("soft98-pro-theme");
+      updateFavicon();
       return;
     }
     document.documentElement.classList.add("soft98-pro-theme");
@@ -572,6 +575,90 @@
       .soft98-pro-link-badge{margin-inline-start:.45em;padding:.12em .45em;border:1px solid rgba(112,225,178,.42);border-radius:999px;color:#baffd8;background:rgba(112,225,178,.12);font-size:.78em;vertical-align:middle}
     `;
     (document.head || document.documentElement).appendChild(style);
+    updateFavicon();
+  }
+
+  function updateFavicon() {
+    const state = settings.pro && settings.darkDesign ? "pro" : successAnnounced ? "success" : "";
+    if (state === faviconState) return;
+    const previous = document.getElementById(FAVICON_ID);
+    if (previous) previous.remove();
+    if (!state) {
+      faviconState = "";
+      return;
+    }
+    const href = drawFavicon(state);
+    if (!href) return;
+    const link = document.createElement("link");
+    link.id = FAVICON_ID;
+    link.rel = "icon";
+    link.type = "image/png";
+    link.href = href;
+    (document.head || document.documentElement).appendChild(link);
+    faviconState = state;
+  }
+
+  function drawFavicon(state) {
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = 64;
+      canvas.height = 64;
+      const ctx = canvas.getContext && canvas.getContext("2d");
+      if (!ctx) return "";
+      const pro = state === "pro";
+      const background = pro ? "#08111a" : "#f7fbff";
+      const foreground = pro ? "#70e1b2" : "#1fb36b";
+      const shadow = pro ? "rgba(112,225,178,.32)" : "rgba(31,179,107,.28)";
+      const ring = pro ? "#253f58" : "#d4e7f4";
+      const accent = pro ? "#ffd166" : "#2f80ed";
+      ctx.clearRect(0, 0, 64, 64);
+      ctx.fillStyle = background;
+      roundRect(ctx, 4, 4, 56, 56, 14);
+      ctx.fill();
+      ctx.strokeStyle = ring;
+      ctx.lineWidth = 4;
+      roundRect(ctx, 6, 6, 52, 52, 12);
+      ctx.stroke();
+      ctx.shadowColor = shadow;
+      ctx.shadowBlur = pro ? 8 : 5;
+      ctx.fillStyle = foreground;
+      ctx.font = "800 42px Arial, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("S", 32, 34);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = accent;
+      ctx.beginPath();
+      ctx.arc(49, 16, pro ? 6 : 5, 0, Math.PI * 2);
+      ctx.fill();
+      if (pro) {
+        ctx.strokeStyle = foreground;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(17, 46);
+        ctx.lineTo(47, 46);
+        ctx.stroke();
+      }
+      return canvas.toDataURL("image/png");
+    } catch (error) {
+      safeConsole("warn", "Soft98 Pro could not render the canvas favicon", error);
+      return "";
+    }
+  }
+
+  function roundRect(ctx, x, y, width, height, radius) {
+    const size = Math.min(radius, width / 2, height / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + size, y);
+    ctx.lineTo(x + width - size, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + size);
+    ctx.lineTo(x + width, y + height - size);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - size, y + height);
+    ctx.lineTo(x + size, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - size);
+    ctx.lineTo(x, y + size);
+    ctx.quadraticCurveTo(x, y, x + size, y);
+    ctx.closePath();
   }
 
   function applyLinkBadges() {
@@ -675,6 +762,7 @@
         "color:#9db1c6"
       );
     }
+    updateFavicon();
     onReady(() => {
       enhanceLogo();
       addTaunt();

@@ -43,6 +43,9 @@ for (const needle of ["fbd", "abdd", "error_abdd", "fbd--compiled"]) {
   if (userscript.includes(needle)) throw new Error(`Fragile generated Soft98 identifier leaked into userscript: ${needle}`);
 }
 if (!/PersianBlocker|MasterKia/.test(runtime)) throw new Error("PersianBlocker notice handling is missing");
+if (!/\.toDataURL\("image\/png"\)/.test(runtime) || !/soft98-pro-favicon/.test(runtime)) {
+  throw new Error("Canvas favicon status indicator is missing");
+}
 if (!userscript.includes("DRSDavidSoft/soft98-pro/main/soft98-pro.user.js")) {
   throw new Error("Userscript update URL must point at the dedicated Soft98 repo");
 }
