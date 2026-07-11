@@ -1,0 +1,44 @@
+name: Soft98 Ad Blocker Extension
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Browser Packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate source and package builds
+        run: npm run ci
+
+      - name: Upload Chromium package
+        uses: actions/upload-artifact@v4
+        with:
+          name: soft98-ad-blocker-chromium
+          path: dist/packages/soft98-ad-blocker-chromium-*.zip
+          if-no-files-found: error
+
+      - name: Upload Firefox package
+        uses: actions/upload-artifact@v4
+        with:
+          name: soft98-ad-blocker-firefox
+          path: dist/packages/soft98-ad-blocker-firefox-*.zip
+          if-no-files-found: error

@@ -1,0 +1,121 @@
+:root {
+  color-scheme: dark;
+  --bg: #071018;
+  --surface: #0f1c28;
+  --surface-2: #132738;
+  --border: #28455f;
+  --text: #edf6ff;
+  --muted: #9fb4c9;
+  --accent: #72e3b5;
+  --accent-2: #8cc8ff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 360px;
+  margin: 0;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(114, 227, 181, 0.18), transparent 260px),
+    linear-gradient(145deg, #071018, #0b1621 58%, #101e2b);
+  color: var(--text);
+  font: 14px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+main {
+  display: grid;
+  gap: 16px;
+  width: min(760px, 100%);
+  margin: 0 auto;
+  padding: 18px;
+}
+
+.hero {
+  display: grid;
+  gap: 8px;
+}
+
+.hero span {
+  color: var(--accent);
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+h1 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.grid {
+  display: grid;
+  gap: 10px;
+}
+
+.option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+}
+
+.option input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+
+.option span {
+  display: grid;
+  gap: 3px;
+}
+
+.option strong {
+  color: var(--text);
+}
+
+.option small {
+  color: var(--muted);
+}
+
+footer {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+button,
+a {
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 1px solid #386184;
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-weight: 750;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+button:hover,
+a:hover,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 72%, transparent);
+  outline-offset: 2px;
+  color: #06120c;
+  background: var(--accent);
+}

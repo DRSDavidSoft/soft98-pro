@@ -1,0 +1,17 @@
+{
+  "name": "soft98-ad-blocker-extension",
+  "version": "1.1.1",
+  "description": "Chrome, Edge, and Firefox extension for resilient Soft98 ad blocking, anti-adblock patching, and Soft98 Pro enhancements.",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "build": "node tools/build.js",
+    "check": "npm run build && node --check src/page/runtime.js && node --check src/content/bridge.js && node --check src/content/firefox-injector.js && node --check src/ui/options.js",
+    "test": "node test/validate-build.js",
+    "ci": "npm run check && npm test"
+  },
+  "devDependencies": {
+    "archiver": "^7.0.1",
+    "terser": "^5.43.1"
+  }
+}
