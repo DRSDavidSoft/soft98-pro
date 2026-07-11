@@ -34,3 +34,5 @@ Firefox:
 ## Design
 
 The extension keeps Soft98-specific detection resilient by favoring behavior, structure, script signatures, and link preservation over generated class names or short random identifiers.
+
+The page runtime also exposes `window.Soft98AdBlocker.report()`, `trapCheck()`, `resetHandles()`, `events`, and `stats` for console diagnostics.
