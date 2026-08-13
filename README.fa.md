@@ -5,7 +5,9 @@
 <a href="README.md"><img src="docs/assets/badge-en.svg" alt="English" height="22"/></a>&nbsp;
 <a href="README.fa.md"><img src="docs/assets/badge-fa.svg" alt="فارسی" height="22"/></a>
 
-<h1>Soft98 Pro</h1>
+<h1>نسخه حرفه‌ای Soft98</h1>
+
+![محافظت، بازیابی لینک و پوسته‌های Soft98 Pro](docs/assets/soft98-pro-banner.svg)
 
 [![آخرین نسخه](https://img.shields.io/github/v/release/DRSDavidSoft/soft98-pro?style=for-the-badge&color=3b82f6&labelColor=0f172a&label=آخرین+نسخه)](https://github.com/DRSDavidSoft/soft98-pro/releases/latest)
 [![CI](https://img.shields.io/github/actions/workflow/status/DRSDavidSoft/soft98-pro/ci.yml?branch=develop&style=for-the-badge&label=CI&labelColor=0f172a)](https://github.com/DRSDavidSoft/soft98-pro/actions/workflows/ci.yml)
@@ -22,11 +24,9 @@
 
 ![نمای حالت تاریک Soft98 Pro روی وب‌سایت Soft98](docs/assets/soft98-pro-dark.png)
 
-Soft98 Pro با مسدودسازی مقاوم تبلیغات، اصلاح کد ضدادبلاک، بازیابی لینک دانلود، پاک‌سازی هشدارها و یک رابط تاریک مدرن، تجربه کار با Soft98 را بهتر می‌کند. این پروژه به‌صورت یوزراسکریپت و افزونه مرورگر برای Chrome، Edge و Firefox ارائه می‌شود.
+افزونه Soft98 Pro با مسدودسازی مقاوم تبلیغات، اصلاح کد ضدادبلاک، بازیابی لینک دانلود، پاک‌سازی هشدارها و یک رابط تاریک مدرن، تجربه کار با Soft98 را بهتر می‌کند. این پروژه به‌صورت یوزراسکریپت و افزونه مرورگر برای Chrome، Edge و Firefox ارائه می‌شود.
 
 هر دو قالب از هسته مشترک [`src/runtime.js`](src/runtime.js) ساخته می‌شوند؛ بنابراین رفتار مسدودسازی، ابزارهای تشخیص، بومی‌سازی، پوسته، فاویکون وضعیت و بازیابی لینک در آن‌ها هماهنگ می‌ماند.
-
-![محافظت، بازیابی لینک و پوسته‌های Soft98 Pro](docs/assets/soft98-pro-banner.svg)
 
 <a id="contents"></a>
 
@@ -44,7 +44,7 @@ Soft98 Pro با مسدودسازی مقاوم تبلیغات، اصلاح کد �
 - [به‌روزرسانی‌ها](#updates)
 - [بومی‌سازی](#localization)
 - [ساخت از سورس](#build-from-source)
-- [CI/CD](#cicd)
+- [خودکارسازی CI/CD](#cicd)
 - [ابزارهای تشخیص](#diagnostics)
 - [مستندات](#documentation)
 
@@ -84,7 +84,7 @@ Soft98 Pro با مسدودسازی مقاوم تبلیغات، اصلاح کد �
 1. برای Chrome یا Edge، [Tampermonkey](https://tampermonkey.net) و برای Firefox، [Violentmonkey](https://violentmonkey.github.io) را نصب کنید.
 2. فایل [`soft98-pro.user.js`](https://github.com/DRSDavidSoft/soft98-pro/raw/main/soft98-pro.user.js) را نصب کنید.
 3. درخواست نصب را در مدیر یوزراسکریپت تأیید کنید.
-4. [soft98.ir](https://soft98.ir) را باز کنید.
+4. سایت [soft98.ir](https://soft98.ir) را باز کنید.
 
 [![نصب یوزراسکریپت](https://img.shields.io/badge/نصب_یوزراسکریپت-کلیک_کنید-3b82f6?style=for-the-badge&logo=tampermonkey&logoColor=white)](https://github.com/DRSDavidSoft/soft98-pro/raw/main/soft98-pro.user.js)
 
@@ -96,17 +96,17 @@ Soft98 Pro با مسدودسازی مقاوم تبلیغات، اصلاح کد �
 2. آرشیو را استخراج کنید.
 3. مراحل مربوط به مرورگر خود را انجام دهید.
 
-#### 🟦 Chrome یا Edge
+#### 🟦 مرورگرهای Chrome یا Edge
 
-1. `chrome://extensions` یا `edge://extensions` را باز کنید.
-2. **Developer mode** را فعال کنید.
-3. **Load unpacked** را انتخاب کنید.
+1. صفحه `chrome://extensions` یا `edge://extensions` را باز کنید.
+2. گزینه **Developer mode** را فعال کنید.
+3. گزینه **Load unpacked** را انتخاب کنید.
 4. پوشه Chromium استخراج‌شده را انتخاب کنید.
 
-#### 🟠 Firefox
+#### 🟠 مرورگر Firefox
 
-1. `about:debugging#/runtime/this-firefox` را باز کنید.
-2. **Load Temporary Add-on** را انتخاب کنید.
+1. صفحه `about:debugging#/runtime/this-firefox` را باز کنید.
+2. گزینه **Load Temporary Add-on** را انتخاب کنید.
 3. فایل `manifest.json` را از پوشه Firefox استخراج‌شده انتخاب کنید.
 
 برای نام بسته‌ها، جزئیات هر مرورگر و رفع اشکال، [راهنمای کامل نصب](docs/wiki/fa/Installation.md) را ببینید.
@@ -178,21 +178,21 @@ npm run screenshot
 
 ### 📦 خروجی‌های ساخت
 
-- [`soft98-pro.user.js`](soft98-pro.user.js): یوزراسکریپت اصلی برای نصب مستقیم از GitHub.
-- `dist/userscript/soft98-pro.user.js`: نسخه انتشار یوزراسکریپت.
-- `dist/chromium/`: ساخت Manifest V3 برای Chrome و Edge.
-- `dist/firefox/`: ساخت Firefox با پل runtime صفحه.
-- `dist/packages/*.zip`: آرشیوهای آماده نصب و انتشار.
-- `dist/release/latest.json`: متادیتای ماشینی به‌روزرسانی و لینک مستقیم بسته‌ها.
-- `dist/release/SHA256SUMS.txt`: checksumهای SHA-256 تمام فایل‌های انتشار.
-- [`docs/assets/soft98-pro-dark.png`](docs/assets/soft98-pro-dark.png): اسکرین‌شات ساخته‌شده از هارنس زنده Soft98.
+- فایل [`soft98-pro.user.js`](soft98-pro.user.js): یوزراسکریپت اصلی برای نصب مستقیم از GitHub.
+- فایل `dist/userscript/soft98-pro.user.js`: نسخه انتشار یوزراسکریپت.
+- پوشه `dist/chromium/`: ساخت Manifest V3 برای Chrome و Edge.
+- پوشه `dist/firefox/`: ساخت Firefox با پل runtime صفحه.
+- پوشه `dist/packages/*.zip`: آرشیوهای آماده نصب و انتشار.
+- فایل `dist/release/latest.json`: متادیتای ماشینی به‌روزرسانی و لینک مستقیم بسته‌ها.
+- فایل `dist/release/SHA256SUMS.txt`: checksumهای SHA-256 تمام فایل‌های انتشار.
+- تصویر [`docs/assets/soft98-pro-dark.png`](docs/assets/soft98-pro-dark.png): اسکرین‌شات ساخته‌شده از هارنس زنده Soft98.
 
 <a id="cicd"></a>
 
-## ⚙️ CI/CD
+## ⚙️ خودکارسازی CI/CD
 
-- workflow مربوط به **Soft98 Pro CI** تمام خروجی‌ها را می‌سازد، آزمون مرورگر و تکرارپذیری بسته‌ها را اجرا می‌کند، وابستگی‌ها را بررسی و artifactها را بارگذاری می‌کند.
-- workflow مربوط به **Soft98 Pro Release** پس از رسیدن pull request توسعه فعال به `main` اجرا می‌شود، tag را از `package.json` می‌سازد، استفاده دوباره از نسخه برای commit دیگر را رد می‌کند و پس از ثبت منشأ artifactها، فایل‌ها، متادیتا و checksumها را در GitHub Releases منتشر می‌کند.
+- گردش‌کار **Soft98 Pro CI** تمام خروجی‌ها را می‌سازد، آزمون مرورگر و تکرارپذیری بسته‌ها را اجرا می‌کند، وابستگی‌ها را بررسی و artifactها را بارگذاری می‌کند.
+- گردش‌کار **Soft98 Pro Release** پس از رسیدن pull request توسعه فعال به `main` اجرا می‌شود، tag را از `package.json` می‌سازد، استفاده دوباره از نسخه برای commit دیگر را رد می‌کند و پس از ثبت منشأ artifactها، فایل‌ها، متادیتا و checksumها را در GitHub Releases منتشر می‌کند.
 - هر دو workflow خلاصه مرحله‌ای برندشده همراه با جزئیات artifact و نتیجه اعتبارسنجی می‌سازند.
 
 <a id="diagnostics"></a>
@@ -221,7 +221,7 @@ window.Soft98AdBlocker.stats
 - [ابزارهای تشخیص](docs/wiki/fa/Diagnostics.md): ابزارهای کنسول و رفع اشکال.
 - [توسعه](docs/wiki/fa/Development.md): فرایند ساخت، تست و مشارکت.
 - [راهنمای سبک مستندات](docs/Documentation-Style-Guide.md): ساختار دوزبانه، استانداردهای تصویری، راست‌به‌چپ و چک‌لیست بازبینی.
-- [README انگلیسی](README.md): نسخه کامل انگلیسی این سند.
+- [نسخه انگلیسی README](README.md): نسخه کامل انگلیسی این سند.
 
 ---
 
@@ -229,7 +229,7 @@ window.Soft98AdBlocker.stats
 
 <div align="center" dir="rtl">
 
-Soft98 Pro · یوزراسکریپت و افزونه مرورگر
+پروژه Soft98 Pro · یوزراسکریپت و افزونه مرورگر
 
 [⬆ بازگشت به بالا](#top)
 

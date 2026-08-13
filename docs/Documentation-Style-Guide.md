@@ -6,7 +6,7 @@ Soft98 Pro documentation is a bilingual product surface. English and Persian rea
 
 - Keep `README.md` and `README.fa.md` aligned in structure and meaning.
 - Keep the English and Persian SVG language selectors visible at the top of both READMEs.
-- Show a real product screenshot before setup instructions.
+- Show the branded hero before the real product screenshot, and keep both before setup instructions.
 - Place the table of contents before long-form sections and link every major section.
 - Keep Getting Started focused on a first successful installation and visit to Soft98.
 - Maintain matching English and Persian wiki pages for user-facing guides.
@@ -24,6 +24,7 @@ Soft98 Pro documentation is a bilingual product surface. English and Persian rea
 - Write concise, professional English.
 - Write natural Iranian Persian rather than literal word-for-word translation.
 - Wrap Persian documents in an RTL container while preserving LTR behavior for code, paths, and commands.
+- Begin every rendered Persian heading, sentence, paragraph, list item, and table cell with Persian text; a Latin product or technical term must follow a Persian lead-in.
 - Keep installation steps, release behavior, supported browsers, and limitations accurate in both languages.
 - Update both READMEs in the same pull request whenever shared behavior changes.
 
@@ -31,6 +32,7 @@ Soft98 Pro documentation is a bilingual product surface. English and Persian rea
 
 - Language switcher works in both directions.
 - Screenshot and SVG assets resolve from GitHub.
+- The hero appears before the screenshot in both READMEs.
 - Heading anchors match the table of contents.
 - First-time installation can be completed without searching another page.
 - Narrow screens are not forced to display wide comparison tables.

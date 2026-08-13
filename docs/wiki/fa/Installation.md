@@ -17,19 +17,19 @@
 
 ## 🧩 افزونه مرورگر
 
-### 🟦 Chrome و Edge
+### 🟦 مرورگرهای Chrome و Edge
 
 1. فایل `soft98-pro-chromium-*.zip` را دانلود کنید.
 2. آن را استخراج کنید.
-3. به `chrome://extensions` (یا `edge://extensions`) بروید.
-4. **Developer mode** را در گوشه بالا-راست فعال کنید.
+3. به صفحه `chrome://extensions` (یا `edge://extensions`) بروید.
+4. گزینه **Developer mode** را در گوشه بالا-راست فعال کنید.
 5. روی **Load unpacked** کلیک کنید و پوشه استخراج شده را انتخاب کنید.
 
-### 🟠 Firefox
+### 🟠 مرورگر Firefox
 
 1. فایل `soft98-pro-firefox-*.zip` را دانلود کنید.
 2. آن را استخراج کنید.
-3. به `about:debugging#/runtime/this-firefox` بروید.
+3. به صفحه `about:debugging#/runtime/this-firefox` بروید.
 4. روی **Load Temporary Add-on** کلیک کنید.
 5. فایل `manifest.json` داخل پوشه استخراج شده را انتخاب کنید.
 
@@ -45,12 +45,12 @@
 
 | مرورگر | مدیر اسکریپت |
 |---------|---------|
-| Chrome / Edge | [Tampermonkey](https://tampermonkey.net) |
-| Firefox | [Violentmonkey](https://violentmonkey.github.io) |
+| مرورگرهای Chrome یا Edge | [افزونه Tampermonkey](https://tampermonkey.net) |
+| مرورگر Firefox | [افزونه Violentmonkey](https://violentmonkey.github.io) |
 
 **مرحله ۲** — اسکریپت را نصب کنید:
 
-👉 [`soft98-pro.user.js`](https://github.com/DRSDavidSoft/soft98-pro/raw/main/soft98-pro.user.js)
+👉 [دریافت فایل `soft98-pro.user.js`](https://github.com/DRSDavidSoft/soft98-pro/raw/main/soft98-pro.user.js)
 
 نصب را در مدیر یوزراسکریپت تأیید کنید.
 

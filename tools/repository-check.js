@@ -31,6 +31,10 @@ const required = [
   "SECURITY.md",
   "src/compatibility/soft98-scripts.json",
 ];
+const PERSIAN_DOCS = [
+  "README.fa.md",
+  ...fs.readdirSync(path.join(ROOT, "docs", "wiki", "fa")).filter((file) => file.endsWith(".md")).map((file) => `docs/wiki/fa/${file}`),
+];
 
 function relative(file) {
   return path.join(ROOT, ...file.split("/"));
@@ -38,6 +42,45 @@ function relative(file) {
 
 for (const file of required) if (!fs.existsSync(relative(file))) throw new Error(`Required repository file is missing: ${file}`);
 validate(fs.readFileSync(relative("CHANGELOG.md"), "utf8"), packageJson.version);
+
+for (const file of ["README.md", "README.fa.md"]) {
+  const source = fs.readFileSync(relative(file), "utf8");
+  const hero = source.indexOf("docs/assets/soft98-pro-banner.svg");
+  const screenshot = source.indexOf("docs/assets/soft98-pro-dark.png");
+  if (hero < 0 || screenshot < 0 || hero > screenshot) throw new Error(`${file} must show the branded hero before the product screenshot`);
+}
+
+function renderedTextStart(value) {
+  return value
+    .replace(/^\s*(?:#{1,6}\s+|>\s*|[-*+]\s+|\d+[.)]\s+)/, "")
+    .replace(/^\s*(?:\*\*|__)?/, "")
+    .replace(/^\s*[✅⚠️👉🔙⬆️📦🧩🕵️🛠️📊🎨⚡🟦🟠🌐🔄⚙️🩺✨🏴‍☠️🚀📸🧭]+\s*/u, "")
+    .replace(/^\s*\[([^\]]+)\]\([^)]*\)/, "$1")
+    .trim();
+}
+
+for (const file of PERSIAN_DOCS) {
+  const lines = fs.readFileSync(relative(file), "utf8").split(/\r?\n/);
+  let fenced = false;
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (/^\s*```/.test(line)) {
+      fenced = !fenced;
+      continue;
+    }
+    if (fenced || !line.trim() || /^\s*(?:<[^>]+>|---+$)/.test(line) || /^\s*!\[/.test(line) || /^\s*\[!\[/.test(line)) continue;
+    const cells = /^\s*\|/.test(line) ? line.split("|").slice(1, -1) : [line];
+    for (const cell of cells) {
+      if (/^\s*:?-{3,}:?\s*$/.test(cell)) continue;
+      const visible = renderedTextStart(cell);
+      if (!visible || /^[\d۰-۹]/u.test(visible)) continue;
+      const firstLetter = visible.match(/[\p{L}]/u);
+      if (firstLetter && !/[\u0600-\u06ff]/u.test(firstLetter[0])) {
+        throw new Error(`Persian documentation must begin rendered text with Persian at ${file}:${index + 1}: ${visible}`);
+      }
+    }
+  }
+}
 
 const compatibility = JSON.parse(fs.readFileSync(relative("src/compatibility/soft98-scripts.json"), "utf8"));
 if (compatibility.schemaVersion !== 1 || compatibility.entries.length < 65) throw new Error("Compatibility catalog does not cover the archived history");
