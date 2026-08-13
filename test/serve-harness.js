@@ -163,6 +163,11 @@ http
                   return /افزونه\\s+حذف|ﺗﺒﻠﻴﻐﺎت|Dark Reader|SMostafaMoosavi|VPN را غیرفعال/.test(node.textContent || "");
                 }).length;
                 var first = links.find(function (link) { return link.href && !/^#|javascript:/i.test(link.getAttribute("href") || ""); });
+                var branded = document.querySelector("[data-soft98-brand-variant]");
+                if (branded) {
+                  var brandBox = branded.getBoundingClientRect();
+                  branded.setAttribute("data-soft98-proof-box", Math.round(brandBox.width) + "x" + Math.round(brandBox.height));
+                }
                 if (proofView === "download") {
                   var target = findDownloadSection();
                   if (target) target.scrollIntoView({ block: "center", inline: "nearest" });

@@ -51,15 +51,20 @@
       }
     </style>
     <script>
+      var harnessParams = new URLSearchParams(location.search);
+      localStorage.removeItem("soft98-ad-blocker.control-position");
       localStorage.setItem(
         "soft98-ad-blocker.settings",
         JSON.stringify({
           blockAds: true,
           patchScripts: true,
           pro: true,
-          darkDesign: true,
+          darkDesign: harnessParams.get("dark") !== "0",
+          rgbMode: harnessParams.get("rgb") === "1",
+          compactLayout: true,
           linkBadges: true,
-          pirateLogo: false,
+          pirateLogo: true,
+          taunt: harnessParams.get("taunt") === "1",
           diagnostics: true,
         })
       );
@@ -120,11 +125,78 @@
           asiatech.innerHTML = '<h2>آسـیاتک</h2><div class="ad-body"></div>';
           document.body.appendChild(asiatech);
 
+          var advertisingSeparator = document.createElement("hr");
+          advertisingSeparator.setAttribute("data-test", "advertising-separator");
+          document.body.appendChild(advertisingSeparator);
+
+          var advertisingCard = document.createElement("section");
+          advertisingCard.setAttribute("data-test", "advertising-card");
+          advertisingCard.innerHTML = '<header><h4>ﺗﺒﻠﻴـﻐﺎﺕ</h4></header><div><iframe src="https://example.invalid/frame" width="300" height="250"></iframe></div>';
+          document.body.appendChild(advertisingCard);
+
+          var heuristicSurface = document.createElement("div");
+          heuristicSurface.setAttribute("data-test", "heuristic-theme-surface");
+          heuristicSurface.style.cssText = "width:320px;height:120px;background:rgb(250,250,250);color:rgb(30,30,30)";
+          heuristicSurface.innerHTML = '<p style="color:rgb(30,30,30)">Dynamic surface without site selectors</p>';
+          document.body.appendChild(heuristicSurface);
+
+          var nestedDarkSurface = document.createElement("article");
+          nestedDarkSurface.setAttribute("data-test", "nested-dark-surface");
+          nestedDarkSurface.style.cssText = "width:680px;height:180px;background:rgb(20,30,38);color:rgb(245,245,245)";
+          nestedDarkSurface.innerHTML =
+            '<div data-test="nested-light-surface" style="width:320px;height:120px;background:rgb(245,245,245);color:rgb(30,30,30)">' +
+            '<a href="/news/one">News one</a><a href="/news/two">News two</a></div>';
+          document.body.appendChild(nestedDarkSurface);
+
+          var navigationShell = document.createElement("div");
+          navigationShell.setAttribute("data-test", "navigation-shell");
+          navigationShell.style.cssText = "position:fixed;top:0;left:0;right:0;height:58px;background:rgb(245,245,245);z-index:20";
+          navigationShell.innerHTML =
+            '<nav><div><button type="button" data-toggle="dropdown" aria-expanded="true">Menu</button>' +
+            '<div data-test="megamenu" style="position:absolute;top:58px;left:30px;width:760px;height:180px;background:rgb(245,245,245)">' +
+            '<div>' +
+            Array.from({ length: 15 }, function (_item, index) { return '<a href="/category/' + index + '">Category ' + index + '</a>'; }).join("") +
+            "</div></div></div></nav>";
+          document.body.appendChild(navigationShell);
+
+          var tabCard = document.createElement("section");
+          tabCard.setAttribute("data-test", "tab-card");
+          tabCard.style.cssText = "width:520px;background:rgb(255,255,255);color:rgb(30,30,30)";
+          tabCard.innerHTML =
+            '<ul role="tablist" style="background:rgb(255,255,255)">' +
+            '<li class="active"><button type="button" data-toggle="tab" role="tab" aria-selected="true" data-target="#harness-pane-one" style="background:rgb(255,255,255)">First</button></li>' +
+            '<li><button type="button" data-toggle="tab" role="tab" aria-selected="false" data-target="#harness-pane-two" style="background:rgb(255,255,255)">Second</button></li>' +
+            "</ul>" +
+            '<div data-test="tab-content" style="background:rgb(255,255,255)">' +
+            '<div id="harness-pane-one" style="background:rgb(255,255,255)">First pane</div>' +
+            '<div id="harness-pane-two" hidden style="background:rgb(255,255,255)">Second pane</div>' +
+            "</div>";
+          document.body.appendChild(tabCard);
+
+          var utilityAside = document.createElement("aside");
+          utilityAside.setAttribute("data-test", "utility-aside");
+          utilityAside.style.cssText = "width:340px;background:rgb(255,255,255);color:rgb(30,30,30)";
+          utilityAside.innerHTML = '<section data-test="utility-list"><h3>Utility software</h3><ul>' +
+            Array.from({ length: 4 }, function (_item, index) {
+              return '<li><a href="/utility/' + index + '"><i role="img" style="display:block;width:40px;height:40px"></i><span><strong>Utility ' + index + '</strong><small>Useful software description</small></span></a></li>';
+            }).join("") + "</ul></section>";
+          document.body.appendChild(utilityAside);
+
+          var advertisingNavigationLink = document.createElement("a");
+          advertisingNavigationLink.href = "/adv.html";
+          advertisingNavigationLink.setAttribute("data-test", "advertising-navigation-link");
+          advertisingNavigationLink.textContent = "تبلیغات";
+          document.body.appendChild(advertisingNavigationLink);
+
           var blockerNotice = document.createElement("aside");
           blockerNotice.id = "PersianBlockerFreedomNotice";
           blockerNotice.style.cssText = "position:fixed;top:0;left:0;right:0;height:72px";
           blockerNotice.innerHTML = '<a href="https://github.com/MasterKia/PersianBlocker">هشدار از طرف لیست PersianBlocker: آزادی کاربران</a>';
           document.body.appendChild(blockerNotice);
+
+          var hostileAttribution = document.createElement("aside");
+          hostileAttribution.innerHTML = '<a href="https://example.invalid/SMostafaMoosavi">SMostafaMoosavi anti-adblock support</a>';
+          document.body.appendChild(hostileAttribution);
 
           location.hash = encodeURIComponent("افزونه حذف ﺗﺒﻠﻴﻐﺎت یا VPN را غیرفعال کنید");
           document.title = "افزونه حذف ﺗﺒﻠﻴﻐﺎت یا VPN را غیرفعال کنید - Soft98";
@@ -151,6 +223,55 @@
             document.documentElement.setAttribute("data-soft98-top-level-patch", "failed-caught");
           }
 
+          var controlBehavior = (function () {
+            var api = window.Soft98Pro;
+            api.openPanel();
+            var control = document.querySelector("#soft98-pro-control");
+            var firstTab = control.querySelector('[role="tab"][aria-selected="true"]');
+            firstTab.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+            var selectedAfterArrow = control.querySelector('[role="tab"][aria-selected="true"]');
+            document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
+            api.configure({ taunt: harnessParams.get("taunt") === "1" });
+            var brandedLogo = document.querySelector("[data-test='site-logo']");
+            api.configure({ pirateLogo: false });
+            var logoRestored =
+              brandedLogo.getAttribute("src") === "data:image/gif;base64,R0lGODlhAQABAAAAACw=" &&
+              brandedLogo.getAttribute("alt") === "Soft98 logo" &&
+              brandedLogo.getAttribute("srcset") === "data:image/gif;base64,R0lGODlhAQABAAAAACw= 1x" &&
+              brandedLogo.getAttribute("sizes") === "220px";
+            api.configure({ pirateLogo: true });
+            return {
+              tabChanged: Boolean(selectedAfterArrow && selectedAfterArrow !== firstTab),
+              outsideCollapsed: control.getAttribute("data-open") === "false" && control.querySelector("form").getAttribute("aria-hidden") === "true",
+              logoRestored: logoRestored,
+            };
+          })();
+          var megamenu = document.querySelector('[data-test="megamenu"]');
+          var nestedLightSurface = document.querySelector('[data-test="nested-light-surface"]');
+          var proStyleNode = document.getElementById("soft98-pro-style");
+          if (proStyleNode) proStyleNode.remove();
+          var utilityList = document.querySelector('[data-test="utility-list"]');
+          var utilityRows = utilityList.querySelectorAll("a[href]");
+          var tabTheme = (function () {
+            var card = document.querySelector('[data-test="tab-card"]');
+            var content = card.querySelector('[data-test="tab-content"]');
+            var tabs = card.querySelectorAll('[data-toggle="tab"]');
+            var outgoing = tabs[0];
+            var incoming = tabs[1];
+            outgoing.setAttribute("aria-selected", "false");
+            outgoing.parentElement.classList.remove("active");
+            incoming.setAttribute("aria-selected", "true");
+            incoming.parentElement.classList.add("active");
+            return {
+              cardSurface: card.getAttribute("data-soft98-pro-surface"),
+              contentSurface: content.getAttribute("data-soft98-pro-surface"),
+              paneSurfaces: Array.prototype.map.call(content.children, function (node) { return node.getAttribute("data-soft98-pro-surface"); }),
+              cardBackground: getComputedStyle(card).backgroundColor,
+              contentBackground: getComputedStyle(content).backgroundColor,
+              outgoingBackground: getComputedStyle(outgoing).backgroundColor,
+              incomingBackground: getComputedStyle(incoming).backgroundColor,
+            };
+          })();
           window.__results = {
             href: link.getAttribute("href"),
             dataHref: link.getAttribute("data-soft98-adblocker-href"),
@@ -159,8 +280,15 @@
             state: link.getAttribute("data-soft98-adblocker-state"),
             warnings: document.querySelectorAll(".tbd_ibd, .trk_irk, .tbdc").length,
             blockerNotices: document.querySelectorAll("#PersianBlockerFreedomNotice, [id*='PersianBlocker']").length,
+            hostileMentions: /s[\W_]*mostafa[\W_]*moosavi/i.test(document.body.textContent + " " + Array.prototype.map.call(document.querySelectorAll("[href],[title],[aria-label],[alt]"), function (node) { return [node.getAttribute("href"), node.getAttribute("title"), node.getAttribute("aria-label"), node.getAttribute("alt")].join(" "); }).join(" ")),
+            hostileBranding: document.querySelectorAll("[data-soft98-pro-brand-replaced]").length,
             kaprila: document.querySelectorAll("#kaprila_soft98_ir_related, [id*='kaprila']").length,
             asiatech: document.querySelectorAll("[data-test='asiatech-frame']").length,
+            advertisingCard: document.querySelectorAll("[data-test='advertising-card']").length,
+            advertisingSeparator: document.querySelectorAll("[data-test='advertising-separator']").length,
+            advertisingNavigationLink: document.querySelectorAll("[data-test='advertising-navigation-link']").length,
+            heuristicSurface: document.querySelector("[data-test='heuristic-theme-surface']").getAttribute("data-soft98-pro-surface"),
+            heuristicTone: document.querySelector("[data-test='heuristic-theme-surface'] p").getAttribute("data-soft98-pro-tone"),
             hash: location.hash,
             title: document.title,
             patch: document.documentElement.getAttribute("data-soft98-patch-result"),
@@ -169,11 +297,49 @@
             assignedScrollDetector: document.documentElement.getAttribute("data-soft98-assigned-scroll-detector"),
             scrollWarnings: document.querySelectorAll(".alert-warning,[role='alert']").length,
             version: window.Soft98AdBlocker && window.Soft98AdBlocker.version,
+            tauntTheme: document.querySelector("#soft98-ad-blocker-taunt") && document.querySelector("#soft98-ad-blocker-taunt").getAttribute("data-theme"),
+            tauntBackground: document.querySelector("#soft98-ad-blocker-taunt") && getComputedStyle(document.querySelector("#soft98-ad-blocker-taunt")).backgroundColor,
+            logoVariant: document.querySelector("[data-soft98-brand-variant]") && document.querySelector("[data-soft98-brand-variant]").getAttribute("data-soft98-brand-variant"),
+            rgbMode: document.documentElement.classList.contains("soft98-pro-rgb"),
+            rgbAmbient: Boolean(document.querySelector("#soft98-pro-ambient")),
+            rgbAnimation: getComputedStyle(document.documentElement).animationName,
+            rgbBackgroundImage: getComputedStyle(document.body).backgroundImage,
+            constructableTheme: Array.prototype.some.call(document.adoptedStyleSheets || [], function (sheet) {
+              try { return Array.prototype.some.call(sheet.cssRules || [], function (rule) { return /:root\.soft98-pro-theme/.test(rule.cssText); }); } catch (_error) { return false; }
+            }),
+            utilityLayout: utilityList.getAttribute("data-soft98-pro-layout"),
+            utilityRows: Array.prototype.every.call(utilityRows, function (row) { return row.getAttribute("data-soft98-pro-list-row") === "true"; }),
+            utilityCopies: Array.prototype.every.call(utilityRows, function (row) { return Boolean(row.querySelector("[data-soft98-pro-list-copy=true]")); }),
+            megamenuSurface: megamenu && megamenu.getAttribute("data-soft98-pro-surface"),
+            megamenuBackground: megamenu && getComputedStyle(megamenu).backgroundColor,
+            megamenuBackgroundImage: megamenu && getComputedStyle(megamenu).backgroundImage,
+            nestedLightSurface: nestedLightSurface && nestedLightSurface.getAttribute("data-soft98-pro-surface"),
+            nestedLightBackground: nestedLightSurface && getComputedStyle(nestedLightSurface).backgroundColor,
+            controlTabChanged: controlBehavior.tabChanged,
+            controlOutsideCollapsed: controlBehavior.outsideCollapsed,
+            logoRestored: controlBehavior.logoRestored,
+            tabTheme: tabTheme,
+            control: (function () {
+              var control = document.querySelector("#soft98-pro-control");
+              var toggle = control && control.querySelector("[data-role='toggle']");
+              var controlRect = control && control.getBoundingClientRect();
+              var toggleRect = toggle && toggle.getBoundingClientRect();
+              return {
+                width: controlRect && Math.round(controlRect.width),
+                height: controlRect && Math.round(controlRect.height),
+                toggleX: toggleRect && Math.round(toggleRect.x),
+                toggleY: toggleRect && Math.round(toggleRect.y),
+                movable: Boolean(toggle && /grab/.test(getComputedStyle(toggle).cursor)),
+                formDirection: control && control.querySelector("form") && control.querySelector("form").dir,
+              };
+            })(),
           };
           document.querySelector("[data-proof='href']").textContent = link.getAttribute("href");
           document.querySelector("[data-proof='warnings']").textContent = document.querySelectorAll(".tbd_ibd, .trk_irk, .tbdc").length;
           document.querySelector("[data-proof='blocker-notices']").textContent =
             document.querySelectorAll("#PersianBlockerFreedomNotice, [id*='PersianBlocker']").length;
+          document.querySelector("[data-proof='hostile-mentions']").textContent = String(window.__results.hostileMentions);
+          document.querySelector("[data-proof='hostile-branding']").textContent = String(window.__results.hostileBranding);
           document.querySelector("[data-proof='ads']").textContent = document.querySelectorAll("#kaprila_soft98_ir_related, [id*='kaprila']").length;
           document.querySelector("[data-proof='patch']").textContent = document.documentElement.getAttribute("data-soft98-patch-result");
           document.querySelector("[data-proof='top-level-patch']").textContent =
@@ -184,6 +350,21 @@
             (document.documentElement.getAttribute("data-soft98-assigned-scroll-detector") || "blocked") +
             "/" +
             document.querySelectorAll(".alert-warning,[role='alert']").length;
+          document.querySelector("[data-proof='taunt']").textContent =
+            (document.querySelector("#soft98-ad-blocker-taunt") && document.querySelector("#soft98-ad-blocker-taunt").getAttribute("data-theme")) || "none";
+          document.querySelector("[data-proof='taunt-background']").textContent =
+            (document.querySelector("#soft98-ad-blocker-taunt") && getComputedStyle(document.querySelector("#soft98-ad-blocker-taunt")).backgroundColor) || "none";
+          document.querySelector("[data-proof='logo']").textContent =
+            (document.querySelector("[data-soft98-brand-variant]") && document.querySelector("[data-soft98-brand-variant]").getAttribute("data-soft98-brand-variant")) || "none";
+          document.querySelector("[data-proof='rgb']").textContent =
+            String(document.documentElement.classList.contains("soft98-pro-rgb")) + "/" + String(Boolean(document.querySelector("#soft98-pro-ambient")));
+          document.querySelector("[data-proof='megamenu']").textContent =
+            String(window.__results.megamenuSurface) + "/" +
+            (window.__results.megamenuBackgroundImage && window.__results.megamenuBackgroundImage !== "none" ? "gradient" : String(window.__results.megamenuBackground));
+          document.querySelector("[data-proof='control-outside']").textContent = String(window.__results.controlOutsideCollapsed);
+          document.querySelector("[data-proof='control-tabs']").textContent = String(window.__results.controlTabChanged);
+          document.querySelector("[data-proof='tab-card']").textContent =
+            [tabTheme.cardSurface, tabTheme.contentSurface, tabTheme.paneSurfaces.join(","), tabTheme.cardBackground, tabTheme.contentBackground, tabTheme.outgoingBackground, tabTheme.incomingBackground].join("/");
         }, 350);
       });
     </script>
@@ -191,6 +372,7 @@
   <body>
     <main>
       <h1>Soft98 Pro Proof Harness</h1>
+      <a href="/"><img data-test="site-logo" alt="Soft98 logo" width="220" height="80" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACw= 1x" sizes="220px" /></a>
       <a class="download-list-link" href="https://soft98.ir/download/test-package">Download</a>
       <div id="kaprila_soft98_ir_related" class="ad-slot">Kaprila ad placeholder should disappear</div>
       <div id="stable-proof-container"><div class="dbdnone">safe probe placeholder</div></div>
@@ -198,10 +380,20 @@
         <span>Download href: <strong data-proof="href">pending</strong></span>
         <span>Warning nodes: <strong data-proof="warnings">pending</strong></span>
         <span>External notices: <strong data-proof="blocker-notices">pending</strong></span>
+        <span>Hostile mentions: <strong data-proof="hostile-mentions">pending</strong></span>
+        <span>Pro replacements: <strong data-proof="hostile-branding">pending</strong></span>
         <span>Ad nodes: <strong data-proof="ads">pending</strong></span>
         <span>Patch hijack: <strong data-proof="patch">pending</strong></span>
         <span>Top-level throw: <strong data-proof="top-level-patch">pending</strong></span>
         <span>Scroll detector: <strong data-proof="scroll">pending</strong></span>
+        <span>Taunt theme: <strong data-proof="taunt">pending</strong></span>
+        <span>Taunt background: <strong data-proof="taunt-background">pending</strong></span>
+        <span>Logo variant: <strong data-proof="logo">pending</strong></span>
+        <span>RGB mode: <strong data-proof="rgb">pending</strong></span>
+        <span>Megamenu theme: <strong data-proof="megamenu">pending</strong></span>
+        <span>Outside collapse: <strong data-proof="control-outside">pending</strong></span>
+        <span>Tab keyboard: <strong data-proof="control-tabs">pending</strong></span>
+        <span>Tabbed card theme: <strong data-proof="tab-card">pending</strong></span>
       </section>
     </main>
   </body>

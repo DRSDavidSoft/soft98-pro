@@ -1,3 +1,12 @@
+<div align="center">
+
+<a href="Home.md"><img src="../assets/badge-en.svg" alt="English" height="22"/></a>&nbsp;
+<a href="fa/Home.md"><img src="../assets/badge-fa.svg" alt="فارسی" height="22"/></a>
+
+</div>
+
+---
+
 # Soft98 Pro Wiki 🧭
 
 Welcome to the Soft98 Pro wiki.

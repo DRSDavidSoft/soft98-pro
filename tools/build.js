@@ -3,23 +3,82 @@
 
 const fs = require("fs");
 const path = require("path");
-const archiver = require("archiver");
+const crypto = require("crypto");
+const { ZipArchive } = require("archiver");
 const terser = require("terser");
+const { writeReleaseNotes } = require("./changelog.js");
 
 const ROOT = path.resolve(__dirname, "..");
 const SRC = path.join(ROOT, "src");
 const DIST = path.join(ROOT, "dist");
 const VERSION = require(path.join(ROOT, "package.json")).version;
 const RUNTIME = path.join(SRC, "runtime.js");
+const PATCH_ENGINE = path.join(SRC, "patch-engine.js");
 const META = path.join(SRC, "meta.txt");
 const USERSCRIPT_OUT = path.join(ROOT, "soft98-pro.user.js");
+const MESSAGES = JSON.parse(fs.readFileSync(path.join(SRC, "messages.json"), "utf8"));
+const COMPATIBILITY = JSON.parse(fs.readFileSync(path.join(SRC, "compatibility", "soft98-scripts.json"), "utf8"));
+const RELEASE_BASE = "https://github.com/DRSDavidSoft/soft98-pro/releases/latest/download";
+const BRAND_FILES = {
+  light: path.join(SRC, "assets", "soft98-pro-logo-light.png"),
+  pirateDark: path.join(SRC, "assets", "soft98-pro-logo-pirate-dark.png"),
+};
 
 const commonManifest = {
-  name: "Soft98 Pro",
-  short_name: "Soft98 Pro",
+  name: MESSAGES.locales.en.manifest.name,
+  short_name: MESSAGES.locales.en.manifest.name,
   version: VERSION.replace(/[^\d.]/g, ""),
-  description: "Soft98 Pro enhancements, ad blocking, anti-adblock patching, and download recovery.",
+  description: MESSAGES.locales.en.manifest.description,
 };
+
+function validateMessages() {
+  if (MESSAGES.schemaVersion !== 1 || !MESSAGES.locales || !MESSAGES.locales.en || !MESSAGES.locales.fa) {
+    throw new Error("src/messages.json must contain schemaVersion 1 with en and fa locales");
+  }
+  const shape = (value, prefix = "") => Object.entries(value).flatMap(([key, child]) => {
+    const pathName = prefix ? `${prefix}.${key}` : key;
+    return child && typeof child === "object" && !Array.isArray(child) ? shape(child, pathName) : [pathName];
+  });
+  if (JSON.stringify(shape(MESSAGES.locales.en).sort()) !== JSON.stringify(shape(MESSAGES.locales.fa).sort())) {
+    throw new Error("English and Persian message catalogs must have identical keys");
+  }
+}
+
+function validateCompatibility() {
+  if (COMPATIBILITY.schemaVersion !== 1 || !Array.isArray(COMPATIBILITY.entries) || !COMPATIBILITY.entries.length) {
+    throw new Error("src/compatibility/soft98-scripts.json must contain a non-empty schema version 1 catalog");
+  }
+  const hashes = new Set();
+  for (const entry of COMPATIBILITY.entries) {
+    if (!/^[a-f0-9]{64}$/.test(entry.sha256 || "")) throw new Error(`Invalid compatibility hash: ${entry.sha256}`);
+    if (hashes.has(entry.sha256)) throw new Error(`Duplicate compatibility hash: ${entry.sha256}`);
+    hashes.add(entry.sha256);
+  }
+}
+
+function dataUrl(file) {
+  if (!fs.existsSync(file)) throw new Error(`Missing bundled brand asset: ${path.relative(ROOT, file)}`);
+  return `data:image/png;base64,${fs.readFileSync(file).toString("base64")}`;
+}
+
+function sourceReplacements(target) {
+  return {
+    __SOFT98_BUILD_TARGET__: target,
+    __SOFT98_RECOMMEND_EXTENSION__: target === "extension" ? "false" : "true",
+    __SOFT98_VERSION__: VERSION,
+    __SOFT98_MESSAGES__: JSON.stringify(MESSAGES),
+    __SOFT98_COMPATIBILITY__: JSON.stringify(COMPATIBILITY),
+    __SOFT98_BRAND_ASSETS__: JSON.stringify(Object.fromEntries(Object.entries(BRAND_FILES).map(([key, file]) => [key, dataUrl(file)]))),
+    __SOFT98_NAME__: MESSAGES.locales.en.manifest.name,
+    __SOFT98_DESCRIPTION__: MESSAGES.locales.en.manifest.description,
+  };
+}
+
+function applyReplacements(source, target) {
+  let output = source;
+  for (const [token, value] of Object.entries(sourceReplacements(target))) output = output.replaceAll(token, value);
+  return output;
+}
 
 function rmrf(target) {
   fs.rmSync(target, { recursive: true, force: true });
@@ -35,10 +94,7 @@ function copyFile(from, to) {
 }
 
 function runtimeSource(target) {
-  return fs
-    .readFileSync(RUNTIME, "utf8")
-    .replaceAll("__SOFT98_BUILD_TARGET__", target)
-    .replaceAll("__SOFT98_RECOMMEND_EXTENSION__", target === "extension" ? "false" : "true");
+  return `${fs.readFileSync(PATCH_ENGINE, "utf8")}\n${applyReplacements(fs.readFileSync(RUNTIME, "utf8"), target)}`;
 }
 
 async function minifySource(source, to) {
@@ -57,7 +113,7 @@ async function minifyFile(from, to) {
 }
 
 async function buildUserscript() {
-  const meta = fs.readFileSync(META, "utf8").trim();
+  const meta = applyReplacements(fs.readFileSync(META, "utf8"), "userscript").trim();
   const result = await terser.minify(runtimeSource("userscript"), {
     compress: { passes: 2, unsafe: false },
     mangle: { keep_fnames: /soft98AdBlocker|patchSoft98Code/ },
@@ -79,10 +135,21 @@ function chromiumManifest() {
   return {
     manifest_version: 3,
     ...commonManifest,
-    permissions: ["storage", "tabs"],
-    host_permissions: ["*://*.soft98.ir/*"],
+    permissions: ["storage", "tabs", "alarms", "scripting", "webRequest", "declarativeNetRequestWithHostAccess"],
+    host_permissions: [
+      "*://*.soft98.ir/*",
+      "https://github.com/DRSDavidSoft/soft98-pro/releases/*",
+      "https://api.github.com/repos/DRSDavidSoft/soft98-pro/releases/*",
+      "https://release-assets.githubusercontent.com/*",
+      "https://objects.githubusercontent.com/*",
+    ],
+    background: { service_worker: "assets/background.js" },
+    declarative_net_request: {
+      rule_resources: [{ id: "soft98_upstream_gateway", enabled: true, path: "rules.json" }],
+    },
     action: { default_title: "Soft98 Pro", default_popup: "popup.html" },
     options_page: "options.html",
+    web_accessible_resources: [{ resources: ["assets/upstream-gateway.js"], matches: ["*://*.soft98.ir/*"] }],
     content_scripts: [
       {
         matches: ["*://*.soft98.ir/*"],
@@ -109,10 +176,22 @@ function firefoxManifest() {
         strict_min_version: "109.0",
       },
     },
-    permissions: ["storage", "tabs", "*://*.soft98.ir/*"],
+    permissions: [
+      "storage",
+      "tabs",
+      "alarms",
+      "webRequest",
+      "webRequestBlocking",
+      "*://*.soft98.ir/*",
+      "https://github.com/DRSDavidSoft/soft98-pro/releases/*",
+      "https://api.github.com/repos/DRSDavidSoft/soft98-pro/releases/*",
+      "https://release-assets.githubusercontent.com/*",
+      "https://objects.githubusercontent.com/*",
+    ],
+    background: { scripts: ["assets/release-client.js", "assets/background.js"], persistent: false },
     browser_action: { default_title: "Soft98 Pro", default_popup: "popup.html" },
     options_ui: { page: "options.html", open_in_tab: true },
-    web_accessible_resources: ["assets/runtime.page.js"],
+    web_accessible_resources: ["assets/runtime.page.js", "assets/upstream-gateway.js"],
     content_scripts: [
       {
         matches: ["*://*.soft98.ir/*"],
@@ -125,7 +204,14 @@ function firefoxManifest() {
 
 function copyUi(target) {
   for (const file of ["popup.html", "options.html", "options.js", "styles.css"]) {
-    copyFile(path.join(SRC, "ui", file), path.join(target, file));
+    const from = path.join(SRC, "ui", file);
+    const to = path.join(target, file);
+    if (file.endsWith(".js")) {
+      mkdir(path.dirname(to));
+      fs.writeFileSync(to, applyReplacements(fs.readFileSync(from, "utf8"), "extension"), "utf8");
+    } else {
+      copyFile(from, to);
+    }
   }
 }
 
@@ -133,13 +219,42 @@ async function zipDirectory(source, output) {
   mkdir(path.dirname(output));
   await new Promise((resolve, reject) => {
     const stream = fs.createWriteStream(output);
-    const archive = archiver("zip", { zlib: { level: 9 } });
+    const archive = new ZipArchive({ zlib: { level: 9 } });
     stream.on("close", resolve);
     archive.on("error", reject);
     archive.pipe(stream);
-    archive.directory(source, false);
+    const files = [];
+    const collect = (directory) => {
+      for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+        const target = path.join(directory, entry.name);
+        if (entry.isDirectory()) collect(target);
+        else if (entry.isFile()) files.push(target);
+      }
+    };
+    collect(source);
+    for (const file of files.sort()) {
+      archive.append(fs.readFileSync(file), {
+        name: path.relative(source, file).split(path.sep).join("/"),
+        date: new Date("1980-01-01T00:00:00.000Z"),
+        mode: 0o644,
+      });
+    }
     archive.finalize();
   });
+}
+
+function chromiumRules() {
+  return [{
+    id: 1,
+    priority: 1,
+    action: { type: "redirect", redirect: { extensionPath: "/assets/upstream-gateway.js" } },
+    condition: {
+      regexFilter: "^https?://([^/]+\\.)?soft98\\.ir/templates/.*/(application\\.min\\.packed|jquery(-v[^/?#]+)?(\\.min\\.packed)?)\\.js([?#].*)?$",
+      isUrlFilterCaseSensitive: false,
+      initiatorDomains: ["soft98.ir"],
+      resourceTypes: ["script"],
+    },
+  }];
 }
 
 async function buildTarget(name, manifest) {
@@ -147,20 +262,62 @@ async function buildTarget(name, manifest) {
   mkdir(path.join(target, "assets"));
   writeJson(path.join(target, "manifest.json"), manifest);
   copyUi(target);
+  copyFile(path.join(SRC, "user-origin.css"), path.join(target, "assets", "user-origin.css"));
+  await minifyFile(path.join(SRC, "release-client.js"), path.join(target, "assets", "release-client.js"));
   await minifySource(runtimeSource("extension"), path.join(target, "assets", "runtime.page.js"));
+  const backgroundPrefix = name === "chromium" ? 'importScripts("release-client.js");\n' : "";
+  await minifySource(backgroundPrefix + applyReplacements(fs.readFileSync(path.join(SRC, "background.js"), "utf8"), "extension"), path.join(target, "assets", "background.js"));
   await minifyFile(path.join(SRC, "content", "bridge.js"), path.join(target, "assets", "bridge.js"));
+  await minifyFile(path.join(SRC, "content", "upstream-gateway.js"), path.join(target, "assets", "upstream-gateway.js"));
+  if (name === "chromium") writeJson(path.join(target, "rules.json"), chromiumRules());
   if (name === "firefox") {
     await minifyFile(path.join(SRC, "content", "firefox-injector.js"), path.join(target, "assets", "firefox-injector.js"));
   }
   await zipDirectory(target, path.join(DIST, "packages", `soft98-pro-${name}-${VERSION}.zip`));
 }
 
+function sha256(file) {
+  return crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+}
+
+function writeReleaseMetadata() {
+  const packageNames = [
+    `soft98-pro-chromium-${VERSION}.zip`,
+    `soft98-pro-firefox-${VERSION}.zip`,
+    `soft98-pro-userscript-${VERSION}.zip`,
+  ];
+  const releaseNotesPath = path.join(DIST, "release", "RELEASE-NOTES.md");
+  writeReleaseNotes(releaseNotesPath, VERSION);
+  const files = [USERSCRIPT_OUT, ...packageNames.map((name) => path.join(DIST, "packages", name)), releaseNotesPath];
+  const assets = Object.fromEntries(files.map((file) => {
+    const name = path.basename(file);
+    return [name, { url: `${RELEASE_BASE}/${name}`, sha256: sha256(file), bytes: fs.statSync(file).size }];
+  }));
+  const metadata = {
+    schemaVersion: 1,
+    product: commonManifest.name,
+    version: VERSION,
+    releaseUrl: "https://github.com/DRSDavidSoft/soft98-pro/releases/latest",
+    userscript: assets["soft98-pro.user.js"],
+    chromium: assets[`soft98-pro-chromium-${VERSION}.zip`],
+    firefox: assets[`soft98-pro-firefox-${VERSION}.zip`],
+    releaseNotes: assets["RELEASE-NOTES.md"],
+    assets,
+  };
+  writeJson(path.join(DIST, "release", "latest.json"), metadata);
+  const checksums = Object.entries(assets).map(([name, asset]) => `${asset.sha256}  ${name}`).join("\n");
+  fs.writeFileSync(path.join(DIST, "release", "SHA256SUMS.txt"), `${checksums}\n`, "utf8");
+}
+
 async function main() {
+  validateMessages();
+  validateCompatibility();
   rmrf(DIST);
   await buildUserscript();
   await buildTarget("chromium", chromiumManifest());
   await buildTarget("firefox", firefoxManifest());
   await zipDirectory(path.join(DIST, "userscript"), path.join(DIST, "packages", `soft98-pro-userscript-${VERSION}.zip`));
+  writeReleaseMetadata();
   console.log(`Built Soft98 packages in ${path.relative(ROOT, DIST)}`);
 }
 

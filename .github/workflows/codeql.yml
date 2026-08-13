@@ -1,0 +1,83 @@
+name: "🛡️ Soft98 Pro · CodeQL"
+run-name: "🛡️ CodeQL · ${{ github.ref_name }} · ${{ github.event_name }}"
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+  schedule:
+    - cron: "37 2 * * 4"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+concurrency:
+  group: codeql-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: "🔎 ${{ matrix.label }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: Actions workflows
+            language: actions
+            category: /language:actions/scope:workflows
+          - label: JavaScript runtime and tooling
+            language: javascript-typescript
+            category: /language:javascript-typescript/scope:project
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: "📥 Check out source"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: "🛡️ Initialize CodeQL"
+        uses: github/codeql-action/init@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: none
+          queries: security-extended
+
+      - name: "🔬 Analyze and upload results"
+        uses: github/codeql-action/analyze@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
+        with:
+          category: ${{ matrix.category }}
+
+  complete:
+    name: "🛡️ CodeQL · Entire repository"
+    if: always()
+    needs: analyze
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: "📋 Publish consolidated security summary"
+        env:
+          ANALYSIS_RESULT: ${{ needs.analyze.result }}
+        run: |
+          if [[ "$ANALYSIS_RESULT" == "success" ]]; then
+            icon='✅'
+          else
+            icon='❌'
+          fi
+          {
+            echo "# $icon Soft98 Pro CodeQL"
+            echo
+            echo "Analysis result: \`$ANALYSIS_RESULT\`."
+            echo
+            echo '| Codebase | Analyzer | Coverage |'
+            echo '|---|---|---|'
+            echo '| Workflows | Actions | All tracked GitHub Actions workflows |'
+            echo '| Project | JavaScript/TypeScript | Runtime, extension bridge, service worker, tests, and build tooling |'
+          } >> "$GITHUB_STEP_SUMMARY"
+          [[ "$ANALYSIS_RESULT" == "success" ]]

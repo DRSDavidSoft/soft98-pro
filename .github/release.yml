@@ -1,0 +1,17 @@
+changelog:
+  exclude:
+    labels:
+      - skip-changelog
+  categories:
+    - title: "✨ Features"
+      labels: [enhancement]
+    - title: "🐛 Fixes"
+      labels: [bug]
+    - title: "🧬 Compatibility"
+      labels: [compatibility, upstream-change]
+    - title: "📚 Documentation"
+      labels: [documentation]
+    - title: "🔧 Maintenance"
+      labels: [dependencies, ci]
+    - title: "Other changes"
+      labels: ["*"]

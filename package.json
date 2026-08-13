@@ -1,18 +1,31 @@
 {
   "name": "soft98-pro",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Soft98 Pro userscript and browser extension with shared resilient runtime.",
   "private": true,
   "type": "commonjs",
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "build": "node tools/build.js",
     "screenshot": "node tools/screenshot.js",
-    "check": "npm run build && node --check src/runtime.js && node --check src/content/bridge.js && node --check src/content/firefox-injector.js && node --check src/ui/options.js && node --check test/serve-harness.js && node --check tools/screenshot.js && node --check soft98-pro.user.js",
-    "test": "node test/validate-build.js",
-    "ci": "npm run check && npm test"
+    "check:live-extension": "node tools/live-extension-check.js",
+    "summary": "node tools/ci-summary.js",
+    "import:history": "node tools/import-soft98-history.js",
+    "check:soft98-upstream": "node tools/check-soft98-upstream.js --check",
+    "build:patched-upstream": "node tools/build-patched-upstream.js",
+    "check:changelog": "node tools/changelog.js check",
+    "release:notes": "node tools/changelog.js release-notes",
+    "check:repo": "node tools/repository-check.js",
+    "sync:persianblocker": "node tools/sync-persianblocker-fixture.js",
+    "check:persianblocker-upstream": "node tools/sync-persianblocker-fixture.js --check",
+    "check": "npm run check:changelog && npm run build && node --check src/patch-engine.js && node --check src/runtime.js && node --check src/release-client.js && node --check src/background.js && node --check src/content/bridge.js && node --check src/content/firefox-injector.js && node --check src/content/upstream-gateway.js && node --check src/ui/options.js && node --check test/serve-harness.js && node --check test/runtime-browser.js && node --check test/deterministic-build.js && node --check test/persianblocker-compat.js && node --check test/upstream-build.js && node --check tools/build.js && node --check tools/build-patched-upstream.js && node --check tools/changelog.js && node --check tools/check-soft98-upstream.js && node --check tools/ci-summary.js && node --check tools/import-soft98-history.js && node --check tools/live-extension-check.js && node --check tools/report-soft98-update.js && node --check tools/repository-check.js && node --check tools/sync-persianblocker-fixture.js && node --check tools/screenshot.js && node --check soft98-pro.user.js",
+    "test": "node test/validate-build.js && node test/patch-engine.js && node test/upstream-build.js && node test/changelog.js && node test/upstream-monitor.js && node test/release-client.js && node test/persianblocker-compat.js && node test/deterministic-build.js && node test/runtime-browser.js",
+    "ci": "npm run check && npm test && npm run check:repo"
   },
   "devDependencies": {
-    "archiver": "^7.0.1",
-    "terser": "^5.43.1"
+    "archiver": "^8.0.0",
+    "terser": "^5.50.0"
   }
 }

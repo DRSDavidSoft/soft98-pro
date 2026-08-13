@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/DRSDavidSoft/soft98-pro/security/advisories/new
+    about: Report security vulnerabilities privately.
+  - name: Documentation
+    url: https://github.com/DRSDavidSoft/soft98-pro/tree/main/docs/wiki
+    about: Read installation, diagnostics, and development documentation.
