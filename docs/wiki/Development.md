@@ -30,7 +30,7 @@ The main runtime lives in `src/runtime.js`. Keep browser-extension and userscrip
 
 Maintain all English and Persian runtime, settings, diagnostics, taunt, and update copy in `src/messages.json`. The build requires identical locale keys and inlines the catalog into every JavaScript target.
 
-The CI workflow validates and uploads packages for every pull request. The release workflow additionally checks that the Git tag matches `package.json`, attests the artifacts, and publishes packages, update metadata, and checksums to GitHub Releases.
+The CI workflow validates and uploads packages for every pull request. Merging the active-development PR into `main` runs the release workflow, derives the version tag from `package.json`, rejects reuse of an existing version on another commit, attests the artifacts, and publishes packages, update metadata, and checksums to GitHub Releases. A matching tag push or manual dispatch can rerun the same release commit.
 
 Extension update checks are shared through `src/release-client.js`. The client prefers the release asset `latest.json` and falls back to GitHub's Releases API, so upgrades from releases created before the metadata feed was introduced keep working.
 

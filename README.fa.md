@@ -180,7 +180,7 @@ npm run screenshot
 ## CI/CD
 
 - workflow مربوط به **Soft98 Pro CI** تمام خروجی‌ها را می‌سازد، آزمون مرورگر و تکرارپذیری بسته‌ها را اجرا می‌کند، وابستگی‌ها را بررسی و artifactها را بارگذاری می‌کند.
-- workflow مربوط به **Soft98 Pro Release** تطابق tag و نسخه را بررسی، منشأ artifactها را ثبت و فایل‌های انتشار، متادیتا و checksumها را در GitHub Releases منتشر می‌کند.
+- workflow مربوط به **Soft98 Pro Release** پس از رسیدن pull request توسعه فعال به `main` اجرا می‌شود، tag را از `package.json` می‌سازد، استفاده دوباره از نسخه برای commit دیگر را رد می‌کند و پس از ثبت منشأ artifactها، فایل‌ها، متادیتا و checksumها را در GitHub Releases منتشر می‌کند.
 - هر دو workflow خلاصه مرحله‌ای برندشده همراه با جزئیات artifact و نتیجه اعتبارسنجی می‌سازند.
 
 <a id="diagnostics"></a>

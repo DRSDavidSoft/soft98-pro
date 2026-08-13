@@ -178,7 +178,7 @@ npm run screenshot
 ## CI/CD
 
 - **Soft98 Pro CI** builds all targets, runs browser acceptance tests, verifies deterministic packages, performs dependency review, and uploads inspectable artifacts.
-- **Soft98 Pro Release** verifies version/tag parity, attests provenance, publishes the GitHub Release, and uploads the extension ZIPs, standalone userscript, metadata, and checksums.
+- **Soft98 Pro Release** runs when the active-development PR reaches `main`, derives the tag from `package.json`, rejects version reuse on another commit, attests provenance, publishes the GitHub Release, and uploads the extension ZIPs, standalone userscript, metadata, and checksums.
 - Both workflows publish branded GitHub step summaries with artifact details and verification results.
 
 <a id="diagnostics"></a>

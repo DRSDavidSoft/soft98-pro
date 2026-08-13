@@ -38,7 +38,7 @@ runtime اصلی در `src/runtime.js` قرار دارد. رفتار مشترک 
 
 بررسی به‌روزرسانی افزونه در `src/release-client.js` مشترک است. این کد ابتدا `latest.json` و برای نسخه‌های قدیمی فاقد این فایل، API انتشارهای GitHub را استفاده می‌کند.
 
-workflow مربوط به CI بسته‌ها و آزمون‌های پذیرش را برای هر pull request اجرا می‌کند. workflow انتشار نیز تطابق tag با `package.json` را بررسی، provenance را ثبت و بسته‌ها، متادیتا و checksumها را در GitHub Releases منتشر می‌کند.
+workflow مربوط به CI بسته‌ها و آزمون‌های پذیرش را برای هر pull request اجرا می‌کند. با merge شدن pull request توسعه فعال در `main`، workflow انتشار tag را از `package.json` می‌سازد، استفاده دوباره از نسخه برای commit دیگر را رد می‌کند، provenance را ثبت و بسته‌ها، متادیتا و checksumها را در GitHub Releases منتشر می‌کند. push همان tag یا اجرای دستی می‌تواند انتشار همان commit را دوباره اجرا کند.
 
 قوانین Soft98 در PersianBlocker به‌صورت snapshot محدود در `test/fixtures/persianblocker-soft98.json` نگهداری می‌شوند. پس از بررسی تغییرات upstream، آن را با `npm run sync:persianblocker` به‌روز کنید. CI زمان‌بندی‌شده با `npm run check:persianblocker-upstream` تغییر قوانین مرتبط را گزارش می‌دهد و آزمون سازگاری، خنثی‌شدن هشدار فعلی را در بسته‌های Chromium و Firefox بررسی می‌کند.
 
