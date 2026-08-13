@@ -58,6 +58,15 @@
       .replace(/'/g, "&#39;");
   }
 
+  function safeExternalUrl(value) {
+    try {
+      const url = new URL(value);
+      return url.protocol === "https:" ? url.href : RELEASES_URL;
+    } catch (_error) {
+      return RELEASES_URL;
+    }
+  }
+
   function storageGet(callback) {
     const defaults = { [STORAGE_KEY]: DEFAULT_SETTINGS, [COMPATIBILITY_STATUS_KEY]: null };
     if (usesPromises) {
@@ -115,18 +124,18 @@
       </section>
       <section class="grid">
         ${OPTIONS.map((key) => {
-          const [title, detail] = options[key] || STRINGS.en.options[key];
+          const [title, detail] = options[key] || STRINGS.en.options.options[key] || [key, ""];
           return `
           <label class="option">
             <input type="checkbox" name="${key}" ${settings[key] ? "checked" : ""}>
-            <span><strong>${title}</strong><small>${detail}</small></span>
+            <span><strong>${escapeHtml(title)}</strong><small>${escapeHtml(detail)}</small></span>
           </label>
         `;
         }).join("")}
       </section>
       <section class="update" data-status="${updateState.status}" aria-live="polite">
         <span>${updateMessage}</span>
-        ${updateState.status === "available" ? `<a href="${updateState.url}" target="_blank" rel="noopener noreferrer">${text("updateAction")}</a>` : ""}
+        ${updateState.status === "available" ? `<a href="${escapeHtml(safeExternalUrl(updateState.url))}" target="_blank" rel="noopener noreferrer">${escapeHtml(text("updateAction"))}</a>` : ""}
       </section>
       <section class="compatibility" data-status="${compatibilityStatus}" aria-live="polite">
         <header><strong>${escapeHtml(text("compatibilityTitle"))}</strong><span data-indicator aria-hidden="true"></span></header>

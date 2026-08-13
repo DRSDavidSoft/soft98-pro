@@ -32,6 +32,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Prevented queued application-script payloads from colliding, sanitized extension update destinations, and aligned installation links with the stable GitHub Release asset.
 - Restored original logo accessibility and responsive-image attributes when Pro branding is disabled or changed.
 - Prevented malformed upstream JavaScript from removing page content or stopping Soft98 Pro cleanup.
 - Prevented scroll-triggered anti-adblock checks from restoring warnings after the page is cleaned.

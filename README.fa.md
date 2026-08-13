@@ -82,11 +82,11 @@
 ### ⚡ یوزراسکریپت
 
 1. برای Chrome یا Edge، [Tampermonkey](https://tampermonkey.net) و برای Firefox، [Violentmonkey](https://violentmonkey.github.io) را نصب کنید.
-2. فایل [`soft98-pro.user.js`](https://github.com/DRSDavidSoft/soft98-pro/raw/main/soft98-pro.user.js) را نصب کنید.
+2. فایل [`soft98-pro.user.js`](https://github.com/DRSDavidSoft/soft98-pro/releases/latest/download/soft98-pro.user.js) را نصب کنید.
 3. درخواست نصب را در مدیر یوزراسکریپت تأیید کنید.
 4. سایت [soft98.ir](https://soft98.ir) را باز کنید.
 
-[![نصب یوزراسکریپت](https://img.shields.io/badge/نصب_یوزراسکریپت-کلیک_کنید-3b82f6?style=for-the-badge&logo=tampermonkey&logoColor=white)](https://github.com/DRSDavidSoft/soft98-pro/raw/main/soft98-pro.user.js)
+[![نصب یوزراسکریپت](https://img.shields.io/badge/نصب_یوزراسکریپت-کلیک_کنید-3b82f6?style=for-the-badge&logo=tampermonkey&logoColor=white)](https://github.com/DRSDavidSoft/soft98-pro/releases/latest/download/soft98-pro.user.js)
 
 <a id="extension-quick-start"></a>
 

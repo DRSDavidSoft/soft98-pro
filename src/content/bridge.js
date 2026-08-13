@@ -21,7 +21,7 @@
   const reportedScripts = new Set();
   const pendingPayloads = new Set();
   const deliveredPayloads = new Set();
-  const PAYLOAD_ID = "soft98-pro-upstream-payload";
+  const PAYLOAD_MARKER = "data-soft98-pro-upstream-payload";
 
   function inject(code) {
     const script = document.createElement("script");
@@ -72,8 +72,8 @@
     if (deliveredPayloads.has(requestedUrl)) return;
     deliveredPayloads.add(requestedUrl);
     const payload = document.createElement("script");
-    payload.id = PAYLOAD_ID;
     payload.type = "application/json";
+    payload.setAttribute(PAYLOAD_MARKER, "");
     payload.setAttribute("data-origin", encodeURIComponent(requestedUrl));
     if (!response || !response.ok || typeof response.source !== "string") {
       payload.setAttribute("data-error", (response && response.error) || "worker-unavailable");

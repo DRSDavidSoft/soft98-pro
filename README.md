@@ -82,11 +82,11 @@ Choose one installation path below. The userscript is the shortest setup; the ex
 ### ⚡ Userscript
 
 1. Install [Tampermonkey](https://tampermonkey.net) for Chrome or Edge, or [Violentmonkey](https://violentmonkey.github.io) for Firefox.
-2. Install [`soft98-pro.user.js`](https://github.com/DRSDavidSoft/soft98-pro/raw/main/soft98-pro.user.js).
+2. Install [`soft98-pro.user.js`](https://github.com/DRSDavidSoft/soft98-pro/releases/latest/download/soft98-pro.user.js).
 3. Confirm the prompt in your userscript manager.
 4. Open [soft98.ir](https://soft98.ir).
 
-[![Install Userscript](https://img.shields.io/badge/Install%20Userscript-Click%20Here-3b82f6?style=for-the-badge&logo=tampermonkey&logoColor=white)](https://github.com/DRSDavidSoft/soft98-pro/raw/main/soft98-pro.user.js)
+[![Install Userscript](https://img.shields.io/badge/Install%20Userscript-Click%20Here-3b82f6?style=for-the-badge&logo=tampermonkey&logoColor=white)](https://github.com/DRSDavidSoft/soft98-pro/releases/latest/download/soft98-pro.user.js)
 
 <a id="extension-quick-start"></a>
 

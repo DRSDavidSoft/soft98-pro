@@ -50,7 +50,7 @@
 
 **مرحله ۲** — اسکریپت را نصب کنید:
 
-👉 [دریافت فایل `soft98-pro.user.js`](https://github.com/DRSDavidSoft/soft98-pro/raw/main/soft98-pro.user.js)
+👉 [دریافت فایل `soft98-pro.user.js`](https://github.com/DRSDavidSoft/soft98-pro/releases/latest/download/soft98-pro.user.js)
 
 نصب را در مدیر یوزراسکریپت تأیید کنید.
 

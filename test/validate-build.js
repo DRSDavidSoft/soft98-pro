@@ -133,6 +133,12 @@ if (!harness.includes('requestUrl.pathname === "/proxy"') || !harness.includes("
 if (!userscript.includes("DRSDavidSoft/soft98-pro/releases/latest/download/soft98-pro.user.js")) {
   throw new Error("Userscript updates must use the latest GitHub Release asset");
 }
+for (const file of ["README.md", "README.fa.md", "docs/wiki/fa/Installation.md"]) {
+  const documentation = fs.readFileSync(path.join(ROOT, ...file.split("/")), "utf8");
+  if (/soft98-pro\/raw\/main\/soft98-pro\.user\.js/.test(documentation) || !documentation.includes("releases/latest/download/soft98-pro.user.js")) {
+    throw new Error(`${file} must install the userscript from the stable release asset`);
+  }
+}
 
 if (messages.schemaVersion !== 1 || !messages.locales.en || !messages.locales.fa) throw new Error("Bilingual message catalog is incomplete");
 for (const phrase of [messages.locales.en.runtime.successLog, messages.locales.fa.runtime.successLog]) {
@@ -158,6 +164,14 @@ if (!background.includes("soft98CompatibilityStatus") || !background.includes("c
 }
 if (!background.includes("soft98:get-upstream-script") || !background.includes("soft98UpstreamSourceCache") || !background.includes("updateEnabledRulesets")) {
   throw new Error("Background service-worker application gateway is missing");
+}
+const bridge = fs.readFileSync(path.join(DIST, "chromium", "assets", "bridge.js"), "utf8");
+const optionsUi = fs.readFileSync(path.join(DIST, "chromium", "options.js"), "utf8");
+if (!bridge.includes("data-soft98-pro-upstream-payload") || /soft98-pro-upstream-payload[^\n]{0,80}\.id/.test(bridge)) {
+  throw new Error("Extension bridge must queue upstream payloads without duplicate element IDs");
+}
+if (!optionsUi.includes("safeExternalUrl") || !optionsUi.includes("STRINGS.en.options.options")) {
+  throw new Error("Extension options must sanitize update destinations and safely fall back to English labels");
 }
 if (!chromium.permissions.includes("declarativeNetRequestWithHostAccess") || !chromium.declarative_net_request) {
   throw new Error("Chromium build must intercept parser-inserted Soft98 application scripts");

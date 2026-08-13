@@ -6,7 +6,7 @@
   const DATA_STATE = "data-soft98-adblocker-state";
   const DATA_PATCHED = "data-soft98-adblocker-patched-script";
   const UPSTREAM_REQUEST = "data-soft98-pro-upstream-request";
-  const UPSTREAM_PAYLOAD_ID = "soft98-pro-upstream-payload";
+  const UPSTREAM_PAYLOAD_SELECTOR = "script[data-soft98-pro-upstream-payload]";
   const FAVICON_ID = "soft98-pro-favicon";
   const CONTROL_POSITION_KEY = "soft98-ad-blocker.control-position";
   const INTERNAL_MUTATION_ATTRIBUTES = new Set(["class", "style", "aria-expanded", "aria-selected"]);
@@ -2024,27 +2024,27 @@
   }
 
   function receiveExtensionPatchedScript() {
-    const payload = document.getElementById(UPSTREAM_PAYLOAD_ID);
-    if (!payload) return;
-    const src = safeDecode(payload.getAttribute("data-origin") || "");
-    const source = payload.textContent || "";
-    const error = payload.getAttribute("data-error") || "";
-    const report = safeDecode(payload.getAttribute("data-report") || "");
-    payload.remove();
-    if (report) {
-      try {
-        acceptCompatibilityReport(JSON.parse(report));
-      } catch (_error) {}
+    for (const payload of document.querySelectorAll(UPSTREAM_PAYLOAD_SELECTOR)) {
+      const src = safeDecode(payload.getAttribute("data-origin") || "");
+      const source = payload.textContent || "";
+      const error = payload.getAttribute("data-error") || "";
+      const report = safeDecode(payload.getAttribute("data-report") || "");
+      payload.remove();
+      if (report) {
+        try {
+          acceptCompatibilityReport(JSON.parse(report));
+        } catch (_error) {}
+      }
+      if (!src || executedUpstreamScripts.has(src)) continue;
+      if (!source || error) {
+        if (nativeFetch) runPatchedScript(src);
+        continue;
+      }
+      executedUpstreamScripts.add(src);
+      const patched = patchSoft98Code(source, `service-worker:${src}`);
+      safeEval(patched, window);
+      document.documentElement.setAttribute("data-soft98-pro-upstream", "worker-patched");
     }
-    if (!src || executedUpstreamScripts.has(src)) return;
-    if (!source || error) {
-      if (nativeFetch) runPatchedScript(src);
-      return;
-    }
-    executedUpstreamScripts.add(src);
-    const patched = patchSoft98Code(source, `service-worker:${src}`);
-    safeEval(patched, window);
-    document.documentElement.setAttribute("data-soft98-pro-upstream", "worker-patched");
   }
 
   function neutralizeScript(script) {
