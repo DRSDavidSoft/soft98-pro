@@ -38,6 +38,7 @@
     adsRemoved: 0,
     warningsRemoved: 0,
     blockerNoticesRemoved: 0,
+    hostileBrandReplacements: 0,
     linksPreserved: 0,
     linksRestored: 0,
     scrollDetectorsBlocked: 0,
@@ -101,6 +102,7 @@
     /(?:افزونه\s+حذف\s+(?:تبلیغات|ﺗﺒﻠﻴﻐﺎت|تبل\S{0,6}غات)|فیلترشک|Dark Reader|VPN|ریفرش\s+کنید|غیرفعال\s+کنید|disable\s+ad-?block|adblocker?)/i;
   const PERSIAN_BLOCKER_NOTICE =
     /(?:PersianBlocker|Persian\s*Blocker|MasterKia|آزادی\s+کاربران|چه\s+چیزی\s+وارد\s+مرورگر|هشدار\s+از\s+طرف\s+لیست\s+PersianBlocker|برگرداندن\s+آزادی\s+کاربران)/i;
+  const HOSTILE_BRAND_MARKER = /s[\W_]*mostafa[\W_]*moosavi/i;
   const WARNING_TITLE = /(?:افزونه\s+حذف|ﺗﺒﻠﻴﻐﺎت|VPN|فیلترشک|Dark Reader|ad-?block)/i;
   const SOFT98_CODE_MARKERS =
     /(?:افزونه\s+حذف|ﺗﺒﻠﻴﻐﺎت|Dark Reader|disableDownloadLink|setNullLinkAttributes|checkadBlocker|advertisementrk|text_add_firewall|kaprila|adguard|location\.reload|location\.hash|document\.title|alert-warning|adblock)/i;
@@ -594,6 +596,51 @@
     return text.length < 1000 && area < viewportArea * 0.35;
   }
 
+  function replaceHostileBranding(root) {
+    const scope = asElement(root) || document;
+    const branded = new Set();
+    const replacement = text("product");
+    const replaceValue = (value) => String(value || "").replace(new RegExp(HOSTILE_BRAND_MARKER.source, "gi"), replacement);
+    const mark = (element) => {
+      if (!element || element.matches("html,body,script,style,noscript,template")) return;
+      const surface = element.closest("a,button,aside,section,header,footer,p,span,div") || element;
+      if (!surface.matches("html,body")) branded.add(surface);
+    };
+    const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const parent = node.parentElement;
+      if (!parent || parent.closest("script,style,noscript,template,textarea") || !HOSTILE_BRAND_MARKER.test(node.nodeValue || "")) continue;
+      node.nodeValue = replaceValue(node.nodeValue);
+      mark(parent);
+    }
+    const candidates = [];
+    if (scope.nodeType === Node.ELEMENT_NODE) candidates.push(scope);
+    if (scope.querySelectorAll) candidates.push(...scope.querySelectorAll("a[href],[title],[aria-label],[alt]"));
+    for (const element of candidates) {
+      for (const attribute of ["title", "aria-label", "alt"]) {
+        const value = element.getAttribute(attribute);
+        if (value && HOSTILE_BRAND_MARKER.test(value)) {
+          element.setAttribute(attribute, replaceValue(value));
+          mark(element);
+        }
+      }
+      const href = element.getAttribute("href");
+      if (href && HOSTILE_BRAND_MARKER.test(href)) {
+        element.setAttribute("href", EXTENSION_REPO);
+        element.setAttribute("rel", "noopener noreferrer");
+        mark(element);
+      }
+    }
+    for (const element of branded) {
+      element.setAttribute("data-soft98-pro-brand-replaced", "true");
+      element.setAttribute("dir", RTL ? "rtl" : "ltr");
+    }
+    if (branded.size) {
+      stats.hostileBrandReplacements += branded.size;
+      log("warn", text("logs.hostileBrandReplaced"), { count: branded.size });
+    }
+  }
+
   function removeWarnings(root) {
     const element = asElement(root) || document;
     const candidates = new Set();
@@ -642,6 +689,7 @@
   function processRoot(root) {
     removeLegacyBanners();
     collectLinks(root);
+    replaceHostileBranding(root);
     removeExternalAds(root);
     removeWarnings(root);
     applyProThemeHeuristics(root);
@@ -676,6 +724,8 @@
       :root[data-soft98-runtime-ready] #soft98-ad-blocker-taunt,
       :root[data-soft98-runtime-ready] #soft98-extension-recommendation{display:grid!important}
       [id*="PersianBlocker"],[class*="PersianBlocker"]{display:none!important}
+      [data-soft98-pro-brand-replaced]{border:1px solid #b8cbd5!important;border-radius:6px!important;background:#f7fafc!important;color:#1d2a35!important;box-shadow:0 6px 20px rgba(27,45,57,.12)!important;padding:.35em .65em!important;font:600 13px/1.6 system-ui,sans-serif!important;text-decoration:none!important}
+      .soft98-pro-theme [data-soft98-pro-brand-replaced]{border-color:var(--s98p-border)!important;background:var(--s98p-surface-2)!important;color:var(--s98p-accent)!important;box-shadow:0 8px 24px rgba(0,0,0,.28)!important}
       a[${DATA_HREF}]{pointer-events:auto}
       [data-soft98-brand-kind=background]{display:block!important;min-height:104px!important;background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important}
       [data-soft98-brand-kind=background]>*{visibility:hidden!important}

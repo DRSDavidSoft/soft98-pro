@@ -1,3 +1,12 @@
+<div align="center">
+
+<a href="Development.md"><img src="../assets/badge-en.svg" alt="English" height="22"/></a>&nbsp;
+<a href="fa/Development.md"><img src="../assets/badge-fa.svg" alt="فارسی" height="22"/></a>
+
+</div>
+
+---
+
 # Development 🛠️
 
 Install and validate locally:
@@ -24,3 +33,5 @@ Maintain all English and Persian runtime, settings, diagnostics, taunt, and upda
 The CI workflow validates and uploads packages for every pull request. The release workflow additionally checks that the Git tag matches `package.json`, attests the artifacts, and publishes packages, update metadata, and checksums to GitHub Releases.
 
 Extension update checks are shared through `src/release-client.js`. The client prefers the release asset `latest.json` and falls back to GitHub's Releases API, so upgrades from releases created before the metadata feed was introduced keep working.
+
+PersianBlocker compatibility is represented by the narrow upstream snapshot in `test/fixtures/persianblocker-soft98.json`. Run `npm run sync:persianblocker` to refresh it after review. Scheduled CI runs `npm run check:persianblocker-upstream` and reports when Soft98-specific rules change. `test/persianblocker-compat.js` verifies the current warning against the packaged Chromium USER-origin and Firefox user-origin injection paths.

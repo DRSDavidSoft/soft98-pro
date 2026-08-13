@@ -35,6 +35,7 @@ const markdown = [
   `- Source syntax and deterministic package build`,
   `- Static resilience and localization validation`,
   `- Headless browser acceptance in dark, light, and banner-free states`,
+  `- PersianBlocker USER-origin warning compatibility`,
   `- Release metadata and SHA-256 checksums`,
   ``,
   `## 📦 Artifacts`,

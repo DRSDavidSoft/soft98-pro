@@ -6,6 +6,38 @@
   const CATALOG = __SOFT98_MESSAGES__;
   const RELEASE_STATUS_KEY = "soft98ReleaseStatus";
   const ALARM_NAME = "soft98-release-check";
+  const USER_ORIGIN_CSS = "assets/user-origin.css";
+
+  function isProtectedPage(url) {
+    try {
+      return /(?:^|\.)soft98\.ir$/i.test(new URL(url).hostname);
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  function ignoreFailure(operation) {
+    if (operation && typeof operation.catch === "function") operation.catch(() => {});
+  }
+
+  function installUserOriginProtection(tabId, url) {
+    if (!Number.isInteger(tabId) || !isProtectedPage(url)) return;
+    try {
+      if (api.scripting && api.scripting.insertCSS) {
+        ignoreFailure(api.scripting.insertCSS({ target: { tabId }, files: [USER_ORIGIN_CSS], origin: "USER" }));
+      } else if (api.tabs && api.tabs.insertCSS) {
+        ignoreFailure(api.tabs.insertCSS(tabId, { file: `/${USER_ORIGIN_CSS}`, cssOrigin: "user", runAt: "document_start" }));
+      }
+    } catch (_error) {}
+  }
+
+  function protectOpenTabs() {
+    const apply = (tabs) => (tabs || []).forEach((tab) => installUserOriginProtection(tab.id, tab.url));
+    try {
+      if (typeof browser !== "undefined") ignoreFailure(api.tabs.query({ url: ["*://*.soft98.ir/*"] }).then(apply));
+      else api.tabs.query({ url: ["*://*.soft98.ir/*"] }, apply);
+    } catch (_error) {}
+  }
 
   function preferredLocale() {
     const languages = [navigator.language || "", ...(navigator.languages || [])].filter(Boolean);
@@ -51,10 +83,18 @@
   api.runtime.onInstalled.addListener(() => {
     api.alarms.create(ALARM_NAME, { delayInMinutes: 5, periodInMinutes: 360 });
     checkRelease();
+    protectOpenTabs();
   });
-  if (api.runtime.onStartup) api.runtime.onStartup.addListener(checkRelease);
+  if (api.runtime.onStartup) api.runtime.onStartup.addListener(() => {
+    checkRelease();
+    protectOpenTabs();
+  });
+  api.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.status === "loading" || changeInfo.url) installUserOriginProtection(tabId, changeInfo.url || (tab && tab.url));
+  });
   api.alarms.onAlarm.addListener((alarm) => {
     if (alarm && alarm.name === ALARM_NAME) checkRelease();
   });
   api.storage.local.get({ [RELEASE_STATUS_KEY]: null }, (result) => setBadge(result[RELEASE_STATUS_KEY] && result[RELEASE_STATUS_KEY].release));
+  protectOpenTabs();
 })();

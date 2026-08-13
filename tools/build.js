@@ -119,7 +119,7 @@ function chromiumManifest() {
   return {
     manifest_version: 3,
     ...commonManifest,
-    permissions: ["storage", "tabs", "alarms"],
+    permissions: ["storage", "tabs", "alarms", "scripting"],
     host_permissions: [
       "*://*.soft98.ir/*",
       "https://github.com/DRSDavidSoft/soft98-pro/releases/*",
@@ -226,6 +226,7 @@ async function buildTarget(name, manifest) {
   mkdir(path.join(target, "assets"));
   writeJson(path.join(target, "manifest.json"), manifest);
   copyUi(target);
+  copyFile(path.join(SRC, "user-origin.css"), path.join(target, "assets", "user-origin.css"));
   await minifyFile(path.join(SRC, "release-client.js"), path.join(target, "assets", "release-client.js"));
   await minifySource(runtimeSource("extension"), path.join(target, "assets", "runtime.page.js"));
   const backgroundPrefix = name === "chromium" ? 'importScripts("release-client.js");\n' : "";

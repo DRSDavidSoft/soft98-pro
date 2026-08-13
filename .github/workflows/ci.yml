@@ -3,8 +3,10 @@ name: "☠️ Soft98 Pro CI"
 on:
   pull_request:
   push:
-    branches: [main, master]
+    branches: [main, develop]
   workflow_dispatch:
+  schedule:
+    - cron: "23 4 * * *"
 
 permissions:
   contents: read
@@ -33,6 +35,10 @@ jobs:
 
       - name: "🔎 Audit critical dependencies"
         run: npm audit --audit-level=critical
+
+      - name: "🛡️ Check current PersianBlocker compatibility"
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: npm run check:persianblocker-upstream
 
       - name: "✅ Build and run acceptance tests"
         run: npm run ci

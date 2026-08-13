@@ -64,6 +64,8 @@ function runCase(name, query, expectedTheme, expectedBackground, expectedLogo) {
   const assertions = {
     warnings: "0",
     "blocker-notices": "0",
+    "hostile-mentions": "false",
+    "hostile-branding": "1",
     ads: "0",
     patch: "passed",
     "top-level-patch": "passed",

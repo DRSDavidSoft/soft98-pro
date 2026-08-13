@@ -14,12 +14,14 @@ const required = [
   "chromium/assets/bridge.js",
   "chromium/assets/background.js",
   "chromium/assets/release-client.js",
+  "chromium/assets/user-origin.css",
   "chromium/popup.html",
   "firefox/manifest.json",
   "firefox/assets/runtime.page.js",
   "firefox/assets/bridge.js",
   "firefox/assets/background.js",
   "firefox/assets/release-client.js",
+  "firefox/assets/user-origin.css",
   "firefox/assets/firefox-injector.js",
   "firefox/options.html",
   "userscript/soft98-pro.user.js",
@@ -42,6 +44,7 @@ if (firefox.manifest_version !== 2) throw new Error("Firefox manifest must be MV
 if (!chromium.content_scripts.some((entry) => entry.world === "MAIN")) {
   throw new Error("Chromium build must run the page runtime in MAIN world");
 }
+if (!chromium.permissions.includes("scripting")) throw new Error("Chromium build must support USER-origin compatibility CSS");
 
 const runtime = fs.readFileSync(path.join(DIST, "chromium", "assets", "runtime.page.js"), "utf8");
 const userscript = fs.readFileSync(path.join(ROOT, "soft98-pro.user.js"), "utf8");
@@ -108,6 +111,9 @@ if (!/alert-warning/.test(runtime) || !/soft98-extension-recommendation/.test(ru
 if (!/taunt:!1/.test(runtime) || !/data-theme=dark/.test(runtime) || !/--taunt-bg:#f7fafc/.test(runtime)) {
   throw new Error("The optional taunt must default off and support light and dark themes");
 }
+if (!/data-soft98-pro-brand-replaced/.test(runtime) || !runtime.includes(messages.locales.en.runtime.logs.hostileBrandReplaced)) {
+  throw new Error("Hostile attribution replacement and localized diagnostics are missing");
+}
 const screenshotTool = fs.readFileSync(path.join(ROOT, "tools", "screenshot.js"), "utf8");
 if (!screenshotTool.includes("/live?proof=0")) throw new Error("Screenshot generator must capture the clean live page");
 const harness = fs.readFileSync(path.join(ROOT, "test", "serve-harness.js"), "utf8");
@@ -134,7 +140,7 @@ if (release.version !== VERSION || !release.userscript.sha256 || !release.chromi
 }
 const background = fs.readFileSync(path.join(DIST, "chromium", "assets", "background.js"), "utf8");
 const releaseClient = fs.readFileSync(path.join(DIST, "chromium", "assets", "release-client.js"), "utf8");
-if (!background.includes("soft98-release-check") || !releaseClient.includes("latest/download/latest.json") || !releaseClient.includes("api.github.com/repos/DRSDavidSoft/soft98-pro/releases/latest")) {
+if (!background.includes("soft98-release-check") || !background.includes('origin:"USER"') || !releaseClient.includes("latest/download/latest.json") || !releaseClient.includes("api.github.com/repos/DRSDavidSoft/soft98-pro/releases/latest")) {
   throw new Error("Extension release watcher is missing");
 }
 if (!chromium.host_permissions.some((permission) => permission.startsWith("https://api.github.com/"))) {

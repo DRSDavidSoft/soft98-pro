@@ -150,6 +150,10 @@
           blockerNotice.innerHTML = '<a href="https://github.com/MasterKia/PersianBlocker">هشدار از طرف لیست PersianBlocker: آزادی کاربران</a>';
           document.body.appendChild(blockerNotice);
 
+          var hostileAttribution = document.createElement("aside");
+          hostileAttribution.innerHTML = '<a href="https://example.invalid/SMostafaMoosavi">SMostafaMoosavi anti-adblock support</a>';
+          document.body.appendChild(hostileAttribution);
+
           location.hash = encodeURIComponent("افزونه حذف ﺗﺒﻠﻴﻐﺎت یا VPN را غیرفعال کنید");
           document.title = "افزونه حذف ﺗﺒﻠﻴﻐﺎت یا VPN را غیرفعال کنید - Soft98";
         }, 50);
@@ -183,6 +187,8 @@
             state: link.getAttribute("data-soft98-adblocker-state"),
             warnings: document.querySelectorAll(".tbd_ibd, .trk_irk, .tbdc").length,
             blockerNotices: document.querySelectorAll("#PersianBlockerFreedomNotice, [id*='PersianBlocker']").length,
+            hostileMentions: /s[\W_]*mostafa[\W_]*moosavi/i.test(document.body.textContent + " " + Array.prototype.map.call(document.querySelectorAll("[href],[title],[aria-label],[alt]"), function (node) { return [node.getAttribute("href"), node.getAttribute("title"), node.getAttribute("aria-label"), node.getAttribute("alt")].join(" "); }).join(" ")),
+            hostileBranding: document.querySelectorAll("[data-soft98-pro-brand-replaced]").length,
             kaprila: document.querySelectorAll("#kaprila_soft98_ir_related, [id*='kaprila']").length,
             asiatech: document.querySelectorAll("[data-test='asiatech-frame']").length,
             advertisingCard: document.querySelectorAll("[data-test='advertising-card']").length,
@@ -220,6 +226,8 @@
           document.querySelector("[data-proof='warnings']").textContent = document.querySelectorAll(".tbd_ibd, .trk_irk, .tbdc").length;
           document.querySelector("[data-proof='blocker-notices']").textContent =
             document.querySelectorAll("#PersianBlockerFreedomNotice, [id*='PersianBlocker']").length;
+          document.querySelector("[data-proof='hostile-mentions']").textContent = String(window.__results.hostileMentions);
+          document.querySelector("[data-proof='hostile-branding']").textContent = String(window.__results.hostileBranding);
           document.querySelector("[data-proof='ads']").textContent = document.querySelectorAll("#kaprila_soft98_ir_related, [id*='kaprila']").length;
           document.querySelector("[data-proof='patch']").textContent = document.documentElement.getAttribute("data-soft98-patch-result");
           document.querySelector("[data-proof='top-level-patch']").textContent =
@@ -251,6 +259,8 @@
         <span>Download href: <strong data-proof="href">pending</strong></span>
         <span>Warning nodes: <strong data-proof="warnings">pending</strong></span>
         <span>External notices: <strong data-proof="blocker-notices">pending</strong></span>
+        <span>Hostile mentions: <strong data-proof="hostile-mentions">pending</strong></span>
+        <span>Pro replacements: <strong data-proof="hostile-branding">pending</strong></span>
         <span>Ad nodes: <strong data-proof="ads">pending</strong></span>
         <span>Patch hijack: <strong data-proof="patch">pending</strong></span>
         <span>Top-level throw: <strong data-proof="top-level-patch">pending</strong></span>
