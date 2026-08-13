@@ -8,6 +8,8 @@
 <h1>Soft98 Pro</h1>
 
 [![آخرین نسخه](https://img.shields.io/github/v/release/DRSDavidSoft/soft98-pro?style=for-the-badge&color=3b82f6&labelColor=0f172a&label=آخرین+نسخه)](https://github.com/DRSDavidSoft/soft98-pro/releases/latest)
+[![CI](https://img.shields.io/github/actions/workflow/status/DRSDavidSoft/soft98-pro/ci.yml?branch=develop&style=for-the-badge&label=CI&labelColor=0f172a)](https://github.com/DRSDavidSoft/soft98-pro/actions/workflows/ci.yml)
+[![مجوز](https://img.shields.io/github/license/DRSDavidSoft/soft98-pro?style=for-the-badge&color=8b5cf6&labelColor=0f172a)](LICENSE)
 [![ستاره‌ها](https://img.shields.io/github/stars/DRSDavidSoft/soft98-pro?style=for-the-badge&color=f59e0b&labelColor=0f172a)](https://github.com/DRSDavidSoft/soft98-pro/stargazers)
 
 </div>
@@ -16,7 +18,7 @@
 
 <a id="screenshot"></a>
 
-## تصویر نمونه
+## 📸 تصویر نمونه
 
 ![نمای حالت تاریک Soft98 Pro روی وب‌سایت Soft98](docs/assets/soft98-pro-dark.png)
 
@@ -24,9 +26,11 @@ Soft98 Pro با مسدودسازی مقاوم تبلیغات، اصلاح کد �
 
 هر دو قالب از هسته مشترک [`src/runtime.js`](src/runtime.js) ساخته می‌شوند؛ بنابراین رفتار مسدودسازی، ابزارهای تشخیص، بومی‌سازی، پوسته، فاویکون وضعیت و بازیابی لینک در آن‌ها هماهنگ می‌ماند.
 
+![محافظت، بازیابی لینک و پوسته‌های Soft98 Pro](docs/assets/soft98-pro-banner.svg)
+
 <a id="contents"></a>
 
-## فهرست مطالب
+## 🧭 فهرست مطالب
 
 - [تصویر نمونه](#screenshot)
 - [قابلیت‌ها](#features)
@@ -46,7 +50,7 @@ Soft98 Pro با مسدودسازی مقاوم تبلیغات، اصلاح کد �
 
 <a id="features"></a>
 
-## قابلیت‌ها
+## ✨ قابلیت‌ها
 
 - **مسدودسازی تبلیغات:** شناسایی و حذف سطوح تبلیغاتی با تحلیل منبع، شکل، اندازه، ساختار و رفتار لینک.
 - **محافظت در برابر ضدادبلاک:** اصلاح کد فشرده Soft98 پیش از آن‌که منطق تشخیص شکننده به صفحه آسیب بزند.
@@ -60,7 +64,7 @@ Soft98 Pro با مسدودسازی مقاوم تبلیغات، اصلاح کد �
 
 <a id="bundled-branding"></a>
 
-## نشان تجاری همراه بسته
+## 🏴‍☠️ نشان تجاری همراه بسته
 
 - [لوگوی صفحات روشن](docs/assets/soft98-pro-logo-light.png)
 - [لوگوی دزد دریایی پوسته Pro](docs/assets/soft98-pro-logo-dark.png) با شعار `یکی از تبلیغ‌دار ترین مراجع نرم‌افزاری ایران`
@@ -69,13 +73,13 @@ Soft98 Pro با مسدودسازی مقاوم تبلیغات، اصلاح کد �
 
 <a id="getting-started"></a>
 
-## شروع کار
+## 🚀 شروع کار
 
 یکی از مسیرهای نصب زیر را انتخاب کنید. یوزراسکریپت کوتاه‌ترین راه‌اندازی را دارد و افزونه، یکپارچگی کامل‌تری با مرورگر فراهم می‌کند.
 
 <a id="userscript-quick-start"></a>
 
-### یوزراسکریپت
+### ⚡ یوزراسکریپت
 
 1. برای Chrome یا Edge، [Tampermonkey](https://tampermonkey.net) و برای Firefox، [Violentmonkey](https://violentmonkey.github.io) را نصب کنید.
 2. فایل [`soft98-pro.user.js`](https://github.com/DRSDavidSoft/soft98-pro/raw/main/soft98-pro.user.js) را نصب کنید.
@@ -86,20 +90,20 @@ Soft98 Pro با مسدودسازی مقاوم تبلیغات، اصلاح کد �
 
 <a id="extension-quick-start"></a>
 
-### افزونه مرورگر
+### 🧩 افزونه مرورگر
 
 1. فایل ZIP مناسب را از [آخرین نسخه](https://github.com/DRSDavidSoft/soft98-pro/releases/latest) دریافت کنید.
 2. آرشیو را استخراج کنید.
 3. مراحل مربوط به مرورگر خود را انجام دهید.
 
-#### Chrome یا Edge
+#### 🟦 Chrome یا Edge
 
 1. `chrome://extensions` یا `edge://extensions` را باز کنید.
 2. **Developer mode** را فعال کنید.
 3. **Load unpacked** را انتخاب کنید.
 4. پوشه Chromium استخراج‌شده را انتخاب کنید.
 
-#### Firefox
+#### 🟠 Firefox
 
 1. `about:debugging#/runtime/this-firefox` را باز کنید.
 2. **Load Temporary Add-on** را انتخاب کنید.
@@ -107,13 +111,21 @@ Soft98 Pro با مسدودسازی مقاوم تبلیغات، اصلاح کد �
 
 برای نام بسته‌ها، جزئیات هر مرورگر و رفع اشکال، [راهنمای کامل نصب](docs/wiki/fa/Installation.md) را ببینید.
 
+### ✅ اولین اجرای موفق
+
+1. یکی از صفحه‌های دانلود Soft98 را باز کنید و مطمئن شوید متن مطلب و بخش دانلود سر جای خود هستند.
+2. کنترل Soft98 Pro را کنار صفحه پیدا کنید؛ حالت Pro و تم تیره به‌صورت پیش‌فرض فعال‌اند.
+3. اگر صفحه هنگام نصب باز بوده، کنترل را باز کنید و **بررسی مجدد** را بزنید.
+4. مطمئن شوید تبلیغات و هشدارهای مزاحم حذف شده‌اند و لینک بازیابی‌شده همچنان نشانی اصلی را باز می‌کند.
+5. فقط اگر چیزی درست نبود، **گزارش فنی** را باز کنید و شناسه سازگاری نمایش‌داده‌شده را در گزارش GitHub بفرستید.
+
 <a id="choose-a-format"></a>
 
-## انتخاب قالب
+## 🧩 انتخاب قالب
 
 <a id="userscript-profile"></a>
 
-### یوزراسکریپت
+### ⚡ یوزراسکریپت
 
 - **مناسب برای:** راه‌اندازی سریع، بررسی مستقیم سورس و کاربرانی که از قبل مدیر یوزراسکریپت دارند.
 - **نصب:** یک فایل JavaScript که معمولاً در کمتر از یک دقیقه آماده می‌شود.
@@ -122,7 +134,7 @@ Soft98 Pro با مسدودسازی مقاوم تبلیغات، اصلاح کد �
 
 <a id="extension-profile"></a>
 
-### افزونه مرورگر
+### 🧩 افزونه مرورگر
 
 - **مناسب برای:** استفاده روزانه، تنظیمات بیشتر، ذخیره‌سازی مرورگر و یکپارچگی قابل‌پیش‌بینی‌تر.
 - **نصب:** بسته unpacked مخصوص Chromium یا Firefox از آخرین نسخه.
@@ -133,7 +145,7 @@ Soft98 Pro با مسدودسازی مقاوم تبلیغات، اصلاح کد �
 
 <a id="updates"></a>
 
-## به‌روزرسانی‌ها
+## 🔄 به‌روزرسانی‌ها
 
 - مدیر یوزراسکریپت نسخه‌های جدید را از `releases/latest/download/soft98-pro.user.js` و از طریق `@updateURL` و `@downloadURL` دریافت می‌کند.
 - افزونه هنگام نصب، شروع مرورگر و هر شش ساعت نسخه جدید را بررسی می‌کند. ابتدا `latest.json` و برای نسخه‌های قدیمی‌تر API انتشارهای GitHub را به‌کار می‌گیرد و سپس به بسته مناسب Chromium یا Firefox پیوند می‌دهد.
@@ -143,13 +155,13 @@ Soft98 Pro با مسدودسازی مقاوم تبلیغات، اصلاح کد �
 
 <a id="localization"></a>
 
-## بومی‌سازی
+## 🌐 بومی‌سازی
 
 تمام متن‌های انگلیسی و فارسی runtime، تنظیمات، ابزارهای تشخیص، taunt و به‌روزرسانی در [`src/messages.json`](src/messages.json) نگهداری می‌شود. build یکسان‌بودن کلیدهای دو زبان را بررسی و کاتالوگ را داخل تمام خروجی‌ها قرار می‌دهد؛ بنابراین ترجمه‌ها هنگام اجرا دریافت نمی‌شوند.
 
 <a id="build-from-source"></a>
 
-## ساخت از سورس
+## 🛠️ ساخت از سورس
 
 ```bash
 git clone https://github.com/DRSDavidSoft/soft98-pro.git
@@ -164,7 +176,7 @@ npm run ci
 npm run screenshot
 ```
 
-### خروجی‌های ساخت
+### 📦 خروجی‌های ساخت
 
 - [`soft98-pro.user.js`](soft98-pro.user.js): یوزراسکریپت اصلی برای نصب مستقیم از GitHub.
 - `dist/userscript/soft98-pro.user.js`: نسخه انتشار یوزراسکریپت.
@@ -177,7 +189,7 @@ npm run screenshot
 
 <a id="cicd"></a>
 
-## CI/CD
+## ⚙️ CI/CD
 
 - workflow مربوط به **Soft98 Pro CI** تمام خروجی‌ها را می‌سازد، آزمون مرورگر و تکرارپذیری بسته‌ها را اجرا می‌کند، وابستگی‌ها را بررسی و artifactها را بارگذاری می‌کند.
 - workflow مربوط به **Soft98 Pro Release** پس از رسیدن pull request توسعه فعال به `main` اجرا می‌شود، tag را از `package.json` می‌سازد، استفاده دوباره از نسخه برای commit دیگر را رد می‌کند و پس از ثبت منشأ artifactها، فایل‌ها، متادیتا و checksumها را در GitHub Releases منتشر می‌کند.
@@ -185,7 +197,7 @@ npm run screenshot
 
 <a id="diagnostics"></a>
 
-## ابزارهای تشخیص
+## 🩺 ابزارهای تشخیص
 
 در یکی از صفحات Soft98، ابزار DevTools را باز کنید و از API عمومی زیر استفاده کنید:
 
@@ -201,13 +213,14 @@ window.Soft98AdBlocker.stats
 
 <a id="documentation"></a>
 
-## مستندات
+## 📚 مستندات
 
 - [خانه ویکی](docs/wiki/fa/Home.md): نمای کلی و مسیرهای مستندات.
 - [نصب](docs/wiki/fa/Installation.md): نصب در تمام مرورگرهای پشتیبانی‌شده.
 - [یوزراسکریپت در برابر افزونه](docs/wiki/fa/Userscript-vs-Extension.md): مقایسه کامل دو قالب.
 - [ابزارهای تشخیص](docs/wiki/fa/Diagnostics.md): ابزارهای کنسول و رفع اشکال.
 - [توسعه](docs/wiki/fa/Development.md): فرایند ساخت، تست و مشارکت.
+- [راهنمای سبک مستندات](docs/Documentation-Style-Guide.md): ساختار دوزبانه، استانداردهای تصویری، راست‌به‌چپ و چک‌لیست بازبینی.
 - [README انگلیسی](README.md): نسخه کامل انگلیسی این سند.
 
 ---
@@ -218,6 +231,6 @@ window.Soft98AdBlocker.stats
 
 Soft98 Pro · یوزراسکریپت و افزونه مرورگر
 
-[بازگشت به بالا](#top)
+[⬆ بازگشت به بالا](#top)
 
 </div>

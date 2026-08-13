@@ -1200,9 +1200,18 @@
 
   function restoreOriginalLogo() {
     for (const logo of document.querySelectorAll("img[data-soft98-original-logo]")) {
-      logo.src = logo.getAttribute("data-soft98-original-logo") || logo.src;
+      const originalSource = logo.getAttribute("data-soft98-original-logo");
+      if (originalSource !== null) logo.setAttribute("src", originalSource);
+      for (const attribute of ["alt", "srcset", "sizes"]) {
+        const storedName = `data-soft98-original-logo-${attribute}`;
+        const original = logo.getAttribute(storedName);
+        if (original === "__missing__") logo.removeAttribute(attribute);
+        else if (original !== null) logo.setAttribute(attribute, original);
+        logo.removeAttribute(storedName);
+      }
       logo.removeAttribute("data-soft98-original-logo");
       logo.removeAttribute("data-soft98-brand-variant");
+      logo.removeAttribute("data-soft98-brand-kind");
     }
     for (const link of document.querySelectorAll("[data-soft98-original-logo]")) {
       const original = link.getAttribute("data-soft98-original-logo");
@@ -1262,9 +1271,16 @@
     const source = BRAND_ASSETS[variant];
     if (!source || logo.getAttribute("data-soft98-brand-variant") === variant) return;
     if (candidate.kind === "image") {
-      if (!logo.hasAttribute("data-soft98-original-logo")) logo.setAttribute("data-soft98-original-logo", logo.currentSrc || logo.src || "");
-      logo.src = source;
-      logo.alt = text("product");
+      if (!logo.hasAttribute("data-soft98-original-logo")) {
+        logo.setAttribute("data-soft98-original-logo", logo.getAttribute("src") || "");
+        for (const attribute of ["alt", "srcset", "sizes"]) {
+          logo.setAttribute(`data-soft98-original-logo-${attribute}`, logo.hasAttribute(attribute) ? logo.getAttribute(attribute) || "" : "__missing__");
+        }
+      }
+      logo.removeAttribute("srcset");
+      logo.removeAttribute("sizes");
+      logo.setAttribute("src", source);
+      logo.setAttribute("alt", text("product"));
     } else {
       if (!logo.hasAttribute("data-soft98-original-logo")) logo.setAttribute("data-soft98-original-logo", logo.style.backgroundImage || "__none__");
       logo.style.backgroundImage = `url("${source}")`;

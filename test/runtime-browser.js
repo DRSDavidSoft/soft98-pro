@@ -174,6 +174,7 @@ function assertCase(name, results, expected) {
     nestedLightSurface: expected.dark ? "raised" : null,
     controlTabChanged: true,
     controlOutsideCollapsed: true,
+    logoRestored: true,
     constructableTheme: expected.dark,
     utilityLayout: expected.dark ? "utility-list" : null,
     utilityRows: expected.dark,

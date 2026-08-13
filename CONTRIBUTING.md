@@ -19,3 +19,7 @@ Do not commit screenshots made only for issue investigation. Paste those images 
 ## Pull requests
 
 Keep commits reviewable, describe live-site verification separately from harness results, and never include secrets or browsing data. A pull request is ready only when CI, deterministic packaging, browser acceptance, and repository-health checks pass.
+
+Keep English and Persian documentation aligned according to [`docs/Documentation-Style-Guide.md`](docs/Documentation-Style-Guide.md). Documentation changes must preserve the language switcher, screenshot-first overview, accessible SVG assets, meaningful emoji navigation, RTL behavior, and first-time setup path.
+
+Read every automated review, including `@copilot` reviews. Reply to each actionable thread after applying the fix, or explain clearly why it is not applicable; resolve the thread only when the response and implementation agree.

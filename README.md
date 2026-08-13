@@ -8,13 +8,15 @@
 <h1>Soft98 Pro</h1>
 
 [![Latest Release](https://img.shields.io/github/v/release/DRSDavidSoft/soft98-pro?style=for-the-badge&color=3b82f6&labelColor=0f172a&label=Latest+Release)](https://github.com/DRSDavidSoft/soft98-pro/releases/latest)
+[![CI](https://img.shields.io/github/actions/workflow/status/DRSDavidSoft/soft98-pro/ci.yml?branch=develop&style=for-the-badge&label=CI&labelColor=0f172a)](https://github.com/DRSDavidSoft/soft98-pro/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/DRSDavidSoft/soft98-pro?style=for-the-badge&color=8b5cf6&labelColor=0f172a)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/DRSDavidSoft/soft98-pro?style=for-the-badge&color=f59e0b&labelColor=0f172a)](https://github.com/DRSDavidSoft/soft98-pro/stargazers)
 
 </div>
 
 <a id="screenshot"></a>
 
-## Screenshot
+## 📸 Screenshot
 
 ![Soft98 Pro dark mode running on Soft98](docs/assets/soft98-pro-dark.png)
 
@@ -22,9 +24,11 @@ Soft98 Pro improves Soft98 with resilient ad blocking, anti-adblock patching, do
 
 Both formats are built from the shared runtime in [`src/runtime.js`](src/runtime.js), keeping blocking behavior, diagnostics, localization, theming, favicon status, and link recovery aligned.
 
+![Soft98 Pro protection, link recovery, and Pro themes](docs/assets/soft98-pro-banner.svg)
+
 <a id="contents"></a>
 
-## Contents
+## 🧭 Contents
 
 - [Screenshot](#screenshot)
 - [Features](#features)
@@ -44,7 +48,7 @@ Both formats are built from the shared runtime in [`src/runtime.js`](src/runtime
 
 <a id="features"></a>
 
-## Features
+## ✨ Features
 
 - **Ad blocking:** removes ad surfaces through source, shape, size, structure, and link-behavior analysis.
 - **Anti-adblock protection:** patches packed Soft98 code before fragile detection logic can damage the page.
@@ -60,7 +64,7 @@ Both formats are built from the shared runtime in [`src/runtime.js`](src/runtime
 
 <a id="bundled-branding"></a>
 
-## Bundled Branding
+## 🏴‍☠️ Bundled Branding
 
 - [Light-page logo](docs/assets/soft98-pro-logo-light.png)
 - [Pirate-themed Pro logo](docs/assets/soft98-pro-logo-dark.png), carrying the motto `یکی از تبلیغ‌دار ترین مراجع نرم‌افزاری ایران`
@@ -69,13 +73,13 @@ The build converts both images to inlined PNG data URLs. After successful cleanu
 
 <a id="getting-started"></a>
 
-## Getting Started
+## 🚀 Getting Started
 
 Choose one installation path below. The userscript is the shortest setup; the extension provides the fuller browser integration.
 
 <a id="userscript-quick-start"></a>
 
-### Userscript
+### ⚡ Userscript
 
 1. Install [Tampermonkey](https://tampermonkey.net) for Chrome or Edge, or [Violentmonkey](https://violentmonkey.github.io) for Firefox.
 2. Install [`soft98-pro.user.js`](https://github.com/DRSDavidSoft/soft98-pro/raw/main/soft98-pro.user.js).
@@ -86,20 +90,20 @@ Choose one installation path below. The userscript is the shortest setup; the ex
 
 <a id="extension-quick-start"></a>
 
-### Browser Extension
+### 🧩 Browser Extension
 
 1. Download the appropriate ZIP from the [latest release](https://github.com/DRSDavidSoft/soft98-pro/releases/latest).
 2. Extract the archive.
 3. Follow the instructions for your browser.
 
-#### Chrome or Edge
+#### 🟦 Chrome or Edge
 
 1. Open `chrome://extensions` or `edge://extensions`.
 2. Enable **Developer mode**.
 3. Select **Load unpacked**.
 4. Choose the extracted Chromium folder.
 
-#### Firefox
+#### 🟠 Firefox
 
 1. Open `about:debugging#/runtime/this-firefox`.
 2. Select **Load Temporary Add-on**.
@@ -107,13 +111,21 @@ Choose one installation path below. The userscript is the shortest setup; the ex
 
 See the complete [Installation Guide](docs/wiki/Installation.md) for package names, browser-specific details, and troubleshooting.
 
+### ✅ First Successful Run
+
+1. Open a Soft98 software page and confirm the article and download section remain visible.
+2. Look for the Soft98 Pro control at the page edge; Pro mode and the dark theme are enabled by default.
+3. Open the control and run **Scan now** if the page was already open during installation.
+4. Confirm advertisements and blocker warnings are gone and a recovered download link still opens its original address.
+5. Use **Diagnostics** only when something looks wrong, then include the displayed compatibility hash in a GitHub report.
+
 <a id="choose-a-format"></a>
 
-## Choose a Format
+## 🧩 Choose a Format
 
 <a id="userscript-profile"></a>
 
-### Userscript
+### ⚡ Userscript
 
 - **Best for:** the quickest setup, direct source inspection, and users who already use a script manager.
 - **Installation:** one JavaScript file, usually ready in under a minute.
@@ -122,7 +134,7 @@ See the complete [Installation Guide](docs/wiki/Installation.md) for package nam
 
 <a id="extension-profile"></a>
 
-### Browser Extension
+### 🧩 Browser Extension
 
 - **Best for:** daily use, richer settings, browser-owned storage, and more predictable integration.
 - **Installation:** an unpacked Chromium or Firefox package from the latest release.
@@ -133,7 +145,7 @@ Both formats use the same core protection code. Read the detailed [Userscript vs
 
 <a id="updates"></a>
 
-## Updates
+## 🔄 Updates
 
 - Userscript managers install updates automatically from `releases/latest/download/soft98-pro.user.js` through standard `@updateURL` and `@downloadURL` metadata.
 - The extension checks at installation, browser startup, and every six hours. It prefers `latest.json`, falls back to GitHub's Releases API for older releases, and links directly to the correct Chromium or Firefox package.
@@ -143,13 +155,13 @@ PersianBlocker's current warning is injected as a USER-origin `html::after` rule
 
 <a id="localization"></a>
 
-## Localization
+## 🌐 Localization
 
 All English and Persian runtime, settings, diagnostics, taunt, and update copy lives in [`src/messages.json`](src/messages.json). The build validates matching locale keys and inlines the catalog into every target, so the installed userscript and extensions do not fetch translations at runtime.
 
 <a id="build-from-source"></a>
 
-## Build From Source
+## 🛠️ Build From Source
 
 ```bash
 git clone https://github.com/DRSDavidSoft/soft98-pro.git
@@ -164,7 +176,7 @@ Generate a fresh live-site screenshot with:
 npm run screenshot
 ```
 
-### Build Outputs
+### 📦 Build Outputs
 
 - [`soft98-pro.user.js`](soft98-pro.user.js): root userscript for direct GitHub installation.
 - `dist/userscript/soft98-pro.user.js`: release copy of the userscript.
@@ -177,7 +189,7 @@ npm run screenshot
 
 <a id="cicd"></a>
 
-## CI/CD
+## ⚙️ CI/CD
 
 - **Soft98 Pro CI** builds all targets, runs browser acceptance tests, verifies deterministic packages, performs dependency review, and uploads inspectable artifacts.
 - **Soft98 Pro Release** runs when the active-development PR reaches `main`, derives the tag from `package.json`, rejects version reuse on another commit, attests provenance, publishes the GitHub Release, and uploads the extension ZIPs, standalone userscript, metadata, and checksums.
@@ -185,7 +197,7 @@ npm run screenshot
 
 <a id="diagnostics"></a>
 
-## Diagnostics
+## 🩺 Diagnostics
 
 Open DevTools on a Soft98 page and use the public diagnostics API:
 
@@ -201,7 +213,7 @@ The friendly alias `window.Soft98Pro` is also available. See the [Diagnostics Gu
 
 <a id="documentation"></a>
 
-## Documentation
+## 📚 Documentation
 
 - [Wiki Home](docs/wiki/Home.md): overview and documentation navigation.
 - [Installation](docs/wiki/Installation.md): installation for every supported browser.
@@ -209,6 +221,7 @@ The friendly alias `window.Soft98Pro` is also available. See the [Diagnostics Gu
 - [Diagnostics](docs/wiki/Diagnostics.md): console tools and troubleshooting.
 - [Development](docs/wiki/Development.md): build, test, and contribution workflow.
 - [CI/CD and Releases](docs/wiki/CI-CD-and-Releases.md): upstream monitoring, security gates, provenance, and release automation.
+- [Documentation Style Guide](docs/Documentation-Style-Guide.md): bilingual structure, visual standards, RTL guidance, and review checklist.
 - [Persian README](README.fa.md): complete Persian version of this document.
 
 ---
@@ -217,6 +230,6 @@ The friendly alias `window.Soft98Pro` is also available. See the [Diagnostics Gu
 
 Soft98 Pro · Userscript and browser extension
 
-[Back to top](#top)
+[⬆ Back to top](#top)
 
 </div>

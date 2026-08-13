@@ -23,6 +23,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Restored the bilingual, screenshot-first documentation experience with accessible SVG branding, meaningful emoji navigation, stronger first-run guidance, and a durable documentation style guide.
 - Reworked the shared patch engine so browser execution and historical compatibility tests use the same fail-safe transformations.
 - Refined the default Pro dark theme, distinct expert control console, megamenus, transition-safe tabbed cards, nested content surfaces, download-link presentation, logo treatment, and favicon status.
 - Made Pro styles self-healing with constructable stylesheets so page scripts cannot silently remove layout and theme repairs.
@@ -31,6 +32,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Restored original logo accessibility and responsive-image attributes when Pro branding is disabled or changed.
 - Prevented malformed upstream JavaScript from removing page content or stopping Soft98 Pro cleanup.
 - Prevented scroll-triggered anti-adblock checks from restoring warnings after the page is cleaned.
 - Removed residual advertisement containers and separators while preserving surrounding content structure.

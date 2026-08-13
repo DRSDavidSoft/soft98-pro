@@ -232,9 +232,18 @@
             var selectedAfterArrow = control.querySelector('[role="tab"][aria-selected="true"]');
             document.body.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));
             api.configure({ taunt: harnessParams.get("taunt") === "1" });
+            var brandedLogo = document.querySelector("[data-test='site-logo']");
+            api.configure({ pirateLogo: false });
+            var logoRestored =
+              brandedLogo.getAttribute("src") === "data:image/gif;base64,R0lGODlhAQABAAAAACw=" &&
+              brandedLogo.getAttribute("alt") === "Soft98 logo" &&
+              brandedLogo.getAttribute("srcset") === "data:image/gif;base64,R0lGODlhAQABAAAAACw= 1x" &&
+              brandedLogo.getAttribute("sizes") === "220px";
+            api.configure({ pirateLogo: true });
             return {
               tabChanged: Boolean(selectedAfterArrow && selectedAfterArrow !== firstTab),
               outsideCollapsed: control.getAttribute("data-open") === "false" && control.querySelector("form").getAttribute("aria-hidden") === "true",
+              logoRestored: logoRestored,
             };
           })();
           var megamenu = document.querySelector('[data-test="megamenu"]');
@@ -308,6 +317,7 @@
             nestedLightBackground: nestedLightSurface && getComputedStyle(nestedLightSurface).backgroundColor,
             controlTabChanged: controlBehavior.tabChanged,
             controlOutsideCollapsed: controlBehavior.outsideCollapsed,
+            logoRestored: controlBehavior.logoRestored,
             tabTheme: tabTheme,
             control: (function () {
               var control = document.querySelector("#soft98-pro-control");
@@ -362,7 +372,7 @@
   <body>
     <main>
       <h1>Soft98 Pro Proof Harness</h1>
-      <a href="/"><img alt="Soft98 logo" width="220" height="80" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" /></a>
+      <a href="/"><img data-test="site-logo" alt="Soft98 logo" width="220" height="80" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACw= 1x" sizes="220px" /></a>
       <a class="download-list-link" href="https://soft98.ir/download/test-package">Download</a>
       <div id="kaprila_soft98_ir_related" class="ad-slot">Kaprila ad placeholder should disappear</div>
       <div id="stable-proof-container"><div class="dbdnone">safe probe placeholder</div></div>
