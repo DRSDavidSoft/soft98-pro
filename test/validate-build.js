@@ -64,6 +64,12 @@ if (/PIRATE_LOGO|data:image\/svg\+xml|fa-desktop-alt:before|font-family:\\?Arial
 if (!/data-open=true/.test(runtime) || !/cubic-bezier/.test(runtime)) {
   throw new Error("Soft98 Pro control panel transition styling is missing");
 }
+if (!/control-position/.test(runtime) || !/pointerdown/.test(runtime) || !/pointermove/.test(runtime) || !/ArrowLeft/.test(runtime)) {
+  throw new Error("Persistent pointer and keyboard movement for the Soft98 Pro control is missing");
+}
+if (!/width:42px;height:42px/.test(runtime) || !/position:absolute/.test(runtime) || !/data-horizontal/.test(runtime) || !/data-vertical/.test(runtime)) {
+  throw new Error("Soft98 Pro control geometry and edge-aware panel placement are missing");
+}
 if (!/scrollDetectorsBlocked/.test(runtime) || !/addEventListener/.test(runtime) || !/blocked scroll-triggered Soft98 detector/.test(runtime)) {
   throw new Error("Scroll-triggered anti-adblock detector firewall is missing");
 }

@@ -6,6 +6,8 @@
   const DATA_STATE = "data-soft98-adblocker-state";
   const DATA_PATCHED = "data-soft98-adblocker-patched-script";
   const FAVICON_ID = "soft98-pro-favicon";
+  const CONTROL_POSITION_KEY = "soft98-ad-blocker.control-position";
+  const CONTROL_MARGIN = 12;
   const enqueueMicrotask = window.queueMicrotask ? window.queueMicrotask.bind(window) : (callback) => Promise.resolve().then(callback);
   const nativeEval = typeof window.eval === "function" ? window.eval : null;
   const nativeFetch = window.fetch ? window.fetch.bind(window) : null;
@@ -25,6 +27,7 @@
       linkBadges: "Download badges",
       diagnostics: "Console diagnostics",
       recommendExtension: "Recommend extension",
+      moveControl: "Drag to move. Alt+Arrow keys also move this control.",
       scanNow: "Scan now",
       close: "Close",
       extensionTitle: "Browser extension is ready",
@@ -42,6 +45,7 @@
       linkBadges: "نشان لینک دانلود",
       diagnostics: "گزارش کنسول",
       recommendExtension: "پیشنهاد افزونه",
+      moveControl: "برای جابه‌جایی بکشید. با Alt و کلیدهای جهت‌دار نیز حرکت می‌کند.",
       scanNow: "بررسی دوباره",
       close: "بستن",
       extensionTitle: "نسخه افزونه مرورگر آماده است",
@@ -80,6 +84,7 @@
   let originalTitle = document.title || "";
   let successAnnounced = false;
   let faviconState = "";
+  let controlAbortController = null;
   let settings = readSettings();
 
   const SELECTORS = {
@@ -802,7 +807,52 @@
     }
   }
 
+  function readControlPosition() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(CONTROL_POSITION_KEY) || "null");
+      if (!stored || !Number.isFinite(stored.x) || !Number.isFinite(stored.y)) return null;
+      return { x: stored.x, y: stored.y };
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function saveControlPosition(position) {
+    try {
+      localStorage.setItem(CONTROL_POSITION_KEY, JSON.stringify(position));
+    } catch (error) {
+      safeConsole("warn", "Soft98 Pro could not persist the control position", error);
+    }
+  }
+
+  function clampControlPosition(position) {
+    const size = 42;
+    return {
+      x: Math.min(Math.max(CONTROL_MARGIN, Math.round(position.x)), Math.max(CONTROL_MARGIN, window.innerWidth - size - CONTROL_MARGIN)),
+      y: Math.min(Math.max(CONTROL_MARGIN, Math.round(position.y)), Math.max(CONTROL_MARGIN, window.innerHeight - size - CONTROL_MARGIN)),
+    };
+  }
+
+  function defaultControlPosition() {
+    return clampControlPosition({ x: 16, y: window.innerHeight - 58 });
+  }
+
+  function placeControl(wrap, requested, persist) {
+    const position = clampControlPosition(requested);
+    wrap.style.left = `${position.x}px`;
+    wrap.style.top = `${position.y}px`;
+    wrap.style.right = "auto";
+    wrap.style.bottom = "auto";
+    wrap.setAttribute("data-horizontal", position.x + 21 > window.innerWidth / 2 ? "right" : "left");
+    wrap.setAttribute("data-vertical", position.y + 21 > window.innerHeight / 2 ? "up" : "down");
+    if (persist) saveControlPosition(position);
+    return position;
+  }
+
   function renderControlPanel() {
+    if (controlAbortController) controlAbortController.abort();
+    controlAbortController = new AbortController();
+    const signal = controlAbortController.signal;
     const old = document.getElementById("soft98-pro-control");
     if (old) old.remove();
     if (!document.body) return;
@@ -811,7 +861,7 @@
     wrap.dir = "ltr";
     wrap.setAttribute("data-open", "false");
     wrap.innerHTML = `
-      <button type="button" data-role="toggle" aria-label="${text("product")}">☠</button>
+      <button type="button" data-role="toggle" aria-label="${text("product")}: ${text("moveControl")}" title="${text("moveControl")}">☠</button>
       <form aria-hidden="true">
         <header><strong>${text("product")}</strong><small>${VERSION}</small></header>
         ${[
@@ -830,10 +880,14 @@
     `;
     const style = document.createElement("style");
     style.textContent = `
-      #soft98-pro-control{position:fixed;z-index:2147483647;left:16px;bottom:16px;font:13px/1.4 system-ui,sans-serif;color:#e6f0fa}
-      #soft98-pro-control>[data-role=toggle]{width:42px;height:42px;border:1px solid #2d4a66;border-radius:50%;background:#101b27;color:#70e1b2;font-size:20px;box-shadow:0 10px 30px rgba(0,0,0,.35);cursor:pointer;transition:transform .18s ease,background-color .18s ease,border-color .18s ease,box-shadow .18s ease}
+      #soft98-pro-control{position:fixed;z-index:2147483647;width:42px;height:42px;direction:ltr;font:13px/1.4 system-ui,sans-serif;color:#e6f0fa;isolation:isolate}
+      #soft98-pro-control>[data-role=toggle]{position:absolute;inset:0;display:grid;place-items:center;width:42px;height:42px;margin:0;padding:0;float:none;border:1px solid #2d4a66;border-radius:50%;background:#101b27;color:#70e1b2;font-size:20px;line-height:1;box-shadow:0 10px 30px rgba(0,0,0,.35);cursor:grab;touch-action:none;user-select:none;transition:transform .18s ease,background-color .18s ease,border-color .18s ease,box-shadow .18s ease}
+      #soft98-pro-control[data-dragging=true]>[data-role=toggle]{cursor:grabbing;transform:scale(1.04)}
       #soft98-pro-control>[data-role=toggle]:hover,#soft98-pro-control[data-open=true]>[data-role=toggle]{transform:translateY(-1px) scale(1.04);border-color:#70e1b2;background:#13283a;box-shadow:0 14px 36px rgba(0,0,0,.44),0 0 0 4px rgba(112,225,178,.12)}
-      #soft98-pro-control form{display:grid;gap:10px;width:260px;margin-top:10px;padding:14px;border:1px solid #27405a;border-radius:12px;background:rgba(8,17,26,.96);box-shadow:0 18px 55px rgba(0,0,0,.45);backdrop-filter:blur(14px);transform-origin:left bottom;transform:translateY(10px) scale(.96);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s ease,transform .22s cubic-bezier(.2,.8,.2,1),visibility 0s linear .22s}
+      #soft98-pro-control form{position:absolute;left:0;bottom:52px;display:grid;gap:10px;width:min(260px,calc(100vw - 24px));max-height:calc(100vh - 76px);overflow:auto;margin:0;padding:14px;border:1px solid #27405a;border-radius:12px;background:rgba(8,17,26,.96);box-shadow:0 18px 55px rgba(0,0,0,.45);backdrop-filter:blur(14px);transform-origin:left bottom;transform:translateY(10px) scale(.96);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s ease,transform .22s cubic-bezier(.2,.8,.2,1),visibility 0s linear .22s}
+      #soft98-pro-control[data-horizontal=right] form{right:0;left:auto;transform-origin:right bottom}
+      #soft98-pro-control[data-vertical=down] form{top:52px;bottom:auto;transform:translateY(-10px) scale(.96);transform-origin:left top}
+      #soft98-pro-control[data-horizontal=right][data-vertical=down] form{transform-origin:right top}
       #soft98-pro-control[data-open=true] form{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0) scale(1);transition:opacity .18s ease,transform .22s cubic-bezier(.2,.8,.2,1),visibility 0s}
       #soft98-pro-control header{display:flex;justify-content:space-between;align-items:center;color:#f0f7ff}
       #soft98-pro-control small{color:#9db1c6}
@@ -843,23 +897,73 @@
       #soft98-pro-control footer button{flex:1;border:1px solid #31506c;border-radius:8px;background:#15283a;color:#e6f0fa;padding:7px;cursor:pointer}
     `;
     wrap.appendChild(style);
-    wrap.querySelector("[data-role='toggle']").addEventListener("click", () => {
+    const toggle = wrap.querySelector("[data-role='toggle']");
+    let position = placeControl(wrap, readControlPosition() || defaultControlPosition(), false);
+    let drag = null;
+    let suppressClick = false;
+    toggle.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      drag = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, originX: position.x, originY: position.y, moved: false };
+      wrap.setAttribute("data-dragging", "true");
+      event.preventDefault();
+    }, { signal });
+    window.addEventListener("pointermove", (event) => {
+      if (!drag || drag.pointerId !== event.pointerId) return;
+      const dx = event.clientX - drag.startX;
+      const dy = event.clientY - drag.startY;
+      if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+      drag.moved = true;
+      event.preventDefault();
+      position = placeControl(wrap, { x: drag.originX + dx, y: drag.originY + dy }, false);
+    }, { signal });
+    const finishDrag = (event) => {
+      if (!drag || drag.pointerId !== event.pointerId) return;
+      if (drag.moved) {
+        suppressClick = true;
+        position = placeControl(wrap, position, true);
+      }
+      wrap.setAttribute("data-dragging", "false");
+      drag = null;
+    };
+    window.addEventListener("pointerup", finishDrag, { signal });
+    window.addEventListener("pointercancel", finishDrag, { signal });
+    toggle.addEventListener("keydown", (event) => {
+      if (!event.altKey || !/^Arrow(?:Left|Right|Up|Down)$/.test(event.key)) return;
+      event.preventDefault();
+      const step = event.shiftKey ? 1 : 12;
+      const delta = {
+        ArrowLeft: { x: -step, y: 0 },
+        ArrowRight: { x: step, y: 0 },
+        ArrowUp: { x: 0, y: -step },
+        ArrowDown: { x: 0, y: step },
+      }[event.key];
+      position = placeControl(wrap, { x: position.x + delta.x, y: position.y + delta.y }, true);
+    }, { signal });
+    toggle.addEventListener("click", (event) => {
+      if (suppressClick) {
+        suppressClick = false;
+        event.preventDefault();
+        return;
+      }
       const form = wrap.querySelector("form");
       const open = wrap.getAttribute("data-open") !== "true";
       wrap.setAttribute("data-open", open ? "true" : "false");
       form.setAttribute("aria-hidden", open ? "false" : "true");
-    });
+    }, { signal });
     wrap.querySelector("[data-role='close']").addEventListener("click", () => {
       const form = wrap.querySelector("form");
       wrap.setAttribute("data-open", "false");
       form.setAttribute("aria-hidden", "true");
-    });
+    }, { signal });
     wrap.querySelector("[data-role='scan']").addEventListener("click", () => schedule(document));
     wrap.addEventListener("change", (event) => {
       const input = event.target;
       if (!input || input.tagName !== "INPUT") return;
       writeSettings({ ...settings, [input.name]: input.checked });
-    });
+    }, { signal });
+    window.addEventListener("resize", () => {
+      position = placeControl(wrap, position, true);
+    }, { signal });
     document.body.appendChild(wrap);
   }
 

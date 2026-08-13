@@ -51,6 +51,7 @@
       }
     </style>
     <script>
+      localStorage.removeItem("soft98-ad-blocker.control-position");
       localStorage.setItem(
         "soft98-ad-blocker.settings",
         JSON.stringify({
@@ -169,6 +170,19 @@
             assignedScrollDetector: document.documentElement.getAttribute("data-soft98-assigned-scroll-detector"),
             scrollWarnings: document.querySelectorAll(".alert-warning,[role='alert']").length,
             version: window.Soft98AdBlocker && window.Soft98AdBlocker.version,
+            control: (function () {
+              var control = document.querySelector("#soft98-pro-control");
+              var toggle = control && control.querySelector("[data-role='toggle']");
+              var controlRect = control && control.getBoundingClientRect();
+              var toggleRect = toggle && toggle.getBoundingClientRect();
+              return {
+                width: controlRect && Math.round(controlRect.width),
+                height: controlRect && Math.round(controlRect.height),
+                toggleX: toggleRect && Math.round(toggleRect.x),
+                toggleY: toggleRect && Math.round(toggleRect.y),
+                movable: Boolean(toggle && /grab/.test(getComputedStyle(toggle).cursor)),
+              };
+            })(),
           };
           document.querySelector("[data-proof='href']").textContent = link.getAttribute("href");
           document.querySelector("[data-proof='warnings']").textContent = document.querySelectorAll(".tbd_ibd, .trk_irk, .tbdc").length;
