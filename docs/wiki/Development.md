@@ -1,3 +1,12 @@
+<div align="center">
+
+<a href="Development.md"><img src="../assets/badge-en.svg" alt="English" height="22"/></a>&nbsp;
+<a href="fa/Development.md"><img src="../assets/badge-fa.svg" alt="فارسی" height="22"/></a>
+
+</div>
+
+---
+
 # Development 🛠️
 
 Install and validate locally:

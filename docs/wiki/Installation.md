@@ -1,3 +1,12 @@
+<div align="center">
+
+<a href="Installation.md"><img src="../assets/badge-en.svg" alt="English" height="22"/></a>&nbsp;
+<a href="fa/Installation.md"><img src="../assets/badge-fa.svg" alt="فارسی" height="22"/></a>
+
+</div>
+
+---
+
 # Installation 📦
 
 Use the latest release from https://github.com/DRSDavidSoft/soft98-pro/releases/latest.
