@@ -1,9 +1,9 @@
-name: "🏴‍☠️ Soft98 Pro Release"
+name: "🏴‍☠️ Soft98 Pro · Release"
+run-name: "🏴‍☠️ Release · ${{ github.event.inputs.tag || github.ref_name }} · ${{ github.event_name }}"
 
 on:
   push:
     branches: [main]
-    tags: ["v*"]
   workflow_dispatch:
     inputs:
       tag:
@@ -27,84 +27,91 @@ concurrency:
 
 jobs:
   release:
-    name: "🚀 Build and publish"
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
+    name: "🚀 Verify · Attest · Publish"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
-      - name: "📥 Checkout"
-        uses: actions/checkout@v4
+      - name: "📥 Check out complete source history"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
-      - name: "🟢 Setup Node.js"
-        uses: actions/setup-node@v4
+      - name: "🟢 Install Node.js"
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
 
       - name: "🏷️ Verify release version"
         id: version
         env:
           DISPATCH_TAG: ${{ github.event.inputs.tag }}
-          REF_NAME: ${{ github.ref_name }}
-          REF_TYPE: ${{ github.ref_type }}
+        shell: bash
         run: |
-          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
-          EXPECTED_TAG="v${PACKAGE_VERSION}"
-          if [ -n "$DISPATCH_TAG" ]; then
-            REQUESTED_TAG="$DISPATCH_TAG"
-          elif [ "$REF_TYPE" = "tag" ]; then
-            REQUESTED_TAG="$REF_NAME"
-          else
-            REQUESTED_TAG="$EXPECTED_TAG"
-          fi
-          if [ "$REQUESTED_TAG" != "$EXPECTED_TAG" ]; then
-            echo "Requested tag $REQUESTED_TAG does not match package.json ($EXPECTED_TAG)." >&2
+          set -euo pipefail
+          version="$(node -p "require('./package.json').version")"
+          expected="v${version}"
+          requested="${DISPATCH_TAG:-$expected}"
+          if [[ "$requested" != "$expected" ]]; then
+            echo "Requested tag $requested does not match package.json ($expected)." >&2
             exit 1
           fi
-          EXISTING_SHA="$(git rev-list -n 1 "$EXPECTED_TAG" 2>/dev/null || true)"
-          if [ -n "$EXISTING_SHA" ] && [ "$EXISTING_SHA" != "$GITHUB_SHA" ]; then
-            echo "$EXPECTED_TAG already points to $EXISTING_SHA; bump package.json before publishing another main commit." >&2
+          existing_sha="$(git rev-list -n 1 "$expected" 2>/dev/null || true)"
+          if [[ -n "$existing_sha" && "$existing_sha" != "$GITHUB_SHA" ]]; then
+            echo "$expected already points to $existing_sha; update package.json before publishing another main commit." >&2
             exit 1
           fi
-          echo "tag=$EXPECTED_TAG" >> "$GITHUB_OUTPUT"
-          echo "version=$PACKAGE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=$expected" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
-      - name: "📦 Install locked dependencies"
-        run: npm ci
+      - name: "📦 Restore locked dependencies"
+        run: npm ci --ignore-scripts
 
-      - name: "✅ Build and run acceptance tests"
+      - name: "✅ Build and run release acceptance suite"
         run: npm run ci
 
+      - name: "🧬 Verify current Soft98 compatibility"
+        run: npm run check:soft98-upstream
+
+      - name: "🧩 Build current server-side patched edition"
+        run: npm run build:patched-upstream
+
       - name: "🔏 Attest release artifacts"
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
         with:
           subject-path: |
             soft98-pro.user.js
             dist/packages/*.zip
             dist/release/latest.json
             dist/release/SHA256SUMS.txt
+            dist/release/RELEASE-NOTES.md
+            dist/upstream/manifest.json
+            dist/upstream/soft98-application.patched.js
 
       - name: "🚀 Publish GitHub Release"
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ steps.version.outputs.tag }}
-          PRERELEASE: ${{ github.event.inputs.prerelease || 'false' }}
-        run: |
-          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            ARGS=("$RELEASE_TAG" --title "☠️ Soft98 Pro $RELEASE_TAG" --generate-notes --target "$GITHUB_SHA")
-            if [ "$PRERELEASE" = "true" ]; then ARGS+=(--prerelease); else ARGS+=(--latest); fi
-            gh release create "${ARGS[@]}"
-          fi
-          gh release upload "$RELEASE_TAG" \
-            dist/packages/soft98-pro-chromium-*.zip \
-            dist/packages/soft98-pro-firefox-*.zip \
-            dist/packages/soft98-pro-userscript-*.zip \
-            soft98-pro.user.js \
-            dist/release/latest.json \
-            dist/release/SHA256SUMS.txt \
-            --clobber
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          name: "🏴‍☠️ Soft98 Pro ${{ steps.version.outputs.tag }}"
+          body_path: dist/release/RELEASE-NOTES.md
+          prerelease: ${{ github.event.inputs.prerelease || false }}
+          make_latest: true
+          files: |
+            dist/packages/soft98-pro-chromium-*.zip
+            dist/packages/soft98-pro-firefox-*.zip
+            dist/packages/soft98-pro-userscript-*.zip
+            soft98-pro.user.js
+            dist/release/latest.json
+            dist/release/SHA256SUMS.txt
+            dist/release/RELEASE-NOTES.md
+            dist/upstream/manifest.json
+            dist/upstream/soft98-application.patched.js
+            CHANGELOG.md
 
-      - name: "🧾 Publish release summary"
+      - name: "🧾 Publish branded release summary"
         if: always() && hashFiles('dist/release/latest.json') != ''
+        env:
+          JOB_STATUS: ${{ job.status }}
         run: node tools/ci-summary.js release

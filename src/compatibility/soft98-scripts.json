@@ -1,0 +1,1494 @@
+{
+  "schemaVersion": 1,
+  "patchEngineVersion": 1,
+  "generatedAt": "2026-07-11T01:30:03.148Z",
+  "source": {
+    "repository": "soft98-js-history",
+    "manifest": "captures/manifest.json",
+    "captures": 65
+  },
+  "entries": [
+    {
+      "sha256": "24bb7ecbf00248752f11948b23ddb47ca0df71b8402d7cc15028fae221702984",
+      "status": "compatible",
+      "firstSeenAt": "2025-08-28T23:45:37Z",
+      "lastSeenAt": "2025-08-28T23:45:37Z",
+      "packedBytes": 133014,
+      "fileNames": [
+        "application.min.packed.js"
+      ],
+      "paths": [
+        "/templates/23-09-12-13/js/application.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [
+        "anti-adblock-warning-throws"
+      ],
+      "review": {
+        "sourceCommit": "96ef83409482",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": [
+          "anti-adblock-reload-hook",
+          "anti-adblock-title-hash",
+          "legacy-download-null-href"
+        ]
+      }
+    },
+    {
+      "sha256": "6e6141ac1e15b6b2d7219bed51fe1185cf8674062e372e8b542ee8f341ecef79",
+      "status": "compatible",
+      "firstSeenAt": "2023-11-16T09:10:12Z",
+      "lastSeenAt": "2023-11-16T09:10:12Z",
+      "packedBytes": 133041,
+      "fileNames": [
+        "application.min.packed.js"
+      ],
+      "paths": [
+        "/templates/23-09-12-13/js/application.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [
+        "anti-adblock-warning-throws"
+      ],
+      "review": {
+        "sourceCommit": "426e6edac2c0",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": [
+          "anti-adblock-reload-hook",
+          "anti-adblock-title-hash",
+          "legacy-download-null-href"
+        ]
+      }
+    },
+    {
+      "sha256": "e5092d5531e30ec5216d952425abed4b70e4fe7269cec12501c6a8e97fda0b6b",
+      "status": "compatible",
+      "firstSeenAt": "2023-09-13T02:00:34Z",
+      "lastSeenAt": "2023-09-13T02:00:34Z",
+      "packedBytes": 132996,
+      "fileNames": [
+        "application.min.packed.js"
+      ],
+      "paths": [
+        "/templates/23-09-12-13/js/application.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [
+        "anti-adblock-warning-throws"
+      ],
+      "review": {
+        "sourceCommit": "90ae59e03e6b",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": [
+          "anti-adblock-reload-hook",
+          "anti-adblock-title-hash",
+          "legacy-download-null-href"
+        ]
+      }
+    },
+    {
+      "sha256": "8d9ec532353c1f3123ae008cd5ceccb815d22b06d173abc246c03f983e57d2b8",
+      "status": "compatible",
+      "firstSeenAt": "2023-09-06T00:53:52Z",
+      "lastSeenAt": "2023-09-06T00:53:52Z",
+      "packedBytes": 132795,
+      "fileNames": [
+        "application.min.packed.js"
+      ],
+      "paths": [
+        "/templates/23-09-02-23/js/application.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [
+        "anti-adblock-warning-throws"
+      ],
+      "review": {
+        "sourceCommit": "9c5112ff7370",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": [
+          "anti-adblock-reload-hook",
+          "anti-adblock-title-hash",
+          "legacy-download-null-href"
+        ]
+      }
+    },
+    {
+      "sha256": "31321a890df77f5c0aeb94092d16c7da5d6b3686e7b15f3f33fbf5ba2837372e",
+      "status": "compatible",
+      "firstSeenAt": "2023-08-30T00:06:40Z",
+      "lastSeenAt": "2023-08-30T00:06:40Z",
+      "packedBytes": 132830,
+      "fileNames": [
+        "application.min.packed.js"
+      ],
+      "paths": [
+        "/templates/23-08-24-17/js/application.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [
+        "anti-adblock-warning-throws"
+      ],
+      "review": {
+        "sourceCommit": "c439c7e1abd2",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": [
+          "anti-adblock-reload-hook",
+          "anti-adblock-title-hash",
+          "legacy-download-null-href"
+        ]
+      }
+    },
+    {
+      "sha256": "8d2cd0fd84836f28840288d17359eccf16a8af5bda270cf8f81af121034f27e7",
+      "status": "compatible",
+      "firstSeenAt": "2023-08-22T00:34:32Z",
+      "lastSeenAt": "2023-08-22T00:34:32Z",
+      "packedBytes": 133058,
+      "fileNames": [
+        "application.min.packed.js"
+      ],
+      "paths": [
+        "/templates/23-08-16-17/js/application.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [
+        "anti-adblock-warning-throws"
+      ],
+      "review": {
+        "sourceCommit": "10d5799cc404",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": [
+          "anti-adblock-reload-hook",
+          "anti-adblock-title-hash",
+          "legacy-download-null-href"
+        ]
+      }
+    },
+    {
+      "sha256": "f1d6d7d31cae17b59219a69a34bfd5b38eae4e00923f0c98070c7198d65beac5",
+      "status": "compatible",
+      "firstSeenAt": "2023-08-13T09:28:44Z",
+      "lastSeenAt": "2023-08-13T09:28:44Z",
+      "packedBytes": 133051,
+      "fileNames": [
+        "application.min.packed.js"
+      ],
+      "paths": [
+        "/templates/23-08-12-14/js/application.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [
+        "anti-adblock-warning-throws"
+      ],
+      "review": {
+        "sourceCommit": "c73ac7f01f2a",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": [
+          "anti-adblock-reload-hook",
+          "anti-adblock-title-hash",
+          "legacy-download-null-href"
+        ]
+      }
+    },
+    {
+      "sha256": "8d8eccc82797fc61d05d5e612bf625bd4f5d6c19146e86be761408d1aa09e452",
+      "status": "compatible",
+      "firstSeenAt": "2023-08-11T11:57:30Z",
+      "lastSeenAt": "2023-08-11T11:57:30Z",
+      "packedBytes": 132262,
+      "fileNames": [
+        "application.min.packed.js"
+      ],
+      "paths": [
+        "/templates/23-08-09-16/js/application.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [
+        "anti-adblock-warning-throws"
+      ],
+      "review": {
+        "sourceCommit": "afc90ef81c36",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": [
+          "anti-adblock-reload-hook",
+          "anti-adblock-title-hash",
+          "legacy-download-null-href"
+        ]
+      }
+    },
+    {
+      "sha256": "a40db0202ee0dc526a354dd63b2600ef3edd36f440d90258b38b3b6f793f3965",
+      "status": "compatible",
+      "firstSeenAt": "2023-07-30T21:52:56Z",
+      "lastSeenAt": "2023-07-30T21:52:56Z",
+      "packedBytes": 131599,
+      "fileNames": [
+        "application.min.packed.js"
+      ],
+      "paths": [
+        "/templates/23-07-18-20/js/application.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [
+        "anti-adblock-warning-throws"
+      ],
+      "review": {
+        "sourceCommit": "405e4b3f3b20",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": [
+          "anti-adblock-title-hash",
+          "legacy-download-null-href"
+        ]
+      }
+    },
+    {
+      "sha256": "517e161f25ca0de23bf64fc123890d20e5955abed18acb1df1f0f7835751738f",
+      "status": "compatible",
+      "firstSeenAt": "2023-07-20T19:05:19Z",
+      "lastSeenAt": "2023-07-20T19:05:19Z",
+      "packedBytes": 131585,
+      "fileNames": [
+        "application.min.packed.js"
+      ],
+      "paths": [
+        "/templates/23-07-18-20/js/application.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [
+        "anti-adblock-warning-throws"
+      ],
+      "review": {
+        "sourceCommit": "1b83fc47f860",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": [
+          "anti-adblock-title-hash",
+          "legacy-download-null-href"
+        ]
+      }
+    },
+    {
+      "sha256": "18cd4397ba30682adc039f36a0d869fc74550d45a7c74a52237298c8d5f92bbb",
+      "status": "compatible",
+      "firstSeenAt": "2023-07-12T01:28:11Z",
+      "lastSeenAt": "2023-07-12T01:28:11Z",
+      "packedBytes": 130562,
+      "fileNames": [
+        "application.min.packed.js"
+      ],
+      "paths": [
+        "/templates/23-07-11-22/js/application.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [
+        "anti-adblock-warning-throws"
+      ],
+      "review": {
+        "sourceCommit": "bfa341d81b26",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": [
+          "anti-adblock-title-hash",
+          "legacy-download-null-href"
+        ]
+      }
+    },
+    {
+      "sha256": "5d6411540f2096b3751acc2e484cd3aa8c02036bf5f9f136c77f2b5ca1a4e310",
+      "status": "compatible",
+      "firstSeenAt": "2023-06-30T15:57:23Z",
+      "lastSeenAt": "2023-06-30T15:57:23Z",
+      "packedBytes": 129120,
+      "fileNames": [
+        "jquery.min.packed.js"
+      ],
+      "paths": [
+        "/templates/23-06-30-11/js/jquery.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [
+        "anti-adblock-warning-throws"
+      ],
+      "review": {
+        "sourceCommit": "3eaadf908449",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": [
+          "anti-adblock-title-hash",
+          "legacy-download-null-href"
+        ]
+      }
+    },
+    {
+      "sha256": "be9c473d29290dba16935ca36185ca094a9997c46a0aa29ed096a5289b460b14",
+      "status": "compatible",
+      "firstSeenAt": "2023-06-24T14:50:11Z",
+      "lastSeenAt": "2023-06-24T14:50:11Z",
+      "packedBytes": 128486,
+      "fileNames": [
+        "jquery.min.packed.js"
+      ],
+      "paths": [
+        "/templates/23-06-19-14/js/jquery.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [
+        "anti-adblock-warning-throws"
+      ],
+      "review": {
+        "sourceCommit": "70130d56345f",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": [
+          "anti-adblock-title-hash",
+          "legacy-download-null-href"
+        ]
+      }
+    },
+    {
+      "sha256": "bc2adb61b4458aa10e4964e597b1a148556aa0b7ceb8b7033c14776a879296a4",
+      "status": "compatible",
+      "firstSeenAt": "2023-06-20T17:26:18Z",
+      "lastSeenAt": "2023-06-20T17:26:18Z",
+      "packedBytes": 128874,
+      "fileNames": [
+        "jquery.min.packed.js"
+      ],
+      "paths": [
+        "/templates/23-06-20-15/js/jquery.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [
+        "anti-adblock-warning-throws"
+      ],
+      "review": {
+        "sourceCommit": "896ff9f2d9b2",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": [
+          "anti-adblock-title-hash",
+          "legacy-download-null-href"
+        ]
+      }
+    },
+    {
+      "sha256": "87d80a226d4e7928e39c1b363cf7dcbd6d0d1515cf18b33a666a2bb890795361",
+      "status": "compatible",
+      "firstSeenAt": "2023-06-14T16:50:42Z",
+      "lastSeenAt": "2023-06-14T16:50:42Z",
+      "packedBytes": 128272,
+      "fileNames": [
+        "jquery.min.packed.js"
+      ],
+      "paths": [
+        "/templates/23-06-13-14/js/jquery.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [
+        "anti-adblock-warning-throws"
+      ],
+      "review": {
+        "sourceCommit": "80a10b9ed7ee",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": [
+          "anti-adblock-title-hash",
+          "legacy-download-null-href"
+        ]
+      }
+    },
+    {
+      "sha256": "74f165a4ac970008782f1b89e67b44b00db55283053d562ae93f1b410cab680f",
+      "status": "compatible",
+      "firstSeenAt": "2023-04-15T19:52:38Z",
+      "lastSeenAt": "2023-04-15T19:52:38Z",
+      "packedBytes": 128035,
+      "fileNames": [
+        "jquery.min.packed.js"
+      ],
+      "paths": [
+        "/templates/23-04-13-14/js/jquery.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [
+        "anti-adblock-warning-throws"
+      ],
+      "review": {
+        "sourceCommit": "80b3849f62af",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": [
+          "anti-adblock-title-hash",
+          "legacy-download-null-href"
+        ]
+      }
+    },
+    {
+      "sha256": "56388bf723b8864c1d2989f594e03e36916a048628adb1ae76c26eea77f1f7ab",
+      "status": "compatible",
+      "firstSeenAt": "2022-09-20T18:46:09Z",
+      "lastSeenAt": "2022-09-20T18:46:09Z",
+      "packedBytes": 127961,
+      "fileNames": [
+        "jquery.min.packed.js"
+      ],
+      "paths": [
+        "/templates/22-09-20-18/js/jquery.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [
+        "anti-adblock-warning-throws"
+      ],
+      "review": {
+        "sourceCommit": "3084d5130bda",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": [
+          "anti-adblock-title-hash",
+          "legacy-download-null-href"
+        ]
+      }
+    },
+    {
+      "sha256": "acee3ee591e473e36bdc657f7003105c1bf953698caea00d4a99d82d21103ccb",
+      "status": "compatible",
+      "firstSeenAt": "2022-09-19T21:04:13Z",
+      "lastSeenAt": "2022-09-19T21:04:13Z",
+      "packedBytes": 127960,
+      "fileNames": [
+        "jquery.min.packed.js"
+      ],
+      "paths": [
+        "/templates/22-09-19-12/js/jquery.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [
+        "anti-adblock-warning-throws"
+      ],
+      "review": {
+        "sourceCommit": "57c086033932",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": [
+          "anti-adblock-title-hash",
+          "legacy-download-null-href"
+        ]
+      }
+    },
+    {
+      "sha256": "7cd80d5cfb4700febad9b11176fdb63998e5c8ccfcd06cfba79ca3df943cf4b9",
+      "status": "compatible",
+      "firstSeenAt": "2022-09-18T19:05:10Z",
+      "lastSeenAt": "2022-09-18T19:05:10Z",
+      "packedBytes": 128056,
+      "fileNames": [
+        "jquery.min.packed.js"
+      ],
+      "paths": [
+        "/templates/22-09-18-20/js/jquery.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [
+        "anti-adblock-warning-throws"
+      ],
+      "review": {
+        "sourceCommit": "6486d30b85a3",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": [
+          "anti-adblock-title-hash",
+          "legacy-download-null-href"
+        ]
+      }
+    },
+    {
+      "sha256": "fea230fc512274a52a9dfe08c07de4b4dbffbc9238bae3e07c4569af53fefffd",
+      "status": "compatible",
+      "firstSeenAt": "2022-09-13T19:31:36Z",
+      "lastSeenAt": "2022-09-13T19:31:36Z",
+      "packedBytes": 127531,
+      "fileNames": [
+        "jquery.min.packed.js"
+      ],
+      "paths": [
+        "/templates/22-09-13-21/js/jquery.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [
+        "anti-adblock-warning-throws"
+      ],
+      "review": {
+        "sourceCommit": "7431d4987d83",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": [
+          "anti-adblock-title-hash",
+          "legacy-download-null-href"
+        ]
+      }
+    },
+    {
+      "sha256": "f55661af794da805298b3b03f952f1250c6a37f674c66ad85ab31a98b7f7d0ec",
+      "status": "compatible",
+      "firstSeenAt": "2022-09-12T15:52:20Z",
+      "lastSeenAt": "2022-09-12T15:52:20Z",
+      "packedBytes": 127472,
+      "fileNames": [
+        "jquery.min.packed.js"
+      ],
+      "paths": [
+        "/templates/22-09-12-18/js/jquery.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [
+        "anti-adblock-warning-throws"
+      ],
+      "review": {
+        "sourceCommit": "4f079f7e4519",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": [
+          "anti-adblock-title-hash",
+          "legacy-download-null-href"
+        ]
+      }
+    },
+    {
+      "sha256": "4f7dcfce778cb15fc31ea2f983f3be2a82c4a4572b64da6afe89ba22bda99522",
+      "status": "compatible",
+      "firstSeenAt": "2022-09-12T09:16:01Z",
+      "lastSeenAt": "2022-09-12T09:16:01Z",
+      "packedBytes": 127459,
+      "fileNames": [
+        "jquery.min.packed.js"
+      ],
+      "paths": [
+        "/templates/22-09-11-00/js/jquery.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [
+        "anti-adblock-warning-throws"
+      ],
+      "review": {
+        "sourceCommit": "f243dac4ee9e",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": [
+          "anti-adblock-title-hash"
+        ]
+      }
+    },
+    {
+      "sha256": "fe8e496bedeeab1aa3b68b5aa84ce06ca4826eb1493d5591c1db9fe459b4fbd6",
+      "status": "compatible",
+      "firstSeenAt": "2022-09-04T17:34:57Z",
+      "lastSeenAt": "2022-09-04T17:34:57Z",
+      "packedBytes": 125589,
+      "fileNames": [
+        "jquery.min.packed.js"
+      ],
+      "paths": [
+        "/templates/22-09-04-00/js/jquery.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "4db1e1db8cd1",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "05a4972955ec425190d3ab4b259a6b23af58a3eb610af5c691cf0f6d925ff0b5",
+      "status": "compatible",
+      "firstSeenAt": "2022-08-31T22:20:54Z",
+      "lastSeenAt": "2022-08-31T22:20:54Z",
+      "packedBytes": 125628,
+      "fileNames": [
+        "jquery.min.packed.js"
+      ],
+      "paths": [
+        "/templates/22-08-31-21/js/jquery.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "98f10af69106",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "513df6af1995271e307159ff5ef8c94f5a62eccf6fef2efe9e6f4025f23ba2dc",
+      "status": "compatible",
+      "firstSeenAt": "2022-08-29T18:40:02Z",
+      "lastSeenAt": "2022-08-29T18:40:02Z",
+      "packedBytes": 125805,
+      "fileNames": [
+        "jquery-v22.08.28.23.min.packed.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery-v22.08.28.23.min.packed.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "785379af2687",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "fa80851d768c5a7891243fcbb18d19c0453d7c5ecfb9ef11cbc76f278d0c6a4a",
+      "status": "compatible",
+      "firstSeenAt": "2022-08-25T15:27:32Z",
+      "lastSeenAt": "2022-08-25T15:27:32Z",
+      "packedBytes": 125468,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "d99a1c75b6ad",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "ab50e5dd30b8eeec203c028d26f0e1c3c4bc950ad767d2a6afbde5547aef5afe",
+      "status": "compatible",
+      "firstSeenAt": "2022-08-23T18:00:50Z",
+      "lastSeenAt": "2022-08-23T18:00:50Z",
+      "packedBytes": 125132,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "31ddcfc8bd58",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "5e21ab7ca97f26463362222d16c1b804ab5a156a0507cf896b20a04387dd2dad",
+      "status": "compatible",
+      "firstSeenAt": "2022-08-22T17:43:21Z",
+      "lastSeenAt": "2022-08-22T17:43:21Z",
+      "packedBytes": 125432,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "0e55399519ad",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "d676ca9448af60dc4c362704063355756e83ba32be2dc8c3346e50cb698b2120",
+      "status": "compatible",
+      "firstSeenAt": "2022-08-22T12:44:29Z",
+      "lastSeenAt": "2022-08-22T12:44:29Z",
+      "packedBytes": 125392,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "d6b8a3390cf2",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "473db2d128c85f16a128e1db997a3aef49620ed6750a6313e31a7ffd05c73b1d",
+      "status": "compatible",
+      "firstSeenAt": "2022-08-21T21:57:11Z",
+      "lastSeenAt": "2022-08-21T21:57:11Z",
+      "packedBytes": 125321,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "7aad8b732a4d",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "2adc736a6654c97e5cb8c9bff0dd81153ccff8246410678d2be0fb963714e7f9",
+      "status": "compatible",
+      "firstSeenAt": "2022-08-20T05:40:07Z",
+      "lastSeenAt": "2022-08-20T05:40:07Z",
+      "packedBytes": 125282,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "79438528b837",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "30138eba3612d4e48807ba5b18670c034e7e9422d4f30cd3a66af21016eb3b82",
+      "status": "compatible",
+      "firstSeenAt": "2022-08-16T06:09:15Z",
+      "lastSeenAt": "2022-08-16T06:09:15Z",
+      "packedBytes": 124592,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "0aab74f0cee2",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "90529af6811e216ca3c5f50d6f4c715db028b287d998e16c07b3d5ae6625ffff",
+      "status": "compatible",
+      "firstSeenAt": "2022-08-15T12:30:15Z",
+      "lastSeenAt": "2022-08-15T12:30:15Z",
+      "packedBytes": 124585,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "ad4523508769",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "ae3c7fa695f5387413cf85fbc7d0c0c9e206a3176877e0dabbef6515941bd656",
+      "status": "compatible",
+      "firstSeenAt": "2022-08-14T12:50:25Z",
+      "lastSeenAt": "2022-08-14T12:50:25Z",
+      "packedBytes": 123988,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "978766495d21",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "2bbdba84cc56845e6ca2af9bdff3c599eb5182dd0746215354e608684cb4bdf5",
+      "status": "compatible",
+      "firstSeenAt": "2022-08-14T11:53:37Z",
+      "lastSeenAt": "2022-08-14T11:53:37Z",
+      "packedBytes": 123803,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "130d664120ab",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "3f6d881854bbb2038c777808e4ab50c61de99c30ad90a8befaa2531e647ea5a3",
+      "status": "compatible",
+      "firstSeenAt": "2022-08-13T01:18:40Z",
+      "lastSeenAt": "2022-08-13T01:18:40Z",
+      "packedBytes": 124613,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "95736601820a",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "c1b161c94b7e72031f944b79daecf4ccbc187be15c07d22ea801da2ab2b1f556",
+      "status": "compatible",
+      "firstSeenAt": "2022-08-08T15:52:13Z",
+      "lastSeenAt": "2022-08-08T15:52:13Z",
+      "packedBytes": 125288,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "452a89909d12",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "4f45d1a5caf58fc02fa821ac5a2149214e909c8b696ed353057fcd08aa46fd29",
+      "status": "compatible",
+      "firstSeenAt": "2022-08-07T12:15:09Z",
+      "lastSeenAt": "2022-08-07T12:15:09Z",
+      "packedBytes": 125246,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "2f7995c96db8",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "a2fda3e0adb30129d17abf072dfb11b6630fd6a7992a49e9b846c58a7c403006",
+      "status": "compatible",
+      "firstSeenAt": "2022-07-31T12:14:17Z",
+      "lastSeenAt": "2022-07-31T12:14:17Z",
+      "packedBytes": 125067,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "1fc8134441dc",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "16e54c329b6f37da4b262bf59c0ead57058636f93cc2150371ad054d5ee3182d",
+      "status": "compatible",
+      "firstSeenAt": "2022-07-29T18:15:44Z",
+      "lastSeenAt": "2022-07-29T18:15:44Z",
+      "packedBytes": 120771,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "8a043aa7357a",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "6205e5c53d5468c9f92dff7ab60f047259779f025a00356c5cccfd4f0dcd5cc9",
+      "status": "compatible",
+      "firstSeenAt": "2022-07-27T20:21:24Z",
+      "lastSeenAt": "2022-07-27T20:21:24Z",
+      "packedBytes": 120769,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "aad0f1765b2b",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "5772de581d0e8a53fa8788d09846e3edc9cba1ed99ae38ed15c6ec375fad5fa8",
+      "status": "compatible",
+      "firstSeenAt": "2022-07-10T08:23:24Z",
+      "lastSeenAt": "2022-07-10T08:23:24Z",
+      "packedBytes": 120769,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "71748bdfb249",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "9de82fa2395839249f5b4282f92731f989901391563a43c0bb7fee23c95e7739",
+      "status": "compatible",
+      "firstSeenAt": "2022-04-28T05:57:02Z",
+      "lastSeenAt": "2022-04-28T05:57:02Z",
+      "packedBytes": 120769,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "41dfaf817d6d",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "ed6d143efaf230e270f9f5196d6e4cd57c14e67cfdaf181ee249edde57da4841",
+      "status": "compatible",
+      "firstSeenAt": "2022-01-21T17:10:41Z",
+      "lastSeenAt": "2022-01-21T17:10:41Z",
+      "packedBytes": 120743,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "389a69e254af",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "9f7749d05ffb6ad82b72957328615858a693b7ab0bbf7e8a44eab29459115e99",
+      "status": "compatible",
+      "firstSeenAt": "2022-01-16T18:24:55Z",
+      "lastSeenAt": "2022-01-16T18:24:55Z",
+      "packedBytes": 120732,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "ebd39bab3175",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "77d80dfe4ca565a90257c2a88f5219ea1ac837a5b8dd5e36ad9039d7aa6b1022",
+      "status": "compatible",
+      "firstSeenAt": "2022-01-13T09:56:45Z",
+      "lastSeenAt": "2022-01-13T09:56:45Z",
+      "packedBytes": 120688,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "a4750ca6c933",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "e780729ab9b056fec784095f5d65666dcaa3ae745a6a6aadaa787ae4d886f45c",
+      "status": "compatible",
+      "firstSeenAt": "2022-01-12T01:17:37Z",
+      "lastSeenAt": "2022-01-12T01:17:37Z",
+      "packedBytes": 120681,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "31bb8500379c",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "580fc43060075b84d46a7c790f8318b52b1ee92abba68dcb12017035e7718ce4",
+      "status": "compatible",
+      "firstSeenAt": "2022-01-08T22:17:23Z",
+      "lastSeenAt": "2022-01-08T22:17:23Z",
+      "packedBytes": 120652,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "89dd2ef55049",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "60895d7094a99711d62e3c4b4f9326c961a1d5ac9a7da693e9550f423aab56e8",
+      "status": "compatible",
+      "firstSeenAt": "2022-01-05T00:26:32Z",
+      "lastSeenAt": "2022-01-05T00:26:32Z",
+      "packedBytes": 120160,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "e5eeb2d66af9",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "8129a58016ce95f80e31d8e11f7a6e8e4fa61d8eb0eb1c8817ea4acdd21f3405",
+      "status": "compatible",
+      "firstSeenAt": "2022-01-04T01:59:08Z",
+      "lastSeenAt": "2022-01-04T01:59:08Z",
+      "packedBytes": 120148,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "0ebc3d61405d",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "5c5d49043012f712bb4a6d08d82e533d84d92b3e63e0cf9ffa3e3e671cbdc8b4",
+      "status": "compatible",
+      "firstSeenAt": "2021-12-28T01:10:58Z",
+      "lastSeenAt": "2021-12-28T01:10:58Z",
+      "packedBytes": 120132,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "b252cae2b1e1",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "f62ff6c6a16e922d4bdf94314bc71aade415129cde52b87dcb446eae37de9c9b",
+      "status": "compatible",
+      "firstSeenAt": "2021-12-17T22:21:56Z",
+      "lastSeenAt": "2021-12-17T22:21:56Z",
+      "packedBytes": 120334,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "e284c2972540",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "e41c68e1149fc9f7c12249c29e5b029d873cb9a0b4cf304111200990fd8a7d1f",
+      "status": "compatible",
+      "firstSeenAt": "2021-10-02T21:17:05Z",
+      "lastSeenAt": "2021-10-02T21:17:05Z",
+      "packedBytes": 120334,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "9fa82b436bbf",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "287975d3960d27dc3158ff397dda6c09e51149e5c8abc9ba75fb1a1a60716fa0",
+      "status": "compatible",
+      "firstSeenAt": "2021-03-29T16:11:06Z",
+      "lastSeenAt": "2021-03-29T16:11:06Z",
+      "packedBytes": 120334,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "18c4ae318ffe",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "f1951e05284cd6c662a9b3557bdaac7edae6a9b1ef79e10688bdc203be214a8f",
+      "status": "compatible",
+      "firstSeenAt": "2021-03-11T18:45:36Z",
+      "lastSeenAt": "2021-03-11T18:45:36Z",
+      "packedBytes": 120334,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "19415f1de401",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "d4eb7540171ebe854d93a76f769100529563f3242fcda361e95e2297918cb3e3",
+      "status": "compatible",
+      "firstSeenAt": "2020-12-22T18:48:52Z",
+      "lastSeenAt": "2020-12-22T18:48:52Z",
+      "packedBytes": 120334,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "b479e05322fd",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "c789141c644568b1152da22a5ccdcce0e99799f1c21c8568bd246b722d44b468",
+      "status": "compatible",
+      "firstSeenAt": "2020-11-28T19:56:28Z",
+      "lastSeenAt": "2020-11-28T19:56:28Z",
+      "packedBytes": 120334,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "7695b509b550",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "b58cad69da52228222ae8c45a91a4b9d34c4d71dafd3ee292ad924bc5f6e7881",
+      "status": "compatible",
+      "firstSeenAt": "2020-11-04T04:00:55Z",
+      "lastSeenAt": "2020-11-04T04:00:55Z",
+      "packedBytes": 120334,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "093c1c1c1548",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "aeafdfab343771f58e7a4edd7de9b806b993c870571321ce0555d29749cdf04e",
+      "status": "compatible",
+      "firstSeenAt": "2020-10-10T20:04:06Z",
+      "lastSeenAt": "2020-10-10T20:04:06Z",
+      "packedBytes": 120342,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "0cfded903f31",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "22c9a50194e3c8540f3fc7a6fc166209da1b266e7c2791cbf2c883c398f1b281",
+      "status": "compatible",
+      "firstSeenAt": "2020-10-04T19:16:45Z",
+      "lastSeenAt": "2020-10-04T19:16:45Z",
+      "packedBytes": 120342,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "98e936bf647e",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "7acf4178d58341862ad726cb8fe6dd38c1a497e2be909d9501fb3ea5d0c1e105",
+      "status": "compatible",
+      "firstSeenAt": "2020-09-26T20:23:15Z",
+      "lastSeenAt": "2020-09-26T20:23:15Z",
+      "packedBytes": 121102,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "dcff7156fbb4",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "bdbee5b6270882d4a99001907e63c1e44365d46d2af00d47c03a4d9f7d83adf1",
+      "status": "compatible",
+      "firstSeenAt": "2020-08-19T10:50:24Z",
+      "lastSeenAt": "2020-08-19T10:50:24Z",
+      "packedBytes": 121100,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "2f88eea14c6a",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "19408a0c4ffaf7b340725aea3ae2842a4aaa324ab28ad631229b877e78b00ac7",
+      "status": "compatible",
+      "firstSeenAt": "2020-05-23T02:17:55Z",
+      "lastSeenAt": "2020-05-23T02:17:55Z",
+      "packedBytes": 121100,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "8f84d7f8af86",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "057b4115eec3dd7101b3d6c560546149d166f674ad00a4dc02decd8cbc018211",
+      "status": "compatible",
+      "firstSeenAt": "2020-01-25T20:30:56Z",
+      "lastSeenAt": "2020-01-25T20:30:56Z",
+      "packedBytes": 121100,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "95c699ed047d",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    },
+    {
+      "sha256": "0f3296fa9eaec62614eb8d362c85a11a66d4b68976100c1ac6e44da1affdf3ee",
+      "status": "compatible",
+      "firstSeenAt": "2020-01-18T19:19:04Z",
+      "lastSeenAt": "2020-01-18T19:19:04Z",
+      "packedBytes": 129178,
+      "fileNames": [
+        "jquery.js"
+      ],
+      "paths": [
+        "/templates/soft98_default/js/jquery.js"
+      ],
+      "captures": 1,
+      "patches": [],
+      "review": {
+        "sourceCommit": "3e432154c467",
+        "syntaxValid": true,
+        "recognized": true,
+        "skippedPatches": []
+      }
+    }
+  ]
+}

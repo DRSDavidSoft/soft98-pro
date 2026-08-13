@@ -53,6 +53,8 @@ Both formats are built from the shared runtime in [`src/runtime.js`](src/runtime
 - **Filter-list compatibility:** the extension neutralizes hostile USER-origin pseudo-element warnings using a more-specific USER-origin rule; CI tracks the current PersianBlocker Soft98 rules.
 - **Brand repair:** hostile author attributions are replaced with localized Soft98 Pro branding and theme-aware styling using semantic and geometric context instead of generated classes.
 - **Dark design:** enables a modern dark reading experience by default.
+- **Expert control console:** provides live cleanup telemetry, reviewed-script status, and grouped protection, experience, and advanced controls directly on the page.
+- **RGB experience:** optionally adds a restrained animated spectral glass design with reduced-motion support.
 - **Bilingual interface:** uses Persian when the browser language is `fa` or the timezone is `Asia/Tehran`; otherwise it uses English.
 - **Status favicon:** generates a canvas favicon that reflects the current protection state.
 
@@ -206,6 +208,7 @@ The friendly alias `window.Soft98Pro` is also available. See the [Diagnostics Gu
 - [Userscript vs Extension](docs/wiki/Userscript-vs-Extension.md): detailed format comparison.
 - [Diagnostics](docs/wiki/Diagnostics.md): console tools and troubleshooting.
 - [Development](docs/wiki/Development.md): build, test, and contribution workflow.
+- [CI/CD and Releases](docs/wiki/CI-CD-and-Releases.md): upstream monitoring, security gates, provenance, and release automation.
 - [Persian README](README.fa.md): complete Persian version of this document.
 
 ---

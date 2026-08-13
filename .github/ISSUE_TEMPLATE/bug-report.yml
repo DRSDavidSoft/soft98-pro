@@ -1,0 +1,82 @@
+name: "🐛 Bug report"
+description: Report a reproducible Soft98 Pro defect.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Soft98 Pro. Do not include credentials, cookies, or private browsing data.
+  - type: dropdown
+    id: format
+    attributes:
+      label: Installation format
+      options:
+        - Chromium or Edge extension
+        - Firefox extension
+        - Userscript
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Soft98 Pro version
+      placeholder: 1.2.0
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: Chrome 140 on Windows 11
+    validations:
+      required: true
+  - type: input
+    id: page
+    attributes:
+      label: Soft98 page
+      placeholder: https://soft98.ir/...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      placeholder: |
+        1. Open ...
+        2. Select ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Paste the relevant output from `Soft98Pro.report()`. Remove private data first.
+      render: json
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Paste images here so GitHub stores them as user attachments. Do not add issue screenshots to the repository.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I tested the latest release.
+          required: true
+        - label: I removed credentials, cookies, and private data.
+          required: true

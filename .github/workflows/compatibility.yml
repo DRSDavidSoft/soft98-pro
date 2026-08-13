@@ -1,0 +1,71 @@
+name: "🧬 Soft98 Pro · Upstream Compatibility"
+run-name: "🧬 Upstream scan · ${{ github.ref_name }} · ${{ github.event_name }}"
+
+on:
+  schedule:
+    - cron: "23 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: soft98-pro-upstream-compatibility
+  cancel-in-progress: true
+
+jobs:
+  inspect:
+    name: "🔬 Packed script · Filter list"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: "📥 Check out source"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: "🟢 Install Node.js"
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: "📦 Restore locked dependencies"
+        run: npm ci --ignore-scripts
+
+      - name: "🧬 Inspect current Soft98 application script"
+        id: upstream
+        run: node tools/check-soft98-upstream.js --json
+
+      - name: "🧩 Build server-side patched edition"
+        run: npm run build:patched-upstream
+
+      - name: "🛡️ Inspect current PersianBlocker rules"
+        run: npm run check:persianblocker-upstream
+
+      - name: "📣 Create or update compatibility issue"
+        if: steps.upstream.outputs.status != 'compatible'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node tools/report-soft98-update.js
+
+      - name: "📎 Upload compatibility evidence"
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: soft98-compatibility-${{ steps.upstream.outputs.short_sha }}
+          path: |
+            dist/compatibility-report.json
+            dist/upstream/manifest.json
+            dist/upstream/soft98-application.patched.js
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: "🚦 Enforce reviewed compatibility"
+        if: steps.upstream.outputs.status != 'compatible'
+        env:
+          STATUS: ${{ steps.upstream.outputs.status }}
+          SHA256: ${{ steps.upstream.outputs.sha256 }}
+        run: |
+          echo "Soft98 script $SHA256 has status $STATUS and requires compatibility review." >&2
+          exit 1

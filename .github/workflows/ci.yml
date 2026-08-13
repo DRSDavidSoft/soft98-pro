@@ -1,54 +1,56 @@
-name: "☠️ Soft98 Pro CI"
+name: "☠️ Soft98 Pro · Build and Test"
+run-name: "☠️ Build · ${{ github.ref_name }} · ${{ github.event_name }}"
 
 on:
   pull_request:
   push:
     branches: [main, develop]
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
-  schedule:
-    - cron: "23 4 * * *"
 
 permissions:
+  actions: read
   contents: read
 
 concurrency:
-  group: soft98-pro-ci-${{ github.workflow }}-${{ github.ref }}
+  group: soft98-pro-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
-    name: "🛡️ Validate and package"
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    name: "🛡️ Runtime · Packages · Browser"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      ARTIFACT_RETENTION_DAYS: 14
+      FORCE_COLOR: "1"
     steps:
-      - name: "📥 Checkout"
-        uses: actions/checkout@v4
-
-      - name: "🟢 Setup Node.js"
-        uses: actions/setup-node@v4
+      - name: "📥 Check out source"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          node-version: 22
+          persist-credentials: false
+
+      - name: "🟢 Install Node.js"
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .nvmrc
           cache: npm
 
-      - name: "📦 Install locked dependencies"
-        run: npm ci
+      - name: "📦 Restore locked dependencies"
+        run: npm ci --ignore-scripts
 
-      - name: "🔎 Audit critical dependencies"
+      - name: "🔐 Audit critical dependencies"
         run: npm audit --audit-level=critical
 
-      - name: "🛡️ Check current PersianBlocker compatibility"
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        run: npm run check:persianblocker-upstream
-
-      - name: "✅ Build and run acceptance tests"
+      - name: "✅ Build and run acceptance suite"
         run: npm run ci
 
-      - name: "🧾 Publish job summary"
-        if: always() && hashFiles('dist/release/latest.json') != ''
-        run: node tools/ci-summary.js build
+      - name: "🧬 Verify PersianBlocker fixture"
+        run: npm run check:persianblocker-upstream
 
       - name: "🧩 Upload Chromium package"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: soft98-pro-chromium-${{ github.sha }}
           path: dist/packages/soft98-pro-chromium-*.zip
@@ -56,15 +58,15 @@ jobs:
           retention-days: 14
 
       - name: "🦊 Upload Firefox package"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: soft98-pro-firefox-${{ github.sha }}
           path: dist/packages/soft98-pro-firefox-*.zip
           if-no-files-found: error
           retention-days: 14
 
-      - name: "📜 Upload userscript and release metadata"
-        uses: actions/upload-artifact@v4
+      - name: "📜 Upload userscript and verification metadata"
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: soft98-pro-userscript-${{ github.sha }}
           path: |
@@ -72,19 +74,29 @@ jobs:
             dist/packages/soft98-pro-userscript-*.zip
             dist/release/latest.json
             dist/release/SHA256SUMS.txt
+            dist/release/RELEASE-NOTES.md
           if-no-files-found: error
           retention-days: 14
+
+      - name: "🧾 Publish branded build summary"
+        if: always() && hashFiles('dist/release/latest.json') != ''
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: node tools/ci-summary.js build
 
   dependency-review:
     name: "🔐 Dependency review"
     if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     permissions:
       contents: read
     steps:
-      - name: "📥 Checkout"
-        uses: actions/checkout@v4
+      - name: "📥 Check out source"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - name: "🔐 Review dependency changes"
-        uses: actions/dependency-review-action@v4
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5
         with:
           fail-on-severity: critical

@@ -8,6 +8,7 @@ const ROOT = path.resolve(__dirname, "..");
 const DIST = path.join(ROOT, "dist");
 const VERSION = require(path.join(ROOT, "package.json")).version;
 const messages = JSON.parse(fs.readFileSync(path.join(ROOT, "src", "messages.json"), "utf8"));
+const compatibility = JSON.parse(fs.readFileSync(path.join(ROOT, "src", "compatibility", "soft98-scripts.json"), "utf8"));
 const required = [
   "chromium/manifest.json",
   "chromium/assets/runtime.page.js",
@@ -45,14 +46,17 @@ if (!chromium.content_scripts.some((entry) => entry.world === "MAIN")) {
   throw new Error("Chromium build must run the page runtime in MAIN world");
 }
 if (!chromium.permissions.includes("scripting")) throw new Error("Chromium build must support USER-origin compatibility CSS");
+if (!chromium.permissions.includes("webRequest") || !firefox.permissions.includes("webRequest")) throw new Error("Extension builds must observe Soft98 script responses");
 
 const runtime = fs.readFileSync(path.join(DIST, "chromium", "assets", "runtime.page.js"), "utf8");
 const userscript = fs.readFileSync(path.join(ROOT, "soft98-pro.user.js"), "utf8");
 const runtimeWithoutImages = runtime.replace(/data:image\/png;base64,[A-Za-z0-9+/=]+/g, "data:image/png;base64,ASSET");
 const userscriptWithoutImages = userscript.replace(/data:image\/png;base64,[A-Za-z0-9+/=]+/g, "data:image/png;base64,ASSET");
+const runtimeWithoutCatalogHashes = runtimeWithoutImages.replace(/[a-f0-9]{64}/gi, "SHA256");
+const userscriptWithoutCatalogHashes = userscriptWithoutImages.replace(/[a-f0-9]{64}/gi, "SHA256");
 for (const needle of ["fbd", "abdd", "error_abdd", "fbd--compiled"]) {
-  if (runtimeWithoutImages.includes(needle)) throw new Error(`Fragile generated Soft98 identifier leaked into runtime: ${needle}`);
-  if (userscriptWithoutImages.includes(needle)) throw new Error(`Fragile generated Soft98 identifier leaked into userscript: ${needle}`);
+  if (runtimeWithoutCatalogHashes.includes(needle)) throw new Error(`Fragile generated Soft98 identifier leaked into runtime: ${needle}`);
+  if (userscriptWithoutCatalogHashes.includes(needle)) throw new Error(`Fragile generated Soft98 identifier leaked into userscript: ${needle}`);
 }
 if (!/PersianBlocker|MasterKia/.test(runtime)) throw new Error("PersianBlocker notice handling is missing");
 if (!/\.toDataURL\("image\/png"\)/.test(runtime) || !/soft98-pro-favicon/.test(runtime)) {
@@ -66,6 +70,12 @@ for (const removed of [
 }
 if (!/pro:!0/.test(runtime) || !/darkDesign:!0/.test(runtime)) {
   throw new Error("Soft98 Pro and dark design must be enabled by default");
+}
+if (!/rgbMode:!1/.test(runtime) || !/soft98-pro-neon/.test(runtime) || !/prefers-reduced-motion/.test(runtime) || !/--s98p-neon-hue/.test(runtime)) {
+  throw new Error("Optional performant RGB night/neon mode is incomplete");
+}
+if (!/data-soft98-pro-layout/.test(runtime) || !/data-soft98-pro-column/.test(runtime) || !/compactLayout:!0/.test(runtime)) {
+  throw new Error("Responsive semantic layout enhancement is missing");
 }
 if (!/role=tab/.test(runtime) || !/data-toggle=tab/.test(runtime) || !/aria-selected/.test(runtime)) {
   throw new Error("Semantic and conventional fallback dark-theme tab styling is missing");
@@ -128,7 +138,7 @@ if (messages.schemaVersion !== 1 || !messages.locales.en || !messages.locales.fa
 for (const phrase of [messages.locales.en.runtime.successLog, messages.locales.fa.runtime.successLog]) {
   if (!runtime.includes(phrase) || !userscript.includes(phrase)) throw new Error(`Message catalog value was not inlined: ${phrase}`);
 }
-for (const placeholder of ["__SOFT98_VERSION__", "__SOFT98_MESSAGES__", "__SOFT98_BRAND_ASSETS__"]) {
+for (const placeholder of ["__SOFT98_VERSION__", "__SOFT98_MESSAGES__", "__SOFT98_BRAND_ASSETS__", "__SOFT98_COMPATIBILITY__", "__SOFT98_RECOMMEND_EXTENSION__"]) {
   if (runtime.includes(placeholder) || userscript.includes(placeholder)) throw new Error(`Unresolved build placeholder: ${placeholder}`);
 }
 if ((runtime.match(/data:image\/png;base64,/g) || []).length < 2) throw new Error("Both logo variants must be inlined into the runtime");
@@ -143,8 +153,33 @@ const releaseClient = fs.readFileSync(path.join(DIST, "chromium", "assets", "rel
 if (!background.includes("soft98-release-check") || !background.includes('origin:"USER"') || !releaseClient.includes("latest/download/latest.json") || !releaseClient.includes("api.github.com/repos/DRSDavidSoft/soft98-pro/releases/latest")) {
   throw new Error("Extension release watcher is missing");
 }
+if (!background.includes("soft98CompatibilityStatus") || !background.includes("crypto.subtle") || !background.includes("soft98:inspect-script")) {
+  throw new Error("Background service-worker compatibility monitor is missing");
+}
+if (!background.includes("soft98:get-upstream-script") || !background.includes("soft98UpstreamSourceCache") || !background.includes("updateEnabledRulesets")) {
+  throw new Error("Background service-worker application gateway is missing");
+}
+if (!chromium.permissions.includes("declarativeNetRequestWithHostAccess") || !chromium.declarative_net_request) {
+  throw new Error("Chromium build must intercept parser-inserted Soft98 application scripts");
+}
+const gatewayRules = JSON.parse(fs.readFileSync(path.join(DIST, "chromium", "rules.json"), "utf8"));
+if (gatewayRules.length !== 1 || gatewayRules[0].action.redirect.extensionPath !== "/assets/upstream-gateway.js" || !/jquery/.test(gatewayRules[0].condition.regexFilter)) {
+  throw new Error("Chromium application gateway rules are incomplete");
+}
+if (!fs.existsSync(path.join(DIST, "chromium", "assets", "upstream-gateway.js")) || !fs.existsSync(path.join(DIST, "firefox", "assets", "upstream-gateway.js"))) {
+  throw new Error("Application gateway is not packaged for both browsers");
+}
+if (/radial-gradient|conic-gradient|createElement\(["']div["']\)[\s\S]{0,180}soft98-pro-ambient/.test(themeSource) || !/soft98-pro-neon/.test(themeSource)) {
+  throw new Error("RGB mode must animate existing neon accents without an ambient radial layer");
+}
+if (!/adoptedStyleSheets/.test(runtimeSource) || !/data-soft98-pro-layout=utility-list/.test(runtimeSource)) {
+  throw new Error("Self-healing theme styles and utility-list repair are missing");
+}
 if (!chromium.host_permissions.some((permission) => permission.startsWith("https://api.github.com/"))) {
   throw new Error("Extension must permit the GitHub Releases API fallback");
+}
+if (compatibility.schemaVersion !== 1 || compatibility.entries.length < 65 || compatibility.entries.some((entry) => entry.status !== "compatible")) {
+  throw new Error("Historical Soft98 compatibility catalog is incomplete or unreviewed");
 }
 
 console.log("Soft98 build validation passed");

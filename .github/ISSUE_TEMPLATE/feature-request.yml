@@ -1,0 +1,39 @@
+name: "✨ Feature request"
+description: Propose a focused improvement to protection or the Pro experience.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or opportunity
+      description: Explain the user need rather than only the proposed implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+    validations:
+      required: true
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Affected format
+      options:
+        - Shared runtime
+        - Chromium or Edge extension
+        - Firefox extension
+        - Userscript
+        - Build, release, or documentation
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: textarea
+    id: visuals
+    attributes:
+      label: Visual references
+      description: Paste images here as GitHub user attachments. Do not add issue-only screenshots to the repository.
