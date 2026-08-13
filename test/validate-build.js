@@ -55,8 +55,8 @@ for (const removed of [
 if (!/pro:!0/.test(runtime) || !/darkDesign:!0/.test(runtime)) {
   throw new Error("Soft98 Pro and dark design must be enabled by default");
 }
-if (!/data-toggle=\\?"tab\\?"/.test(runtime)) {
-  throw new Error("Dark theme tab styling is missing");
+if (!/role=tab/.test(runtime) || !/data-toggle=tab/.test(runtime) || !/aria-selected/.test(runtime)) {
+  throw new Error("Semantic and conventional fallback dark-theme tab styling is missing");
 }
 if (/PIRATE_LOGO|data:image\/svg\+xml|fa-desktop-alt:before|font-family:\\?Arial/.test(runtime)) {
   throw new Error("Logo/icon replacement hacks must not ship");
@@ -75,6 +75,23 @@ if (!/scrollDetectorsBlocked/.test(runtime) || !/addEventListener/.test(runtime)
 }
 if (!/asiatech/.test(runtime) || !/آسیا/.test(runtime) || !/aside, section, div/.test(runtime)) {
   throw new Error("Named ad frame removal, including Asiatech, is missing");
+}
+if (!/removed ad card from structural signals/.test(runtime) || !/previousElementSibling/.test(runtime) || !/querySelectorAll\("h1,h2,h3,h4,h5,h6"\)/.test(runtime)) {
+  throw new Error("Structural ad-card and separator cleanup is missing");
+}
+if (!/form\[dir=rtl\]/.test(runtime) || !/unicode-bidi:plaintext/.test(runtime) || !/\.dir=/.test(runtime)) {
+  throw new Error("Localized runtime controls must preserve RTL and LTR direction");
+}
+if (!/data-soft98-pro-surface/.test(runtime) || !/luminance/.test(runtime) || !/data-soft98-pro-tone/.test(runtime)) {
+  throw new Error("Heuristic theme surface and contrast repair is missing");
+}
+const runtimeSource = fs.readFileSync(path.join(ROOT, "src", "runtime.js"), "utf8");
+const themeSource = runtimeSource.slice(runtimeSource.indexOf("function installProStyle"), runtimeSource.indexOf("function updateFavicon"));
+for (const generatedSelector of ["#navbar_wbd", ".cbd", ".cbdd", ".tbdbp", "[class*=", "[style*="]) {
+  if (themeSource.includes(generatedSelector)) throw new Error(`Dark theme depends on a generated site selector: ${generatedSelector}`);
+}
+if (/normalizePersianText|textContent\)\s*!==?\s*["']/.test(runtimeSource.slice(runtimeSource.indexOf("function headingCardFromSignals"), runtimeSource.indexOf("function hasNamedAdMarker")))) {
+  throw new Error("Heading-card cleanup must not depend on a static human-readable label");
 }
 if (!/alert-warning/.test(runtime) || !/soft98-extension-recommendation/.test(runtime) || !/display:none!important/.test(runtime)) {
   throw new Error("First-paint anti-adblock/banner suppression CSS is missing");

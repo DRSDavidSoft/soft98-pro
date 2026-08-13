@@ -8,6 +8,15 @@ The userscript and extensions are built from the same shared runtime in `src/run
 
 ![Soft98 Pro dark mode running on Soft98](docs/assets/soft98-pro-dark.png)
 
+## Logo candidates
+
+The current Soft98 logo was supplied to ChatGPT as the structural reference for two transparent, high-resolution Soft98 Pro candidates with the updated Persian motto `تجربه‌ای پاک‌تر، سریع‌تر و حرفه‌ای‌تر`:
+
+- [Light-page logo candidate](docs/assets/soft98-pro-logo-light.png)
+- [Dark Pro logo candidate](docs/assets/soft98-pro-logo-dark.png)
+
+These are review assets and are not wired into the runtime until one is approved.
+
 ## ✨ What It Does
 
 - Blocks ad surfaces using source, shape, size, and link behavior.

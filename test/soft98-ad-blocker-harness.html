@@ -121,6 +121,27 @@
           asiatech.innerHTML = '<h2>آسـیاتک</h2><div class="ad-body"></div>';
           document.body.appendChild(asiatech);
 
+          var advertisingSeparator = document.createElement("hr");
+          advertisingSeparator.setAttribute("data-test", "advertising-separator");
+          document.body.appendChild(advertisingSeparator);
+
+          var advertisingCard = document.createElement("section");
+          advertisingCard.setAttribute("data-test", "advertising-card");
+          advertisingCard.innerHTML = '<header><h4>ﺗﺒﻠﻴـﻐﺎﺕ</h4></header><div><iframe src="https://example.invalid/frame" width="300" height="250"></iframe></div>';
+          document.body.appendChild(advertisingCard);
+
+          var heuristicSurface = document.createElement("div");
+          heuristicSurface.setAttribute("data-test", "heuristic-theme-surface");
+          heuristicSurface.style.cssText = "width:320px;height:120px;background:rgb(250,250,250);color:rgb(30,30,30)";
+          heuristicSurface.innerHTML = '<p style="color:rgb(30,30,30)">Dynamic surface without site selectors</p>';
+          document.body.appendChild(heuristicSurface);
+
+          var advertisingNavigationLink = document.createElement("a");
+          advertisingNavigationLink.href = "/adv.html";
+          advertisingNavigationLink.setAttribute("data-test", "advertising-navigation-link");
+          advertisingNavigationLink.textContent = "تبلیغات";
+          document.body.appendChild(advertisingNavigationLink);
+
           var blockerNotice = document.createElement("aside");
           blockerNotice.id = "PersianBlockerFreedomNotice";
           blockerNotice.style.cssText = "position:fixed;top:0;left:0;right:0;height:72px";
@@ -162,6 +183,11 @@
             blockerNotices: document.querySelectorAll("#PersianBlockerFreedomNotice, [id*='PersianBlocker']").length,
             kaprila: document.querySelectorAll("#kaprila_soft98_ir_related, [id*='kaprila']").length,
             asiatech: document.querySelectorAll("[data-test='asiatech-frame']").length,
+            advertisingCard: document.querySelectorAll("[data-test='advertising-card']").length,
+            advertisingSeparator: document.querySelectorAll("[data-test='advertising-separator']").length,
+            advertisingNavigationLink: document.querySelectorAll("[data-test='advertising-navigation-link']").length,
+            heuristicSurface: document.querySelector("[data-test='heuristic-theme-surface']").getAttribute("data-soft98-pro-surface"),
+            heuristicTone: document.querySelector("[data-test='heuristic-theme-surface'] p").getAttribute("data-soft98-pro-tone"),
             hash: location.hash,
             title: document.title,
             patch: document.documentElement.getAttribute("data-soft98-patch-result"),
@@ -181,6 +207,7 @@
                 toggleX: toggleRect && Math.round(toggleRect.x),
                 toggleY: toggleRect && Math.round(toggleRect.y),
                 movable: Boolean(toggle && /grab/.test(getComputedStyle(toggle).cursor)),
+                formDirection: control && control.querySelector("form") && control.querySelector("form").dir,
               };
             })(),
           };
