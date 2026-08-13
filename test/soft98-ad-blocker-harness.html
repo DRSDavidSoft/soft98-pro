@@ -51,6 +51,7 @@
       }
     </style>
     <script>
+      var harnessParams = new URLSearchParams(location.search);
       localStorage.removeItem("soft98-ad-blocker.control-position");
       localStorage.setItem(
         "soft98-ad-blocker.settings",
@@ -58,9 +59,10 @@
           blockAds: true,
           patchScripts: true,
           pro: true,
-          darkDesign: true,
+          darkDesign: harnessParams.get("dark") !== "0",
           linkBadges: true,
-          pirateLogo: false,
+          pirateLogo: true,
+          taunt: harnessParams.get("taunt") === "1",
           diagnostics: true,
         })
       );
@@ -196,6 +198,9 @@
             assignedScrollDetector: document.documentElement.getAttribute("data-soft98-assigned-scroll-detector"),
             scrollWarnings: document.querySelectorAll(".alert-warning,[role='alert']").length,
             version: window.Soft98AdBlocker && window.Soft98AdBlocker.version,
+            tauntTheme: document.querySelector("#soft98-ad-blocker-taunt") && document.querySelector("#soft98-ad-blocker-taunt").getAttribute("data-theme"),
+            tauntBackground: document.querySelector("#soft98-ad-blocker-taunt") && getComputedStyle(document.querySelector("#soft98-ad-blocker-taunt")).backgroundColor,
+            logoVariant: document.querySelector("[data-soft98-brand-variant]") && document.querySelector("[data-soft98-brand-variant]").getAttribute("data-soft98-brand-variant"),
             control: (function () {
               var control = document.querySelector("#soft98-pro-control");
               var toggle = control && control.querySelector("[data-role='toggle']");
@@ -225,6 +230,12 @@
             (document.documentElement.getAttribute("data-soft98-assigned-scroll-detector") || "blocked") +
             "/" +
             document.querySelectorAll(".alert-warning,[role='alert']").length;
+          document.querySelector("[data-proof='taunt']").textContent =
+            (document.querySelector("#soft98-ad-blocker-taunt") && document.querySelector("#soft98-ad-blocker-taunt").getAttribute("data-theme")) || "none";
+          document.querySelector("[data-proof='taunt-background']").textContent =
+            (document.querySelector("#soft98-ad-blocker-taunt") && getComputedStyle(document.querySelector("#soft98-ad-blocker-taunt")).backgroundColor) || "none";
+          document.querySelector("[data-proof='logo']").textContent =
+            (document.querySelector("[data-soft98-brand-variant]") && document.querySelector("[data-soft98-brand-variant]").getAttribute("data-soft98-brand-variant")) || "none";
         }, 350);
       });
     </script>
@@ -232,6 +243,7 @@
   <body>
     <main>
       <h1>Soft98 Pro Proof Harness</h1>
+      <a href="/"><img alt="Soft98 logo" width="220" height="80" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" /></a>
       <a class="download-list-link" href="https://soft98.ir/download/test-package">Download</a>
       <div id="kaprila_soft98_ir_related" class="ad-slot">Kaprila ad placeholder should disappear</div>
       <div id="stable-proof-container"><div class="dbdnone">safe probe placeholder</div></div>
@@ -243,6 +255,9 @@
         <span>Patch hijack: <strong data-proof="patch">pending</strong></span>
         <span>Top-level throw: <strong data-proof="top-level-patch">pending</strong></span>
         <span>Scroll detector: <strong data-proof="scroll">pending</strong></span>
+        <span>Taunt theme: <strong data-proof="taunt">pending</strong></span>
+        <span>Taunt background: <strong data-proof="taunt-background">pending</strong></span>
+        <span>Logo variant: <strong data-proof="logo">pending</strong></span>
       </section>
     </main>
   </body>

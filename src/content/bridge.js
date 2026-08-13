@@ -11,7 +11,8 @@
     darkDesign: true,
     compactLayout: true,
     linkBadges: true,
-    pirateLogo: false,
+    pirateLogo: true,
+    taunt: false,
     diagnostics: true,
     recommendExtension: false,
   };
@@ -24,7 +25,7 @@
   }
 
   function applySettings(settings) {
-    const merged = { ...DEFAULT_SETTINGS, ...(settings || {}), pirateLogo: false };
+    const merged = { ...DEFAULT_SETTINGS, ...(settings || {}) };
     inject(`
       try {
         localStorage.setItem(${JSON.stringify(PAGE_STORAGE_KEY)}, ${JSON.stringify(JSON.stringify(merged))});
@@ -38,7 +39,7 @@
 
   function readSettings(callback) {
     api.storage.local.get({ [STORAGE_KEY]: DEFAULT_SETTINGS }, (result) => {
-      callback({ ...DEFAULT_SETTINGS, ...(result && result[STORAGE_KEY]), pirateLogo: false });
+      callback({ ...DEFAULT_SETTINGS, ...(result && result[STORAGE_KEY]) });
     });
   }
 
@@ -51,7 +52,7 @@
       return true;
     }
     if (message.type === "soft98:set-settings") {
-      const settings = { ...DEFAULT_SETTINGS, ...(message.settings || {}), pirateLogo: false };
+      const settings = { ...DEFAULT_SETTINGS, ...(message.settings || {}) };
       api.storage.local.set({ [STORAGE_KEY]: settings }, () => {
         applySettings(settings);
         sendResponse({ ok: true, settings });

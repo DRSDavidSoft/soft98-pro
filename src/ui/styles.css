@@ -54,9 +54,31 @@ p {
   color: var(--muted);
 }
 
+.version {
+  color: var(--muted);
+}
+
 .grid {
   display: grid;
   gap: 10px;
+}
+
+.update {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  color: var(--muted);
+}
+
+.update[data-status="available"] {
+  border-color: color-mix(in srgb, var(--accent) 58%, var(--border));
+  color: var(--text);
 }
 
 .option {

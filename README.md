@@ -8,14 +8,14 @@ The userscript and extensions are built from the same shared runtime in `src/run
 
 ![Soft98 Pro dark mode running on Soft98](docs/assets/soft98-pro-dark.png)
 
-## Logo candidates
+## 🏴‍☠️ Bundled Branding
 
-The current Soft98 logo was supplied to ChatGPT as the structural reference for two transparent, high-resolution Soft98 Pro candidates with the updated Persian motto `تجربه‌ای پاک‌تر، سریع‌تر و حرفه‌ای‌تر`:
+The project includes two transparent, high-resolution Soft98 Pro variants and optimized runtime copies:
 
-- [Light-page logo candidate](docs/assets/soft98-pro-logo-light.png)
-- [Dark Pro logo candidate](docs/assets/soft98-pro-logo-dark.png)
+- [Light-page logo](docs/assets/soft98-pro-logo-light.png)
+- [Pirate-themed dark Pro logo](docs/assets/soft98-pro-logo-dark.png), with the motto `یکی از تبلیغ‌دار ترین مراجع نرم‌افزاری ایران`
 
-These are review assets and are not wired into the runtime until one is approved.
+Both images are converted to inlined PNG data URLs during the build. After successful cleanup, the runtime chooses the light or pirate-dark version from the active theme without downloading an external logo.
 
 ## ✨ What It Does
 
@@ -37,6 +37,13 @@ Use the latest GitHub release:
 
 Latest release: https://github.com/DRSDavidSoft/soft98-pro/releases/latest
 
+### Updates
+
+- Userscript managers check and install `releases/latest/download/soft98-pro.user.js` through the standard `@updateURL` and `@downloadURL` metadata.
+- The browser extension checks GitHub Releases at install, browser startup, and every six hours. It uses `latest.json` when available and falls back to GitHub's Releases API for older releases, then marks the toolbar and links directly to the correct Chromium or Firefox package.
+- Unpacked extensions cannot silently replace themselves because Chrome, Edge, and Firefox reserve that capability for extension-store or signed update channels. The GitHub package workflow therefore provides automatic detection and a verified one-click package download; a future store build can use the same version feed with native browser updates.
+- Every release includes `latest.json` and `SHA256SUMS.txt` so update clients and users can verify the exact assets.
+
 ## 🧩 Userscript vs Browser Extension
 
 The userscript is the quickest path. Install `soft98-pro.user.js` in a userscript manager and it runs directly on Soft98 at `document-start`. It is easy to inspect, update, and share, but it depends on the userscript manager’s injection timing and page-world behavior.
@@ -53,6 +60,8 @@ npm run ci
 npm run screenshot
 ```
 
+All English and Persian runtime, settings, diagnostics, taunt, and update copy lives in [`src/messages.json`](src/messages.json). The build validates matching locale keys and inlines the catalog into the userscript and both extensions; the runtime does not fetch translations.
+
 Build outputs:
 
 - `soft98-pro.user.js`: root userscript for raw GitHub install/update.
@@ -60,7 +69,15 @@ Build outputs:
 - `dist/chromium`: Manifest V3 build for Chrome and Edge.
 - `dist/firefox`: Firefox build with early page-runtime injection.
 - `dist/packages/*.zip`: release-ready ZIPs.
+- `dist/release/latest.json`: machine-readable update metadata and direct package links.
+- `dist/release/SHA256SUMS.txt`: release checksums.
 - `docs/assets/soft98-pro-dark.png`: local proof screenshot generated from the live Soft98 harness.
+
+## ⚙️ CI/CD
+
+- `☠️ Soft98 Pro CI` builds every pull request and main-branch change, audits critical dependencies, runs static validation and real headless-browser acceptance tests, uploads all installable packages, and publishes a branded artifact summary.
+- `🏴‍☠️ Soft98 Pro Release` validates version/tag parity, rebuilds and retests from source, creates provenance attestations, publishes or updates the GitHub Release, and uploads packages, the standalone userscript, update metadata, and checksums.
+- Push `v<package.json version>` or run the release workflow manually with that exact tag to publish.
 
 ## 🚀 Install Unpacked
 

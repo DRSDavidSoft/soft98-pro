@@ -1,68 +1,84 @@
-name: Soft98 Pro
+name: "☠️ Soft98 Pro CI"
 
 on:
+  pull_request:
   push:
     branches: [main, master]
-    tags: ["v*"]
-  pull_request:
   workflow_dispatch:
-  release:
-    types: [published]
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: soft98-pro-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
-    name: Build Install Packages
+    name: "🛡️ Validate and package"
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Checkout
+      - name: "📥 Checkout"
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: "🟢 Setup Node.js"
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
 
-      - name: Install dependencies
+      - name: "📦 Install locked dependencies"
         run: npm ci
 
-      - name: Validate source and package builds
+      - name: "🔎 Audit critical dependencies"
+        run: npm audit --audit-level=critical
+
+      - name: "✅ Build and run acceptance tests"
         run: npm run ci
 
-      - name: Upload Chromium package
+      - name: "🧾 Publish job summary"
+        if: always() && hashFiles('dist/release/latest.json') != ''
+        run: node tools/ci-summary.js build
+
+      - name: "🧩 Upload Chromium package"
         uses: actions/upload-artifact@v4
         with:
-          name: soft98-pro-chromium
+          name: soft98-pro-chromium-${{ github.sha }}
           path: dist/packages/soft98-pro-chromium-*.zip
           if-no-files-found: error
+          retention-days: 14
 
-      - name: Upload Firefox package
+      - name: "🦊 Upload Firefox package"
         uses: actions/upload-artifact@v4
         with:
-          name: soft98-pro-firefox
+          name: soft98-pro-firefox-${{ github.sha }}
           path: dist/packages/soft98-pro-firefox-*.zip
           if-no-files-found: error
+          retention-days: 14
 
-      - name: Upload userscript package
+      - name: "📜 Upload userscript and release metadata"
         uses: actions/upload-artifact@v4
         with:
-          name: soft98-pro-userscript
+          name: soft98-pro-userscript-${{ github.sha }}
           path: |
             soft98-pro.user.js
             dist/packages/soft98-pro-userscript-*.zip
+            dist/release/latest.json
+            dist/release/SHA256SUMS.txt
           if-no-files-found: error
+          retention-days: 14
 
-      - name: Publish release assets
-        if: startsWith(github.ref, 'refs/tags/v')
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release upload "${GITHUB_REF_NAME}" \
-            dist/packages/soft98-pro-chromium-*.zip \
-            dist/packages/soft98-pro-firefox-*.zip \
-            dist/packages/soft98-pro-userscript-*.zip \
-            soft98-pro.user.js \
-            --clobber
+  dependency-review:
+    name: "🔐 Dependency review"
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: "📥 Checkout"
+        uses: actions/checkout@v4
+      - name: "🔐 Review dependency changes"
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: critical

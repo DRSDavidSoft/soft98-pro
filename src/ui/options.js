@@ -2,6 +2,9 @@
   "use strict";
 
   const api = typeof browser !== "undefined" ? browser : chrome;
+  const VERSION = "__SOFT98_VERSION__";
+  const CATALOG = __SOFT98_MESSAGES__;
+  const RELEASES_URL = Soft98Release.releasesUrl;
   const STORAGE_KEY = "soft98AdBlockerSettings";
   const DEFAULT_SETTINGS = {
     blockAds: true,
@@ -10,48 +13,19 @@
     darkDesign: true,
     compactLayout: true,
     linkBadges: true,
-    pirateLogo: false,
+    pirateLogo: true,
+    taunt: false,
     diagnostics: true,
     recommendExtension: false,
   };
   const LOCALE = preferredLocale();
   const RTL = LOCALE === "fa";
-  const STRINGS = {
-    en: {
-      product: "Soft98 Pro",
-      headline: "Precise page control without fragile names.",
-      body: "Patch packed Soft98 code, preserve download links, remove ads and noisy blocker-side notices, then optionally turn on Soft98 Pro.",
-      scan: "Scan active tab",
-      repo: "Repository",
-      options: {
-        blockAds: ["Block ads", "Remove ad surfaces using source, shape, and link behavior."],
-        patchScripts: ["Patch Soft98 code", "Unpack and patch Soft98 anti-adblock code before it runs."],
-        pro: ["Soft98 Pro", "Enable the enhanced experience layer."],
-        darkDesign: ["Modern dark design", "Apply the modern dark Soft98 Pro theme."],
-        linkBadges: ["Download badges", "Mark recovered download links."],
-        diagnostics: ["Console diagnostics", "Expose useful logs and interactive page APIs."],
-      },
-    },
-    fa: {
-      product: "Soft98 Pro",
-      headline: "کنترل دقیق صفحه بدون وابستگی به نام‌های شکننده.",
-      body: "کد فشرده Soft98 را اصلاح کنید، لینک‌های دانلود را سالم نگه دارید، تبلیغات و اعلان‌های مزاحم را حذف کنید و در صورت نیاز Soft98 Pro را فعال کنید.",
-      scan: "بررسی تب فعال",
-      repo: "مخزن پروژه",
-      options: {
-        blockAds: ["حذف تبلیغات", "حذف سطح‌های تبلیغاتی بر اساس منبع، شکل، و رفتار لینک."],
-        patchScripts: ["اصلاح کد Soft98", "بازکردن و اصلاح کد ضد‌مسدودسازی پیش از اجرا."],
-        pro: ["Soft98 Pro", "فعال‌سازی لایه تجربه پیشرفته."],
-        darkDesign: ["طراحی تیره مدرن", "اعمال ظاهر تیره مدرن Soft98 Pro."],
-        linkBadges: ["نشان لینک دانلود", "نمایش نشان روی لینک‌های بازیابی‌شده."],
-        diagnostics: ["گزارش کنسول", "نمایش لاگ‌ها و APIهای تعاملی برای بررسی."],
-      },
-    },
-  };
-  const OPTIONS = ["blockAds", "patchScripts", "pro", "darkDesign", "linkBadges", "diagnostics"];
+  const STRINGS = CATALOG.locales;
+  const OPTIONS = ["blockAds", "patchScripts", "pro", "darkDesign", "linkBadges", "pirateLogo", "taunt", "diagnostics"];
 
   const root = document.querySelector("[data-app]");
   let settings = { ...DEFAULT_SETTINGS };
+  let updateState = { status: "checking", version: "", url: RELEASES_URL };
 
   function preferredLocale() {
     const languages = [navigator.language || "", ...(navigator.languages || [])].filter(Boolean);
@@ -63,12 +37,13 @@
   }
 
   function text(key) {
-    return STRINGS[LOCALE][key] || STRINGS.en[key] || key;
+    const value = (STRINGS[LOCALE] && STRINGS[LOCALE].options && STRINGS[LOCALE].options[key]) || STRINGS.en.options[key] || key;
+    return String(value).replace(/\{version\}/g, updateState.version || VERSION);
   }
 
   function storageGet(callback) {
     api.storage.local.get({ [STORAGE_KEY]: DEFAULT_SETTINGS }, (result) =>
-      callback({ ...DEFAULT_SETTINGS, ...result[STORAGE_KEY], pirateLogo: false })
+      callback({ ...DEFAULT_SETTINGS, ...result[STORAGE_KEY] })
     );
   }
 
@@ -84,19 +59,25 @@
   }
 
   function save(next) {
-    settings = { ...DEFAULT_SETTINGS, ...next, pirateLogo: false };
+    settings = { ...DEFAULT_SETTINGS, ...next };
     storageSet(settings, () => messageActiveTab({ type: "soft98:set-settings", settings }));
     render();
   }
 
   function render() {
     document.documentElement.dir = RTL ? "rtl" : "ltr";
-    const options = STRINGS[LOCALE].options || STRINGS.en.options;
+    document.documentElement.lang = LOCALE;
+    document.title = text("product");
+    const options = STRINGS[LOCALE].options.options || STRINGS.en.options.options;
+    const updateMessage = text(
+      updateState.status === "available" ? "updateAvailable" : updateState.status === "current" ? "updateCurrent" : updateState.status === "failed" ? "updateFailed" : "updateChecking"
+    );
     root.innerHTML = `
       <section class="hero">
         <span>${text("product")}</span>
         <h1>${text("headline")}</h1>
         <p>${text("body")}</p>
+        <small class="version">${text("version")}</small>
       </section>
       <section class="grid">
         ${OPTIONS.map((key) => {
@@ -109,11 +90,30 @@
         `;
         }).join("")}
       </section>
+      <section class="update" data-status="${updateState.status}" aria-live="polite">
+        <span>${updateMessage}</span>
+        ${updateState.status === "available" ? `<a href="${updateState.url}" target="_blank" rel="noopener noreferrer">${text("updateAction")}</a>` : ""}
+      </section>
       <footer>
         <button type="button" data-action="scan">${text("scan")}</button>
         <a href="https://github.com/DRSDavidSoft/soft98-pro" target="_blank" rel="noopener noreferrer">${text("repo")}</a>
       </footer>
     `;
+  }
+
+  async function checkForUpdates() {
+    try {
+      const release = await Soft98Release.latest(VERSION);
+      const target = api.runtime.getManifest().manifest_version === 2 ? release.firefox : release.chromium;
+      updateState = {
+        status: Soft98Release.newer(release.version, VERSION) ? "available" : "current",
+        version: release.version || VERSION,
+        url: (target && target.url) || release.releaseUrl || RELEASES_URL,
+      };
+    } catch (_error) {
+      updateState = { status: "failed", version: VERSION, url: RELEASES_URL };
+    }
+    render();
   }
 
   root.addEventListener("change", (event) => {
@@ -130,5 +130,6 @@
   storageGet((next) => {
     settings = next;
     render();
+    checkForUpdates();
   });
 })();

@@ -1,7 +1,7 @@
 (function soft98AdBlocker() {
   "use strict";
 
-  const VERSION = "1.1.1";
+  const VERSION = "__SOFT98_VERSION__";
   const DATA_HREF = "data-soft98-adblocker-href";
   const DATA_STATE = "data-soft98-adblocker-state";
   const DATA_PATCHED = "data-soft98-adblocker-patched-script";
@@ -14,48 +14,11 @@
   const IS_EXTENSION = "__SOFT98_BUILD_TARGET__" === "extension";
   const STORAGE_KEY = "soft98-ad-blocker.settings";
   const EXTENSION_REPO = "https://github.com/DRSDavidSoft/soft98-pro";
+  const CATALOG = __SOFT98_MESSAGES__;
+  const BRAND_ASSETS = __SOFT98_BRAND_ASSETS__;
   const LOCALE = preferredLocale();
   const RTL = LOCALE === "fa";
-  const STRINGS = {
-    en: {
-      product: "Soft98 Pro",
-      ready: "ready",
-      blockAds: "Block ads",
-      patchScripts: "Patch Soft98 code",
-      pro: "Enable Pro",
-      darkDesign: "Modern dark design",
-      linkBadges: "Download badges",
-      diagnostics: "Console diagnostics",
-      recommendExtension: "Recommend extension",
-      moveControl: "Drag to move. Alt+Arrow keys also move this control.",
-      scanNow: "Scan now",
-      close: "Close",
-      dismiss: "Dismiss",
-      extensionTitle: "Browser extension is ready",
-      extensionBody: "Install the extension for more precise control, richer settings, and steadier execution in Chrome, Edge, and Firefox.",
-      extensionLink: "Get Soft98 Pro",
-      successLog: "Soft98 Pro is active.",
-    },
-    fa: {
-      product: "Soft98 Pro",
-      ready: "آماده",
-      blockAds: "حذف تبلیغات",
-      patchScripts: "اصلاح کد Soft98",
-      pro: "فعال‌سازی Pro",
-      darkDesign: "طراحی تیره مدرن",
-      linkBadges: "نشان لینک دانلود",
-      diagnostics: "گزارش کنسول",
-      recommendExtension: "پیشنهاد افزونه",
-      moveControl: "برای جابه‌جایی بکشید. با Alt و کلیدهای جهت‌دار نیز حرکت می‌کند.",
-      scanNow: "بررسی دوباره",
-      close: "بستن",
-      dismiss: "بستن",
-      extensionTitle: "نسخه افزونه مرورگر آماده است",
-      extensionBody: "برای کنترل دقیق‌تر، تنظیمات بیشتر، و اجرای مطمئن‌تر در Chrome، Edge و Firefox می‌توانید نسخه افزونه را نصب کنید.",
-      extensionLink: "دریافت Soft98 Pro",
-      successLog: "Soft98 Pro فعال است.",
-    },
-  };
+  const STRINGS = CATALOG.locales;
   const DEFAULT_SETTINGS = {
     blockAds: true,
     patchScripts: true,
@@ -63,7 +26,8 @@
     darkDesign: true,
     compactLayout: true,
     linkBadges: true,
-    pirateLogo: false,
+    pirateLogo: true,
+    taunt: false,
     diagnostics: true,
     recommendExtension: false,
   };
@@ -158,28 +122,38 @@
     return languages.some((language) => /^fa(?:-|$)/i.test(language)) || timeZone === "Asia/Tehran" ? "fa" : "en";
   }
 
-  function text(key) {
-    return (STRINGS[LOCALE] && STRINGS[LOCALE][key]) || STRINGS.en[key] || key;
+  function catalogValue(locale, section, key) {
+    let value = STRINGS[locale] && STRINGS[locale][section];
+    for (const part of String(key).split(".")) value = value && value[part];
+    return value;
+  }
+
+  function text(key, variables) {
+    const value = catalogValue(LOCALE, "runtime", key) || catalogValue("en", "runtime", key) || key;
+    return String(value).replace(/\{([a-zA-Z0-9_]+)\}/g, (match, name) =>
+      variables && Object.prototype.hasOwnProperty.call(variables, name) ? String(variables[name]) : match
+    );
   }
 
   function readSettings() {
     try {
       const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-      return { ...DEFAULT_SETTINGS, ...stored, pirateLogo: false, recommendExtension: false };
+      return { ...DEFAULT_SETTINGS, ...stored, recommendExtension: false };
     } catch (_error) {
       return { ...DEFAULT_SETTINGS };
     }
   }
 
   function writeSettings(next) {
-    settings = { ...DEFAULT_SETTINGS, ...next, pirateLogo: false };
+    settings = { ...DEFAULT_SETTINGS, ...next };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
     } catch (error) {
-      safeConsole("warn", "Soft98 Pro could not persist settings", error);
+      safeConsole("warn", text("logs.settingsPersistFailed"), error);
     }
     installProStyle();
     renderControlPanel();
+    syncSuccessEnhancements();
     schedule(document);
   }
 
@@ -197,7 +171,7 @@
     if (eventLog.length > 80) eventLog.shift();
     safeConsole(
       level,
-      "%cSoft98 Pro%c " + message,
+      `%c${text("product")}%c ${message}`,
       "background:#101820;color:#92e6a7;padding:2px 6px;border-radius:5px;font-weight:700",
       "color:#9fb3c8",
       detail || ""
@@ -210,17 +184,17 @@
       if (nativeEval) return Function.prototype.call.call(nativeEval, thisArg || window, source);
     } catch (error) {
       recordPatchFailure("native-eval", error, source);
-      safeConsole("warn", "Soft98 Pro native eval failed; retrying indirectly", error);
+      safeConsole("warn", text("logs.nativeEvalFailed"), error);
     }
     try {
       return (0, eval)(source);
     } catch (error) {
       recordPatchFailure("indirect-eval", error, source);
       if (typeof fallbackSource === "string" && fallbackSource !== source) {
-        safeConsole("warn", "Soft98 Pro patched script failed; trying original source once", error);
+        safeConsole("warn", text("logs.patchedEvalFailed"), error);
         return safeEval(fallbackSource, thisArg);
       }
-      safeConsole("warn", "Soft98 Pro eval skipped invalid script instead of breaking the page", error);
+      safeConsole("warn", text("logs.invalidEvalSkipped"), error);
       return undefined;
     }
   }
@@ -237,11 +211,11 @@
   function recordPatchFailure(stage, error, source) {
     const entry = {
       stage,
-      message: error && error.message ? error.message : String(error || "unknown error"),
+      message: error && error.message ? error.message : String(error || text("logs.unknownError")),
       preview: String(source || "").slice(0, 180),
     };
     stats.patchFailures.push(entry);
-    log("warn", "patch step skipped", entry);
+    log("warn", text("logs.patchStepSkipped"), entry);
   }
 
   function asElement(node) {
@@ -383,7 +357,7 @@
       if (separator && document.contains(separator)) separator.remove();
       if (parent && parent !== document.body && !parent.textContent.trim() && !parent.querySelector(":scope > :not(hr)")) parent.remove();
       stats.adsRemoved += 1;
-      log("info", "removed ad card from structural signals", { tag: card.tagName, media: card.querySelectorAll("iframe,img,picture,object,embed").length });
+      log("info", text("logs.adCardRemoved"), { tag: card.tagName, media: card.querySelectorAll("iframe,img,picture,object,embed").length });
     }
   }
 
@@ -481,7 +455,7 @@
     link.setAttribute(DATA_HREF, href);
     link.setAttribute(DATA_STATE, "preserved");
     stats.linksPreserved += 1;
-    log("info", "preserved download link", { label: linkLabel(link), href });
+    log("info", text("logs.downloadLinkPreserved"), { label: linkLabel(link), href });
     return true;
   }
 
@@ -493,7 +467,7 @@
       link.setAttribute("href", href);
       link.setAttribute(DATA_STATE, "restored");
       stats.linksRestored += 1;
-      log("warn", "restored sabotaged link", { label: linkLabel(link), href });
+      log("warn", text("logs.downloadLinkRestored"), { label: linkLabel(link), href });
     }
     link.removeAttribute("onclick");
     link.removeAttribute("data-toggle");
@@ -571,7 +545,7 @@
       if (removable) {
         removable.remove();
         stats.adsRemoved += 1;
-        log("info", "removed ad surface", { tag: removable.tagName, id: removable.id || "", className: removable.className || "" });
+        log("info", text("logs.adSurfaceRemoved"), { tag: removable.tagName, id: removable.id || "", className: removable.className || "" });
       }
     }
   }
@@ -639,11 +613,11 @@
       if (isWarningNode(candidate)) {
         candidate.remove();
         stats.warningsRemoved += 1;
-        log("warn", "removed Soft98 warning node", { id: candidate.id || "", className: candidate.className || "" });
+        log("warn", text("logs.warningRemoved"), { id: candidate.id || "", className: candidate.className || "" });
       } else if (isExternalBlockerNotice(candidate)) {
         candidate.remove();
         stats.blockerNoticesRemoved += 1;
-        log("warn", "removed external blocker notice", { id: candidate.id || "", className: candidate.className || "" });
+        log("warn", text("logs.blockerNoticeRemoved"), { id: candidate.id || "", className: candidate.className || "" });
       }
     }
     const hash = safeDecode(location.hash || "");
@@ -653,9 +627,10 @@
   }
 
   function removeLegacyBanners() {
-    for (const node of document.querySelectorAll("#soft98-ad-blocker-taunt,#soft98-extension-recommendation")) {
-      node.remove();
-    }
+    const recommendation = document.getElementById("soft98-extension-recommendation");
+    if (recommendation && !settings.recommendExtension) recommendation.remove();
+    const taunt = document.getElementById("soft98-ad-blocker-taunt");
+    if (taunt && (!settings.taunt || !successAnnounced)) taunt.remove();
   }
 
   function domDepth(element) {
@@ -698,8 +673,13 @@
       .download-list-item-buysellads,[class*="buysellads"],#footer-bitcoin,iframe[src*="kaprila.com"],
       .tbd_ibd,.tbdc,.trk_irk,.alert-warning,[role="alert"],
       #soft98-ad-blocker-taunt,#soft98-extension-recommendation{display:none!important}
+      :root[data-soft98-runtime-ready] #soft98-ad-blocker-taunt,
+      :root[data-soft98-runtime-ready] #soft98-extension-recommendation{display:grid!important}
       [id*="PersianBlocker"],[class*="PersianBlocker"]{display:none!important}
       a[${DATA_HREF}]{pointer-events:auto}
+      [data-soft98-brand-kind=background]{display:block!important;min-height:104px!important;background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important}
+      [data-soft98-brand-kind=background]>*{visibility:hidden!important}
+      @media(max-width:700px){[data-soft98-brand-kind=background]{min-height:78px!important}}
     `;
     (document.head || document.documentElement).appendChild(style);
   }
@@ -768,7 +748,7 @@
     if (element.matches && element.matches("header,nav,main,article,aside,section,footer,form,table,[role]")) surfaces.push(element);
     if (element.querySelectorAll) surfaces.push(...element.querySelectorAll("header,nav,main,article,aside,section,footer,form,table,[role],div"));
     for (const node of surfaces) {
-      if (node.closest("#soft98-pro-control,#soft98-extension-recommendation")) continue;
+      if (node.closest("#soft98-pro-control,#soft98-extension-recommendation,#soft98-ad-blocker-taunt")) continue;
       const box = visibleBox(node);
       if (box.width < 120 || box.height < 28 || box.width * box.height < 4200) continue;
       const background = colorMetrics(getComputedStyle(node).backgroundColor);
@@ -780,7 +760,7 @@
     if (element.matches && element.matches("p,span,li,dt,dd,td,th,label,strong,small,time")) textNodes.push(element);
     if (element.querySelectorAll) textNodes.push(...element.querySelectorAll("p,span,li,dt,dd,td,th,label,strong,small,time"));
     for (const node of textNodes) {
-      if (node.closest("#soft98-pro-control,#soft98-extension-recommendation")) continue;
+      if (node.closest("#soft98-pro-control,#soft98-extension-recommendation,#soft98-ad-blocker-taunt")) continue;
       const foreground = colorMetrics(getComputedStyle(node).color);
       if (!foreground || foreground.alpha < 0.5 || foreground.luminance > 0.42) continue;
       node.setAttribute("data-soft98-pro-tone", node.matches("small,time") ? "muted" : "body");
@@ -850,7 +830,7 @@
       }
       return canvas.toDataURL("image/png");
     } catch (error) {
-      safeConsole("warn", "Soft98 Pro could not render the canvas favicon", error);
+      safeConsole("warn", text("logs.faviconFailed"), error);
       return "";
     }
   }
@@ -884,19 +864,115 @@
   }
 
   function restoreOriginalLogo() {
-    const logo = document.querySelector("#logo-link img, a[href='/'] img, a[href='https://soft98.ir/'] img");
-    if (logo && logo.getAttribute("data-soft98-original-logo")) {
+    for (const logo of document.querySelectorAll("img[data-soft98-original-logo]")) {
       logo.src = logo.getAttribute("data-soft98-original-logo") || logo.src;
       logo.removeAttribute("data-soft98-original-logo");
+      logo.removeAttribute("data-soft98-brand-variant");
     }
-    for (const link of document.querySelectorAll("a[href='/'], a[href='https://soft98.ir/'], a[href='https://soft98.ir']")) {
+    for (const link of document.querySelectorAll("[data-soft98-original-logo]")) {
       const original = link.getAttribute("data-soft98-original-logo");
       if (!original) continue;
-      link.style.backgroundImage = original;
+      link.style.backgroundImage = original === "__none__" ? "" : original;
       link.style.backgroundSize = "";
       link.style.backgroundRepeat = "";
       link.style.backgroundPosition = "";
       link.removeAttribute("data-soft98-original-logo");
+      link.removeAttribute("data-soft98-brand-variant");
+      link.removeAttribute("data-soft98-brand-kind");
+    }
+  }
+
+  function logoCandidate() {
+    const candidates = [];
+    for (const link of document.querySelectorAll("a[href]")) {
+      let url;
+      try {
+        url = new URL(link.getAttribute("href") || "", location.href);
+      } catch (_error) {
+        continue;
+      }
+      if (!/^\/?$/.test(url.pathname) || (url.origin !== location.origin && !/(?:^|\.)soft98\.ir$/i.test(url.hostname))) continue;
+      const box = visibleBox(link);
+      if (!box.width || !box.height) continue;
+      const linkSignals = `${link.textContent || ""} ${link.title || ""} ${link.getAttribute("aria-label") || ""}`;
+      const image = link.querySelector("img");
+      const imageSignals = image ? `${image.alt || ""} ${image.title || ""}` : "";
+      const assetSignals = `${image ? image.currentSrc || image.src || "" : ""} ${getComputedStyle(link).backgroundImage || ""}`;
+      const shapeScore = box.width > box.height * 1.5 ? 4 : 0;
+      const areaScore = box.width * box.height > 10000 ? 5 : box.width * box.height > 1400 ? 2 : 0;
+      const homeScore = /\bhome\b/i.test(link.rel || "") ? 2 : 0;
+      const brandScore = /soft\s*98|سافت[\s\u200c]*(?:98|۹۸|٩٨)|logo/i.test(`${linkSignals} ${imageSignals}`) ? 8 : 0;
+      const primaryAssetScore = /\/(?:logo|wordmark)[^/)]*\.(?:avif|png|webp|gif|svg)/i.test(assetSignals) ? 10 : 0;
+      const imageScore = image ? 3 : 0;
+      candidates.push({ node: image || link, kind: image ? "image" : "background", score: shapeScore + areaScore + homeScore + brandScore + primaryAssetScore + imageScore });
+    }
+    let best = null;
+    let score = -1;
+    for (const candidate of candidates) {
+      if (candidate.score > score) {
+        best = candidate;
+        score = candidate.score;
+      }
+    }
+    return best;
+  }
+
+  function enhanceLogo() {
+    if (!successAnnounced || !settings.pirateLogo) return restoreOriginalLogo();
+    const candidate = logoCandidate();
+    if (!candidate) return;
+    const logo = candidate.node;
+    const dark = settings.pro && settings.darkDesign;
+    const variant = dark ? "pirateDark" : "light";
+    const source = BRAND_ASSETS[variant];
+    if (!source || logo.getAttribute("data-soft98-brand-variant") === variant) return;
+    if (candidate.kind === "image") {
+      if (!logo.hasAttribute("data-soft98-original-logo")) logo.setAttribute("data-soft98-original-logo", logo.currentSrc || logo.src || "");
+      logo.src = source;
+      logo.alt = text("product");
+    } else {
+      if (!logo.hasAttribute("data-soft98-original-logo")) logo.setAttribute("data-soft98-original-logo", logo.style.backgroundImage || "__none__");
+      logo.style.backgroundImage = `url("${source}")`;
+    }
+    logo.setAttribute("data-soft98-brand-variant", variant);
+    logo.setAttribute("data-soft98-brand-kind", candidate.kind);
+  }
+
+  function renderTaunt() {
+    const previous = document.getElementById("soft98-ad-blocker-taunt");
+    if (!successAnnounced || !settings.taunt) {
+      if (previous) previous.remove();
+      return;
+    }
+    const note = previous || document.createElement("aside");
+    note.id = "soft98-ad-blocker-taunt";
+    note.lang = LOCALE;
+    note.dir = RTL ? "rtl" : "ltr";
+    note.setAttribute("data-theme", settings.pro && settings.darkDesign ? "dark" : "light");
+    note.innerHTML = `<span>${text("tauntText")}</span><a rel="noopener noreferrer" target="_blank" href="${EXTENSION_REPO}">${text("tauntLink")}</a>`;
+    const style = document.createElement("style");
+    style.textContent = `
+      #soft98-ad-blocker-taunt{--taunt-bg:#f7fafc;--taunt-border:#cbd7e1;--taunt-text:#1d2a35;--taunt-link:#0b6f55;grid-template-columns:1fr auto;align-items:center;gap:12px;width:min(780px,calc(100% - 28px));margin:14px auto;padding:10px 14px;border:1px solid var(--taunt-border)!important;border-radius:8px;background:var(--taunt-bg)!important;color:var(--taunt-text)!important;box-shadow:0 8px 24px rgba(20,35,48,.08)!important;font:13px/1.8 system-ui,sans-serif;text-align:start;direction:inherit}
+      #soft98-ad-blocker-taunt[data-theme=dark]{--taunt-bg:#101b24;--taunt-border:#344955;--taunt-text:#eef7f8;--taunt-link:#7ce0bd;box-shadow:0 12px 28px rgba(0,0,0,.28)}
+      #soft98-ad-blocker-taunt span{color:var(--taunt-text)!important;background:transparent!important;unicode-bidi:plaintext}
+      #soft98-ad-blocker-taunt a{color:var(--taunt-link)!important;background:transparent!important;font-weight:750;text-decoration:none;white-space:nowrap}
+      @media(max-width:560px){#soft98-ad-blocker-taunt{grid-template-columns:1fr}#soft98-ad-blocker-taunt a{white-space:normal}}
+    `;
+    note.appendChild(style);
+    if (!previous) {
+      const footer = [...document.querySelectorAll("footer")].find((node) => visibleBox(node).width > 200) || document.body;
+      footer.appendChild(note);
+    }
+  }
+
+  function syncSuccessEnhancements() {
+    if (!document.body) return;
+    enhanceLogo();
+    renderTaunt();
+    if (settings.recommendExtension) renderExtensionRecommendation();
+    else {
+      const recommendation = document.getElementById("soft98-extension-recommendation");
+      if (recommendation) recommendation.remove();
     }
   }
 
@@ -914,7 +990,7 @@
     try {
       localStorage.setItem(CONTROL_POSITION_KEY, JSON.stringify(position));
     } catch (error) {
-      safeConsole("warn", "Soft98 Pro could not persist the control position", error);
+      safeConsole("warn", text("logs.controlPositionFailed"), error);
     }
   }
 
@@ -964,6 +1040,8 @@
           ["pro", text("pro")],
           ["darkDesign", text("darkDesign")],
           ["linkBadges", text("linkBadges")],
+          ["pirateLogo", text("pirateLogo")],
+          ["taunt", text("taunt")],
           ["diagnostics", text("diagnostics")],
           ["recommendExtension", text("recommendExtension")],
         ]
@@ -1068,17 +1146,16 @@
     if (successAnnounced) return;
     if (!stats.adsRemoved && !stats.linksPreserved && !stats.patches.length) return;
     successAnnounced = true;
-    log("info", "boarded successfully", { ...stats });
+    log("info", text("logs.boarded"), { ...stats });
     safeConsole(
       "info",
-      "%cSoft98 Pro%c " + text("successLog"),
+      `%c${text("product")}%c ${text("successLog")}`,
       "background:#70e1b2;color:#06120c;padding:4px 8px;border-radius:6px;font-weight:800",
       "color:#9db1c6"
     );
     updateFavicon();
     onReady(() => {
-      restoreOriginalLogo();
-      removeLegacyBanners();
+      syncSuccessEnhancements();
     });
   }
 
@@ -1153,7 +1230,7 @@
     code = withEvent;
     if (patches.length) {
       stats.patches.push({ origin: origin || "eval", patches });
-      log("info", "patched Soft98 application code", { origin, patches });
+      log("info", text("logs.applicationPatched"), { origin, patches });
     }
     if (code !== before) schedule(document);
     return code;
@@ -1243,7 +1320,7 @@
       }
       if (isSuspiciousDetector(callback)) {
         stats.scrollDetectorsBlocked += 1;
-        log("warn", "blocked scroll-triggered Soft98 detector", { type: String(type) });
+        log("warn", text("logs.scrollDetectorBlocked"), { type: String(type) });
         return originalAdd.call(this, type, function noopSoft98ScrollDetector() {
           removeWarnings(document);
         }, options);
@@ -1358,7 +1435,7 @@
         recordPatchFailure(`reset-document-${name}`, error, "");
       }
     }
-    log(restored ? "warn" : "info", "checked document query handles", { restored });
+    log(restored ? "warn" : "info", text("logs.documentHandlesChecked"), { restored });
     return restored > 0;
   }
 
@@ -1370,16 +1447,16 @@
       const style = getComputedStyle(node);
       const box = visibleBox(node);
       const trips = [];
-      if (style.display === "none") trips.push("display none");
-      if (/hidden|collapse/i.test(style.visibility)) trips.push("not visible");
-      if (Number(style.opacity) < 1) trips.push("opacity reduced");
-      if (style.transform && style.transform !== "none") trips.push("transformed");
-      if (box.width < 15 || box.height < 15) trips.push("too small");
-      if (/adguard|adblock/i.test(`${style.content || ""} ${node.getAttribute("style") || ""}`)) trips.push("blocker marker");
-      if (node.tagName === "IMG" && !node.getAttribute("src")) trips.push("source-less image");
+      if (style.display === "none") trips.push(text("logs.trapDisplayNone"));
+      if (/hidden|collapse/i.test(style.visibility)) trips.push(text("logs.trapNotVisible"));
+      if (Number(style.opacity) < 1) trips.push(text("logs.trapOpacityReduced"));
+      if (style.transform && style.transform !== "none") trips.push(text("logs.trapTransformed"));
+      if (box.width < 15 || box.height < 15) trips.push(text("logs.trapTooSmall"));
+      if (/adguard|adblock/i.test(`${style.content || ""} ${node.getAttribute("style") || ""}`)) trips.push(text("logs.trapBlockerMarker"));
+      if (node.tagName === "IMG" && !node.getAttribute("src")) trips.push(text("logs.trapSourceLessImage"));
       if (trips.length) report.push({ node, trips, box });
     }
-    safeConsole("groupCollapsed", `Soft98 Pro trap check: ${report.length} suspicious node(s)`);
+    safeConsole("groupCollapsed", text("logs.trapSummary", { count: report.length }));
     for (const item of report) safeConsole("warn", item.node, item.trips, item.box);
     safeConsole("groupEnd");
     return report;
@@ -1398,7 +1475,7 @@
       })),
       events: [...eventLog],
     };
-    safeConsole("info", "Soft98 Pro diagnostics", report);
+    safeConsole("info", text("logs.diagnostics"), report);
     return report;
   }
 
@@ -1417,6 +1494,7 @@
     installClickRepair();
     schedule(document);
     installObserver();
+    document.documentElement.setAttribute("data-soft98-runtime-ready", VERSION);
     onReady(() => {
       renderControlPanel();
       originalTitle = WARNING_TITLE.test(document.title) ? originalTitle : document.title;

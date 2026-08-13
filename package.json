@@ -1,14 +1,15 @@
 {
   "name": "soft98-pro",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Soft98 Pro userscript and browser extension with shared resilient runtime.",
   "private": true,
   "type": "commonjs",
   "scripts": {
     "build": "node tools/build.js",
     "screenshot": "node tools/screenshot.js",
-    "check": "npm run build && node --check src/runtime.js && node --check src/content/bridge.js && node --check src/content/firefox-injector.js && node --check src/ui/options.js && node --check test/serve-harness.js && node --check tools/screenshot.js && node --check soft98-pro.user.js",
-    "test": "node test/validate-build.js",
+    "summary": "node tools/ci-summary.js",
+    "check": "npm run build && node --check src/runtime.js && node --check src/release-client.js && node --check src/background.js && node --check src/content/bridge.js && node --check src/content/firefox-injector.js && node --check src/ui/options.js && node --check test/serve-harness.js && node --check test/runtime-browser.js && node --check test/deterministic-build.js && node --check tools/screenshot.js && node --check soft98-pro.user.js",
+    "test": "node test/validate-build.js && node test/release-client.js && node test/deterministic-build.js && node test/runtime-browser.js",
     "ci": "npm run check && npm test"
   },
   "devDependencies": {
