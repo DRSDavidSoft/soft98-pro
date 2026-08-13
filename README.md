@@ -1,251 +1,178 @@
+<a id="top"></a>
+
 <div align="center">
 
-<!-- Language switcher -->
 <a href="README.md"><img src="docs/assets/badge-en.svg" alt="English" height="22"/></a>&nbsp;
 <a href="README.fa.md"><img src="docs/assets/badge-fa.svg" alt="فارسی" height="22"/></a>
 
-<br/><br/>
-
-<!-- Logo / hero banner -->
-<svg xmlns="http://www.w3.org/2000/svg" width="480" height="120" viewBox="0 0 480 120">
-  <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#0f172a"/>
-      <stop offset="100%" style="stop-color:#1e3a5f"/>
-    </linearGradient>
-    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#3b82f6"/>
-      <stop offset="100%" style="stop-color:#8b5cf6"/>
-    </linearGradient>
-  </defs>
-  <rect width="480" height="120" rx="16" fill="url(#bg)"/>
-  <rect x="0" y="108" width="480" height="4" rx="2" fill="url(#accent)"/>
-  <text x="240" y="52" font-family="system-ui,sans-serif" font-size="36" font-weight="900"
-        fill="url(#accent)" text-anchor="middle" letter-spacing="-1">Soft98 Pro</text>
-  <text x="240" y="82" font-family="system-ui,sans-serif" font-size="13"
-        fill="#94a3b8" text-anchor="middle">✨ Ad-free · 🛡️ Anti-adblock · 🌙 Dark Mode · 🔗 Link Recovery</text>
-  <text x="240" y="102" font-family="system-ui,sans-serif" font-size="11"
-        fill="#475569" text-anchor="middle">Userscript &amp; Browser Extension — Chrome · Edge · Firefox</text>
-</svg>
-
-<br/>
+<h1>Soft98 Pro</h1>
 
 [![Latest Release](https://img.shields.io/github/v/release/DRSDavidSoft/soft98-pro?style=for-the-badge&color=3b82f6&labelColor=0f172a&label=Latest+Release)](https://github.com/DRSDavidSoft/soft98-pro/releases/latest)
-[![License](https://img.shields.io/github/license/DRSDavidSoft/soft98-pro?style=for-the-badge&color=8b5cf6&labelColor=0f172a)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/DRSDavidSoft/soft98-pro?style=for-the-badge&color=f59e0b&labelColor=0f172a)](https://github.com/DRSDavidSoft/soft98-pro/stargazers)
 
 </div>
 
----
+<a id="screenshot"></a>
 
-## 🚀 Quick Start — Choose Your Path
-
-> **New here? Pick one option and you'll be running in under 2 minutes.**
-
-<table>
-<tr>
-<th align="center" width="50%">⚡ Userscript<br/><sub>Fastest · Easiest · Transparent</sub></th>
-<th align="center" width="50%">🧩 Browser Extension<br/><sub>Powerful · Persistent · Full-featured</sub></th>
-</tr>
-<tr>
-<td>
-
-**Step 1** — Install a userscript manager
-
-| Browser | Manager |
-|---------|---------|
-| Chrome / Edge | [Tampermonkey](https://tampermonkey.net) |
-| Firefox | [Violentmonkey](https://violentmonkey.github.io) |
-
-**Step 2** — Click to install
-
-[![Install Userscript](https://img.shields.io/badge/Install%20Userscript-Click%20Here-3b82f6?style=for-the-badge&logo=tampermonkey&logoColor=white)](https://github.com/DRSDavidSoft/soft98-pro/raw/main/soft98-pro.user.js)
-
-**Step 3** — Visit [soft98.ir](https://soft98.ir) and enjoy ✅
-
-</td>
-<td>
-
-**Step 1** — Download the latest release
-
-[![Download for Chrome/Edge](https://img.shields.io/badge/Chrome%20%26%20Edge-Download%20ZIP-green?style=for-the-badge&logo=googlechrome&logoColor=white)](https://github.com/DRSDavidSoft/soft98-pro/releases/latest)
-[![Download for Firefox](https://img.shields.io/badge/Firefox-Download%20ZIP-orange?style=for-the-badge&logo=firefox&logoColor=white)](https://github.com/DRSDavidSoft/soft98-pro/releases/latest)
-
-**Step 2** — Load the extension (see [Installation Guide](docs/wiki/Installation.md))
-
-**Step 3** — Visit [soft98.ir](https://soft98.ir) and enjoy ✅
-
-</td>
-</tr>
-</table>
-
----
-
-## 🌟 Features at a Glance
-
-<table>
-<tr>
-<td>🚫 <b>Ad Blocking</b></td>
-<td>Removes ads using source, shape, size, and link-behavior analysis.</td>
-</tr>
-<tr>
-<td>🛡️ <b>Anti-Adblock Bypass</b></td>
-<td>Patches packed Soft98 code before fragile anti-adblock logic runs.</td>
-</tr>
-<tr>
-<td>🔗 <b>Download Link Recovery</b></td>
-<td>Preserves and restores download links when page scripts try to sabotage them.</td>
-</tr>
-<tr>
-<td>🧹 <b>Notice Cleanup</b></td>
-<td>Removes Soft98 and PersianBlocker warning banners — without touching article content.</td>
-</tr>
-<tr>
-<td>🌙 <b>Dark Mode</b></td>
-<td>Modern dark interface enabled by default for a comfortable reading experience.</td>
-</tr>
-<tr>
-<td>🌐 <b>Bilingual UI</b></td>
-<td>Automatically uses Persian UI when browser language is <code>fa</code> or timezone is <code>Asia/Tehran</code>.</td>
-</tr>
-<tr>
-<td>🎨 <b>Favicon Status</b></td>
-<td>Canvas-generated favicon shows real-time extension status at a glance.</td>
-</tr>
-</table>
-
----
-
-## 📸 Screenshot
+## Screenshot
 
 ![Soft98 Pro dark mode running on Soft98](docs/assets/soft98-pro-dark.png)
 
----
+Soft98 Pro improves Soft98 with resilient ad blocking, anti-adblock patching, download-link recovery, warning cleanup, and a modern dark interface. It is available as both a userscript and browser extensions for Chrome, Edge, and Firefox.
 
-## 📦 Download & Install
+Both formats are built from the shared runtime in [`src/runtime.js`](src/runtime.js), keeping blocking behavior, diagnostics, localization, theming, favicon status, and link recovery aligned.
 
-### Option A — Userscript (Recommended for Quick Setup)
+<a id="contents"></a>
 
-1. Install [Tampermonkey](https://tampermonkey.net) (Chrome/Edge) or [Violentmonkey](https://violentmonkey.github.io) (Firefox).
-2. Click the install link:  
-   👉 [`soft98-pro.user.js`](https://github.com/DRSDavidSoft/soft98-pro/raw/main/soft98-pro.user.js)
-3. Confirm installation in your userscript manager.
-4. Open [soft98.ir](https://soft98.ir) — done!
+## Contents
 
-### Option B — Browser Extension (Recommended for Daily Use)
+- [Screenshot](#screenshot)
+- [Features](#features)
+- [Getting Started](#getting-started)
+  - [Userscript setup](#userscript-quick-start)
+  - [Browser extension setup](#extension-quick-start)
+- [Choose a Format](#choose-a-format)
+  - [Userscript profile](#userscript-profile)
+  - [Browser extension profile](#extension-profile)
+- [Build From Source](#build-from-source)
+- [Diagnostics](#diagnostics)
+- [Documentation](#documentation)
 
-Get the latest ZIP from the [Releases page](https://github.com/DRSDavidSoft/soft98-pro/releases/latest):
+<a id="features"></a>
 
-| File | Browser |
-|------|---------|
-| `soft98-pro-chromium-*.zip` | Chrome, Edge |
-| `soft98-pro-firefox-*.zip` | Firefox |
+## Features
 
-#### 🟦 Chrome / Edge
+- **Ad blocking:** removes ad surfaces through source, shape, size, structure, and link-behavior analysis.
+- **Anti-adblock protection:** patches packed Soft98 code before fragile detection logic can damage the page.
+- **Download-link recovery:** preserves and restores links when page scripts attempt to disable them.
+- **Notice cleanup:** removes intrusive Soft98 and third-party blocker notices without touching article content.
+- **Dark design:** enables a modern dark reading experience by default.
+- **Bilingual interface:** uses Persian when the browser language is `fa` or the timezone is `Asia/Tehran`; otherwise it uses English.
+- **Status favicon:** generates a canvas favicon that reflects the current protection state.
 
-1. Extract the ZIP.
-2. Go to `chrome://extensions` (or `edge://extensions`).
-3. Enable **Developer mode** (top-right toggle).
-4. Click **Load unpacked** and select the extracted folder.
+<a id="getting-started"></a>
 
-#### 🟠 Firefox
+## Getting Started
 
-1. Extract the ZIP.
-2. Go to `about:debugging#/runtime/this-firefox`.
-3. Click **Load Temporary Add-on**.
-4. Select `manifest.json` inside the extracted folder.
+Choose one installation path below. The userscript is the shortest setup; the extension provides the fuller browser integration.
 
-> 💡 See the full [Installation Guide →](docs/wiki/Installation.md)
+<a id="userscript-quick-start"></a>
 
----
+### Userscript
 
-## 🧩 Userscript vs Extension — Which Should I Choose?
+1. Install [Tampermonkey](https://tampermonkey.net) for Chrome or Edge, or [Violentmonkey](https://violentmonkey.github.io) for Firefox.
+2. Install [`soft98-pro.user.js`](https://github.com/DRSDavidSoft/soft98-pro/raw/main/soft98-pro.user.js).
+3. Confirm the prompt in your userscript manager.
+4. Open [soft98.ir](https://soft98.ir).
 
-| | ⚡ Userscript | 🧩 Extension |
-|--|--|--|
-| **Install time** | ~30 seconds | ~2 minutes |
-| **Transparency** | ✅ Single JS file, easy to audit | Source in repo |
-| **Auto-update** | ✅ Via userscript manager | Manual download |
-| **Persistence** | Depends on manager | ✅ Native browser |
-| **Future features** | Limited | ✅ Full UI, settings, storage |
-| **Best for** | Quick setup, power users | Daily use, full experience |
+[![Install Userscript](https://img.shields.io/badge/Install%20Userscript-Click%20Here-3b82f6?style=for-the-badge&logo=tampermonkey&logoColor=white)](https://github.com/DRSDavidSoft/soft98-pro/raw/main/soft98-pro.user.js)
 
-> 📖 Read the [full comparison →](docs/wiki/Userscript-vs-Extension.md)
+<a id="extension-quick-start"></a>
 
----
+### Browser Extension
 
-## 🛠️ Build From Source
+1. Download the appropriate ZIP from the [latest release](https://github.com/DRSDavidSoft/soft98-pro/releases/latest).
+2. Extract the archive.
+3. Follow the instructions for your browser.
+
+#### Chrome or Edge
+
+1. Open `chrome://extensions` or `edge://extensions`.
+2. Enable **Developer mode**.
+3. Select **Load unpacked**.
+4. Choose the extracted Chromium folder.
+
+#### Firefox
+
+1. Open `about:debugging#/runtime/this-firefox`.
+2. Select **Load Temporary Add-on**.
+3. Choose `manifest.json` from the extracted Firefox folder.
+
+See the complete [Installation Guide](docs/wiki/Installation.md) for package names, browser-specific details, and troubleshooting.
+
+<a id="choose-a-format"></a>
+
+## Choose a Format
+
+<a id="userscript-profile"></a>
+
+### Userscript
+
+- **Best for:** the quickest setup, direct source inspection, and users who already use a script manager.
+- **Installation:** one JavaScript file, usually ready in under a minute.
+- **Updates:** handled by the userscript manager.
+- **Tradeoff:** execution timing and page-world behavior depend on the manager and browser.
+
+<a id="extension-profile"></a>
+
+### Browser Extension
+
+- **Best for:** daily use, richer settings, browser-owned storage, and more predictable integration.
+- **Installation:** an unpacked Chromium or Firefox package from the latest release.
+- **Updates:** install a newer release package when published.
+- **Advantage:** dedicated UI, persistent browser storage, and browser-specific injection paths.
+
+Both formats use the same core protection code. Read the detailed [Userscript vs Extension comparison](docs/wiki/Userscript-vs-Extension.md) before choosing.
+
+<a id="build-from-source"></a>
+
+## Build From Source
 
 ```bash
-# 1. Clone the repository
 git clone https://github.com/DRSDavidSoft/soft98-pro.git
 cd soft98-pro
-
-# 2. Install dependencies
 npm ci
-
-# 3. Build everything (lint + test + package)
 npm run ci
+```
 
-# 4. Optional: generate a live screenshot
+Generate a fresh live-site screenshot with:
+
+```bash
 npm run screenshot
 ```
 
 ### Build Outputs
 
-| Path | Description |
-|------|-------------|
-| `soft98-pro.user.js` | Root userscript (raw GitHub install) |
-| `dist/userscript/soft98-pro.user.js` | Release copy of userscript |
-| `dist/chromium/` | Manifest V3 build for Chrome & Edge |
-| `dist/firefox/` | Firefox build with page-runtime bridge |
-| `dist/packages/*.zip` | Release-ready ZIP archives |
-| `docs/assets/soft98-pro-dark.png` | Screenshot from live Soft98 harness |
+- [`soft98-pro.user.js`](soft98-pro.user.js): root userscript for direct GitHub installation.
+- `dist/userscript/soft98-pro.user.js`: release copy of the userscript.
+- `dist/chromium/`: Manifest V3 build for Chrome and Edge.
+- `dist/firefox/`: Firefox build with the page-runtime bridge.
+- `dist/packages/*.zip`: release-ready installation archives.
+- [`docs/assets/soft98-pro-dark.png`](docs/assets/soft98-pro-dark.png): screenshot generated from the live Soft98 harness.
 
----
+<a id="diagnostics"></a>
 
-## 🕵️ Diagnostics
+## Diagnostics
 
-Open DevTools on any soft98.ir page and run:
+Open DevTools on a Soft98 page and use the public diagnostics API:
 
 ```js
-// Full diagnostic report
 window.Soft98AdBlocker.report()
-
-// Check anti-adblock trap state
 window.Soft98AdBlocker.trapCheck()
-
-// Reset internal DOM handles
 window.Soft98AdBlocker.resetHandles()
-
-// View live event log
 window.Soft98AdBlocker.events
-
-// View run statistics
 window.Soft98AdBlocker.stats
 ```
 
-> The friendly alias `window.Soft98Pro` is also available.  
-> See the [Diagnostics Guide →](docs/wiki/Diagnostics.md)
+The friendly alias `window.Soft98Pro` is also available. See the [Diagnostics Guide](docs/wiki/Diagnostics.md) for examples and interpretation.
 
----
+<a id="documentation"></a>
 
-## 📚 Documentation
+## Documentation
 
-| Page | Description |
-|------|-------------|
-| [🏠 Wiki Home](docs/wiki/Home.md) | Overview and navigation |
-| [📦 Installation](docs/wiki/Installation.md) | Step-by-step install for all platforms |
-| [🧩 Userscript vs Extension](docs/wiki/Userscript-vs-Extension.md) | Detailed comparison |
-| [🕵️ Diagnostics](docs/wiki/Diagnostics.md) | Console debugging tools |
-| [🛠️ Development](docs/wiki/Development.md) | Build, test, and contribute |
+- [Wiki Home](docs/wiki/Home.md): overview and documentation navigation.
+- [Installation](docs/wiki/Installation.md): installation for every supported browser.
+- [Userscript vs Extension](docs/wiki/Userscript-vs-Extension.md): detailed format comparison.
+- [Diagnostics](docs/wiki/Diagnostics.md): console tools and troubleshooting.
+- [Development](docs/wiki/Development.md): build, test, and contribution workflow.
+- [Persian README](README.fa.md): complete Persian version of this document.
 
 ---
 
 <div align="center">
 
-Made with ❤️ for the Persian web community · [soft98.ir](https://soft98.ir)
+Soft98 Pro · Userscript and browser extension
 
-**[⬆ Back to top](#)**
+[Back to top](#top)
 
 </div>
