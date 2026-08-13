@@ -1,16 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="90" height="22" role="img" aria-label="English">
   <title>English</title>
-  <linearGradient id="s" x2="0" y2="100%">
+  <linearGradient id="badge-en-s" x2="0" y2="100%">
     <stop offset="0" stop-color="#fff" stop-opacity=".15"/>
     <stop offset="1" stop-opacity=".1"/>
   </linearGradient>
-  <clipPath id="r">
+  <clipPath id="badge-en-r">
     <rect width="90" height="22" rx="6" fill="#fff"/>
   </clipPath>
-  <g clip-path="url(#r)">
+  <g clip-path="url(#badge-en-r)">
     <rect width="26" height="22" fill="#2563eb"/>
     <rect x="26" width="64" height="22" fill="#1e40af"/>
-    <rect width="90" height="22" fill="url(#s)"/>
+    <rect width="90" height="22" fill="url(#badge-en-s)"/>
   </g>
   <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
     <text x="13" y="15.5" fill="#fff" opacity=".9">🇬🇧</text>
