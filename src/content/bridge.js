@@ -16,6 +16,8 @@
     diagnostics: true,
     recommendExtension: false,
     rgbMode: false,
+    showLatest: true,
+    hideAnnoyances: false,
   };
   const SCRIPT_PATH = /^\/templates\/.*\/(?:application\.min\.packed|jquery(?:-v[^/]+)?(?:\.min\.packed)?)\.js$/i;
   const reportedScripts = new Set();

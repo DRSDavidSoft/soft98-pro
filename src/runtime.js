@@ -39,9 +39,13 @@
     diagnostics: true,
     recommendExtension: __SOFT98_RECOMMEND_EXTENSION__,
     rgbMode: false,
+    showLatest: true,
+    hideAnnoyances: false,
   };
   const savedHref = new WeakMap();
   const originalLogos = new Map();
+  const utilitySprites = new Map();
+  const hiddenPageDisplays = new WeakMap();
   const trackedLinks = new Set();
   const pendingRoots = new Set();
   const stats = {
@@ -126,7 +130,7 @@
     /(?:افزونه\s+حذف|ﺗﺒﻠﻴﻐﺎت|Dark Reader|disableDownloadLink|setNullLinkAttributes|checkadBlocker|advertisementrk|text_add_firewall|kaprila|adguard|location\.reload|location\.hash|document\.title|alert-warning|adblock)/i;
   const SCROLL_EVENTS = /^(?:scroll|wheel|mousewheel|touchmove)$/i;
   const AD_SIZE = /^(?:728x90|970x90|468x60|300x250|336x280|240x90|160x600)$/;
-  const NAMED_AD_TEXT = /(?:asiatech|آسیا[\u0640\s\u200c-]*تک|آ[\u0640\s\u200c-]*س[\u0640\s\u200c-]*ی[\u0640\s\u200c-]*ا[\u0640\s\u200c-]*ت[\u0640\s\u200c-]*ک)/i;
+  const NAMED_AD_TEXT = /(?:asiatech|iranicard|آسیا[\u0640\s\u200c-]*تک|آ[\u0640\s\u200c-]*س[\u0640\s\u200c-]*ی[\u0640\s\u200c-]*ا[\u0640\s\u200c-]*ت[\u0640\s\u200c-]*ک)/i;
 
   function onReady(callback) {
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", callback, { once: true });
@@ -460,7 +464,7 @@
     const element = asElement(node);
     if (!element) return null;
     const link = element.closest && element.closest("a[href],[data-href]");
-    if (link && (isLikelyAdSurface(link) || isDeferredHeaderBanner(link))) {
+    if (link && (isLikelyAdSurface(link) || isDeferredHeaderBanner(link) || isIranicardBanner(link))) {
       const wrapper = link.parentElement;
       return wrapper?.children.length === 1 && wrapper.matches("div") && !isProtectedContentContainer(wrapper) ? wrapper : link;
     }
@@ -473,6 +477,19 @@
     const box = visibleBox(node);
     return box.width >= 300 && box.height >= 40 && box.height <= 180 && box.width / box.height >= 4 &&
       node.querySelector("img[data-backup],span > small") !== null && !node.querySelector("p,ul,ol,form");
+  }
+
+  function normalizedPersian(value) {
+    return value.normalize("NFKC").replace(/[\s\u0640\u200c\u200d]+/gu, "").replace(/ي/g, "ی");
+  }
+
+  function isIranicardBanner(node) {
+    if (!node.closest("header")) return false;
+    const destination = node.getAttribute("data-href") || node.getAttribute("href");
+    let host = "";
+    try { host = new URL(destination).hostname; } catch (_error) {}
+    return /^(?:www\.)?(?:ircd\.me|iranicard\.ir)$/i.test(host) &&
+      (Boolean(node.querySelector("img")) || normalizedPersian(node.textContent || "").includes("ایرانیکارت"));
   }
 
   function bestAdFrameRoot(element) {
@@ -596,13 +613,13 @@
     const nodes = [];
     if (element.matches && element.matches(SELECTORS.removableAds)) nodes.push(element);
     if (element.querySelectorAll) nodes.push(...element.querySelectorAll(SELECTORS.removableAds));
-    if (element.matches && (isLikelyNamedAdFrame(element) || isDeferredHeaderBanner(element) || (["A", "IMG", "IFRAME"].includes(element.tagName) && isLikelyAdSurface(element)))) nodes.push(element);
+    if (element.matches && (isLikelyNamedAdFrame(element) || isDeferredHeaderBanner(element) || isIranicardBanner(element) || (["A", "IMG", "IFRAME"].includes(element.tagName) && isLikelyAdSurface(element)))) nodes.push(element);
     if (element.querySelectorAll) {
       for (const node of element.querySelectorAll("a[href], img, iframe")) {
         if (isLikelyAdSurface(node)) nodes.push(node);
       }
-      for (const node of element.querySelectorAll("header [data-href]")) {
-        if (isDeferredHeaderBanner(node)) nodes.push(node);
+      for (const node of element.querySelectorAll("header [data-href],header a[href]")) {
+        if (isDeferredHeaderBanner(node) || isIranicardBanner(node)) nodes.push(node);
       }
       for (const node of element.querySelectorAll("aside, section, div")) {
         if (isLikelyNamedAdFrame(node)) nodes.push(node);
@@ -611,9 +628,10 @@
     for (const node of nodes) {
       const removable = adRemovalRoot(node);
       if (removable?.isConnected) {
+        const advertiser = isIranicardBanner(node) ? "Iranicard" : undefined;
         removable.remove();
         stats.adsRemoved += 1;
-        log("info", text("logs.adSurfaceRemoved"), { tag: removable.tagName, id: removable.id || "", className: removable.className || "" });
+        log("info", text("logs.adSurfaceRemoved"), { tag: removable.tagName, advertiser });
       }
     }
   }
@@ -777,6 +795,7 @@
           applyInteractiveSurfaceHeuristics();
           applyProLayoutHeuristics();
         }
+        if (settings.pro) applyPagePreferences();
         for (const link of trackedLinks) {
           if (document.contains(link)) restoreLink(link);
           else trackedLinks.delete(link);
@@ -873,10 +892,11 @@
       [data-soft98-pro-brand-replaced]{border:1px solid #b8cbd5!important;border-radius:6px!important;background:#f7fafc!important;color:#1d2a35!important;box-shadow:0 6px 20px rgba(27,45,57,.12)!important;padding:.35em .65em!important;font:600 13px/1.6 system-ui,sans-serif!important;text-decoration:none!important}
       .soft98-pro-theme [data-soft98-pro-brand-replaced]{border-color:var(--s98p-border)!important;background:var(--s98p-surface-2)!important;color:var(--s98p-accent)!important;box-shadow:0 8px 24px rgba(0,0,0,.28)!important}
       a[${DATA_HREF}]{pointer-events:auto}
-      a[data-soft98-brand-compact]{background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important}
-      [data-soft98-brand-kind=background]{display:block!important;min-height:104px!important;background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important}
+      a[data-soft98-brand-compact]{min-height:36px!important;background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important}
+      [data-soft98-brand-kind=background]{display:block!important;background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important}
+      [data-soft98-brand-kind=background]:not([data-soft98-brand-compact]){min-height:104px!important}
       [data-soft98-brand-kind=background]>*{visibility:hidden!important}
-      @media(max-width:700px){[data-soft98-brand-kind=background]{min-height:78px!important}}
+      @media(max-width:700px){[data-soft98-brand-kind=background]:not([data-soft98-brand-compact]){min-height:78px!important}}
     `);
   }
 
@@ -885,6 +905,7 @@
     document.documentElement.classList.toggle("soft98-pro-theme", active);
     document.documentElement.classList.toggle("soft98-pro-rgb", active && settings.rgbMode);
     document.documentElement.classList.toggle("soft98-pro-compact", active && settings.compactLayout);
+    syncPageVisibility();
     const ambient = document.getElementById("soft98-pro-ambient");
     if (ambient) ambient.remove();
     if (!active) {
@@ -910,6 +931,17 @@
       .soft98-pro-theme [data-soft98-pro-tone=body]{color:var(--s98p-text)!important}
       .soft98-pro-theme a[data-soft98-pro-tone=action]{background:var(--s98p-surface-2)!important;border-color:var(--s98p-border-soft)!important;color:var(--s98p-text)!important}
       .soft98-pro-theme a[data-soft98-pro-tone=action]:hover{background:var(--s98p-soft)!important}
+      .soft98-pro-theme [data-soft98-pro-utility-icon]{background-color:var(--s98p-elevated)!important;border-color:var(--s98p-border)!important;box-shadow:none!important;filter:none!important}
+      .soft98-pro-theme [data-soft98-pro-utility-art=ready]::before{background-image:var(--s98p-utility-art)!important;background-position:0 0!important;background-size:100% 100%!important}
+      .soft98-pro-theme [data-soft98-pro-utility-card] > footer{background:var(--s98p-surface-2)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border)!important}
+      .soft98-pro-theme [data-soft98-pro-utility-card] > footer:hover{background:var(--s98p-soft)!important}
+      .soft98-pro-theme [data-soft98-pro-utility-header],.soft98-pro-theme [data-soft98-pro-utility-header] :is(h1,h2,h3,h4,h5,h6){border-color:var(--s98p-border)!important;text-shadow:none!important}
+      .soft98-pro-theme [data-soft98-pro-utility-header] :is(h1,h2,h3,h4,h5,h6)::before,.soft98-pro-theme [data-soft98-pro-utility-header] :is(h1,h2,h3,h4,h5,h6)::after{color:var(--s98p-faint)!important;text-shadow:none!important}
+      .soft98-pro-theme [data-soft98-pro-download-group] :is(dt,dd,a,span,i),.soft98-pro-theme [data-soft98-pro-download-group] :is(dt,dd,a,span,i)::before,.soft98-pro-theme [data-soft98-pro-download-group] :is(dt,dd,a,span,i)::after{text-shadow:none!important}
+      .soft98-pro-theme [data-soft98-pro-latest] li a{color:var(--s98p-muted)!important}
+      .soft98-pro-theme [data-soft98-pro-latest] li a:is(:hover,:focus-visible){color:var(--s98p-link)!important}
+      .soft98-pro-theme [data-soft98-pro-view-count],.soft98-pro-theme [data-soft98-pro-view-count]::before{color:var(--s98p-faint)!important;text-shadow:none!important}
+      [data-soft98-pro-bidi]{unicode-bidi:isolate}
       .soft98-pro-theme a{color:var(--s98p-link)!important;text-decoration-color:color-mix(in srgb,var(--s98p-link) 42%,transparent);transition:color .16s ease,text-decoration-color .16s ease,background-color .16s ease,border-color .16s ease,transform .16s ease,box-shadow .2s ease}
       .soft98-pro-theme a:hover{color:#d4efff!important;text-decoration-color:var(--s98p-accent)}
       .soft98-pro-theme a:focus-visible,.soft98-pro-theme button:focus-visible,.soft98-pro-theme input:focus-visible,.soft98-pro-theme select:focus-visible,.soft98-pro-theme textarea:focus-visible{outline:2px solid var(--s98p-accent)!important;outline-offset:3px!important}
@@ -946,10 +978,13 @@
       .soft98-pro-theme pre,.soft98-pro-theme code{background:#071018!important;border-color:var(--s98p-border)!important;color:#d8f8ff!important}
       .soft98-pro-theme ::selection{background:rgba(116,224,176,.32);color:#fff}
       .soft98-pro-link-badge{margin-inline-start:.45em;padding:.12em .45em;border:1px solid rgba(112,225,178,.42);border-radius:999px;color:#baffd8;background:rgba(112,225,178,.12);font-size:.78em;vertical-align:middle}
-      .soft98-pro-compact [data-soft98-pro-layout=content-grid]{display:grid!important;grid-template-columns:minmax(0,2fr) minmax(270px,1fr)!important;align-items:start!important;gap:18px!important;direction:ltr!important}
+      .soft98-pro-compact [data-soft98-pro-layout=content-grid]{display:grid!important;grid-template-columns:minmax(0,2fr) minmax(270px,1fr)!important;align-items:start!important;gap:18px!important}
       .soft98-pro-compact [data-soft98-pro-column]{width:100%!important;min-width:0!important;max-width:none!important;box-sizing:border-box}
       .soft98-pro-compact [data-soft98-pro-column=primary]{grid-column:1!important}
       .soft98-pro-compact [data-soft98-pro-column=secondary]{grid-column:2!important}
+      .soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-reading=rtl]{grid-template-columns:minmax(270px,1fr) minmax(0,2fr)!important}
+      .soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-reading=rtl]>[data-soft98-pro-column=primary]{grid-column:2!important}
+      .soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-reading=rtl]>[data-soft98-pro-column=secondary]{grid-column:1!important}
       .soft98-pro-compact [data-soft98-pro-reading=rtl]{direction:rtl!important}
       .soft98-pro-compact [data-soft98-pro-reading=ltr]{direction:ltr!important}
       .soft98-pro-compact article,.soft98-pro-compact aside{border-radius:var(--s98p-radius)!important}
@@ -969,7 +1004,7 @@
       .soft98-pro-rgb a:hover img:not([data-soft98-brand-kind]){filter:saturate(.38) brightness(.82) contrast(1.08)!important}
       .soft98-pro-rgb .soft98-pro-link-badge{border-color:var(--s98p-neon);background:#0c0f10;box-shadow:0 0 16px var(--s98p-neon-soft)}
       @keyframes soft98-pro-neon{to{--s98p-neon-hue:515deg}}
-      @media(max-width:820px){.soft98-pro-compact [data-soft98-pro-layout=content-grid]{grid-template-columns:minmax(0,1fr)!important}.soft98-pro-compact [data-soft98-pro-column]{grid-column:1!important}.soft98-pro-compact [data-soft98-pro-column=primary]{order:1}.soft98-pro-compact [data-soft98-pro-column=secondary]{order:2}}
+      @media(max-width:820px){.soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-reading]{grid-template-columns:minmax(0,1fr)!important}.soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-reading]>[data-soft98-pro-column]{grid-column:1!important}.soft98-pro-compact [data-soft98-pro-column=primary]{order:1}.soft98-pro-compact [data-soft98-pro-column=secondary]{order:2}}
       @media(prefers-reduced-motion:reduce){.soft98-pro-theme *{scroll-behavior:auto!important}.soft98-pro-rgb{animation:none!important}.soft98-pro-theme a,.soft98-pro-theme button,.soft98-pro-theme input,.soft98-pro-theme select,.soft98-pro-theme textarea{transition:none!important}}
     `);
     updateFavicon();
@@ -1094,6 +1129,10 @@
   }
 
   function applyProLayoutHeuristics() {
+    applyUtilityListHeuristics();
+    for (const list of document.querySelectorAll("article [role=tabpanel] dl")) {
+      if (list.querySelector("dt") && list.querySelector("dd a[href]")) list.setAttribute("data-soft98-pro-download-group", "");
+    }
     if (!settings.compactLayout) return;
     for (const main of document.querySelectorAll("main")) {
       if (main.closest("#soft98-pro-control,#soft98-extension-recommendation,#soft98-ad-blocker-taunt")) continue;
@@ -1107,15 +1146,91 @@
         const primaryBox = visibleBox(primary);
         const secondaryBox = visibleBox(secondary);
         if (box.width < 620 || primaryBox.width < 300 || secondaryBox.width < 180 || primaryBox.height < 160) continue;
+        const direction = document.documentElement.dir || getComputedStyle(container).direction;
         container.setAttribute("data-soft98-pro-layout", "content-grid");
+        container.setAttribute("data-soft98-pro-reading", direction === "rtl" ? "rtl" : "ltr");
         primary.setAttribute("data-soft98-pro-column", "primary");
         secondary.setAttribute("data-soft98-pro-column", "secondary");
-        primary.setAttribute("data-soft98-pro-reading", getComputedStyle(primary).direction === "rtl" ? "rtl" : "ltr");
-        secondary.setAttribute("data-soft98-pro-reading", getComputedStyle(secondary).direction === "rtl" ? "rtl" : "ltr");
         break;
       }
     }
-    applyUtilityListHeuristics();
+  }
+
+  function applyPagePreferences() {
+    if (settings.hideAnnoyances && !settings.darkDesign && !settings.rgbMode) applyUtilityListHeuristics();
+    const rtlPage = document.documentElement.dir === "rtl" || /^fa\b/i.test(document.documentElement.lang);
+    for (const list of document.querySelectorAll("ul[role=tablist],ol[role=tablist]")) {
+      const tab = [...list.querySelectorAll("[aria-controls]")].find((node) =>
+        /^(?:مطالبنرمافزار|اخباروب|اخبارتکنولوژی)$/.test(normalizedPersian(node.textContent || "")));
+      if (!tab) continue;
+      const card = list.closest("section,article,[data-soft98-pro-surface=tab-card]") || list.parentElement?.parentElement;
+      if (!card || card.closest("main,aside,#soft98-pro-control")) continue;
+      card.setAttribute("data-soft98-pro-latest", "");
+      for (const row of card.querySelectorAll("li a[href]")) {
+        if (row.matches("[role=tab]")) continue;
+        if (rtlPage) isolateLatinRuns(row);
+        for (const count of row.querySelectorAll(":scope > span,:scope > small")) {
+          if (/^[\s\d\u06f0-\u06f9\u0660-\u0669,.،٬]+$/u.test(count.textContent || "")) {
+            count.setAttribute("data-soft98-pro-view-count", "");
+          }
+        }
+      }
+    }
+    for (const node of document.querySelectorAll("[data-soft98-pro-utility-card] > footer, article [role=tabpanel] a[href]")) {
+      const label = normalizedPersian(node.textContent || "");
+      if (node.matches("footer") || /نرمافزاررابرایمننصبکن/.test(label)) {
+        node.setAttribute("data-soft98-pro-annoyance", "");
+      }
+    }
+    if (rtlPage) {
+      for (const node of document.querySelectorAll("article h1, article h2, article h3, article [role=tabpanel] :is(dt span,dd a), [data-soft98-pro-list-copy] strong")) {
+        isolateLatinRuns(node);
+      }
+    }
+    syncPageVisibility();
+  }
+
+  function syncPageVisibility() {
+    for (const node of document.querySelectorAll("[data-soft98-pro-latest],[data-soft98-pro-annoyance]")) {
+      const hide = settings.pro && ((!settings.showLatest && node.hasAttribute("data-soft98-pro-latest")) ||
+        (settings.hideAnnoyances && node.hasAttribute("data-soft98-pro-annoyance")));
+      const original = hiddenPageDisplays.get(node);
+      if (hide) {
+        if (!original) hiddenPageDisplays.set(node, [node.style.getPropertyValue("display"), node.style.getPropertyPriority("display")]);
+        if (node.style.display !== "none" || node.style.getPropertyPriority("display") !== "important") {
+          node.style.setProperty("display", "none", "important");
+        }
+      } else if (original) {
+        node.style.setProperty("display", ...original);
+        hiddenPageDisplays.delete(node);
+      }
+    }
+  }
+
+  function isolateLatinRuns(node) {
+    const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+    const mixed = [];
+    for (let textNode = walker.nextNode(); textNode; textNode = walker.nextNode()) {
+      if (!textNode.parentElement?.closest("bdi,[dir=ltr],script,style,code,pre")) mixed.push(textNode);
+    }
+    for (const textNode of mixed) {
+      const value = textNode.nodeValue || "";
+      const runs = [...value.matchAll(/[A-Za-z][A-Za-z0-9]*(?:[ .+/_-]+[A-Za-z0-9]+)*/g)];
+      if (!runs.length) continue;
+      const fragment = document.createDocumentFragment();
+      let cursor = 0;
+      for (const run of runs) {
+        fragment.append(value.slice(cursor, run.index));
+        const latin = document.createElement("bdi");
+        latin.dir = "ltr";
+        latin.setAttribute("data-soft98-pro-bidi", "");
+        latin.textContent = run[0];
+        fragment.appendChild(latin);
+        cursor = run.index + run[0].length;
+      }
+      fragment.append(value.slice(cursor));
+      textNode.replaceWith(fragment);
+    }
   }
 
   function isCompactMediaNode(node) {
@@ -1139,17 +1254,109 @@
           const media = children.find(isCompactMediaNode);
           const copy = children.find((node) => node !== media && node.textContent.trim());
           if (!media || !copy) continue;
-          rows.push({ link, copy });
+          rows.push({ link, copy, media });
         }
         if (rows.length < 3 || rows.length < Math.ceil(items.length * 0.6)) continue;
         const section = list.closest("section,article,div") || list;
         section.setAttribute("data-soft98-pro-layout", "utility-list");
+        const card = list.closest("section,article");
+        const heading = card?.querySelector(":scope > header :is(h1,h2,h3,h4,h5,h6)");
+        const title = heading && normalizedPersian(heading.textContent || "");
+        const utilityCard = title === "لیستنرمافزارهایکاربردی";
+        if (utilityCard) {
+          card.setAttribute("data-soft98-pro-utility-card", "");
+          heading.closest("header").setAttribute("data-soft98-pro-utility-header", "");
+        }
         for (const row of rows) {
           row.link.setAttribute("data-soft98-pro-list-row", "true");
           row.copy.setAttribute("data-soft98-pro-list-copy", "true");
+          if (utilityCard) {
+            row.media.setAttribute("data-soft98-pro-utility-icon", "");
+            if (settings.darkDesign || settings.rgbMode) themeUtilityIcon(row.media);
+          }
         }
       }
     }
+  }
+
+  function themeUtilityIcon(icon) {
+    if (icon.hasAttribute("data-soft98-pro-utility-art")) return;
+    const style = getComputedStyle(icon, "::before");
+    const match = /^url\("([^"]+)"\)$/.exec(style.backgroundImage);
+    if (!match || !nativeFetch) return;
+    const url = new URL(match[1], location.href);
+    if (url.origin !== location.origin || !/^https?:$/.test(url.protocol)) return;
+    const width = Number.parseFloat(style.width);
+    const height = Number.parseFloat(style.height);
+    const x = -Number.parseFloat(style.backgroundPositionX);
+    const y = -Number.parseFloat(style.backgroundPositionY);
+    if (![x, y, width, height].every(Number.isInteger) || x < 0 || y < 0 || width < 12 || height < 12 ||
+        width > 64 || height > 64 || style.backgroundSize !== "auto") return;
+    const key = [url.href, x, y, width, height].join("|");
+    if (!utilitySprites.has(key)) {
+      const imageKey = url.href;
+      if (!utilitySprites.has(imageKey)) {
+        utilitySprites.set(imageKey, nativeFetch(imageKey, { mode: "same-origin", signal: AbortSignal.timeout(5000) })
+          .then((response) => response.ok ? response.blob() : null)
+          .then((blob) => blob && blob.size <= 1024 * 1024 ? createImageBitmap(blob) : null).catch(() => null));
+      }
+      utilitySprites.set(key, utilitySprites.get(imageKey).then((image) => {
+        if (!image || x + width > image.width || y + height > image.height) return null;
+        return transparentIconTile(image, x, y, width, height);
+      }).catch(() => null));
+    }
+    icon.setAttribute("data-soft98-pro-utility-art", "pending");
+    utilitySprites.get(key).then((source) => {
+      if (!source) {
+        icon.setAttribute("data-soft98-pro-utility-art", "unavailable");
+        return;
+      }
+      icon.style.setProperty("--s98p-utility-art", `url("${source}")`);
+      icon.setAttribute("data-soft98-pro-utility-art", "ready");
+    });
+  }
+
+  function transparentIconTile(image, x, y, width, height) {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(image, x, y, width, height, 0, 0, width, height);
+    const pixels = ctx.getImageData(0, 0, width, height);
+    const data = pixels.data;
+    const queue = [];
+    const visited = new Uint8Array(width * height);
+    const add = (column, row) => {
+      if (column < 0 || column >= width || row < 0 || row >= height) return;
+      const index = row * width + column;
+      if (visited[index]) return;
+      visited[index] = 1;
+      const offset = index * 4;
+      const low = Math.min(data[offset], data[offset + 1], data[offset + 2]);
+      const high = Math.max(data[offset], data[offset + 1], data[offset + 2]);
+      if (data[offset + 3] && (low < 224 || high - low > 18)) return;
+      data[offset + 3] = 0;
+      queue.push(index);
+    };
+    for (let column = 0; column < width; column++) {
+      add(column, 0);
+      add(column, height - 1);
+    }
+    for (let row = 1; row < height - 1; row++) {
+      add(0, row);
+      add(width - 1, row);
+    }
+    if (!queue.length) return null;
+    for (let index = 0; index < queue.length; index++) {
+      const column = queue[index] % width;
+      const row = Math.floor(queue[index] / width);
+      add(column - 1, row);
+      add(column + 1, row);
+      add(column, row - 1);
+      add(column, row + 1);
+    }
+    ctx.putImageData(pixels, 0, 0);
+    return canvas.toDataURL("image/png");
   }
 
   function updateFavicon() {
@@ -1510,7 +1717,7 @@
     wrap.setAttribute("data-theme", settings.rgbMode && settings.pro ? "rgb" : settings.darkDesign && settings.pro ? "dark" : "light");
     const groups = {
       protection: ["blockAds", "patchScripts"],
-      experience: ["pro", "darkDesign", "rgbMode", "compactLayout", "linkBadges", "pirateLogo"],
+      experience: ["pro", "darkDesign", "rgbMode", "compactLayout", "showLatest", "hideAnnoyances", "linkBadges", "pirateLogo"],
       advanced: ["taunt", "diagnostics", "recommendExtension"],
     };
     const groupLabels = {

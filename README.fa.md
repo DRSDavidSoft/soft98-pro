@@ -170,10 +170,11 @@ npm ci
 npm run ci
 ```
 
-برای ساخت اسکرین‌شات تازه از سایت زنده:
+برای به‌روزرسانی تصویر نمونه، ابتدا `geckodriver --port 44983` را اجرا کنید و سپس دستورهای زیر را بزنید:
 
 ```bash
-npm run screenshot
+npm run build
+npm run screenshot:firefox
 ```
 
 ### 📦 خروجی‌های ساخت
@@ -185,7 +186,7 @@ npm run screenshot
 - پوشه `dist/packages/*.zip`: آرشیوهای آماده نصب و انتشار.
 - فایل `dist/release/latest.json`: متادیتای ماشینی به‌روزرسانی و لینک مستقیم بسته‌ها.
 - فایل `dist/release/SHA256SUMS.txt`: checksumهای SHA-256 تمام فایل‌های انتشار.
-- تصویر [`docs/assets/soft98-pro-dark.png`](docs/assets/soft98-pro-dark.png): اسکرین‌شات ساخته‌شده از هارنس زنده Soft98.
+- تصویر [`docs/assets/soft98-pro-dark.png`](docs/assets/soft98-pro-dark.png): نمای زندهٔ Soft98 در فایرفاکس با افزونهٔ نصب‌شده.
 
 <a id="cicd"></a>
 

@@ -170,10 +170,11 @@ npm ci
 npm run ci
 ```
 
-Generate a fresh live-site screenshot with:
+To refresh the README preview, start `geckodriver --port 44983` and run:
 
 ```bash
-npm run screenshot
+npm run build
+npm run screenshot:firefox
 ```
 
 ### 📦 Build Outputs
@@ -185,7 +186,7 @@ npm run screenshot
 - `dist/packages/*.zip`: release-ready installation archives.
 - `dist/release/latest.json`: machine-readable update metadata and direct package links.
 - `dist/release/SHA256SUMS.txt`: SHA-256 checksums for every release artifact.
-- [`docs/assets/soft98-pro-dark.png`](docs/assets/soft98-pro-dark.png): screenshot generated from the live Soft98 harness.
+- [`docs/assets/soft98-pro-dark.png`](docs/assets/soft98-pro-dark.png): live Firefox preview captured with the installed extension.
 
 <a id="cicd"></a>
 

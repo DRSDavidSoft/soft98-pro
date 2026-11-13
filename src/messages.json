@@ -71,6 +71,14 @@
             "title": "Download recovery badges",
             "detail": "Identify links that Soft98 Pro preserved or restored."
           },
+          "showLatest": {
+            "title": "Show latest posts and news",
+            "detail": "Keep the latest software, Android posts, and news at the top of the page."
+          },
+          "hideAnnoyances": {
+            "title": "Hide extra site prompts",
+            "detail": "Hide the utility-list expansion prompt and the offer to install software for you."
+          },
           "pirateLogo": {
             "title": "Pirate branding",
             "detail": "Use the bundled transparent pirate identity after successful protection."
@@ -167,6 +175,8 @@
           "pro": ["Soft98 Pro", "Enable the enhanced experience layer."],
           "darkDesign": ["Modern dark design", "Apply the modern dark Soft98 Pro theme."],
           "compactLayout": ["Refined layout", "Organize semantic content and controls into a calmer responsive layout."],
+          "showLatest": ["Show latest posts and news", "Show the software, Android, and news lists at the top of the page."],
+          "hideAnnoyances": ["Hide extra site prompts", "Hide the utility-list expansion prompt and the offer to install software for you."],
           "rgbMode": ["Animated RGB mode", "Add a restrained spectral glass experience with efficient motion and reduced-motion support."],
           "linkBadges": ["Download badges", "Mark recovered download links."],
           "pirateLogo": ["Pirate logo", "Use the bundled pirate logo after successful cleanup."],
@@ -244,6 +254,14 @@
           "linkBadges": {
             "title": "نشان بازیابی دانلود",
             "detail": "لینک‌هایی را که Soft98 Pro حفظ یا بازیابی کرده مشخص می‌کند."
+          },
+          "showLatest": {
+            "title": "نمایش تازه‌ها و اخبار",
+            "detail": "فهرست تازه‌های نرم‌افزار، اندروید و اخبار را بالای صفحه نشان بده."
+          },
+          "hideAnnoyances": {
+            "title": "پنهان‌کردن گزینه‌های اضافه",
+            "detail": "دکمهٔ ادامهٔ فهرست کاربردی و پیشنهاد نصب نرم‌افزار را پنهان کن."
           },
           "pirateLogo": {
             "title": "نشان دزدان دریایی",
@@ -341,6 +359,8 @@
           "pro": ["Soft98 Pro", "فعال‌سازی لایه تجربه پیشرفته."],
           "darkDesign": ["طراحی تیره مدرن", "اعمال ظاهر تیره مدرن Soft98 Pro."],
           "compactLayout": ["چیدمان بهبودیافته", "سازمان‌دهی محتوای معنایی و کنترل‌ها در یک چیدمان آرام و واکنش‌گرا."],
+          "showLatest": ["نمایش تازه‌ها و اخبار", "فهرست تازه‌های نرم‌افزار، اندروید و اخبار را بالای صفحه نشان بده."],
+          "hideAnnoyances": ["پنهان‌کردن گزینه‌های اضافه", "دکمهٔ ادامهٔ فهرست کاربردی و پیشنهاد نصب نرم‌افزار را پنهان کن."],
           "rgbMode": ["حالت RGB متحرک", "افزودن ظاهر شیشه‌ای طیفی و کنترل‌شده با حرکت بهینه و پشتیبانی از کاهش حرکت."],
           "linkBadges": ["نشان لینک دانلود", "نمایش نشان روی لینک‌های بازیابی‌شده."],
           "pirateLogo": ["لوگوی دزدان دریایی", "استفاده از لوگوی داخلی پس از پاک‌سازی موفق."],

@@ -72,7 +72,10 @@ async function main() {
           control: box && { width: box.width, height: box.height, position: getComputedStyle(control).position, panelVisible: Boolean(panel?.getClientRects().length) },
           promotions: document.querySelectorAll('#soft98-ad-blocker-taunt,#soft98-extension-recommendation').length,
           preservedLinks: [...document.querySelectorAll('a[data-soft98-adblocker-href]')].filter(a => a.getClientRects().length && /^https?:/.test(a.href)).length,
-          brand: [...document.querySelectorAll('[data-soft98-brand-variant]')].map(n => n.getAttribute('data-soft98-brand-variant')),
+          brand: [...document.querySelectorAll('[data-soft98-brand-variant]')].map(n => ({
+            variant: n.getAttribute('data-soft98-brand-variant'),
+            bundled: n.matches('img') ? n.currentSrc.startsWith('data:image/png;') : getComputedStyle(n).backgroundImage.includes('data:image/png;'),
+          })),
           upstream: document.documentElement.getAttribute('data-soft98-pro-upstream'),
           scripts: [...document.scripts].map(s => s.src).filter(s => s.includes('/templates/')),
           headings: [...document.querySelectorAll('h1')].map(h => h.textContent.trim()),
@@ -83,18 +86,44 @@ async function main() {
           downloadControls: [...document.querySelectorAll('article [role=tabpanel] a[data-key]')].filter(a => a.getClientRects().length).length,
           compactBrand: Boolean(document.querySelector('[data-soft98-brand-compact]')),
           headerAd: [...document.querySelectorAll('header [data-href], header a[href]')].some(a => /ircd[.]me/.test(a.getAttribute('href') || a.getAttribute('data-href') || '')),
+          latest: document.querySelectorAll('[data-soft98-pro-latest]').length,
+          counters: document.querySelectorAll('[data-soft98-pro-view-count]').length,
+          isolatedText: document.querySelectorAll('bdi[dir=ltr]').length,
+          utility: (() => {
+            const header = document.querySelector('[data-soft98-pro-utility-header]');
+            const heading = header?.querySelector('h4');
+            const icon = document.querySelector('[data-soft98-pro-utility-icon]');
+            const download = document.querySelector('[data-soft98-pro-download-group] dd a');
+            return {
+              header: Boolean(header),
+              dividerColor: heading && getComputedStyle(heading, '::before').color,
+              headerBackground: heading && getComputedStyle(heading).backgroundImage,
+              iconBackground: icon && getComputedStyle(icon).backgroundColor,
+              iconArtwork: icon && getComputedStyle(icon, '::before').backgroundImage !== 'none',
+              transparentIcons: document.querySelectorAll('[data-soft98-pro-utility-art=ready]').length,
+              downloadIconShadow: download && getComputedStyle(download, '::before').textShadow,
+            };
+          })(),
         };`);
       if (attempt >= 3 && result.downloadControls && (!addon || (result.control && result.brand.length && !result.banners.length))) break;
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
     console.log(JSON.stringify({ addon, browser: capabilities.browserVersion, ...result }, null, 2));
-    if (process.env.SOFT98_LIVE_SCREENSHOT) {
-      await screenshot(session, process.env.SOFT98_LIVE_SCREENSHOT);
-    }
     if (addon && (!result.theme || result.control?.width !== 42 || result.control.height !== 42 || result.control.position !== "fixed" ||
         result.control.panelVisible || !(result.preservedLinks || result.downloadControls) || result.promotions ||
-        !result.compactBrand || result.banners.length || result.headerAd || (width > 820 && result.sidebarWidth && result.sidebarWidth < 250))) {
+        !result.compactBrand || result.brand.length < 2 || result.brand.some(({ variant, bundled }) => variant !== "pirateDark" || !bundled) ||
+        result.banners.length || result.headerAd || !result.latest || !result.counters || !result.isolatedText ||
+        !result.utility.transparentIcons || result.utility.downloadIconShadow !== "none" ||
+        (width > 820 && result.sidebarWidth && result.sidebarWidth < 250))) {
       throw new Error("Live Firefox page failed the Soft98 Pro smoke checks");
+    }
+    if (process.env.SOFT98_LIVE_SCREENSHOT) await screenshot(session, process.env.SOFT98_LIVE_SCREENSHOT);
+    if (process.env.SOFT98_UTILITY_SCREENSHOT) {
+      await evaluate(`const heading = document.querySelector('[data-soft98-pro-utility-header]') ||
+        [...document.querySelectorAll('aside h1,aside h2,aside h3,aside h4')].find(node =>
+          node.textContent.normalize('NFKC').replace(/[\\s\\u0640\\u200c\\u200d]+/gu, '') === 'لیستنرمافزارهایکاربردی');
+        heading.scrollIntoView({block:'center',behavior:'instant'});`);
+      await screenshot(session, process.env.SOFT98_UTILITY_SCREENSHOT);
     }
     if (addon) {
       const button = await post("/element", { using: "css selector", value: "#soft98-pro-control [data-role=toggle]" });
@@ -125,12 +154,35 @@ async function main() {
       if (await evaluate("return Boolean(document.querySelector('#soft98-pro-control > form'))") !== true) {
         throw new Error("The removed Pro console did not recover");
       }
+      const toggles = await post("/execute/async", { args: [], script: `
+        const done = arguments[arguments.length - 1];
+        const frame = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        (async () => {
+        const latest = document.querySelector('[data-soft98-pro-latest]');
+        const prompt = document.querySelector('[data-soft98-pro-annoyance]');
+        const visible = (node) => Boolean(node?.getClientRects().length);
+        const initial = [visible(latest), visible(prompt)];
+        window.Soft98Pro.configure({ showLatest: false, hideAnnoyances: true });
+        await frame();
+        const hidden = [visible(latest), visible(prompt)];
+        window.Soft98Pro.configure({ showLatest: true, hideAnnoyances: false });
+        await frame();
+        done({ initial, hidden, restored: [visible(latest), visible(prompt)] });
+        })();
+      ` });
+      if (!toggles.initial.every(Boolean) || toggles.hidden.some(Boolean) || !toggles.restored.every(Boolean)) {
+        throw new Error(`Latest and extra-prompt controls did not round-trip: ${JSON.stringify(toggles)}`);
+      }
+    }
+    const preview = process.argv[2] || process.env.SOFT98_DOWNLOAD_SCREENSHOT;
+    if (preview) {
+      await evaluate("document.querySelector('article [role=tabpanel] a[data-key]').scrollIntoView({block:'center',behavior:'instant'})");
+      const compactVisible = await evaluate(`const logo = document.querySelector('[data-soft98-brand-compact][data-soft98-brand-variant="pirateDark"]');
+        return Boolean(logo?.getClientRects().length)`);
+      if (addon && !compactVisible) throw new Error("The download preview does not show the compact pirate logo");
+      await screenshot(session, path.resolve(preview));
     }
     if (process.env.SOFT98_TEST_DOWNLOAD_LINK === "1") {
-      if (process.env.SOFT98_DOWNLOAD_SCREENSHOT) {
-        await evaluate("document.querySelector('article [role=tabpanel] a[data-key]').scrollIntoView({block:'center'})");
-        await screenshot(session, process.env.SOFT98_DOWNLOAD_SCREENSHOT);
-      }
       const item = await post("/element", { using: "css selector", value: "article [role=tabpanel] a[data-key]" });
       const before = await request("GET", session + "/window/handles");
       await post(`/element/${Object.values(item)[0]}/click`, {});

@@ -21,11 +21,13 @@
     diagnostics: true,
     recommendExtension: false,
     rgbMode: false,
+    showLatest: true,
+    hideAnnoyances: false,
   };
   const LOCALE = preferredLocale();
   const RTL = LOCALE === "fa";
   const STRINGS = CATALOG.locales;
-  const OPTIONS = ["blockAds", "patchScripts", "pro", "darkDesign", "rgbMode", "compactLayout", "linkBadges", "pirateLogo", "taunt", "diagnostics"];
+  const OPTIONS = ["blockAds", "patchScripts", "pro", "darkDesign", "rgbMode", "compactLayout", "showLatest", "hideAnnoyances", "linkBadges", "pirateLogo", "taunt", "diagnostics"];
 
   const root = document.querySelector("[data-app]");
   let settings = { ...DEFAULT_SETTINGS };
