@@ -7,6 +7,7 @@ const path = require("path");
 const engine = require("../src/patch-engine.js");
 const { inspect, readSoft98Response, supportedScriptUrl, TEMPLATE_SCRIPT } = require("./check-soft98-upstream.js");
 const { decodePacker } = require("./decode-packer.js");
+const catalog = require("../src/compatibility/soft98-scripts.json");
 
 for (const key of ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"]) delete process.env[key];
 
@@ -27,6 +28,8 @@ async function build() {
   const pageUrl = option("--page", DEFAULT_PAGE);
   const directUrl = option("--script", "");
   const observed = await inspect(pageUrl, directUrl);
+  const reviewed = catalog.entries.find((entry) => entry.status === "compatible" && entry.sha256 === observed.sha256);
+  if (!reviewed) throw new Error("Upstream artifact generation requires a reviewed source hash");
   const fetched = await readSoft98Response(observed.url, true);
   const sourceSha256 = sha256(fetched.buffer);
   if (sourceSha256 !== observed.sha256) throw new Error("Upstream changed during the build. Run the monitor again.");
@@ -55,7 +58,7 @@ async function build() {
     outputBytes: Buffer.byteLength(output),
     packed: result.packed,
     patches: result.patches,
-    skippedPatches: result.failures.map(({ stage }) => stage),
+    skippedPatches: reviewed.review.skippedPatches,
   };
   fs.writeFileSync(path.join(OUTPUT, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
   console.log(JSON.stringify(manifest, null, 2));

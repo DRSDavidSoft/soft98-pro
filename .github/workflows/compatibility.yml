@@ -49,6 +49,12 @@ jobs:
         if: ${{ !cancelled() && steps.upstream.outcome == 'success' && (steps.upstream.outputs.status != 'compatible' || steps.upstream.outputs.changed == 'true') }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          SOFT98_UPSTREAM_SHA256: ${{ steps.upstream.outputs.sha256 }}
+          SOFT98_UPSTREAM_REQUESTED_URL: ${{ steps.upstream.outputs.requested_url }}
+          SOFT98_UPSTREAM_URL: ${{ steps.upstream.outputs.script_url }}
+          SOFT98_UPSTREAM_BYTES: ${{ steps.upstream.outputs.bytes }}
+          SOFT98_UPSTREAM_LAST_MODIFIED: ${{ steps.upstream.outputs.last_modified }}
+          SOFT98_UPSTREAM_STATUS: ${{ steps.upstream.outputs.status }}
         run: node tools/report-soft98-update.js
 
       - name: "📎 Upload compatibility evidence"

@@ -141,6 +141,8 @@ function writeOutputs(report) {
     sha256: report.sha256,
     short_sha: report.sha256.slice(0, 12),
     script_url: report.url,
+    requested_url: report.requestedUrl,
+    last_modified: report.lastModified ? new Date(report.lastModified).toUTCString() : "",
     bytes: report.bytes,
     observed_at: report.observedAt,
     changed: String(report.changes.length > 0),

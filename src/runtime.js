@@ -41,6 +41,7 @@
     rgbMode: false,
   };
   const savedHref = new WeakMap();
+  const originalLogos = new Map();
   const trackedLinks = new Set();
   const pendingRoots = new Set();
   const stats = {
@@ -272,9 +273,10 @@
     const value = href || link.getAttribute("href") || "";
     if (isBadHref(value)) return "";
     try {
-      return new URL(value, location.href).href;
+      const url = new URL(value, location.href);
+      return (url.protocol === "https:" || url.protocol === "http:") && !url.username && !url.password ? url.href : "";
     } catch (_error) {
-      return value;
+      return "";
     }
   }
 
@@ -504,7 +506,7 @@
   }
 
   function restoreLink(link) {
-    const href = savedHref.get(link) || link.getAttribute(DATA_HREF) || "";
+    const href = savedHref.get(link);
     if (!href || isBadHref(href)) return false;
     const current = link.getAttribute("href") || "";
     if (isBadHref(current) || normalizeHref(link, current) !== href) {
@@ -528,7 +530,7 @@
     let lost = 0;
     for (const link of links) {
       if (rememberLink(link)) continue;
-      if (trackedLinks.has(link) || link.hasAttribute(DATA_HREF)) restoreLink(link);
+      if (trackedLinks.has(link)) restoreLink(link);
       else if (isBadHref(link.getAttribute("href"))) lost += 1;
     }
     if (lost) recoverLinksFromFreshPage();
@@ -1254,30 +1256,20 @@
   }
 
   function restoreOriginalLogo() {
-    for (const logo of document.querySelectorAll("img[data-soft98-original-logo]")) {
-      const originalSource = logo.getAttribute("data-soft98-original-logo");
-      if (originalSource !== null) logo.setAttribute("src", originalSource);
-      for (const attribute of ["alt", "srcset", "sizes"]) {
-        const storedName = `data-soft98-original-logo-${attribute}`;
-        const original = logo.getAttribute(storedName);
-        if (original === "__missing__") logo.removeAttribute(attribute);
-        else if (original !== null) logo.setAttribute(attribute, original);
-        logo.removeAttribute(storedName);
+    for (const [logo, original] of originalLogos) {
+      if (original.attributes) {
+        for (const [name, value] of original.attributes) {
+          if (value === null) logo.removeAttribute(name);
+          else logo.setAttribute(name, value);
+        }
+      } else {
+        logo.style.setProperty("background-image", original.background, original.priority);
       }
-      logo.removeAttribute("data-soft98-original-logo");
-      logo.removeAttribute("data-soft98-brand-variant");
-      logo.removeAttribute("data-soft98-brand-kind");
-      logo.removeAttribute("data-soft98-brand-compact");
+      for (const marker of ["data-soft98-brand-variant", "data-soft98-brand-kind", "data-soft98-brand-compact"]) {
+        logo.removeAttribute(marker);
+      }
     }
-    for (const link of document.querySelectorAll("[data-soft98-original-logo]")) {
-      const original = link.getAttribute("data-soft98-original-logo");
-      if (!original) continue;
-      link.style.backgroundImage = original === "__none__" ? "" : original;
-      link.removeAttribute("data-soft98-original-logo");
-      link.removeAttribute("data-soft98-brand-variant");
-      link.removeAttribute("data-soft98-brand-kind");
-      link.removeAttribute("data-soft98-brand-compact");
-    }
+    originalLogos.clear();
   }
 
   function logoCandidates() {
@@ -1329,6 +1321,9 @@
 
   function enhanceLogo() {
     if (!successAnnounced || !settings.pirateLogo) return restoreOriginalLogo();
+    for (const logo of originalLogos.keys()) {
+      if (!logo.isConnected) originalLogos.delete(logo);
+    }
     for (const candidate of logoCandidates()) applyLogo(candidate);
   }
 
@@ -1341,19 +1336,21 @@
     const branded = logo.getAttribute("data-soft98-brand-variant") === variant;
     if (branded && (candidate.kind === "image" ? logo.getAttribute("src") === source : logo.style.backgroundImage.includes(source))) return;
     if (candidate.kind === "image") {
-      if (!logo.hasAttribute("data-soft98-original-logo")) {
-        logo.setAttribute("data-soft98-original-logo", logo.getAttribute("src") || "");
-        for (const attribute of ["alt", "srcset", "sizes"]) {
-          logo.setAttribute(`data-soft98-original-logo-${attribute}`, logo.hasAttribute(attribute) ? logo.getAttribute(attribute) || "" : "__missing__");
-        }
+      if (!originalLogos.has(logo)) {
+        originalLogos.set(logo, { attributes: ["src", "alt", "srcset", "sizes"].map((name) => [name, logo.getAttribute(name)]) });
       }
       logo.removeAttribute("srcset");
       logo.removeAttribute("sizes");
       logo.setAttribute("src", source);
       logo.setAttribute("alt", text("product"));
     } else {
-      if (!logo.hasAttribute("data-soft98-original-logo")) logo.setAttribute("data-soft98-original-logo", logo.style.backgroundImage || "__none__");
-      logo.style.backgroundImage = `url("${source}")`;
+      if (!originalLogos.has(logo)) {
+        originalLogos.set(logo, {
+          background: logo.style.getPropertyValue("background-image"),
+          priority: logo.style.getPropertyPriority("background-image"),
+        });
+      }
+      logo.style.setProperty("background-image", `url("${source}")`, "important");
     }
     logo.setAttribute("data-soft98-brand-variant", variant);
     logo.setAttribute("data-soft98-brand-kind", candidate.kind);

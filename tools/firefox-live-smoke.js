@@ -4,19 +4,31 @@ const fs = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
 
-const driver = process.env.SOFT98_WEBDRIVER || "http://127.0.0.1:44983";
+const driver = new URL(process.env.SOFT98_WEBDRIVER || "http://127.0.0.1:44983");
 const url = process.env.SOFT98_LIVE_URL || "https://soft98.ir/internet/remote-control/15737-anydesk-download.html";
 
 async function request(method, endpoint, body) {
-  const response = await fetch(`${driver}${endpoint}`, {
+  if (driver.protocol !== "http:" || driver.hostname !== "127.0.0.1" || driver.username || driver.password) {
+    throw new Error("The smoke test requires a local Firefox WebDriver");
+  }
+  const response = await fetch(new URL(endpoint, driver), {
     method,
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
     signal: AbortSignal.timeout(45000),
+    redirect: "error",
   });
   const { value } = await response.json();
   if (!response.ok) throw new Error(`${endpoint}: ${value.message}`);
   return value;
+}
+
+async function screenshot(session, destination) {
+  const base64 = await request("GET", session + "/screenshot");
+  if (typeof base64 !== "string" || base64.length > 24 * 1024 * 1024 || !base64.startsWith("iVBORw0KGgo")) {
+    throw new Error("WebDriver did not return a bounded PNG screenshot");
+  }
+  await fs.writeFile(destination, Buffer.from(base64, "base64"));
 }
 
 async function main() {
@@ -77,8 +89,7 @@ async function main() {
     }
     console.log(JSON.stringify({ addon, browser: capabilities.browserVersion, ...result }, null, 2));
     if (process.env.SOFT98_LIVE_SCREENSHOT) {
-      const data = await request("GET", session + "/screenshot");
-      await fs.writeFile(process.env.SOFT98_LIVE_SCREENSHOT, Buffer.from(data, "base64"));
+      await screenshot(session, process.env.SOFT98_LIVE_SCREENSHOT);
     }
     if (addon && (!result.theme || result.control?.width !== 42 || result.control.height !== 42 || result.control.position !== "fixed" ||
         result.control.panelVisible || !(result.preservedLinks || result.downloadControls) || result.promotions ||
@@ -108,8 +119,7 @@ async function main() {
         throw new Error(`The closed console became visible at the footer: ${JSON.stringify(closed)}`);
       }
       if (process.env.SOFT98_FOOTER_SCREENSHOT) {
-        const data = await request("GET", session + "/screenshot");
-        await fs.writeFile(process.env.SOFT98_FOOTER_SCREENSHOT, Buffer.from(data, "base64"));
+        await screenshot(session, process.env.SOFT98_FOOTER_SCREENSHOT);
       }
       await evaluate("document.querySelector('#soft98-pro-control > form').remove()");
       if (await evaluate("return Boolean(document.querySelector('#soft98-pro-control > form'))") !== true) {
@@ -119,8 +129,7 @@ async function main() {
     if (process.env.SOFT98_TEST_DOWNLOAD_LINK === "1") {
       if (process.env.SOFT98_DOWNLOAD_SCREENSHOT) {
         await evaluate("document.querySelector('article [role=tabpanel] a[data-key]').scrollIntoView({block:'center'})");
-        const data = await request("GET", session + "/screenshot");
-        await fs.writeFile(process.env.SOFT98_DOWNLOAD_SCREENSHOT, Buffer.from(data, "base64"));
+        await screenshot(session, process.env.SOFT98_DOWNLOAD_SCREENSHOT);
       }
       const item = await post("/element", { using: "css selector", value: "article [role=tabpanel] a[data-key]" });
       const before = await request("GET", session + "/window/handles");

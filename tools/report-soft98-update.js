@@ -1,13 +1,18 @@
 #!/usr/bin/env node
 "use strict";
 
-const fs = require("fs");
-const path = require("path");
 const { createHash } = require("node:crypto");
 const { supportedScriptUrl, TEMPLATE_SCRIPT } = require("./check-soft98-upstream.js");
 
-const ROOT = path.resolve(__dirname, "..");
-const report = JSON.parse(fs.readFileSync(path.join(ROOT, "dist", "compatibility-report.json"), "utf8"));
+const baselineSource = require("../src/compatibility/upstream-baseline.json");
+const report = {
+  sha256: process.env.SOFT98_UPSTREAM_SHA256,
+  requestedUrl: process.env.SOFT98_UPSTREAM_REQUESTED_URL,
+  url: process.env.SOFT98_UPSTREAM_URL,
+  bytes: Number(process.env.SOFT98_UPSTREAM_BYTES),
+  lastModified: process.env.SOFT98_UPSTREAM_LAST_MODIFIED,
+  status: process.env.SOFT98_UPSTREAM_STATUS,
+};
 const repository = "DRSDavidSoft/soft98-pro";
 const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || "";
 const apiBase = "https://api.github.com";
@@ -23,7 +28,7 @@ function revision(value) {
 }
 
 const current = revision(report);
-const baseline = revision(report.baseline);
+const baseline = revision(baselineSource);
 const status = /^(compatible|unknown|observed)$/.exec(report.status || "")?.[1];
 if (!status) throw new Error("Invalid compatibility status");
 const changed = JSON.stringify(current) !== JSON.stringify(baseline);
