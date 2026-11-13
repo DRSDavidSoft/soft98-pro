@@ -173,7 +173,10 @@ function assertCase(name, results, expected) {
     tauntStatus: expected.tauntTheme ? "status" : null,
     downloadCopy: "دانلود (Official link)، حجم 1,200 مگابایت",
     downloadPath: "/files/AnyDesk.9.8.3.zip",
-    downloadIcons: expected.dark ? "chevron,windows,download,apple,linux,apple,android" : "",
+    downloadSize: expected.dark ? "1,200 مگابایت" : null,
+    downloadIcons: expected.dark ? "chevron,windows,download,apple,linux,apple,android,download,download" : "",
+    normalizedDownload: "https://dl2.soft98.ir/files/metadata.zip" + (expected.dark ? "" : "?123456"),
+    signedDownload: "https://dl2.soft98.ir/files/signed.zip?token=123456",
     isolatedParenthesis: true,
     logoVariant: expected.logo,
     rgbMode: expected.rgb,
@@ -256,6 +259,18 @@ async function main() {
       await client.send("Page.navigate", { url: `http://127.0.0.1:${PORT}/?${query}` });
       const results = await waitForResults(client);
       assertCase(name, results, expected);
+      if (name === "default-dark") {
+        await evaluate(client, `document.querySelector('[data-test="direct-download"]').scrollIntoView(); true`);
+        for (let attempt = 0; attempt < 15; attempt += 1) {
+          if (await evaluate(client, `JSON.parse(localStorage.getItem('soft98-pro.download-metadata') || '[]').some(([url, value]) =>
+            url.endsWith('/metadata.zip') && value.bytes === 8200000 && value.modified > 0)`)) break;
+          if (attempt === 14) throw new Error("Download HEAD metadata was not cached");
+          await delay(100);
+        }
+        const metadata = await evaluate(client, `document.querySelector('[data-test="direct-download"] [data-soft98-pro-download-meta]').textContent`);
+        const date = new Intl.DateTimeFormat("fa-IR-u-ca-persian", { dateStyle: "medium", timeZone: "UTC" }).format(new Date("2026-11-13T12:00:00Z"));
+        if (!metadata.includes(date)) throw new Error("Download date was not displayed in the Persian calendar");
+      }
       if (name === "taunt-dark") {
         await delay(6100);
         assertEqual(name, "expired success notification", await evaluate(client, `window.Soft98Pro.configure({ taunt: true }); Boolean(document.getElementById("soft98-ad-blocker-taunt"))`), false);

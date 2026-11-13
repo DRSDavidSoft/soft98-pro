@@ -69,6 +69,11 @@
         })
       );
       window.__soft98HarnessConsoleInfo = console.info;
+      const originalFetch = window.fetch.bind(window);
+      window.fetch = (input, init) => String(input) === "https://dl2.soft98.ir/files/metadata.zip" && init?.method === "HEAD" ?
+        Promise.resolve(new Response(null, { headers: {
+          "Content-Type": "application/zip", "Content-Length": "8200000", "Last-Modified": "Fri, 13 Nov 2026 12:00:00 GMT"
+        } })) : originalFetch(input, init);
       console.info = undefined;
     </script>
     <script src="../soft98-pro.user.js"></script>
@@ -184,7 +189,9 @@
             '<div role="tabpanel"><dl><dt><span>نسخه windows</span></dt>' +
             '<dd><a data-test="download-copy" href="/files/AnyDesk.9.8.3.zip">دانلود ( official link ) ، حجم 1,200 مگابایت</a></dd>' +
             '<dd><a href="/platform/mac">نسخه macos</a></dd><dd><a href="/platform/linux">نسخه linux</a></dd>' +
-            '<dd><a href="/platform/ios">نسخه ios</a></dd><dd><a href="/platform/android">نسخه android</a></dd></dl></div>';
+            '<dd><a href="/platform/ios">نسخه ios</a></dd><dd><a href="/platform/android">نسخه android</a></dd>' +
+            '<dd><a data-test="direct-download" href="https://dl2.soft98.ir/files/metadata.zip?123456">دانلود فایل</a></dd>' +
+            '<dd><a data-test="signed-download" href="https://dl2.soft98.ir/files/signed.zip?token=123456">دانلود فایل امضاشده</a></dd></dl></div>';
           document.body.appendChild(downloadArticle);
 
           var utilityAside = document.createElement("aside");
@@ -318,7 +325,10 @@
             tauntTheme: document.querySelector("#soft98-ad-blocker-taunt") && document.querySelector("#soft98-ad-blocker-taunt").getAttribute("data-theme"),
             tauntBackground: document.querySelector("#soft98-ad-blocker-taunt") && getComputedStyle(document.querySelector("#soft98-ad-blocker-taunt")).backgroundColor,
             tauntStatus: document.querySelector("#soft98-ad-blocker-taunt")?.getAttribute("role") || null,
-            downloadCopy: document.querySelector('[data-test="download-copy"]').textContent,
+            downloadCopy: (document.querySelector('[data-test="download-copy"] [data-soft98-pro-download-title]') || document.querySelector('[data-test="download-copy"]')).textContent,
+            downloadSize: document.querySelector('[data-test="download-copy"] [data-soft98-pro-download-meta]')?.textContent || null,
+            normalizedDownload: document.querySelector('[data-test="direct-download"]').href,
+            signedDownload: document.querySelector('[data-test="signed-download"]').href,
             downloadPath: document.querySelector('[data-test="download-copy"]').getAttribute("href"),
             downloadIcons: Array.from(downloadArticle.querySelectorAll('[data-soft98-pro-page-icon]')).map(function (node) { return node.getAttribute("data-soft98-pro-page-icon"); }).join(","),
             isolatedParenthesis: Array.from(downloadArticle.querySelectorAll('bdi')).some(function (node) { return node.textContent === "(Official link)" && getComputedStyle(node).direction === "ltr"; }),

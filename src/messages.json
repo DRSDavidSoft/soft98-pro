@@ -14,6 +14,7 @@
         "pro": "Enable Pro",
         "darkDesign": "Modern dark design",
         "compactLayout": "Refined layout",
+        "expandMain": "Widen article on scroll",
         "rgbMode": "Animated RGB mode",
         "linkBadges": "Download badges",
         "pirateLogo": "Pirate logo",
@@ -66,6 +67,10 @@
           "compactLayout": {
             "title": "Refined content layout",
             "detail": "Reorganize primary content and supporting information responsively."
+          },
+          "expandMain": {
+            "title": "Widen article on scroll",
+            "detail": "Use the sidebar's space after you scroll past it."
           },
           "linkBadges": {
             "title": "Download recovery badges",
@@ -178,6 +183,7 @@
           "pro": ["Soft98 Pro", "Enable the enhanced experience layer."],
           "darkDesign": ["Modern dark design", "Apply the modern dark Soft98 Pro theme."],
           "compactLayout": ["Refined layout", "Organize semantic content and controls into a calmer responsive layout."],
+          "expandMain": ["Widen article on scroll", "Use the sidebar's space after you scroll past it."],
           "showLatest": ["Show latest posts and news", "Show the software, Android, and news lists at the top of the page."],
           "hideAnnoyances": ["Hide extra site prompts", "Hide the utility-list expansion prompt and the offer to install software for you."],
           "rgbMode": ["Animated RGB mode", "Add a restrained spectral glass experience with efficient motion and reduced-motion support."],
@@ -201,6 +207,7 @@
         "pro": "فعال‌سازی Pro",
         "darkDesign": "طراحی تیره مدرن",
         "compactLayout": "چیدمان بهبودیافته",
+        "expandMain": "عریض‌شدن مطلب هنگام پیمایش",
         "rgbMode": "حالت RGB متحرک",
         "linkBadges": "نشان لینک دانلود",
         "pirateLogo": "لوگوی دزدان دریایی",
@@ -253,6 +260,10 @@
           "compactLayout": {
             "title": "چیدمان بهتر محتوا",
             "detail": "محتوای اصلی و اطلاعات جانبی را متناسب با اندازه صفحه مرتب می‌کند."
+          },
+          "expandMain": {
+            "title": "عریض‌شدن مطلب هنگام پیمایش",
+            "detail": "وقتی از ستون کناری رد شدی، مطلب از فضای خالی آن استفاده کند."
           },
           "linkBadges": {
             "title": "نشان بازیابی دانلود",
@@ -365,6 +376,7 @@
           "pro": ["Soft98 Pro", "فعال‌سازی لایه تجربه پیشرفته."],
           "darkDesign": ["طراحی تیره مدرن", "اعمال ظاهر تیره مدرن Soft98 Pro."],
           "compactLayout": ["چیدمان بهبودیافته", "سازمان‌دهی محتوای معنایی و کنترل‌ها در یک چیدمان آرام و واکنش‌گرا."],
+          "expandMain": ["عریض‌شدن مطلب هنگام پیمایش", "وقتی از ستون کناری رد شدی، مطلب از فضای خالی آن استفاده کند."],
           "showLatest": ["نمایش تازه‌ها و اخبار", "فهرست تازه‌های نرم‌افزار، اندروید و اخبار را بالای صفحه نشان بده."],
           "hideAnnoyances": ["پنهان‌کردن گزینه‌های اضافه", "دکمهٔ ادامهٔ فهرست کاربردی و پیشنهاد نصب نرم‌افزار را پنهان کن."],
           "rgbMode": ["حالت RGB متحرک", "افزودن ظاهر شیشه‌ای طیفی و کنترل‌شده با حرکت بهینه و پشتیبانی از کاهش حرکت."],

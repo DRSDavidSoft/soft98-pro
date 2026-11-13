@@ -103,7 +103,16 @@ async function main() {
             const password = document.querySelector('[data-soft98-pro-password-shell]');
             const tab = document.querySelector('article [data-soft98-pro-surface=tab-list] [data-soft98-pro-tab-active=true]');
             return {
-              primary: primary?.textContent.trim(),
+              primary: primary?.querySelector('[data-soft98-pro-download-title]')?.textContent.trim(),
+              downloadRows: group?.querySelectorAll('[data-soft98-pro-download-row]').length,
+              inlineSize: primary?.querySelector('[data-soft98-pro-download-meta]')?.textContent.trim(),
+              metadataFits: (() => {
+                if (!primary) return null;
+                const title = primary.querySelector('[data-soft98-pro-download-title]')?.getBoundingClientRect();
+                const meta = primary.querySelector('[data-soft98-pro-download-meta]')?.getBoundingClientRect();
+                return Boolean(meta?.height && title && meta.top >= title.bottom - 1 &&
+                  meta.bottom <= primary.parentElement.getBoundingClientRect().bottom + 1);
+              })(),
               legacyWindows: windows && ['content','display','visibility'].map(key => getComputedStyle(windows, '::before')[key]),
               passwordBackground: password && getComputedStyle(password).backgroundColor,
               tabBorder: tab && getComputedStyle(tab).borderBottomWidth,
@@ -130,7 +139,7 @@ async function main() {
               dividerColor: heading && getComputedStyle(heading, '::before').color,
               headerBackground: heading && getComputedStyle(heading).backgroundImage,
               iconBackground: icon && getComputedStyle(icon).backgroundColor,
-              iconArtwork: icon && getComputedStyle(icon, '::before').backgroundImage !== 'none',
+              iconArtwork: icon && Boolean(icon.querySelector('svg,img')),
               transparentIcons: document.querySelectorAll('[data-soft98-pro-utility-art=ready]').length,
               downloadIconShadow: download && getComputedStyle(download, '::before').textShadow,
             };
@@ -146,6 +155,7 @@ async function main() {
         result.banners.length || result.headerAd || !result.latest || !result.counters || !result.isolatedText ||
         !["windows", "apple", "linux", "android", "download"].every(icon => result.downloadPresentation.glyphs.includes(icon)) ||
         !result.downloadPresentation.legacyWindows?.some(value => value === "none" || value === "hidden") || !result.downloadPresentation.primary?.includes("(رایگان)") ||
+        !result.downloadPresentation.inlineSize || !result.downloadPresentation.metadataFits || result.downloadPresentation.downloadRows < 5 ||
         !result.downloadPresentation.passwordBackground || result.downloadPresentation.passwordBackground === "rgb(223, 121, 100)" ||
         result.downloadPresentation.glyphSize < 22 ||
         !result.downloadPresentation.tabIndicator?.includes("inset") || !result.downloadPresentation.tabSurface?.includes("gradient") ||
@@ -213,16 +223,47 @@ async function main() {
         throw new Error(`Latest and extra-prompt controls did not round-trip: ${JSON.stringify(toggles)}`);
       }
       if (width > 820) {
+        const widths = await post("/execute/async", { args: [], script: `
+          const done = arguments[arguments.length - 1];
+          const primary = document.querySelector('[data-soft98-pro-column=primary]');
+          const sidebar = document.querySelector('[data-soft98-pro-column=secondary]');
+          const frame = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          const size = () => Math.round(primary.getBoundingClientRect().width);
+          (async () => {
+            scrollTo(0,0); await frame();
+            const before = size();
+            scrollBy(0, sidebar.getBoundingClientRect().bottom + 90); await frame();
+            const expanded = size();
+            window.Soft98Pro.configure({ expandMain:false }); await frame();
+            const disabled = size();
+            window.Soft98Pro.configure({ expandMain:true }); await frame();
+            scrollTo(0,0); await frame();
+            done({ before, expanded, disabled, restored:size() });
+          })();
+        ` });
+        if (widths.expanded < widths.before + 200 || widths.before !== widths.disabled || widths.before !== widths.restored) {
+          throw new Error(`Article width did not round-trip: ${JSON.stringify(widths)}`);
+        }
+        console.log(JSON.stringify({ articleWidths: widths }));
+        if (process.env.SOFT98_EXPANDED_SCREENSHOT) {
+          await evaluate("scrollBy(0, document.querySelector('[data-soft98-pro-column=secondary]').getBoundingClientRect().bottom + 90)");
+          await new Promise((resolve) => setTimeout(resolve, 250));
+          await screenshot(session, process.env.SOFT98_EXPANDED_SCREENSHOT);
+        }
         await evaluate("document.querySelector('[data-soft98-pro-password-shell]').scrollIntoView({block:'center',behavior:'instant'})");
         const find = (value) => post("/element", { using: "css selector", value }).then((element) => Object.values(element)[0]);
         await post(`/element/${await find('[data-soft98-pro-password-actions] [data-action=select]')}/click`, {});
         const password = await evaluate(`
           const row = document.querySelector('[data-soft98-pro-password-shell]');
           const input = row.querySelector('input[readonly]');
-          return { selected: document.activeElement === input && input.selectionStart === 0 && input.selectionEnd === input.value.length,
+          const title = row.querySelector('[data-soft98-pro-password] > span:not([aria-hidden])');
+          const range = document.createRange();
+          range.selectNodeContents(title);
+          return { titleLine: [...range.getClientRects()].filter(rect => rect.width > 0).length,
+            selected: document.activeElement === input && input.selectionStart === 0 && input.selectionEnd === input.value.length,
             dashed: getComputedStyle(input).borderTopStyle === 'dashed', copy: Boolean(row.querySelector('[data-action=copy]')) };
         `);
-        if (!password.selected || !password.dashed || !password.copy) throw new Error("Password controls failed");
+        if (!password.selected || !password.dashed || !password.copy || password.titleLine !== 1) throw new Error("Password controls failed");
         await post(`/element/${await find('[data-soft98-pro-password-actions] [data-action=copy]')}/click`, {});
         const copied = await post("/execute/async", { args: [], script: `
           const done = arguments[arguments.length - 1];
@@ -238,9 +279,8 @@ async function main() {
           check();
         ` });
         if (!["Password copied.", "رمز کپی شد."].includes(copied.text) && !copied.selected) {
-          throw new Error(`Firefox did not copy or select the password: ${JSON.stringify(copied)}`);
+          throw new Error("Firefox did not copy or select the full value");
         }
-        console.log(JSON.stringify({ passwordCopy: copied }));
         await evaluate(`document.querySelector('[data-soft98-pro-password-status]').textContent = '';
           document.activeElement.blur();`);
       }

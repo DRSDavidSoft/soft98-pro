@@ -44,21 +44,25 @@ async function build() {
   }
   const syntaxError = engine.syntaxErrorFor(result.code);
   if (syntaxError) throw syntaxError;
+  if (!result.packed || JSON.stringify(result.patches) !== JSON.stringify(reviewed.patches)) {
+    throw new Error("The patched artifact differs from its reviewed compatibility entry");
+  }
   fs.mkdirSync(OUTPUT, { recursive: true });
   const outputFile = path.join(OUTPUT, "soft98-application.patched.js");
   const banner = `/* Soft98 Pro server-side edition | upstream sha256 ${sourceSha256} | patches ${result.patches.join(",") || "none"} */\n`;
   const output = `${banner}${result.code.trim()}\n`;
   fs.writeFileSync(outputFile, output, "utf8");
+  const artifact = fs.readFileSync(outputFile);
   const manifest = {
     schemaVersion: 1,
-    sourceUrl: sourceUrl === baseline.url ? baseline.url : null,
-    sourceSha256,
+    sourceUrl: reviewed.sha256 === baseline.sha256 ? baseline.url : null,
+    sourceSha256: reviewed.sha256,
     outputFile: path.basename(outputFile),
-    outputSha256: sha256(Buffer.from(output)),
-    sourceBytes: fetched.buffer.length,
-    outputBytes: Buffer.byteLength(output),
-    packed: result.packed,
-    patches: result.patches,
+    outputSha256: sha256(artifact),
+    sourceBytes: reviewed.packedBytes,
+    outputBytes: artifact.length,
+    packed: true,
+    patches: reviewed.patches,
     skippedPatches: reviewed.review.skippedPatches,
   };
   fs.writeFileSync(path.join(OUTPUT, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");

@@ -31,17 +31,23 @@ Tabler Icons (https://github.com/tabler/tabler-icons)
 ${fs.readFileSync(path.join(TABLER_ROOT, "LICENSE"), "utf8").trim().replace(/\r\n/g, "\n")}
 
 Android icon from Simple Icons (https://simpleicons.org), CC0 1.0.
+VLC icon copyright (c) 1996-2010 VideoLAN. Use is permitted to identify VideoLAN
+and its products; no endorsement is implied. https://www.videolan.org/goodies.html
 Platform marks belong to their respective owners.
 */`;
 const PAGE_ICONS = Object.fromEntries(Object.entries({
   windows: "filled/brand-windows", apple: "filled/brand-apple",
   devices: "outline/devices", download: "outline/download", link: "outline/link",
   info: "outline/info-circle", help: "outline/help-circle", lock: "outline/lock",
-  chevron: "outline/chevron-left", copy: "outline/copy", select: "outline/select-all",
+  chevron: "outline/chevron-left", copy: "outline/copy", select: "outline/select-all", eye: "outline/eye",
+  archive: "outline/archive", web: "outline/world-www", remove: "outline/file-x",
+  photo: "outline/photo", document: "outline/file-text", shield: "outline/shield",
+  play: "outline/player-play", music: "outline/music", desktop: "outline/device-desktop",
 }).map(([key, name]) => [key, fs.readFileSync(path.join(TABLER_ROOT, "icons", name + ".svg"), "utf8")
   .replace(/\s+class="[^"]*"/, "").replace(/>\s+</g, "><").replace(/\s+/g, " ").trim()]));
 PAGE_ICONS.android = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 1 26 22" fill="currentColor"><path d="${siAndroid.path}"/></svg>`;
 PAGE_ICONS.linux = fs.readFileSync(path.join(SRC, "assets", "linux-penguin.svg"), "utf8").trim();
+PAGE_ICONS.vlc = `<img alt="" width="26" height="28" src="${dataUrl(path.join(SRC, "assets", "vlc.png"))}">`;
 
 const commonManifest = {
   name: MESSAGES.locales.en.manifest.name,

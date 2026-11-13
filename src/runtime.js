@@ -9,6 +9,7 @@
   const UPSTREAM_PAYLOAD_SELECTOR = "script[data-soft98-pro-upstream-payload]";
   const FAVICON_ID = "soft98-pro-favicon";
   const CONTROL_POSITION_KEY = "soft98-ad-blocker.control-position";
+  const DOWNLOAD_METADATA_KEY = "soft98-pro.download-metadata";
   const INTERNAL_MUTATION_ATTRIBUTES = new Set(["class", "style", "aria-expanded", "aria-selected"]);
   const COMPATIBILITY_DISMISS_KEY = "soft98-pro.compatibility-dismissed";
   const CONTROL_MARGIN = 12;
@@ -35,6 +36,7 @@
     pro: true,
     darkDesign: true,
     compactLayout: true,
+    expandMain: true,
     linkBadges: true,
     pirateLogo: true,
     taunt: false,
@@ -46,9 +48,13 @@
   };
   const savedHref = new WeakMap();
   const originalLogos = new Map();
-  const utilitySprites = new Map();
   const hiddenPageDisplays = new WeakMap();
   const passwordActions = new WeakMap();
+  const contentGrids = new Map();
+  const downloadRows = new WeakMap();
+  const downloadProbes = new Map();
+  let downloadCache;
+  let downloadObserver;
   const trackedLinks = new Set();
   const pendingRoots = new Set();
   const stats = {
@@ -78,6 +84,7 @@
   let settings = readSettings();
   let compatibilityState = null;
   let processingDom = false;
+  let gridFrame = 0;
   let integrityScheduled = false;
   let useConstructableStyles = true;
 
@@ -902,6 +909,7 @@
       :root:not(.soft98-pro-theme) [data-soft98-pro-password-actions]{display:none!important}
       :root:not(.soft98-pro-theme) [data-soft98-pro-password-shell]{display:contents}
       :root:not(.soft98-pro-theme) [data-soft98-pro-password-status]{display:none!important}
+      :root:not(.soft98-pro-theme) [data-soft98-pro-download-meta]{display:none!important}
       a[${DATA_HREF}]{pointer-events:auto}
       a[data-soft98-brand-compact]{min-height:36px!important;min-width:86px;background-size:86px auto!important;background-repeat:no-repeat!important;background-position:center!important}
       img[data-soft98-brand-compact]{width:86px!important;max-width:100%!important;height:38px!important;object-fit:cover!important}
@@ -917,6 +925,7 @@
     document.documentElement.classList.toggle("soft98-pro-theme", active);
     document.documentElement.classList.toggle("soft98-pro-rgb", active && settings.rgbMode);
     document.documentElement.classList.toggle("soft98-pro-compact", active && settings.compactLayout);
+    scheduleContentGridUpdate();
     syncPageVisibility();
     const ambient = document.getElementById("soft98-pro-ambient");
     if (ambient) ambient.remove();
@@ -944,7 +953,11 @@
       .soft98-pro-theme a[data-soft98-pro-tone=action]{background:var(--s98p-surface-2)!important;border-color:var(--s98p-border-soft)!important;color:var(--s98p-text)!important}
       .soft98-pro-theme a[data-soft98-pro-tone=action]:hover{background:var(--s98p-soft)!important}
       .soft98-pro-theme [data-soft98-pro-utility-icon]{background-color:var(--s98p-surface-2)!important;border-color:var(--s98p-border-soft)!important;box-shadow:none!important;filter:none!important}
-      .soft98-pro-theme [data-soft98-pro-utility-art=ready]::before{background-image:var(--s98p-utility-art)!important;background-position:0 0!important;background-size:100% 100%!important}
+      :root.soft98-pro-theme [data-soft98-pro-utility-icon][data-soft98-pro-icon-host]{display:grid!important;place-items:center;background-image:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-utility-icon][data-soft98-pro-icon-host]::before,
+      :root.soft98-pro-theme [data-soft98-pro-utility-icon][data-soft98-pro-icon-host]::after{display:none!important;content:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-utility-icon] > [data-soft98-pro-page-icon]{width:32px;height:32px;margin:0;background:transparent!important;--icon-color:#b8cee5}
+      :root.soft98-pro-theme [data-soft98-pro-utility-icon] svg{width:27px;height:27px}
       .soft98-pro-theme [data-soft98-pro-utility-card] > footer{background:var(--s98p-surface-2)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border)!important}
       .soft98-pro-theme [data-soft98-pro-utility-card] > footer:hover{background:var(--s98p-soft)!important}
       .soft98-pro-theme [data-soft98-pro-utility-header],.soft98-pro-theme [data-soft98-pro-utility-header] :is(h1,h2,h3,h4,h5,h6){border-color:var(--s98p-border)!important;text-shadow:none!important}
@@ -968,14 +981,24 @@
       .soft98-pro-theme [data-soft98-pro-download-group] a[data-soft98-pro-icon-host]:is(:hover,:focus-visible){color:var(--s98p-link)!important}
       .soft98-pro-theme [data-soft98-pro-download-group] a[data-soft98-pro-icon-host=download]{color:var(--s98p-accent)!important;font-weight:700}
       .soft98-pro-theme [data-soft98-pro-download-group] a[data-soft98-pro-icon-host=download]:is(:hover,:focus-visible){background:color-mix(in srgb,var(--s98p-accent) 10%,var(--s98p-bg-2))!important;color:#b2ffe1!important}
-      .soft98-pro-theme [data-soft98-pro-password-shell]{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:5px;padding:8px;background:var(--s98p-surface-2)!important;border:1px solid var(--s98p-border);border-radius:8px}
-      .soft98-pro-theme article [role=tabpanel] [data-soft98-pro-password]{grid-column:1/-1;grid-row:1;display:grid!important;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px;margin:0!important;padding:0!important;background:transparent!important;border:0!important;color:var(--s98p-text)!important;text-shadow:none!important;cursor:default}
+      :root.soft98-pro-theme [data-soft98-pro-download-group] > dd:has([data-soft98-pro-download-row]){height:auto!important;max-height:none!important;overflow:visible!important}
+      :root.soft98-pro-theme [data-soft98-pro-download-group] [data-soft98-pro-download-row]{display:grid!important;grid-template-columns:28px minmax(0,1fr);align-items:center;gap:2px 9px;height:auto!important;min-height:40px;max-height:none!important;box-sizing:border-box;padding:7px 14px!important;white-space:normal!important;line-height:1.5!important;overflow:visible!important}
+      .soft98-pro-theme [data-soft98-pro-download-row] > [data-soft98-pro-page-icon]{grid-column:1;grid-row:1/3;margin:0}
+      .soft98-pro-theme [data-soft98-pro-download-title]{grid-column:2;grid-row:1;min-width:0;color:inherit}
+      .soft98-pro-theme [data-soft98-pro-download-meta]{grid-column:2;grid-row:2;min-width:0;color:var(--s98p-muted)!important;font-size:.82em;font-weight:400}
+      .soft98-pro-theme [data-soft98-pro-download-meta]:empty{display:none}
+      .soft98-pro-theme [data-soft98-pro-password-shell]{display:grid;grid-template-columns:auto minmax(max-content,1fr) auto;align-items:center;gap:6px;padding:8px;background:var(--s98p-surface-2)!important;border:1px solid var(--s98p-border);border-radius:8px}
+      :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-password-shell]>[data-soft98-pro-password]{display:contents!important;color:var(--s98p-text)!important;text-shadow:none!important}
       .soft98-pro-theme [data-soft98-pro-password] span:not([aria-hidden=true]){color:inherit!important}
       .soft98-pro-theme article [role=tabpanel] [data-soft98-pro-icon-host][data-soft98-pro-annoyance]{padding-inline-start:12px!important}
       .soft98-pro-theme [data-soft98-pro-password]>[data-soft98-pro-page-icon]{margin:0}
       :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-password] > input[readonly]{grid-column:1/-1;width:100%!important;max-width:none!important;min-width:0;box-sizing:border-box;min-height:38px;margin:0!important;padding:7px 10px!important;border:1px dashed var(--s98p-faint)!important;border-radius:6px!important;background:var(--s98p-bg-2)!important;color:var(--s98p-text)!important;font:600 13px/1.4 ui-monospace,Consolas,monospace!important;direction:ltr!important;text-align:left!important;cursor:text}
-      .soft98-pro-theme [data-soft98-pro-password-actions]{display:flex;gap:4px;grid-column:2;grid-row:1;z-index:1}
-      :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-password-shell] [data-soft98-pro-password]>span:not([aria-hidden=true]){display:flex!important;align-items:center;min-height:34px;padding:0!important;padding-inline-end:76px!important;line-height:1.5}
+      .soft98-pro-theme [data-soft98-pro-password-actions]{display:flex;gap:4px;grid-column:3;grid-row:1}
+      :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-password-shell] [data-soft98-pro-password]>span:not([aria-hidden=true]){display:flex!important;align-items:center;width:auto!important;max-width:none!important;min-height:34px;padding:0!important;white-space:nowrap!important;line-height:1.5}
+      .soft98-pro-theme [data-soft98-pro-password-shell] :is([data-soft98-pro-password]>[data-soft98-pro-page-icon],[data-soft98-pro-password]>span:not([aria-hidden=true])){grid-row:1}
+      .soft98-pro-theme [data-soft98-pro-password-shell] [data-soft98-pro-password]>[data-soft98-pro-page-icon]{grid-column:1}
+      .soft98-pro-theme [data-soft98-pro-password-shell] [data-soft98-pro-password]>span:not([aria-hidden=true]){grid-column:2}
+      :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-password] > input[readonly]{grid-row:2}
       .soft98-pro-theme [data-soft98-pro-password-actions] button{display:grid!important;place-items:center;width:34px;height:34px;flex:none;padding:0!important;cursor:pointer}
       .soft98-pro-theme [data-soft98-pro-password-actions] svg{width:17px;height:17px;pointer-events:none}
       .soft98-pro-theme [data-soft98-pro-password-status]{grid-column:1/-1;color:var(--s98p-muted)!important;font-size:.85em}
@@ -995,11 +1018,19 @@
       .soft98-pro-theme [data-soft98-pro-latest] li [data-soft98-pro-view-count],
       .soft98-pro-theme [data-soft98-pro-latest] li [data-soft98-pro-view-count]::before{color:var(--s98p-faint)!important;text-shadow:none!important}
       .soft98-pro-theme [data-soft98-pro-view-count],.soft98-pro-theme [data-soft98-pro-view-count]::before{color:var(--s98p-faint)!important;text-shadow:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-latest] li a [data-soft98-pro-view-count]{color:#8494a8!important}
+      :root.soft98-pro-theme [data-soft98-pro-latest] li a [data-soft98-pro-view-count]::before,
+      :root.soft98-pro-theme [data-soft98-pro-latest] li a [data-soft98-pro-view-count]::after{display:none!important;content:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-view-count] > [data-soft98-pro-page-icon=eye]{display:inline-grid!important;width:12px;height:12px;margin-inline:3px;background:transparent!important;color:#8494a8!important}
+      :root.soft98-pro-theme [data-soft98-pro-view-count] svg{width:12px;height:12px}
+      :root.soft98-pro-theme [data-soft98-pro-news-counter]{color:#8494a8!important;opacity:.68!important;text-shadow:none!important}
       [data-soft98-pro-bidi]{direction:ltr!important;unicode-bidi:isolate!important}
       .soft98-pro-theme a{color:var(--s98p-link)!important;text-decoration-color:color-mix(in srgb,var(--s98p-link) 42%,transparent);transition:color .16s ease,text-decoration-color .16s ease,background-color .16s ease,border-color .16s ease,transform .16s ease,box-shadow .2s ease}
       .soft98-pro-theme a:hover{color:#d4efff!important;text-decoration-color:var(--s98p-accent)}
       .soft98-pro-theme a:focus-visible,.soft98-pro-theme button:focus-visible,.soft98-pro-theme input:focus-visible,.soft98-pro-theme select:focus-visible,.soft98-pro-theme textarea:focus-visible{outline:2px solid var(--s98p-accent)!important;outline-offset:3px!important}
-      .soft98-pro-theme hr{border-color:var(--s98p-border)!important}
+      :root.soft98-pro-theme hr{height:1px!important;min-height:1px!important;border:0!important;background:var(--s98p-border)!important;opacity:1!important;box-shadow:none!important}
+      :root.soft98-pro-theme :is(article,aside,section) > :is(header,footer),:root.soft98-pro-theme [data-soft98-pro-utility-header]{border-block-color:var(--s98p-border)!important}
+      :root.soft98-pro-theme [data-soft98-pro-card-rule]{background:var(--s98p-border)!important;border-color:var(--s98p-border)!important;box-shadow:none!important}
       .soft98-pro-theme nav,.soft98-pro-theme [role=navigation],.soft98-pro-theme [data-soft98-pro-surface=nav]{background:color-mix(in srgb,var(--s98p-nav) 94%,transparent)!important;border-color:var(--s98p-border-soft)!important;color:var(--s98p-text)!important;box-shadow:0 12px 32px rgba(0,0,0,.3),0 1px 0 rgba(255,255,255,.04) inset;backdrop-filter:blur(14px) saturate(118%)}
       .soft98-pro-theme [data-soft98-pro-surface=nav-shell]{background:rgba(10,17,22,.96)!important;border-color:var(--s98p-border-soft)!important;color:var(--s98p-text)!important;box-shadow:0 12px 34px rgba(0,0,0,.34)!important;backdrop-filter:blur(18px) saturate(125%)}
       .soft98-pro-theme header{border-color:var(--s98p-border-soft)!important;color:var(--s98p-text)!important}
@@ -1039,6 +1070,7 @@
       .soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-reading=rtl]{grid-template-columns:minmax(270px,1fr) minmax(0,2fr)!important}
       .soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-reading=rtl]>[data-soft98-pro-column=primary]{grid-column:2!important}
       .soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-reading=rtl]>[data-soft98-pro-column=secondary]{grid-column:1!important}
+      @media(min-width:821px){.soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-main-wide]>[data-soft98-pro-column]{grid-row:1!important}.soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-main-wide]>[data-soft98-pro-column=primary]{grid-column:1/-1!important}.soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-main-wide]>[data-soft98-pro-column=secondary]{pointer-events:none;overflow-anchor:none}}
       .soft98-pro-compact [data-soft98-pro-reading=rtl]{direction:rtl!important}
       .soft98-pro-compact [data-soft98-pro-reading=ltr]{direction:ltr!important}
       .soft98-pro-compact article,.soft98-pro-compact aside{border-radius:var(--s98p-radius)!important}
@@ -1216,6 +1248,9 @@
 
   function applyProLayoutHeuristics() {
     applyUtilityListHeuristics();
+    for (const rule of document.querySelectorAll(":is(article,aside,section) [role=separator]")) {
+      if (!isOwnedInterface(rule) && !rule.matches('[aria-orientation="vertical"]')) rule.setAttribute("data-soft98-pro-card-rule", "");
+    }
     for (const heading of document.querySelectorAll("h1,h2,h3,h4,h5,h6,[role=heading]")) {
       if (isOwnedInterface(heading) || heading.hasAttribute("data-soft98-pro-heading-divider")) continue;
       const style = getComputedStyle(heading);
@@ -1230,6 +1265,7 @@
       for (const label of list.querySelectorAll("dt > span,dd > a[href]")) {
         const icon = downloadIcon(label);
         if (icon) decorateIcon(label, icon);
+        if (label.matches("a[href]")) prepareDownloadRow(label, icon);
       }
       const pane = list.closest("[role=tabpanel]");
       for (const label of pane.querySelectorAll("[data-toggle=copy], :is(div,button):has(> input[readonly])")) {
@@ -1261,9 +1297,147 @@
         container.setAttribute("data-soft98-pro-reading", direction === "rtl" ? "rtl" : "ltr");
         primary.setAttribute("data-soft98-pro-column", "primary");
         secondary.setAttribute("data-soft98-pro-column", "secondary");
+        contentGrids.set(container, secondary);
         break;
       }
     }
+    scheduleContentGridUpdate();
+  }
+
+  function scheduleContentGridUpdate() {
+    if (gridFrame) return;
+    gridFrame = requestAnimationFrame(() => {
+      gridFrame = 0;
+      const enabled = settings.pro && settings.compactLayout && settings.expandMain &&
+        (settings.darkDesign || settings.rgbMode) && innerWidth > 820;
+      for (const [grid, sidebar] of contentGrids) {
+        if (!grid.isConnected || sidebar.parentElement !== grid) {
+          contentGrids.delete(grid);
+          grid.removeAttribute("data-soft98-pro-main-wide");
+          continue;
+        }
+        const box = sidebar.getBoundingClientRect();
+        const active = grid.hasAttribute("data-soft98-pro-main-wide");
+        const expand = enabled && !sidebar.contains(document.activeElement) && box.bottom <= (active ? 0 : -16) &&
+          (box.height > 0 || grid.getBoundingClientRect().top < 0);
+        grid.toggleAttribute("data-soft98-pro-main-wide", expand);
+      }
+    });
+  }
+
+  function downloadDestination(link) {
+    try {
+      const url = new URL(savedHref.get(link) || link.href, location.href);
+      if (url.protocol !== "https:" || url.username || url.password || url.port ||
+          !/\.(?:zip|rar|7z|exe|msi|dmg|apk|iso|deb|rpm|tar|gz|xz|bz2|bin|img|pkg|001)$/i.test(url.pathname)) return null;
+      if (/^\?\d+$/.test(url.search) && (url.hostname === "soft98.ir" || url.hostname.endsWith(".soft98.ir"))) {
+        url.search = "";
+        link.setAttribute("href", url.href);
+        if (savedHref.has(link)) {
+          savedHref.set(link, url.href);
+          link.setAttribute(DATA_HREF, url.href);
+        }
+      }
+      return url;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function prepareDownloadRow(link, icon) {
+    const url = downloadDestination(link);
+    if (!url && !/^(?:دانلود|download)/i.test(normalizedPersian(link.textContent || ""))) return;
+    const previous = downloadRows.get(link);
+    if (previous?.title.parentNode === link && previous.url === url?.href) return;
+    const originalSize = link.getAttribute("data-soft98-pro-inline-size");
+    if (previous) {
+      previous.meta.remove();
+      if (previous.title.parentNode === link) previous.title.replaceWith(...previous.title.childNodes);
+    }
+    for (const existing of link.querySelectorAll(":scope > [data-soft98-pro-download-meta]")) existing.remove();
+    for (const existing of link.querySelectorAll(":scope > [data-soft98-pro-download-title]")) existing.replaceWith(...existing.childNodes);
+    const title = document.createElement("span");
+    const meta = document.createElement("span");
+    title.setAttribute("data-soft98-pro-download-title", "");
+    meta.setAttribute("data-soft98-pro-download-meta", "");
+    const inlineSize = (link.textContent || "").match(/\p{Nd}+(?:[,.٫٬]\p{Nd}+)*\s*(?:کیلوبایت|مگابایت|گیگابایت|ترابایت|[KMGT]i?B)(?!\p{L})/iu)?.[0] || previous?.inlineSize || originalSize;
+    if (inlineSize) {
+      meta.textContent = inlineSize;
+      link.setAttribute("data-soft98-pro-inline-size", inlineSize);
+    }
+    for (const child of [...link.childNodes]) {
+      if (child.matches?.("[data-soft98-pro-page-icon],[data-soft98-pro-download-meta]")) continue;
+      if (inlineSize && child.nodeType === Node.TEXT_NODE) {
+        const raw = child.nodeValue || "";
+        const shorter = raw.replace(/(?:^|\s)(?:با\s+حجم|size\s*:?)\s+.+?(?=\s*\(|$)/iu, " ").trim().replace(/ {2,}/g, " ");
+        child.nodeValue = shorter;
+      }
+      title.append(child);
+    }
+    if (!icon) decorateIcon(link, "download");
+    link.setAttribute("data-soft98-pro-download-row", "");
+    link.append(title, meta);
+    downloadRows.set(link, { title, meta, url: url?.href, inlineSize });
+    if (url && !url.search && (url.origin === location.origin || url.hostname.endsWith(".soft98.ir")) && "IntersectionObserver" in window) {
+      downloadObserver ||= new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          downloadObserver.unobserve(entry.target);
+          loadDownloadMetadata(entry.target);
+        }
+      }, { rootMargin: "160px" });
+      downloadObserver.observe(link);
+    }
+  }
+
+  function loadDownloadMetadata(link) {
+    const row = downloadRows.get(link);
+    if (!row?.url || !nativeFetch || !settings.pro || !link.isConnected) return;
+    if (!downloadCache) {
+      try {
+        const entries = JSON.parse(localStorage.getItem(DOWNLOAD_METADATA_KEY) || "[]");
+        downloadCache = new Map(Array.isArray(entries) ? entries.slice(-100) : []);
+      } catch (_error) { downloadCache = new Map(); }
+    }
+    const show = (data) => {
+      if (downloadRows.get(link) !== row || !data) return;
+      const locale = RTL ? "fa-IR-u-ca-persian" : "en";
+      let size = row.inlineSize;
+      if (Number.isSafeInteger(data.bytes) && data.bytes > 0) {
+        const units = ["byte", "kilobyte", "megabyte", "gigabyte", "terabyte"];
+        const index = Math.min(units.length - 1, Math.floor(Math.log10(data.bytes) / 3));
+        size = new Intl.NumberFormat(locale, { style: "unit", unit: units[index], maximumFractionDigits: 1 }).format(data.bytes / 1000 ** index);
+      }
+      const date = Number.isFinite(data.modified) ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }).format(data.modified) : null;
+      row.meta.replaceChildren();
+      for (const item of [size, date].filter(Boolean)) {
+        if (row.meta.childNodes.length) row.meta.append(" · ");
+        const value = document.createElement("bdi");
+        value.textContent = item;
+        row.meta.append(value);
+      }
+    };
+    const cached = downloadCache.get(row.url);
+    if (cached && Date.now() - cached.checked < (cached.bytes || cached.modified ? 86400000 : 3600000)) return show(cached);
+    if (!downloadProbes.has(row.url)) {
+      if (downloadProbes.size >= 4) return;
+      const task = nativeFetch(row.url, { method: "HEAD", credentials: "omit", referrerPolicy: "no-referrer",
+        redirect: "error", signal: AbortSignal.timeout(4500) }).then((response) => {
+        if (!response.ok || /^(?:text\/html|application\/json)/i.test(response.headers.get("content-type") || "")) return {};
+        const length = response.headers.get("content-length");
+        const date = Date.parse(response.headers.get("last-modified") || "");
+        return { bytes: length && /^\d+$/.test(length) ? Number(length) : null, modified: Number.isFinite(date) ? date : null };
+      }).catch(() => ({})).then((data) => {
+        const entry = { ...data, checked: Date.now() };
+        downloadCache.delete(row.url);
+        downloadCache.set(row.url, entry);
+        while (downloadCache.size > 100) downloadCache.delete(downloadCache.keys().next().value);
+        try { localStorage.setItem(DOWNLOAD_METADATA_KEY, JSON.stringify([...downloadCache])); } catch (_error) {}
+        return entry;
+      }).finally(() => downloadProbes.delete(row.url));
+      downloadProbes.set(row.url, task);
+    }
+    downloadProbes.get(row.url).then(show);
   }
 
   function applyPagePreferences() {
@@ -1297,6 +1471,8 @@
         for (const count of row.querySelectorAll(":scope > span,:scope > small")) {
           if (/^[\s\d\u06f0-\u06f9\u0660-\u0669,.،٬]+$/u.test(count.textContent || "")) {
             count.setAttribute("data-soft98-pro-view-count", "");
+            count.setAttribute("data-soft98-pro-news-counter", "");
+            if (settings.darkDesign || settings.rgbMode) decorateIcon(count, "eye");
           }
         }
       }
@@ -1507,92 +1683,30 @@
           row.copy.setAttribute("data-soft98-pro-list-copy", "true");
           if (utilityCard) {
             row.media.setAttribute("data-soft98-pro-utility-icon", "");
-            if (settings.darkDesign || settings.rgbMode) themeUtilityIcon(row.media);
+            if (settings.darkDesign || settings.rgbMode) themeUtilityIcon(row.media, row.copy.textContent + " " + row.link.pathname);
           }
         }
       }
     }
   }
 
-  function themeUtilityIcon(icon) {
-    if (icon.hasAttribute("data-soft98-pro-utility-art")) return;
-    const style = getComputedStyle(icon, "::before");
-    const match = /^url\("([^"]+)"\)$/.exec(style.backgroundImage);
-    if (!match || !nativeFetch) return;
-    const url = new URL(match[1], location.href);
-    if (url.origin !== location.origin || !/^https?:$/.test(url.protocol)) return;
-    const width = Number.parseFloat(style.width);
-    const height = Number.parseFloat(style.height);
-    const x = -Number.parseFloat(style.backgroundPositionX);
-    const y = -Number.parseFloat(style.backgroundPositionY);
-    if (![x, y, width, height].every(Number.isInteger) || x < 0 || y < 0 || width < 12 || height < 12 ||
-        width > 64 || height > 64 || style.backgroundSize !== "auto") return;
-    const key = [url.href, x, y, width, height].join("|");
-    if (!utilitySprites.has(key)) {
-      const imageKey = url.href;
-      if (!utilitySprites.has(imageKey)) {
-        utilitySprites.set(imageKey, nativeFetch(imageKey, { mode: "same-origin", signal: AbortSignal.timeout(5000) })
-          .then((response) => response.ok ? response.blob() : null)
-          .then((blob) => blob && blob.size <= 1024 * 1024 ? createImageBitmap(blob) : null).catch(() => null));
-      }
-      utilitySprites.set(key, utilitySprites.get(imageKey).then((image) => {
-        if (!image || x + width > image.width || y + height > image.height) return null;
-        return transparentIconTile(image, x, y, width, height);
-      }).catch(() => null));
-    }
-    icon.setAttribute("data-soft98-pro-utility-art", "pending");
-    utilitySprites.get(key).then((source) => {
-      if (!source) {
-        icon.setAttribute("data-soft98-pro-utility-art", "unavailable");
-        return;
-      }
-      icon.style.setProperty("--s98p-utility-art", `url("${source}")`);
-      icon.setAttribute("data-soft98-pro-utility-art", "ready");
-    });
+  function themeUtilityIcon(icon, value) {
+    const label = normalizedPersian(value).toLowerCase();
+    const kind =
+      /winrar|7-zip|archive/.test(label) ? "archive" :
+      /firefox|chrome|browser|microsoftedge|opera|مرورگر/.test(label) ? "web" :
+      /uninstaller|حذفنرمافزار/.test(label) ? "remove" :
+      /downloadmanager|دانلودمنیجر|مدیریتدانلود/.test(label) ? "download" :
+      /photoshop|paint|photo|تصویر/.test(label) ? "photo" :
+      /\bvlc\b|vlcmedia|vlc-player/.test(value.toLowerCase()) ? "vlc" :
+      /office|reader|pdf|notepad|document/.test(label) ? "document" :
+      /antivirus|defender|security/.test(label) ? "shield" :
+      /player|vlc|potplayer/.test(label) ? "play" :
+      /audio|music|aimp/.test(label) ? "music" : "desktop";
+    decorateIcon(icon, kind);
+    icon.setAttribute("data-soft98-pro-utility-art", "ready");
   }
 
-  function transparentIconTile(image, x, y, width, height) {
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    ctx.drawImage(image, x, y, width, height, 0, 0, width, height);
-    const pixels = ctx.getImageData(0, 0, width, height);
-    const data = pixels.data;
-    const queue = [];
-    const visited = new Uint8Array(width * height);
-    const add = (column, row) => {
-      if (column < 0 || column >= width || row < 0 || row >= height) return;
-      const index = row * width + column;
-      if (visited[index]) return;
-      visited[index] = 1;
-      const offset = index * 4;
-      const low = Math.min(data[offset], data[offset + 1], data[offset + 2]);
-      const high = Math.max(data[offset], data[offset + 1], data[offset + 2]);
-      if (data[offset + 3] && (low < 224 || high - low > 18)) return;
-      data[offset + 3] = 0;
-      queue.push(index);
-    };
-    for (let column = 0; column < width; column++) {
-      add(column, 0);
-      add(column, height - 1);
-    }
-    for (let row = 1; row < height - 1; row++) {
-      add(0, row);
-      add(width - 1, row);
-    }
-    if (!queue.length) return null;
-    for (let index = 0; index < queue.length; index++) {
-      const column = queue[index] % width;
-      const row = Math.floor(queue[index] / width);
-      add(column - 1, row);
-      add(column + 1, row);
-      add(column, row - 1);
-      add(column, row + 1);
-    }
-    ctx.putImageData(pixels, 0, 0);
-    return canvas.toDataURL("image/png");
-  }
 
   function updateFavicon() {
     const state = settings.pro && settings.rgbMode ? "rgb" : settings.pro && settings.darkDesign ? "pro" : successAnnounced ? "success" : "";
@@ -1954,7 +2068,7 @@
     wrap.setAttribute("data-theme", settings.rgbMode && settings.pro ? "rgb" : settings.darkDesign && settings.pro ? "dark" : "light");
     const groups = {
       protection: ["blockAds", "patchScripts"],
-      experience: ["pro", "darkDesign", "rgbMode", "compactLayout", "showLatest", "hideAnnoyances", "linkBadges", "pirateLogo"],
+      experience: ["pro", "darkDesign", "rgbMode", "compactLayout", "expandMain", "showLatest", "hideAnnoyances", "linkBadges", "pirateLogo"],
       advanced: ["taunt", "diagnostics", "recommendExtension"],
     };
     const groupLabels = {
@@ -2916,6 +3030,9 @@
 
   exposePublicApi();
   init();
+  document.addEventListener("scroll", scheduleContentGridUpdate, { passive: true });
+  window.addEventListener("resize", scheduleContentGridUpdate, { passive: true });
+  document.addEventListener("focusin", scheduleContentGridUpdate);
   window.setTimeout(exposePublicApi, 0);
   window.setTimeout(exposePublicApi, 1000);
 })();

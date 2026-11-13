@@ -10,6 +10,7 @@
     pro: true,
     darkDesign: true,
     compactLayout: true,
+    expandMain: true,
     linkBadges: true,
     pirateLogo: true,
     taunt: false,
