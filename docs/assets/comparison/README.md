@@ -14,4 +14,4 @@ See also: [narrow-screen view](downloads-mobile-after.png), [article after scrol
 
 Platform artwork is bundled locally from [Tabler Icons](https://github.com/tabler/tabler-icons) (MIT) and [Simple Icons](https://simpleicons.org/) (Android icon, CC0 1.0). The simplified penguin is drawn for Soft98 Pro. The marks belong to their respective owners.
 
-The utility list uses MIT-licensed Tabler category icons where we could not verify permission to redistribute product artwork. The transparent [VLC icon](https://images.videolan.org/images/VLC-IconSmall.png) is copyright 1996–2010 VideoLAN and is used under its [logo terms](https://www.videolan.org/goodies.html) to identify VLC, without implying endorsement.
+The utility list has distinct, full-color product artwork for common entries, with open category icons as the fallback. See [artwork sources and licenses](../../../src/assets/utility/README.md) for the difference between official artwork, community artwork, and independently drawn icons.

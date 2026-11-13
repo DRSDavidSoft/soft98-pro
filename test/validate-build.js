@@ -80,7 +80,8 @@ if (!/data-soft98-pro-layout/.test(runtime) || !/data-soft98-pro-column/.test(ru
 if (!/role=tab/.test(runtime) || !/data-toggle=tab/.test(runtime) || !/aria-selected/.test(runtime)) {
   throw new Error("Semantic and conventional fallback dark-theme tab styling is missing");
 }
-if (/PIRATE_LOGO|data:image\/svg\+xml|fa-desktop-alt:before|font-family:\\?Arial/.test(runtimeWithoutImages)) {
+const withoutBundledUtilityIcons = runtimeWithoutImages.replace(/data:image\/svg\+xml;base64,[A-Za-z0-9+/=]+/g, "");
+if (/PIRATE_LOGO|data:image\/svg\+xml|fa-desktop-alt:before|font-family:\\?Arial/.test(withoutBundledUtilityIcons)) {
   throw new Error("Logo/icon replacement hacks must not ship");
 }
 if (!/data-open=true/.test(runtime) || !/cubic-bezier/.test(runtime)) {

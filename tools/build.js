@@ -26,6 +26,7 @@ const BRAND_FILES = {
 };
 const { siAndroid } = require("simple-icons");
 const TABLER_ROOT = path.resolve(path.dirname(require.resolve("@tabler/icons/outline/download.svg")), "../..");
+const UTILITY_ASSETS = path.join(SRC, "assets", "utility");
 const ICON_NOTICE = `/*!
 Tabler Icons (https://github.com/tabler/tabler-icons)
 ${fs.readFileSync(path.join(TABLER_ROOT, "LICENSE"), "utf8").trim().replace(/\r\n/g, "\n")}
@@ -33,6 +34,8 @@ ${fs.readFileSync(path.join(TABLER_ROOT, "LICENSE"), "utf8").trim().replace(/\r\
 Android icon from Simple Icons (https://simpleicons.org), CC0 1.0.
 VLC icon copyright (c) 1996-2010 VideoLAN. Use is permitted to identify VideoLAN
 and its products; no endorsement is implied. https://www.videolan.org/goodies.html
+Firefox and Free Download Manager artwork by Papirus contributors (GPL-3.0).
+Sources and license: https://github.com/DRSDavidSoft/soft98-pro/tree/develop/src/assets/utility
 Platform marks belong to their respective owners.
 */`;
 const PAGE_ICONS = Object.fromEntries(Object.entries({
@@ -43,11 +46,16 @@ const PAGE_ICONS = Object.fromEntries(Object.entries({
   archive: "outline/archive", web: "outline/world-www", remove: "outline/file-x",
   photo: "outline/photo", document: "outline/file-text", shield: "outline/shield",
   play: "outline/player-play", music: "outline/music", desktop: "outline/device-desktop",
+  folder: "outline/folder", author: "outline/user", date: "outline/calendar",
 }).map(([key, name]) => [key, fs.readFileSync(path.join(TABLER_ROOT, "icons", name + ".svg"), "utf8")
   .replace(/\s+class="[^"]*"/, "").replace(/>\s+</g, "><").replace(/\s+/g, " ").trim()]));
 PAGE_ICONS.android = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 1 26 22" fill="currentColor"><path d="${siAndroid.path}"/></svg>`;
 PAGE_ICONS.linux = fs.readFileSync(path.join(SRC, "assets", "linux-penguin.svg"), "utf8").trim();
 PAGE_ICONS.vlc = `<img alt="" width="26" height="28" src="${dataUrl(path.join(SRC, "assets", "vlc.png"))}">`;
+for (const name of ["firefox", "freedownloadmanager", "chrome", "edge", "winrar", "revo"]) {
+  const svg = fs.readFileSync(path.join(UTILITY_ASSETS, name + ".svg"), "utf8");
+  PAGE_ICONS[name] = `<img alt="" width="32" height="32" src="data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}">`;
+}
 
 const commonManifest = {
   name: MESSAGES.locales.en.manifest.name,
@@ -150,6 +158,7 @@ async function buildUserscript() {
   fs.writeFileSync(USERSCRIPT_OUT, output, "utf8");
   mkdir(path.join(DIST, "userscript"));
   fs.writeFileSync(path.join(DIST, "userscript", "soft98-pro.user.js"), output, "utf8");
+  copyFile(path.join(UTILITY_ASSETS, "PAPIRUS-LICENSE.txt"), path.join(DIST, "userscript", "PAPIRUS-LICENSE.txt"));
 }
 
 function writeJson(target, value) {
@@ -287,6 +296,7 @@ function chromiumRules() {
 async function buildTarget(name, manifest) {
   const target = path.join(DIST, name);
   mkdir(path.join(target, "assets"));
+  copyFile(path.join(UTILITY_ASSETS, "PAPIRUS-LICENSE.txt"), path.join(target, "PAPIRUS-LICENSE.txt"));
   writeJson(path.join(target, "manifest.json"), manifest);
   copyUi(target);
   copyFile(path.join(SRC, "user-origin.css"), path.join(target, "assets", "user-origin.css"));

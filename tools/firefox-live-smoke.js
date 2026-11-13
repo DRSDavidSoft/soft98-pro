@@ -124,6 +124,9 @@ async function main() {
                 return heading && getComputedStyle(heading, '::before').backgroundImage;
               })(),
               navButtons: document.querySelectorAll('[data-soft98-pro-nav-item]').length,
+              navGroups: document.querySelectorAll('[data-soft98-pro-nav-group]').length,
+              navIndicators: document.querySelectorAll('[data-soft98-pro-nav-indicator]').length,
+              articleMetadata: document.querySelectorAll('[data-soft98-pro-article-meta] > [data-soft98-pro-icon-host]').length,
               glyphSize: windows?.querySelector('svg')?.getBoundingClientRect().width,
               glyphs: [...group?.querySelectorAll('[data-soft98-pro-page-icon] svg') || []]
                 .filter(svg => svg.getBoundingClientRect().width > 0).map(svg => svg.parentElement.getAttribute('data-soft98-pro-page-icon')),
@@ -141,6 +144,7 @@ async function main() {
               iconBackground: icon && getComputedStyle(icon).backgroundColor,
               iconArtwork: icon && Boolean(icon.querySelector('svg,img')),
               transparentIcons: document.querySelectorAll('[data-soft98-pro-utility-art=ready]').length,
+              productIcons: document.querySelectorAll('[data-soft98-pro-utility-icon] img[src^="data:"]').length,
               downloadIconShadow: download && getComputedStyle(download, '::before').textShadow,
             };
           })(),
@@ -160,8 +164,9 @@ async function main() {
         result.downloadPresentation.glyphSize < 22 ||
         !result.downloadPresentation.tabIndicator?.includes("inset") || !result.downloadPresentation.tabSurface?.includes("gradient") ||
         !result.downloadPresentation.headingDividers || !result.downloadPresentation.headingAccent?.includes("gradient") ||
-        result.downloadPresentation.navButtons < 3 ||
-        !result.utility.transparentIcons || result.utility.downloadIconShadow !== "none" ||
+        result.downloadPresentation.navButtons < 3 || !result.downloadPresentation.navGroups ||
+        !result.downloadPresentation.navIndicators || result.downloadPresentation.articleMetadata < 3 ||
+        !result.utility.transparentIcons || result.utility.productIcons < 5 || result.utility.downloadIconShadow !== "none" ||
         (width > 820 && result.sidebarWidth && result.sidebarWidth < 250))) {
       throw new Error("Live Firefox page failed the Soft98 Pro smoke checks");
     }
@@ -232,21 +237,28 @@ async function main() {
           (async () => {
             scrollTo(0,0); await frame();
             const before = size();
-            scrollBy(0, sidebar.getBoundingClientRect().bottom + 90); await frame();
+            const start = Math.ceil(sidebar.getBoundingClientRect().bottom);
+            const samples = [];
+            for (const pixels of [80, 160, 80]) {
+              scrollTo(0, start + pixels); await frame();
+              samples.push({ added: size() - before, scrolled: scrollY - start });
+            }
+            scrollTo(0, start + sidebar.getBoundingClientRect().width + 80); await frame();
             const expanded = size();
             window.Soft98Pro.configure({ expandMain:false }); await frame();
             const disabled = size();
             window.Soft98Pro.configure({ expandMain:true }); await frame();
             scrollTo(0,0); await frame();
-            done({ before, expanded, disabled, restored:size() });
+            done({ before, expanded, disabled, restored:size(), samples });
           })();
         ` });
-        if (widths.expanded < widths.before + 200 || widths.before !== widths.disabled || widths.before !== widths.restored) {
+        if (widths.expanded < widths.before + 200 || widths.before !== widths.disabled || widths.before !== widths.restored ||
+            widths.samples.some(({ added, scrolled }) => Math.abs(added - scrolled) > 2)) {
           throw new Error(`Article width did not round-trip: ${JSON.stringify(widths)}`);
         }
         console.log(JSON.stringify({ articleWidths: widths }));
         if (process.env.SOFT98_EXPANDED_SCREENSHOT) {
-          await evaluate("scrollBy(0, document.querySelector('[data-soft98-pro-column=secondary]').getBoundingClientRect().bottom + 90)");
+          await evaluate("const side = document.querySelector('[data-soft98-pro-column=secondary]').getBoundingClientRect(); scrollBy(0, side.bottom + side.width + 60)");
           await new Promise((resolve) => setTimeout(resolve, 250));
           await screenshot(session, process.env.SOFT98_EXPANDED_SCREENSHOT);
         }

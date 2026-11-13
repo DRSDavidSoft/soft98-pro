@@ -70,7 +70,7 @@
           },
           "expandMain": {
             "title": "Widen article on scroll",
-            "detail": "Use the sidebar's space after you scroll past it."
+            "detail": "Widen the article as you scroll past the sidebar."
           },
           "linkBadges": {
             "title": "Download recovery badges",
@@ -183,7 +183,7 @@
           "pro": ["Soft98 Pro", "Enable the enhanced experience layer."],
           "darkDesign": ["Modern dark design", "Apply the modern dark Soft98 Pro theme."],
           "compactLayout": ["Refined layout", "Organize semantic content and controls into a calmer responsive layout."],
-          "expandMain": ["Widen article on scroll", "Use the sidebar's space after you scroll past it."],
+          "expandMain": ["Widen article on scroll", "Widen the article as you scroll past the sidebar."],
           "showLatest": ["Show latest posts and news", "Show the software, Android, and news lists at the top of the page."],
           "hideAnnoyances": ["Hide extra site prompts", "Hide the utility-list expansion prompt and the offer to install software for you."],
           "rgbMode": ["Animated RGB mode", "Add a restrained spectral glass experience with efficient motion and reduced-motion support."],

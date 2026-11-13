@@ -958,6 +958,7 @@
       :root.soft98-pro-theme [data-soft98-pro-utility-icon][data-soft98-pro-icon-host]::after{display:none!important;content:none!important}
       :root.soft98-pro-theme [data-soft98-pro-utility-icon] > [data-soft98-pro-page-icon]{width:32px;height:32px;margin:0;background:transparent!important;--icon-color:#b8cee5}
       :root.soft98-pro-theme [data-soft98-pro-utility-icon] svg{width:27px;height:27px}
+      :root.soft98-pro-theme [data-soft98-pro-utility-icon] img{display:block;max-width:32px;max-height:32px;object-fit:contain;filter:none!important}
       .soft98-pro-theme [data-soft98-pro-utility-card] > footer{background:var(--s98p-surface-2)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border)!important}
       .soft98-pro-theme [data-soft98-pro-utility-card] > footer:hover{background:var(--s98p-soft)!important}
       .soft98-pro-theme [data-soft98-pro-utility-header],.soft98-pro-theme [data-soft98-pro-utility-header] :is(h1,h2,h3,h4,h5,h6){border-color:var(--s98p-border)!important;text-shadow:none!important}
@@ -1023,7 +1024,7 @@
       :root.soft98-pro-theme [data-soft98-pro-latest] li a [data-soft98-pro-view-count]::after{display:none!important;content:none!important}
       :root.soft98-pro-theme [data-soft98-pro-view-count] > [data-soft98-pro-page-icon=eye]{display:inline-grid!important;width:12px;height:12px;margin-inline:3px;background:transparent!important;color:#8494a8!important}
       :root.soft98-pro-theme [data-soft98-pro-view-count] svg{width:12px;height:12px}
-      :root.soft98-pro-theme [data-soft98-pro-news-counter]{color:#8494a8!important;opacity:.68!important;text-shadow:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-news-counter]{color:#8494a8!important;opacity:.75!important;text-shadow:none!important}
       [data-soft98-pro-bidi]{direction:ltr!important;unicode-bidi:isolate!important}
       .soft98-pro-theme a{color:var(--s98p-link)!important;text-decoration-color:color-mix(in srgb,var(--s98p-link) 42%,transparent);transition:color .16s ease,text-decoration-color .16s ease,background-color .16s ease,border-color .16s ease,transform .16s ease,box-shadow .2s ease}
       .soft98-pro-theme a:hover{color:#d4efff!important;text-decoration-color:var(--s98p-accent)}
@@ -1070,7 +1071,7 @@
       .soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-reading=rtl]{grid-template-columns:minmax(270px,1fr) minmax(0,2fr)!important}
       .soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-reading=rtl]>[data-soft98-pro-column=primary]{grid-column:2!important}
       .soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-reading=rtl]>[data-soft98-pro-column=secondary]{grid-column:1!important}
-      @media(min-width:821px){.soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-main-wide]>[data-soft98-pro-column]{grid-row:1!important}.soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-main-wide]>[data-soft98-pro-column=primary]{grid-column:1/-1!important}.soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-main-wide]>[data-soft98-pro-column=secondary]{pointer-events:none;overflow-anchor:none}}
+      @media(min-width:821px){.soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-main-wide]>[data-soft98-pro-column]{grid-row:1!important}.soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-main-wide]>[data-soft98-pro-column=primary]{grid-column:1/-1!important;justify-self:start;width:calc(100% - var(--s98p-sidebar-space) + var(--s98p-scroll-width))!important}.soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-main-wide]>[data-soft98-pro-column=secondary]{pointer-events:none;overflow-anchor:none}}
       .soft98-pro-compact [data-soft98-pro-reading=rtl]{direction:rtl!important}
       .soft98-pro-compact [data-soft98-pro-reading=ltr]{direction:ltr!important}
       .soft98-pro-compact article,.soft98-pro-compact aside{border-radius:var(--s98p-radius)!important}
@@ -1105,6 +1106,26 @@
       :root.soft98-pro-theme [data-soft98-pro-nav-item][aria-expanded=true]{background:var(--s98p-control-hover)!important;border-color:var(--s98p-control-edge)!important}
       :root.soft98-pro-theme [data-soft98-pro-nav-item]::before,:root.soft98-pro-theme [data-soft98-pro-nav-item]::after{color:inherit!important;text-shadow:none!important;box-shadow:none!important}
       :root.soft98-pro-theme [data-soft98-pro-nav-item]::after{border-block-start-color:var(--s98p-faint)!important}
+      :root.soft98-pro-theme [data-soft98-pro-nav-group]{gap:0!important;padding:0!important;border:1px solid var(--s98p-border-soft);border-radius:7px;background:var(--s98p-control-bg)}
+      :root.soft98-pro-theme [data-soft98-pro-nav-group]>li{margin:0!important;padding:0!important}
+      :root.soft98-pro-theme [data-soft98-pro-nav-group]>li>[data-soft98-pro-nav-item]{margin:0!important;border-radius:0!important;box-shadow:none!important;border:0!important;border-inline-end:1px solid var(--s98p-border-soft)!important}
+      :root.soft98-pro-theme [data-soft98-pro-nav-group]>li:first-child>[data-soft98-pro-nav-item]{border-start-start-radius:6px!important;border-end-start-radius:6px!important}
+      :root.soft98-pro-theme [data-soft98-pro-nav-group]>li:last-child>[data-soft98-pro-nav-item]{border-inline-end:0!important;border-start-end-radius:6px!important;border-end-end-radius:6px!important}
+      :root.soft98-pro-theme [data-soft98-pro-nav-dropdown]::after{content:none!important;display:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-nav-dropdown]{position:relative;padding-block-end:5px!important}
+      :root.soft98-pro-theme [data-soft98-pro-nav-dropdown] > [data-soft98-pro-nav-indicator]{position:absolute;inset-block-end:3px;inset-inline-start:calc(50% - 2px);width:5px;height:2px;border-radius:2px;background:var(--s98p-faint);pointer-events:none}
+      :root.soft98-pro-theme [data-soft98-pro-nav-dropdown]:is(:hover,:focus-visible,[aria-expanded=true]) > [data-soft98-pro-nav-indicator]{background:var(--s98p-accent)}
+      :root:not(.soft98-pro-theme) [data-soft98-pro-nav-indicator]{display:none!important}
+      :root.soft98-pro-theme article > [data-soft98-pro-article-header]{padding:18px 20px 10px!important;background:linear-gradient(155deg,var(--s98p-elevated),var(--s98p-surface))!important;border-block-end:0!important;border-start-start-radius:8px;border-start-end-radius:8px}
+      :root.soft98-pro-theme [data-soft98-pro-article-header] :is(h1,h2){margin:0!important;font-size:1.3rem!important;line-height:1.65!important;overflow-wrap:anywhere}
+      :root.soft98-pro-theme [data-soft98-pro-article-header] :is(h1,h2) a{color:var(--s98p-text)!important}
+      :root.soft98-pro-theme article > [data-soft98-pro-article-meta]{display:flex!important;flex-wrap:wrap;align-items:center;gap:5px 14px;margin:0!important;padding:8px 20px 12px!important;background:var(--s98p-surface)!important;border-block-end:1px solid var(--s98p-border)!important}
+      :root.soft98-pro-theme [data-soft98-pro-article-meta] > [data-soft98-pro-icon-host]{display:inline-flex!important;align-items:center;gap:4px;float:none!important;margin:0!important;padding:0!important;color:var(--s98p-muted)!important;font-size:.86em;line-height:1.6;white-space:normal}
+      :root.soft98-pro-theme [data-soft98-pro-article-meta] [data-soft98-pro-icon-host]::before,
+      :root.soft98-pro-theme [data-soft98-pro-article-meta] [data-soft98-pro-icon-host]::after{content:none!important;display:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-article-meta] [data-soft98-pro-page-icon]{width:16px;height:16px;margin-inline:0 3px;background:transparent!important;--icon-color:var(--s98p-faint)}
+      :root.soft98-pro-theme [data-soft98-pro-article-meta] svg{width:15px;height:15px}
+      :root.soft98-pro-theme [data-soft98-pro-article-meta] a:not(:hover,:focus-visible){color:var(--s98p-link)!important}
       :root.soft98-pro-theme [data-soft98-pro-heading-divider]{border-inline-start:0!important;padding-inline-start:14px!important;position:relative!important}
       :root.soft98-pro-theme [data-soft98-pro-heading-divider]::before{content:""!important;position:absolute!important;inset-inline-start:0!important;inset-block-start:50%!important;transform:translateY(-50%)!important;width:4px!important;height:1.15em!important;border:0!important;border-radius:3px!important;background:linear-gradient(180deg,var(--s98p-link),color-mix(in srgb,var(--s98p-link) 40%,var(--s98p-border)))!important;box-shadow:0 0 8px color-mix(in srgb,var(--s98p-link) 15%,transparent)!important;pointer-events:none!important}
       @media(max-width:560px){:root.soft98-pro-theme [data-soft98-pro-nav-item=icon]{width:clamp(32px,9vw,40px);margin-inline:1px}}
@@ -1174,6 +1195,19 @@
           const bounds = visibleBox(item);
           if (!bounds.height || bounds.height > 72) continue;
           item.setAttribute("data-soft98-pro-nav-item", item.textContent.trim() ? "label" : "icon");
+          if (item.parentElement.matches("li") && item.parentElement.parentElement.matches("ul,ol")) {
+            item.parentElement.parentElement.setAttribute("data-soft98-pro-nav-group", "");
+          }
+          if (item.matches('[data-toggle="dropdown"],[aria-haspopup="menu"]') ||
+              item.nextElementSibling?.querySelector("a[href],button")) {
+            item.setAttribute("data-soft98-pro-nav-dropdown", "");
+            if (!item.querySelector("[data-soft98-pro-nav-indicator]")) {
+              const indicator = document.createElement("span");
+              indicator.setAttribute("data-soft98-pro-nav-indicator", "");
+              indicator.setAttribute("aria-hidden", "true");
+              item.append(indicator);
+            }
+          }
         }
       }
       for (const candidate of (shell || navigation).querySelectorAll("div,ul,ol,section")) candidates.add(candidate);
@@ -1248,6 +1282,20 @@
 
   function applyProLayoutHeuristics() {
     applyUtilityListHeuristics();
+    for (const header of document.querySelectorAll("article > header:has(> :is(h1,h2))")) {
+      const meta = header.nextElementSibling;
+      if (!meta || meta.children.length < 2 || meta.children.length > 6 || ![...meta.children].every((item) => item.matches("span,time"))) continue;
+      header.setAttribute("data-soft98-pro-article-header", "");
+      meta.setAttribute("data-soft98-pro-article-meta", "");
+      for (const item of meta.children) {
+        const label = item.textContent.trim();
+        const kind = item.querySelector("a[href]") ? "folder" :
+          item.matches("time") || /\p{Nd}.*\p{L}.*\p{Nd}/u.test(label) ? "date" :
+          /^[\p{Nd},،٬.\s]+$/u.test(label) ? "eye" : "author";
+        decorateIcon(item, kind);
+        normalizeLabel(item, document.documentElement.dir === "rtl" || /^fa\b/i.test(document.documentElement.lang));
+      }
+    }
     for (const rule of document.querySelectorAll(":is(article,aside,section) [role=separator]")) {
       if (!isOwnedInterface(rule) && !rule.matches('[aria-orientation="vertical"]')) rule.setAttribute("data-soft98-pro-card-rule", "");
     }
@@ -1317,10 +1365,22 @@
           continue;
         }
         const box = sidebar.getBoundingClientRect();
-        const active = grid.hasAttribute("data-soft98-pro-main-wide");
-        const expand = enabled && !sidebar.contains(document.activeElement) && box.bottom <= (active ? 0 : -16) &&
-          (box.height > 0 || grid.getBoundingClientRect().top < 0);
-        grid.toggleAttribute("data-soft98-pro-main-wide", expand);
+        const space = box.width + (Number.parseFloat(getComputedStyle(grid).columnGap) || 0);
+        const progress = enabled && !sidebar.contains(document.activeElement) && (box.height > 0 || grid.getBoundingClientRect().top < 0)
+          ? Math.min(space, Math.max(0, -box.bottom)) : 0;
+        if (progress > 0) {
+          const apply = (key, value) => {
+            const px = `${value.toFixed(3)}px`;
+            if (grid.style.getPropertyValue(key) !== px) grid.style.setProperty(key, px);
+          };
+          apply("--s98p-sidebar-space", space);
+          apply("--s98p-scroll-width", progress);
+          grid.toggleAttribute("data-soft98-pro-main-wide", true);
+        } else if (grid.hasAttribute("data-soft98-pro-main-wide")) {
+          grid.removeAttribute("data-soft98-pro-main-wide");
+          grid.style.removeProperty("--s98p-sidebar-space");
+          grid.style.removeProperty("--s98p-scroll-width");
+        }
       }
     });
   }
@@ -1693,8 +1753,14 @@
   function themeUtilityIcon(icon, value) {
     const label = normalizedPersian(value).toLowerCase();
     const kind =
-      /winrar|7-zip|archive/.test(label) ? "archive" :
-      /firefox|chrome|browser|microsoftedge|opera|مرورگر/.test(label) ? "web" :
+      /winrar/.test(label) ? "winrar" :
+      /revo-?uninstaller/.test(label) ? "revo" :
+      /freedownloadmanager|free-download-manager|\/tags\/download\+manager\//.test(label) ? "freedownloadmanager" :
+      /firefox/.test(label) ? "firefox" :
+      /google-?chrome/.test(label) ? "chrome" :
+      /microsoft-?edge/.test(label) ? "edge" :
+      /7-zip|archive/.test(label) ? "archive" :
+      /browser|opera|مرورگر/.test(label) ? "web" :
       /uninstaller|حذفنرمافزار/.test(label) ? "remove" :
       /downloadmanager|دانلودمنیجر|مدیریتدانلود/.test(label) ? "download" :
       /photoshop|paint|photo|تصویر/.test(label) ? "photo" :

@@ -31,9 +31,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Added password copy and select-all controls, plus a clearer password field.
 - Replaced the Linux and Android icons with simpler, more readable artwork and unified the platform icon colors.
 - Replaced the old double bars in card headings with a consistent rounded accent.
-- Expanded the article into unused sidebar space after scrolling past the sidebar, with an option to keep the two-column layout.
+- Made article width follow scrolling once the sidebar is out of view, with an option to keep the two-column layout.
 - Added a separate size and date line to download links. Direct Soft98 file links can show cached file details, with Solar Hijri dates in Persian.
 - Replaced legacy utility sprites with transparent artwork and reduced the visual weight of news view counts.
+- Grouped the sticky navigation controls and moved dropdown markers inside the buttons.
+- Restyled article headers and organized the category, author, date, and views into one metadata row.
 - Made the optional success notification brief and off by default.
 - Made Pro styles self-healing with constructable stylesheets so page scripts cannot silently remove layout and theme repairs.
 - Improved ad and warning cleanup through structural, geometric, source, and behavior signals rather than generated page identifiers.

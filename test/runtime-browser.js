@@ -249,6 +249,7 @@ async function main() {
     client = await CdpClient.connect(target.webSocketDebuggerUrl);
     await client.send("Page.enable");
     await client.send("Runtime.enable");
+    await client.send("Emulation.setTimezoneOverride", { timezoneId: "Asia/Tehran" });
     const cases = [
       ["default-dark", "taunt=0&dark=1", { dark: true, rgb: false, tauntTheme: null, tauntBackground: null, logo: "pirateDark" }],
       ["taunt-dark", "taunt=1&dark=1", { dark: true, rgb: false, tauntTheme: "dark", tauntBackground: "rgb(16, 27, 36)", logo: "pirateDark" }],
