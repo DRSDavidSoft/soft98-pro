@@ -5,6 +5,7 @@ const childProcess = require("child_process");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const { pathToFileURL } = require("url");
 
 const ROOT = path.resolve(__dirname, "..");
 const fixture = JSON.parse(fs.readFileSync(path.join(ROOT, "test", "fixtures", "persianblocker-soft98.json"), "utf8"));
@@ -30,13 +31,14 @@ for (const target of ["chromium", "firefox"]) {
 const declarations = warning.match(/##html::after:style\(([\s\S]*)\)$/i);
 if (!declarations) throw new Error("Could not parse the current PersianBlocker warning rule");
 const html = `<!doctype html><html><head><style>html::after{${declarations[1]}}</style><style>${neutralizer}</style></head><body><main>content remains visible</main><script>document.body.setAttribute("data-pseudo-display",getComputedStyle(document.documentElement,"::after").display);document.body.setAttribute("data-pseudo-content",getComputedStyle(document.documentElement,"::after").content);</script></body></html>`;
-const file = path.join(os.tmpdir(), `soft98-persianblocker-${process.pid}.html`);
-fs.writeFileSync(file, html, "utf8");
+const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "soft98-persianblocker-"));
+const file = path.join(temporaryDirectory, "fixture.html");
 try {
+  fs.writeFileSync(file, html, { encoding: "utf8", flag: "wx", mode: 0o600 });
   const candidates = [process.env.CHROME_PATH, "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe", "/usr/bin/google-chrome", "/usr/bin/chromium"].filter(Boolean);
   const chrome = candidates.find((candidate) => fs.existsSync(candidate));
   if (!chrome) throw new Error("Chrome/Chromium is required for PersianBlocker compatibility testing");
-  const url = `file:///${file.replace(/\\/g, "/")}`;
+  const url = pathToFileURL(file).href;
   const result = childProcess.spawnSync(chrome, ["--headless=new", "--disable-gpu", "--no-sandbox", "--dump-dom", url], { encoding: "utf8", windowsHide: true });
   if (result.status !== 0) throw new Error(result.stderr || "Chrome failed to render the PersianBlocker fixture");
   if (!/data-pseudo-display="none"/.test(result.stdout) || !/data-pseudo-content="none"/.test(result.stdout) || !/content remains visible/.test(result.stdout)) {
@@ -44,6 +46,7 @@ try {
   }
 } finally {
   fs.rmSync(file, { force: true });
+  fs.rmdirSync(temporaryDirectory);
 }
 
 console.log(`PersianBlocker compatibility passed for ${fixture.source.commit}`);

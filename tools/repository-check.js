@@ -33,6 +33,7 @@ const required = [
 ];
 const PERSIAN_DOCS = [
   "README.fa.md",
+  "docs/ROADMAP.fa.md",
   ...fs.readdirSync(path.join(ROOT, "docs", "wiki", "fa")).filter((file) => file.endsWith(".md")).map((file) => `docs/wiki/fa/${file}`),
 ];
 

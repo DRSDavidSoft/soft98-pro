@@ -25,7 +25,8 @@
     "ci": "npm run check && npm test && npm run check:repo"
   },
   "devDependencies": {
-    "archiver": "^8.0.0",
-    "terser": "^5.50.0"
+    "acorn": "^8.19.0",
+    "terser": "^5.50.0",
+    "zip-stream": "^7.0.5"
   }
 }

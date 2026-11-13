@@ -32,6 +32,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Fixed the Firefox console layout and the narrow utility sidebar. Optional Soft98 Pro messages stay inside the console, and wide header ads are removed along with their fallback placeholders.
+- Applied the selected Pro branding to the compact navigation logo as well as the main logo.
+- Improved recovery for download links with identical labels in different sections.
+- Detect upstream script moves and metadata changes even when the script contents are unchanged.
 - Prevented queued application-script payloads from colliding, sanitized extension update destinations, and aligned installation links with the stable GitHub Release asset.
 - Restored original logo accessibility and responsive-image attributes when Pro branding is disabled or changed.
 - Prevented malformed upstream JavaScript from removing page content or stopping Soft98 Pro cleanup.

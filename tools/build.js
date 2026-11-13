@@ -4,7 +4,8 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
-const { ZipArchive } = require("archiver");
+const { default: ZipStream } = require("zip-stream");
+const { pipeline } = require("node:stream/promises");
 const terser = require("terser");
 const { writeReleaseNotes } = require("./changelog.js");
 
@@ -217,30 +218,31 @@ function copyUi(target) {
 
 async function zipDirectory(source, output) {
   mkdir(path.dirname(output));
-  await new Promise((resolve, reject) => {
-    const stream = fs.createWriteStream(output);
-    const archive = new ZipArchive({ zlib: { level: 9 } });
-    stream.on("close", resolve);
-    archive.on("error", reject);
-    archive.pipe(stream);
-    const files = [];
-    const collect = (directory) => {
-      for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-        const target = path.join(directory, entry.name);
-        if (entry.isDirectory()) collect(target);
-        else if (entry.isFile()) files.push(target);
-      }
-    };
-    collect(source);
-    for (const file of files.sort()) {
-      archive.append(fs.readFileSync(file), {
+  const files = fs.readdirSync(source, { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile()).map((entry) => path.join(entry.parentPath, entry.name)).sort();
+  const archive = new ZipStream({ zlib: { level: 9 } });
+  const written = pipeline(archive, fs.createWriteStream(output));
+  // Handle stream errors even while waiting for an entry callback.
+  const fill = async () => {
+    for (const file of files) {
+      const content = fs.readFileSync(file);
+      const metadata = {
         name: path.relative(source, file).split(path.sep).join("/"),
         date: new Date("1980-01-01T00:00:00.000Z"),
         mode: 0o644,
+      };
+      await new Promise((resolve, reject) => {
+        archive.entry(content, metadata, (error) => error ? reject(error) : resolve());
       });
     }
-    archive.finalize();
-  });
+    archive.finish();
+  };
+  try {
+    await Promise.all([fill(), written]);
+  } catch (error) {
+    archive.destroy();
+    throw error;
+  }
 }
 
 function chromiumRules() {

@@ -36,26 +36,29 @@ jobs:
 
       - name: "🧬 Inspect current Soft98 application script"
         id: upstream
-        run: node tools/check-soft98-upstream.js --json
+        run: node tools/check-soft98-upstream.js --json --capture
 
       - name: "🧩 Build server-side patched edition"
+        if: steps.upstream.outputs.status == 'compatible'
         run: npm run build:patched-upstream
 
       - name: "🛡️ Inspect current PersianBlocker rules"
         run: npm run check:persianblocker-upstream
 
-      - name: "📣 Create or update compatibility issue"
-        if: steps.upstream.outputs.status != 'compatible'
+      - name: "📣 Report upstream revision"
+        if: ${{ !cancelled() && steps.upstream.outcome == 'success' && (steps.upstream.outputs.status != 'compatible' || steps.upstream.outputs.changed == 'true') }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: node tools/report-soft98-update.js
 
       - name: "📎 Upload compatibility evidence"
+        if: ${{ !cancelled() && steps.upstream.outcome == 'success' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: soft98-compatibility-${{ steps.upstream.outputs.short_sha }}
           path: |
             dist/compatibility-report.json
+            dist/upstream-source.txt
             dist/upstream/manifest.json
             dist/upstream/soft98-application.patched.js
           if-no-files-found: error

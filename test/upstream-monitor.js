@@ -11,5 +11,9 @@ if (urls.length !== 1 || urls[0] !== expected) throw new Error(`Unexpected scrip
 if (supportedScriptUrl("https://example.com/templates/x/jquery.js", base)) throw new Error("Foreign host was accepted");
 if (supportedScriptUrl("https://soft98.ir/templates/x/analytics.js", base)) throw new Error("Unrelated script was accepted");
 if (!supportedScriptUrl("/templates/x/jquery.js", base)) throw new Error("Historic jquery.js alias was rejected");
+const renamed = "https://soft98.ir/templates/new/build.js";
+const moved = scriptUrls(`<script src="${renamed}"></script>${html}`, base);
+if (moved.join(",") !== [expected, renamed].join(",")) throw new Error("Monitor missed a possible script rename");
+if (supportedScriptUrl("http://soft98.ir/templates/x/jquery.js", base)) throw new Error("An insecure script URL was accepted");
 
 console.log("Upstream script discovery tests passed");

@@ -69,6 +69,7 @@
   let compatibilityState = null;
   let processingDom = false;
   let integrityScheduled = false;
+  let useConstructableStyles = true;
 
   const SELECTORS = {
     links: [
@@ -415,15 +416,17 @@
     if (isLikelyNamedAdFrame(element)) return true;
     const image = element.tagName === "IMG" ? element : element.querySelector && element.querySelector("img");
     const link = element.closest && element.closest("a[href]");
-    const href = link ? link.href || link.getAttribute("href") : element.getAttribute("href");
+    const href = link ? link.getAttribute("href") || link.getAttribute("data-href") : element.getAttribute("href");
     if (BLOCKED_URL.test(href || element.getAttribute("src") || "")) return true;
     if (!image) return false;
     const src = image.currentSrc || image.src || image.getAttribute("src") || "";
     const box = visibleBox(image);
     const size = `${box.width}x${box.height}`;
     const firstPartyAdAsset = /img\.soft98\.ir\/(?:ads?|[0-9]+)\//i.test(src);
-    const adSized = AD_SIZE.test(size);
-    return (firstPartyAdAsset && adSized) || (adSized && isExternalAdHref(href)) || isGeneratedAdFamily(link, image);
+    const adSized = AD_SIZE.test(size) || (box.width === 728 && Math.abs(box.height - 90) <= 2);
+    const backup = image.getAttribute("data-backup") || "";
+    const backupMedia = backup && /\.(?:avif|gif|png|webp|jpe?g)(?:[?#]|$)/i.test(backup);
+    return (adSized && (firstPartyAdAsset || isExternalAdHref(href) || (backupMedia && Boolean(link)))) || isGeneratedAdFamily(link, image);
   }
 
   function tokenList(node) {
@@ -454,10 +457,20 @@
   function adRemovalRoot(node) {
     const element = asElement(node);
     if (!element) return null;
-    const link = element.closest && element.closest("a[href]");
-    if (link && isLikelyAdSurface(link)) return link;
+    const link = element.closest && element.closest("a[href],[data-href]");
+    if (link && (isLikelyAdSurface(link) || isDeferredHeaderBanner(link))) {
+      const wrapper = link.parentElement;
+      return wrapper?.children.length === 1 && wrapper.matches("div") && !isProtectedContentContainer(wrapper) ? wrapper : link;
+    }
     if (isLikelyNamedAdFrame(element)) return bestAdFrameRoot(element);
     return element;
+  }
+
+  function isDeferredHeaderBanner(node) {
+    if (!node.closest("header") || !isExternalAdHref(node.getAttribute("data-href"))) return false;
+    const box = visibleBox(node);
+    return box.width >= 300 && box.height >= 40 && box.height <= 180 && box.width / box.height >= 4 &&
+      node.querySelector("img[data-backup],span > small") !== null && !node.querySelector("p,ul,ol,form");
   }
 
   function bestAdFrameRoot(element) {
@@ -525,7 +538,25 @@
     const label = linkLabel(target);
     if (!label) return null;
     const matches = candidates.filter((candidate) => linkLabel(candidate) === label);
-    return matches.length === 1 ? normalizeHref(matches[0]) : null;
+    const destinations = (links) => [...new Set(links.map((link) => normalizeHref(link)).filter(Boolean))];
+    const all = destinations(matches);
+    if (all.length === 1) return all[0];
+    const section = downloadSectionLabel(target);
+    if (!section) return null;
+    const scoped = destinations(matches.filter((candidate) => downloadSectionLabel(candidate) === section));
+    return scoped.length === 1 ? scoped[0] : null;
+  }
+
+  function downloadSectionLabel(link) {
+    const entry = link.closest("dd,li");
+    if (entry?.tagName === "DD") {
+      for (let sibling = entry.previousElementSibling; sibling; sibling = sibling.previousElementSibling) {
+        if (sibling.tagName === "DT") return linkLabel(sibling);
+      }
+    }
+    const group = link.closest("section,article");
+    const heading = group?.querySelector(":scope > header h1,:scope > header h2,:scope > header h3,:scope > h1,:scope > h2,:scope > h3");
+    return heading ? linkLabel(heading) : "";
   }
 
   function recoverLinksFromFreshPage() {
@@ -563,10 +594,13 @@
     const nodes = [];
     if (element.matches && element.matches(SELECTORS.removableAds)) nodes.push(element);
     if (element.querySelectorAll) nodes.push(...element.querySelectorAll(SELECTORS.removableAds));
-    if (element.matches && (isLikelyNamedAdFrame(element) || (["A", "IMG", "IFRAME"].includes(element.tagName) && isLikelyAdSurface(element)))) nodes.push(element);
+    if (element.matches && (isLikelyNamedAdFrame(element) || isDeferredHeaderBanner(element) || (["A", "IMG", "IFRAME"].includes(element.tagName) && isLikelyAdSurface(element)))) nodes.push(element);
     if (element.querySelectorAll) {
       for (const node of element.querySelectorAll("a[href], img, iframe")) {
         if (isLikelyAdSurface(node)) nodes.push(node);
+      }
+      for (const node of element.querySelectorAll("header [data-href]")) {
+        if (isDeferredHeaderBanner(node)) nodes.push(node);
       }
       for (const node of element.querySelectorAll("aside, section, div")) {
         if (isLikelyNamedAdFrame(node)) nodes.push(node);
@@ -574,7 +608,7 @@
     }
     for (const node of nodes) {
       const removable = adRemovalRoot(node);
-      if (removable) {
+      if (removable?.isConnected) {
         removable.remove();
         stats.adsRemoved += 1;
         log("info", text("logs.adSurfaceRemoved"), { tag: removable.tagName, id: removable.id || "", className: removable.className || "" });
@@ -755,7 +789,7 @@
   }
 
   function supportsConstructableStyles() {
-    return Boolean(NativeStyleSheet && NativeStyleSheet.prototype && typeof NativeStyleSheet.prototype.replaceSync === "function" && "adoptedStyleSheets" in document);
+    return Boolean(useConstructableStyles && NativeStyleSheet && NativeStyleSheet.prototype && typeof NativeStyleSheet.prototype.replaceSync === "function" && "adoptedStyleSheets" in document);
   }
 
   function setPersistentStyle(id, cssText, enabled = true) {
@@ -767,10 +801,15 @@
     record.cssText = String(cssText || "");
     record.enabled = Boolean(enabled);
     if (supportsConstructableStyles()) {
-      if (!record.sheet) record.sheet = new NativeStyleSheet();
-      record.sheet.replaceSync(record.enabled ? record.cssText : "");
-      ensureStyleIntegrity();
-      return;
+      try {
+        if (!record.sheet) record.sheet = new NativeStyleSheet();
+        record.sheet.replaceSync(record.enabled ? record.cssText : "");
+        ensureStyleIntegrity();
+        return;
+      } catch (_error) {
+        useConstructableStyles = false;
+        ensureStyleIntegrity();
+      }
     }
     const existing = document.getElementById(id);
     record.node = existing || record.node;
@@ -798,8 +837,12 @@
         const required = [...persistentStyles.values()].filter((record) => record.enabled && record.sheet).map((record) => record.sheet);
         const stale = [...persistentStyles.values()].filter((record) => !record.enabled && record.sheet).map((record) => record.sheet);
         const next = [...current.filter((sheet) => !stale.includes(sheet)), ...required.filter((sheet) => !current.includes(sheet))];
-        if (next.length !== current.length || next.some((sheet, index) => sheet !== current[index])) document.adoptedStyleSheets = next;
-        return;
+        try {
+          if (next.length !== current.length || next.some((sheet, index) => sheet !== current[index])) document.adoptedStyleSheets = next;
+          return;
+        } catch (_error) {
+          useConstructableStyles = false;
+        }
       }
       for (const record of persistentStyles.values()) {
         if (!record.enabled) continue;
@@ -828,6 +871,7 @@
       [data-soft98-pro-brand-replaced]{border:1px solid #b8cbd5!important;border-radius:6px!important;background:#f7fafc!important;color:#1d2a35!important;box-shadow:0 6px 20px rgba(27,45,57,.12)!important;padding:.35em .65em!important;font:600 13px/1.6 system-ui,sans-serif!important;text-decoration:none!important}
       .soft98-pro-theme [data-soft98-pro-brand-replaced]{border-color:var(--s98p-border)!important;background:var(--s98p-surface-2)!important;color:var(--s98p-accent)!important;box-shadow:0 8px 24px rgba(0,0,0,.28)!important}
       a[${DATA_HREF}]{pointer-events:auto}
+      a[data-soft98-brand-compact]{background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important}
       [data-soft98-brand-kind=background]{display:block!important;min-height:104px!important;background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important}
       [data-soft98-brand-kind=background]>*{visibility:hidden!important}
       @media(max-width:700px){[data-soft98-brand-kind=background]{min-height:78px!important}}
@@ -862,6 +906,8 @@
       .soft98-pro-theme body,.soft98-pro-theme p,.soft98-pro-theme li,.soft98-pro-theme dd,.soft98-pro-theme td,.soft98-pro-theme span{color:var(--s98p-text)}
       .soft98-pro-theme small,.soft98-pro-theme time,.soft98-pro-theme [data-soft98-pro-tone=muted]{color:var(--s98p-muted)!important}
       .soft98-pro-theme [data-soft98-pro-tone=body]{color:var(--s98p-text)!important}
+      .soft98-pro-theme a[data-soft98-pro-tone=action]{background:var(--s98p-surface-2)!important;border-color:var(--s98p-border-soft)!important;color:var(--s98p-text)!important}
+      .soft98-pro-theme a[data-soft98-pro-tone=action]:hover{background:var(--s98p-soft)!important}
       .soft98-pro-theme a{color:var(--s98p-link)!important;text-decoration-color:color-mix(in srgb,var(--s98p-link) 42%,transparent);transition:color .16s ease,text-decoration-color .16s ease,background-color .16s ease,border-color .16s ease,transform .16s ease,box-shadow .2s ease}
       .soft98-pro-theme a:hover{color:#d4efff!important;text-decoration-color:var(--s98p-accent)}
       .soft98-pro-theme a:focus-visible,.soft98-pro-theme button:focus-visible,.soft98-pro-theme input:focus-visible,.soft98-pro-theme select:focus-visible,.soft98-pro-theme textarea:focus-visible{outline:2px solid var(--s98p-accent)!important;outline-offset:3px!important}
@@ -899,8 +945,9 @@
       .soft98-pro-theme ::selection{background:rgba(116,224,176,.32);color:#fff}
       .soft98-pro-link-badge{margin-inline-start:.45em;padding:.12em .45em;border:1px solid rgba(112,225,178,.42);border-radius:999px;color:#baffd8;background:rgba(112,225,178,.12);font-size:.78em;vertical-align:middle}
       .soft98-pro-compact [data-soft98-pro-layout=content-grid]{display:grid!important;grid-template-columns:minmax(0,2fr) minmax(270px,1fr)!important;align-items:start!important;gap:18px!important;direction:ltr!important}
-      .soft98-pro-compact [data-soft98-pro-column=primary]{grid-column:1!important;min-width:0!important}
-      .soft98-pro-compact [data-soft98-pro-column=secondary]{grid-column:2!important;min-width:0!important}
+      .soft98-pro-compact [data-soft98-pro-column]{width:100%!important;min-width:0!important;max-width:none!important;box-sizing:border-box}
+      .soft98-pro-compact [data-soft98-pro-column=primary]{grid-column:1!important}
+      .soft98-pro-compact [data-soft98-pro-column=secondary]{grid-column:2!important}
       .soft98-pro-compact [data-soft98-pro-reading=rtl]{direction:rtl!important}
       .soft98-pro-compact [data-soft98-pro-reading=ltr]{direction:ltr!important}
       .soft98-pro-compact article,.soft98-pro-compact aside{border-radius:var(--s98p-radius)!important}
@@ -956,6 +1003,14 @@
       const foreground = colorMetrics(getComputedStyle(node).color);
       if (!foreground || foreground.alpha < 0.5 || foreground.luminance > 0.42) continue;
       node.setAttribute("data-soft98-pro-tone", node.matches("small,time") ? "muted" : "body");
+    }
+    const links = element.matches?.("a[href]") ? [element] : [...element.querySelectorAll("a[href]")];
+    for (const link of links) {
+      if (!link.closest("[role=tabpanel]") || isOwnedInterface(link)) continue;
+      const box = visibleBox(link);
+      if (box.width < 90 || box.height < 24) continue;
+      const background = colorMetrics(getComputedStyle(link).backgroundColor);
+      if (background?.alpha >= 0.8 && background.luminance >= 0.28) link.setAttribute("data-soft98-pro-tone", "action");
     }
   }
 
@@ -1045,7 +1100,7 @@
         const children = [...container.children];
         const primary = children.find((child) => child === main || child.contains(main));
         const secondary = children.find((child) => child !== primary && (child.matches("aside") || child.querySelector("aside")));
-        if (!primary || !secondary) continue;
+        if (children.length !== 2 || !primary || !secondary) continue;
         const box = visibleBox(container);
         const primaryBox = visibleBox(primary);
         const secondaryBox = visibleBox(secondary);
@@ -1212,22 +1267,22 @@
       logo.removeAttribute("data-soft98-original-logo");
       logo.removeAttribute("data-soft98-brand-variant");
       logo.removeAttribute("data-soft98-brand-kind");
+      logo.removeAttribute("data-soft98-brand-compact");
     }
     for (const link of document.querySelectorAll("[data-soft98-original-logo]")) {
       const original = link.getAttribute("data-soft98-original-logo");
       if (!original) continue;
       link.style.backgroundImage = original === "__none__" ? "" : original;
-      link.style.backgroundSize = "";
-      link.style.backgroundRepeat = "";
-      link.style.backgroundPosition = "";
       link.removeAttribute("data-soft98-original-logo");
       link.removeAttribute("data-soft98-brand-variant");
       link.removeAttribute("data-soft98-brand-kind");
+      link.removeAttribute("data-soft98-brand-compact");
     }
   }
 
-  function logoCandidate() {
+  function logoCandidates() {
     const candidates = [];
+    const compact = [];
     for (const link of document.querySelectorAll("a[href]")) {
       let url;
       try {
@@ -1237,18 +1292,29 @@
       }
       if (!/^\/?$/.test(url.pathname) || (url.origin !== location.origin && !/(?:^|\.)soft98\.ir$/i.test(url.hostname))) continue;
       const box = visibleBox(link);
-      if (!box.width || !box.height) continue;
       const linkSignals = `${link.textContent || ""} ${link.title || ""} ${link.getAttribute("aria-label") || ""}`;
       const image = link.querySelector("img");
       const imageSignals = image ? `${image.alt || ""} ${image.title || ""}` : "";
-      const assetSignals = `${image ? image.currentSrc || image.src || "" : ""} ${getComputedStyle(link).backgroundImage || ""}`;
+      const background = getComputedStyle(link).backgroundImage;
+      const assetSignals = `${image ? image.currentSrc || image.src || "" : ""} ${background}`;
+      const candidate = { node: image || link, kind: image ? "image" : "background" };
+      const inNavigation = Boolean(link.closest("nav,[role=navigation]"));
+      const hasGraphic = Boolean(image || background.startsWith("url("));
+      const isCompactBrand = candidate.node.hasAttribute("data-soft98-brand-compact") || /\/navbar-brand\.[a-z]+(?:[?"')]|$)/i.test(assetSignals) ||
+        (inNavigation && hasGraphic && box.width > 0 && box.height > 0 && box.height <= 64 && (link.rel === "home" || link.children.length > 0));
+      if (isCompactBrand) {
+        compact.push({ ...candidate, compact: true });
+        continue;
+      }
+      if (!box.width || !box.height) continue;
+      if (!hasGraphic && !link.hasAttribute("data-soft98-brand-kind")) continue;
       const shapeScore = box.width > box.height * 1.5 ? 4 : 0;
       const areaScore = box.width * box.height > 10000 ? 5 : box.width * box.height > 1400 ? 2 : 0;
       const homeScore = /\bhome\b/i.test(link.rel || "") ? 2 : 0;
       const brandScore = /soft\s*98|سافت[\s\u200c]*(?:98|۹۸|٩٨)|logo/i.test(`${linkSignals} ${imageSignals}`) ? 8 : 0;
       const primaryAssetScore = /\/(?:logo|wordmark)[^/)]*\.(?:avif|png|webp|gif|svg)/i.test(assetSignals) ? 10 : 0;
       const imageScore = image ? 3 : 0;
-      candidates.push({ node: image || link, kind: image ? "image" : "background", score: shapeScore + areaScore + homeScore + brandScore + primaryAssetScore + imageScore });
+      candidates.push({ ...candidate, score: shapeScore + areaScore + homeScore + brandScore + primaryAssetScore + imageScore });
     }
     let best = null;
     let score = -1;
@@ -1258,18 +1324,22 @@
         score = candidate.score;
       }
     }
-    return best;
+    return best ? [best, ...compact] : compact;
   }
 
   function enhanceLogo() {
     if (!successAnnounced || !settings.pirateLogo) return restoreOriginalLogo();
-    const candidate = logoCandidate();
-    if (!candidate) return;
+    for (const candidate of logoCandidates()) applyLogo(candidate);
+  }
+
+  function applyLogo(candidate) {
     const logo = candidate.node;
-    const dark = settings.pro && settings.darkDesign;
+    const dark = settings.pro && (settings.darkDesign || settings.rgbMode);
     const variant = dark ? "pirateDark" : "light";
     const source = BRAND_ASSETS[variant];
-    if (!source || logo.getAttribute("data-soft98-brand-variant") === variant) return;
+    if (!source) return;
+    const branded = logo.getAttribute("data-soft98-brand-variant") === variant;
+    if (branded && (candidate.kind === "image" ? logo.getAttribute("src") === source : logo.style.backgroundImage.includes(source))) return;
     if (candidate.kind === "image") {
       if (!logo.hasAttribute("data-soft98-original-logo")) {
         logo.setAttribute("data-soft98-original-logo", logo.getAttribute("src") || "");
@@ -1287,6 +1357,7 @@
     }
     logo.setAttribute("data-soft98-brand-variant", variant);
     logo.setAttribute("data-soft98-brand-kind", candidate.kind);
+    if (candidate.compact) logo.setAttribute("data-soft98-brand-compact", "");
   }
 
   function renderTaunt() {
@@ -1295,6 +1366,8 @@
       if (previous) previous.remove();
       return;
     }
+    const panel = document.getElementById("soft98-pro-panel-advanced");
+    if (!panel) return;
     const note = previous || document.createElement("aside");
     note.id = "soft98-ad-blocker-taunt";
     localizeElement(note);
@@ -1302,7 +1375,7 @@
     note.innerHTML = `<span>${text("tauntText")}</span><a rel="noopener noreferrer" target="_blank" href="${EXTENSION_REPO}">${text("tauntLink")}</a>`;
     const style = document.createElement("style");
     style.textContent = `
-      #soft98-ad-blocker-taunt{--taunt-bg:#f7fafc;--taunt-border:#cbd7e1;--taunt-text:#1d2a35;--taunt-link:#0b6f55;grid-template-columns:1fr auto;align-items:center;gap:12px;width:min(780px,calc(100% - 28px));margin:14px auto;padding:10px 14px;border:1px solid var(--taunt-border)!important;border-radius:8px;background:var(--taunt-bg)!important;color:var(--taunt-text)!important;box-shadow:0 8px 24px rgba(20,35,48,.08)!important;font:13px/1.8 system-ui,sans-serif;text-align:start;direction:inherit}
+      #soft98-ad-blocker-taunt{--taunt-bg:#f7fafc;--taunt-border:#cbd7e1;--taunt-text:#1d2a35;--taunt-link:#0b6f55;grid-template-columns:minmax(0,1fr);gap:4px;padding:10px 12px;border:1px solid var(--taunt-border)!important;border-radius:7px;background:var(--taunt-bg)!important;color:var(--taunt-text)!important;font:inherit;text-align:start;direction:inherit}
       #soft98-ad-blocker-taunt[data-theme=dark]{--taunt-bg:#101b24;--taunt-border:#344955;--taunt-text:#eef7f8;--taunt-link:#7ce0bd;box-shadow:0 12px 28px rgba(0,0,0,.28)}
       #soft98-ad-blocker-taunt span{color:var(--taunt-text)!important;background:transparent!important;unicode-bidi:plaintext}
       #soft98-ad-blocker-taunt a{color:var(--taunt-link)!important;background:transparent!important;font-weight:750;text-decoration:none;white-space:nowrap}
@@ -1310,8 +1383,7 @@
     `;
     note.appendChild(style);
     if (!previous) {
-      const footer = [...document.querySelectorAll("footer")].find((node) => visibleBox(node).width > 200) || document.body;
-      footer.appendChild(note);
+      panel.appendChild(note);
     }
   }
 
@@ -1590,9 +1662,11 @@
       @media(max-width:520px){#soft98-pro-control form{width:min(400px,calc(100vw - 16px));max-height:calc(100vh - 66px)}#soft98-pro-control .s98p-console-header{grid-template-columns:42px minmax(0,1fr) 30px}#soft98-pro-control .s98p-version{display:none}#soft98-pro-control .s98p-option-copy small,#soft98-pro-control .s98p-panel-intro small{font-size:10px}}
       @media(prefers-reduced-motion:reduce){#soft98-pro-control{animation:none!important}#soft98-pro-control *,#soft98-pro-control *:before,#soft98-pro-control *:after{transition:none!important}}
     `;
-    wrap.appendChild(style);
+    setPersistentStyle("soft98-pro-control-style", style.textContent);
     const toggle = wrap.querySelector("[data-role='toggle']");
     const form = wrap.querySelector("form");
+    form.hidden = !wasOpen;
+    if (!wasOpen) form.style.setProperty("display", "none", "important");
     let position = placeControl(wrap, readControlPosition() || defaultControlPosition(), false);
     let drag = null;
     let suppressClick = false;
@@ -1600,6 +1674,9 @@
       wrap.setAttribute("data-open", open ? "true" : "false");
       toggle.setAttribute("aria-expanded", open ? "true" : "false");
       form.setAttribute("aria-hidden", open ? "false" : "true");
+      form.hidden = !open;
+      if (open) form.style.removeProperty("display");
+      else form.style.setProperty("display", "none", "important");
       if (moveFocus) {
         const target = open ? form.querySelector('[role="tab"][aria-selected="true"]') : toggle;
         if (target) target.focus({ preventScroll: true });
@@ -1707,6 +1784,7 @@
       position = placeControl(wrap, position, true);
     }, { signal });
     document.body.appendChild(wrap);
+    syncSuccessEnhancements();
     refreshControlTelemetry();
     if (focusedName) {
       const focused = wrap.querySelector(`input[name="${focusedName}"]`);
@@ -1733,6 +1811,8 @@
 
   function renderExtensionRecommendation() {
     if (!settings.recommendExtension || document.getElementById("soft98-extension-recommendation")) return;
+    const advanced = document.getElementById("soft98-pro-panel-advanced");
+    if (!advanced) return;
     const panel = document.createElement("aside");
     panel.id = "soft98-extension-recommendation";
     localizeElement(panel);
@@ -1744,7 +1824,7 @@
     `;
     const style = document.createElement("style");
     style.textContent = `
-      #soft98-extension-recommendation{position:fixed;z-index:2147483646;right:16px;bottom:16px;display:grid;gap:7px;max-width:330px;padding:14px 16px;border:1px solid rgba(112,225,178,.36);border-radius:14px;background:linear-gradient(145deg,rgba(8,17,26,.96),rgba(18,34,48,.96));color:#e6f0fa;box-shadow:0 18px 55px rgba(0,0,0,.42);font:13px/1.7 system-ui,sans-serif}
+      #soft98-extension-recommendation{position:relative;display:grid;gap:7px;padding:12px 28px 12px 12px;border:1px solid var(--c-border);border-radius:7px;background:var(--c-bg-soft);color:var(--c-text);font:inherit}
       #soft98-extension-recommendation span{color:#b8c7d8}
       #soft98-extension-recommendation a{color:#70e1b2;font-weight:800;text-decoration:none}
       #soft98-extension-recommendation button{position:absolute;top:8px;left:8px;border:0;background:transparent;color:#9db1c6;font-size:18px;cursor:pointer}
@@ -1754,7 +1834,7 @@
       writeSettings({ ...settings, recommendExtension: false });
       panel.remove();
     });
-    document.body.appendChild(panel);
+    advanced.appendChild(panel);
   }
 
   function escapeHtml(value) {
@@ -2231,9 +2311,10 @@
         for (const node of mutation.removedNodes) {
           const element = asElement(node);
           if (!element) continue;
-          if (element.matches("[data-soft98-pro-owned=style],#soft98-pro-control") || element.querySelector("[data-soft98-pro-owned=style],#soft98-pro-control")) {
+          const owned = "[data-soft98-pro-owned=style],#soft98-pro-control";
+          if (element.matches(owned) || element.querySelector(owned) || mutation.target.closest?.("#soft98-pro-control")) {
             ensureStyleIntegrity();
-            if (!document.getElementById("soft98-pro-control")) onReady(renderControlPanel);
+            if (!document.querySelector("#soft98-pro-control > form")) onReady(renderControlPanel);
           }
         }
       }
@@ -2353,6 +2434,8 @@
       const wrap = document.querySelector("#soft98-pro-control");
       const form = document.querySelector("#soft98-pro-control form");
       if (wrap && form) {
+        form.hidden = false;
+        form.style.removeProperty("display");
         wrap.setAttribute("data-open", "true");
         form.setAttribute("aria-hidden", "false");
         const toggle = wrap.querySelector("[data-role='toggle']");

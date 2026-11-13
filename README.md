@@ -222,6 +222,7 @@ The friendly alias `window.Soft98Pro` is also available. See the [Diagnostics Gu
 - [Development](docs/wiki/Development.md): build, test, and contribution workflow.
 - [CI/CD and Releases](docs/wiki/CI-CD-and-Releases.md): upstream monitoring, security gates, provenance, and release automation.
 - [Documentation Style Guide](docs/Documentation-Style-Guide.md): bilingual structure, visual standards, RTL guidance, and review checklist.
+- [Roadmap and legacy feature parity](docs/ROADMAP.md): planned work and a comparison with the original userscript.
 - [Persian README](README.fa.md): complete Persian version of this document.
 
 ---

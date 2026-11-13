@@ -221,6 +221,7 @@ window.Soft98AdBlocker.stats
 - [ابزارهای تشخیص](docs/wiki/fa/Diagnostics.md): ابزارهای کنسول و رفع اشکال.
 - [توسعه](docs/wiki/fa/Development.md): فرایند ساخت، تست و مشارکت.
 - [راهنمای سبک مستندات](docs/Documentation-Style-Guide.md): ساختار دوزبانه، استانداردهای تصویری، راست‌به‌چپ و چک‌لیست بازبینی.
+- [نقشه راه](docs/ROADMAP.fa.md): کارهای بعدی و مقایسه قابلیت‌های نسخه قدیمی.
 - [نسخه انگلیسی README](README.md): نسخه کامل انگلیسی این سند.
 
 ---
