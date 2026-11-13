@@ -5,6 +5,8 @@
 <a href="README.md"><img src="docs/assets/badge-en.svg" alt="English" height="22"/></a>&nbsp;
 <a href="README.fa.md"><img src="docs/assets/badge-fa.svg" alt="فارسی" height="22"/></a>
 
+[نسخهٔ انگلیسی مستندات](README.md)
+
 <h1>نسخه حرفه‌ای Soft98</h1>
 
 ![محافظت، بازیابی لینک و پوسته‌های Soft98 Pro](docs/assets/soft98-pro-banner.svg)
@@ -23,6 +25,8 @@
 ## 📸 تصویر نمونه
 
 ![نمای حالت تاریک Soft98 Pro روی وب‌سایت Soft98](docs/assets/soft98-pro-dark.png)
+
+[عکس‌های قبل و بعد از بازطراحی صفحهٔ دانلود](docs/assets/comparison/README.md)
 
 افزونه Soft98 Pro با مسدودسازی مقاوم تبلیغات، اصلاح کد ضدادبلاک، بازیابی لینک دانلود، پاک‌سازی هشدارها و یک رابط تاریک مدرن، تجربه کار با Soft98 را بهتر می‌کند. این پروژه به‌صورت یوزراسکریپت و افزونه مرورگر برای Chrome، Edge و Firefox ارائه می‌شود.
 

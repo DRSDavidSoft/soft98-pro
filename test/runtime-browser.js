@@ -140,6 +140,8 @@ function assertDarkTabSurfaces(name, theme) {
   assertEqual(name, "tab card surface", theme.cardSurface, "tab-card");
   assertEqual(name, "tab content surface", theme.contentSurface, "tab-content");
   if (theme.paneSurfaces.join(",") !== "tab-pane,tab-pane") throw new Error(`${name}: controlled tab panes were not classified`);
+  assertEqual(name, "no boxed tab border", theme.incomingBorder, "0px");
+  if (!/inset/.test(theme.incomingIndicator)) throw new Error(`${name}: active tab indicator is missing`);
   for (const [field, value] of Object.entries({
     card: theme.cardBackground,
     content: theme.contentBackground,
@@ -167,6 +169,11 @@ function assertCase(name, results, expected) {
     scrollWarnings: 0,
     tauntTheme: expected.tauntTheme,
     tauntBackground: expected.tauntBackground,
+    tauntStatus: expected.tauntTheme ? "status" : null,
+    downloadCopy: "دانلود (Official link)، حجم 1,200 مگابایت",
+    downloadPath: "/files/AnyDesk.9.8.3.zip",
+    downloadIcons: expected.dark ? "chevron,windows,download,apple,linux,apple,android" : "",
+    isolatedParenthesis: true,
     logoVariant: expected.logo,
     rgbMode: expected.rgb,
     rgbAmbient: false,
@@ -248,6 +255,10 @@ async function main() {
       await client.send("Page.navigate", { url: `http://127.0.0.1:${PORT}/?${query}` });
       const results = await waitForResults(client);
       assertCase(name, results, expected);
+      if (name === "taunt-dark") {
+        await delay(6100);
+        assertEqual(name, "expired success notification", await evaluate(client, `window.Soft98Pro.configure({ taunt: true }); Boolean(document.getElementById("soft98-ad-blocker-taunt"))`), false);
+      }
     }
     console.log("Soft98 runtime browser acceptance passed");
   } finally {

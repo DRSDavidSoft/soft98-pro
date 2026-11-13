@@ -173,6 +173,17 @@
             "</div>";
           document.body.appendChild(tabCard);
 
+          var downloadArticle = document.createElement("article");
+          downloadArticle.setAttribute("data-test", "download-article");
+          downloadArticle.dir = "rtl";
+          downloadArticle.innerHTML =
+            '<details><summary>پرسش درباره anydesk ( windows )</summary><p>پاسخ</p></details>' +
+            '<div role="tabpanel"><dl><dt><span>نسخه windows</span></dt>' +
+            '<dd><a data-test="download-copy" href="/files/AnyDesk.9.8.3.zip">دانلود ( official link ) ، حجم 1,200 مگابایت</a></dd>' +
+            '<dd><a href="/platform/mac">نسخه macos</a></dd><dd><a href="/platform/linux">نسخه linux</a></dd>' +
+            '<dd><a href="/platform/ios">نسخه ios</a></dd><dd><a href="/platform/android">نسخه android</a></dd></dl></div>';
+          document.body.appendChild(downloadArticle);
+
           var utilityAside = document.createElement("aside");
           utilityAside.setAttribute("data-test", "utility-aside");
           utilityAside.style.cssText = "width:340px;background:rgb(255,255,255);color:rgb(30,30,30)";
@@ -252,6 +263,7 @@
           if (proStyleNode) proStyleNode.remove();
           var utilityList = document.querySelector('[data-test="utility-list"]');
           var utilityRows = utilityList.querySelectorAll("a[href]");
+          var downloadArticle = document.querySelector('[data-test="download-article"]');
           var tabTheme = (function () {
             var card = document.querySelector('[data-test="tab-card"]');
             var content = card.querySelector('[data-test="tab-content"]');
@@ -270,6 +282,8 @@
               contentBackground: getComputedStyle(content).backgroundColor,
               outgoingBackground: getComputedStyle(outgoing).backgroundColor,
               incomingBackground: getComputedStyle(incoming).backgroundColor,
+              incomingBorder: getComputedStyle(incoming).borderBottomWidth,
+              incomingIndicator: getComputedStyle(incoming).boxShadow,
             };
           })();
           window.__results = {
@@ -299,6 +313,11 @@
             version: window.Soft98AdBlocker && window.Soft98AdBlocker.version,
             tauntTheme: document.querySelector("#soft98-ad-blocker-taunt") && document.querySelector("#soft98-ad-blocker-taunt").getAttribute("data-theme"),
             tauntBackground: document.querySelector("#soft98-ad-blocker-taunt") && getComputedStyle(document.querySelector("#soft98-ad-blocker-taunt")).backgroundColor,
+            tauntStatus: document.querySelector("#soft98-ad-blocker-taunt")?.getAttribute("role") || null,
+            downloadCopy: document.querySelector('[data-test="download-copy"]').textContent,
+            downloadPath: document.querySelector('[data-test="download-copy"]').getAttribute("href"),
+            downloadIcons: Array.from(downloadArticle.querySelectorAll('[data-soft98-pro-page-icon]')).map(function (node) { return node.getAttribute("data-soft98-pro-page-icon"); }).join(","),
+            isolatedParenthesis: Array.from(downloadArticle.querySelectorAll('bdi')).some(function (node) { return node.textContent === "(Official link)" && getComputedStyle(node).direction === "ltr"; }),
             logoVariant: document.querySelector("[data-soft98-brand-variant]") && document.querySelector("[data-soft98-brand-variant]").getAttribute("data-soft98-brand-variant"),
             rgbMode: document.documentElement.classList.contains("soft98-pro-rgb"),
             rgbAmbient: Boolean(document.querySelector("#soft98-pro-ambient")),

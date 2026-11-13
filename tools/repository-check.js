@@ -16,6 +16,7 @@ const required = [
   ".github/ISSUE_TEMPLATE/feature-request.yml",
   ".github/ISSUE_TEMPLATE/soft98-script-update.yml",
   ".github/actionlint.yaml",
+  ".github/copilot-instructions.md",
   ".github/dependabot.yml",
   ".github/pull_request_template.md",
   ".github/release.yml",
@@ -25,6 +26,7 @@ const required = [
   ".github/workflows/release.yml",
   ".github/workflows/repository-health.yml",
   "CHANGELOG.md",
+  "AGENTS.md",
   "CODE_OF_CONDUCT.md",
   "CONTRIBUTING.md",
   "LICENSE",
@@ -49,6 +51,8 @@ for (const file of ["README.md", "README.fa.md"]) {
   const hero = source.indexOf("docs/assets/soft98-pro-banner.svg");
   const screenshot = source.indexOf("docs/assets/soft98-pro-dark.png");
   if (hero < 0 || screenshot < 0 || hero > screenshot) throw new Error(`${file} must show the branded hero before the product screenshot`);
+  const otherLanguage = file === "README.md" ? "README.fa.md" : "README.md";
+  if (!source.includes(`](${otherLanguage})`)) throw new Error(`${file} must link to ${otherLanguage} in text as well as the language badge`);
 }
 
 function renderedTextStart(value) {

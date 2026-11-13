@@ -17,7 +17,7 @@
         "rgbMode": "Animated RGB mode",
         "linkBadges": "Download badges",
         "pirateLogo": "Pirate logo",
-        "taunt": "Success challenge",
+        "taunt": "Success notification",
         "diagnostics": "Console diagnostics",
         "recommendExtension": "Recommend extension",
         "moveControl": "Drag to move. Alt+Arrow keys also move this control.",
@@ -84,8 +84,8 @@
             "detail": "Use the bundled transparent pirate identity after successful protection."
           },
           "taunt": {
-            "title": "Success challenge",
-            "detail": "Show the optional theme-aware challenge only after protection succeeds."
+            "title": "Success notification",
+            "detail": "Briefly show a message after cleanup. Off by default."
           },
           "diagnostics": {
             "title": "Console telemetry",
@@ -102,9 +102,8 @@
         "extensionTitle": "Browser extension is ready",
         "extensionBody": "Install the extension for more precise control, richer settings, and steadier execution in Chrome, Edge, and Firefox.",
         "extensionLink": "Get Soft98 Pro",
-        "tauntText": "The page kept its software. The advertising campaign lost the boarding pass.",
-        "tauntLink": "Inspect Soft98 Pro",
-        "successLog": "The page kept its content. The ads did not. Challenge accepted with clean instruments.",
+        "tauntText": "Ads removed.",
+        "successLog": "Page cleanup completed.",
         "updateAvailable": "Soft98 Pro {version} is available.",
         "updateAction": "Open release",
         "scriptUnknownBadge": "Soft98 changed its packed script. Compatibility review is available.",
@@ -180,7 +179,7 @@
           "rgbMode": ["Animated RGB mode", "Add a restrained spectral glass experience with efficient motion and reduced-motion support."],
           "linkBadges": ["Download badges", "Mark recovered download links."],
           "pirateLogo": ["Pirate logo", "Use the bundled pirate logo after successful cleanup."],
-          "taunt": ["Success challenge", "Show the optional success note only after cleanup succeeds."],
+          "taunt": ["Success notification", "Briefly show a message after cleanup. Off by default."],
           "diagnostics": ["Console diagnostics", "Expose useful logs and interactive page APIs."]
         }
       }
@@ -201,7 +200,7 @@
         "rgbMode": "حالت RGB متحرک",
         "linkBadges": "نشان لینک دانلود",
         "pirateLogo": "لوگوی دزدان دریایی",
-        "taunt": "چالش موفقیت",
+        "taunt": "پیام موفقیت",
         "diagnostics": "گزارش کنسول",
         "recommendExtension": "پیشنهاد افزونه",
         "moveControl": "برای جابه‌جایی بکشید. با Alt و کلیدهای جهت‌دار نیز حرکت می‌کند.",
@@ -268,8 +267,8 @@
             "detail": "پس از موفقیت حفاظت، از نشان شفاف داخلی استفاده می‌کند."
           },
           "taunt": {
-            "title": "چالش موفقیت",
-            "detail": "چالش اختیاری و هماهنگ با پوسته را فقط پس از موفقیت نمایش می‌دهد."
+            "title": "پیام موفقیت",
+            "detail": "بعد از پاک‌سازی، پیام را چند ثانیه نشان بده. پیش‌فرض خاموش است."
           },
           "diagnostics": {
             "title": "گزارش عیب‌یابی",
@@ -286,9 +285,8 @@
         "extensionTitle": "افزونه مرورگر آماده نصب است",
         "extensionBody": "برای کنترل بیشتر، تنظیمات کامل‌تر و اجرای مطمئن‌تر در Chrome، Edge و Firefox، افزونه مرورگر را نصب کنید.",
         "extensionLink": "دریافت Soft98 Pro",
-        "tauntText": "نرم‌افزارهای صفحه سر جای خود ماندند؛ کاروان تبلیغات مجوز سوارشدن نگرفت.",
-        "tauntLink": "بررسی Soft98 Pro",
-        "successLog": "محتوای صفحه ماند و تبلیغات نماند؛ چالش با ابزار تمیز پاسخ داده شد.",
+        "tauntText": "تبلیغات حذف شد.",
+        "successLog": "پاک‌سازی صفحه انجام شد.",
         "updateAvailable": "نسخه {version} از Soft98 Pro آماده است.",
         "updateAction": "مشاهده نسخه",
         "scriptUnknownBadge": "کد فشرده Soft98 تغییر کرده و نیازمند بررسی سازگاری است.",
@@ -364,7 +362,7 @@
           "rgbMode": ["حالت RGB متحرک", "افزودن ظاهر شیشه‌ای طیفی و کنترل‌شده با حرکت بهینه و پشتیبانی از کاهش حرکت."],
           "linkBadges": ["نشان لینک دانلود", "نمایش نشان روی لینک‌های بازیابی‌شده."],
           "pirateLogo": ["لوگوی دزدان دریایی", "استفاده از لوگوی داخلی پس از پاک‌سازی موفق."],
-          "taunt": ["چالش موفقیت", "نمایش پیام اختیاری فقط پس از موفقیت پاک‌سازی."],
+          "taunt": ["پیام موفقیت", "بعد از پاک‌سازی، پیام را چند ثانیه نشان بده. پیش‌فرض خاموش است."],
           "diagnostics": ["گزارش کنسول", "نمایش لاگ‌ها و APIهای تعاملی برای بررسی."]
         }
       }

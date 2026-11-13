@@ -23,6 +23,8 @@
   const CATALOG = __SOFT98_MESSAGES__;
   const COMPATIBILITY = __SOFT98_COMPATIBILITY__;
   const BRAND_ASSETS = __SOFT98_BRAND_ASSETS__;
+  const PAGE_ICONS = __SOFT98_PAGE_ICONS__;
+  const SUCCESS_NOTICE_MS = 6000;
   const PatchEngine = globalThis.__Soft98PatchEngine;
   const LOCALE = preferredLocale();
   const RTL = LOCALE === "fa";
@@ -67,6 +69,8 @@
   let recoveryStarted = false;
   let originalTitle = document.title || "";
   let successAnnounced = false;
+  let successNoticeTimer = null;
+  let successNoticeShown = false;
   let faviconState = "";
   let controlAbortController = null;
   let controlSection = "protection";
@@ -761,7 +765,7 @@
     const recommendation = document.getElementById("soft98-extension-recommendation");
     if (recommendation && !settings.recommendExtension) recommendation.remove();
     const taunt = document.getElementById("soft98-ad-blocker-taunt");
-    if (taunt && (!settings.taunt || !successAnnounced)) taunt.remove();
+    if (taunt && (!settings.taunt || !taunt.hasAttribute("data-soft98-pro-notice"))) taunt.remove();
   }
 
   function domDepth(element) {
@@ -886,13 +890,17 @@
       .download-list-item-buysellads,[class*="buysellads"],#footer-bitcoin,iframe[src*="kaprila.com"],
       .tbd_ibd,.tbdc,.trk_irk,.alert-warning,[role="alert"],
       #soft98-ad-blocker-taunt,#soft98-extension-recommendation{display:none!important}
-      :root[data-soft98-runtime-ready] #soft98-ad-blocker-taunt,
+      :root[data-soft98-runtime-ready] #soft98-ad-blocker-taunt[data-soft98-pro-notice],
       :root[data-soft98-runtime-ready] #soft98-extension-recommendation{display:grid!important}
+      #soft98-ad-blocker-taunt[data-soft98-pro-notice]{--taunt-bg:#f7fafc;--taunt-border:#b6cec3;--taunt-text:#21332d;position:fixed;bottom:64px;inset-inline-start:12px;z-index:2147483646;box-sizing:border-box;width:max-content;max-width:min(320px,calc(100vw - 24px));padding:10px 14px;border:1px solid var(--taunt-border)!important;border-radius:8px;background:var(--taunt-bg)!important;color:var(--taunt-text)!important;box-shadow:0 10px 26px #0004!important;font:inherit;text-align:start;pointer-events:none}
+      #soft98-ad-blocker-taunt[data-theme=dark]{--taunt-bg:#101b24;--taunt-border:#34765f;--taunt-text:#e4fff4}
       [id*="PersianBlocker"],[class*="PersianBlocker"]{display:none!important}
       [data-soft98-pro-brand-replaced]{border:1px solid #b8cbd5!important;border-radius:6px!important;background:#f7fafc!important;color:#1d2a35!important;box-shadow:0 6px 20px rgba(27,45,57,.12)!important;padding:.35em .65em!important;font:600 13px/1.6 system-ui,sans-serif!important;text-decoration:none!important}
       .soft98-pro-theme [data-soft98-pro-brand-replaced]{border-color:var(--s98p-border)!important;background:var(--s98p-surface-2)!important;color:var(--s98p-accent)!important;box-shadow:0 8px 24px rgba(0,0,0,.28)!important}
+      :root:not(.soft98-pro-theme) [data-soft98-pro-page-icon]{display:none!important}
       a[${DATA_HREF}]{pointer-events:auto}
-      a[data-soft98-brand-compact]{min-height:36px!important;background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important}
+      a[data-soft98-brand-compact]{min-height:36px!important;min-width:86px;background-size:86px auto!important;background-repeat:no-repeat!important;background-position:center!important}
+      img[data-soft98-brand-compact]{width:86px!important;max-width:100%!important;height:38px!important;object-fit:cover!important}
       [data-soft98-brand-kind=background]{display:block!important;background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important}
       [data-soft98-brand-kind=background]:not([data-soft98-brand-compact]){min-height:104px!important}
       [data-soft98-brand-kind=background]>*{visibility:hidden!important}
@@ -923,7 +931,7 @@
       return;
     }
     setPersistentStyle("soft98-pro-style", `
-      :root.soft98-pro-theme{color-scheme:dark;--s98p-bg:#070b0f;--s98p-bg-2:#0b1117;--s98p-nav:#0d151b;--s98p-surface:#111a21;--s98p-surface-2:#16222a;--s98p-elevated:#1a2932;--s98p-soft:#223640;--s98p-border:#344852;--s98p-border-soft:#24343c;--s98p-text:#f1f6f7;--s98p-muted:#aabcc1;--s98p-faint:#7f9298;--s98p-accent:#72ddb2;--s98p-accent-2:#e0bd70;--s98p-link:#8fd2f5;--s98p-danger:#ff8896;--s98p-radius:8px}
+      :root.soft98-pro-theme{color-scheme:dark;--s98p-bg:#090c10;--s98p-bg-2:#0d1218;--s98p-nav:#10151c;--s98p-surface:#151b23;--s98p-surface-2:#1a222c;--s98p-elevated:#202a36;--s98p-soft:#253341;--s98p-border:#364658;--s98p-border-soft:#28333f;--s98p-text:#edf3fa;--s98p-muted:#aab8c8;--s98p-faint:#8b9aad;--s98p-accent:#49edb3;--s98p-accent-2:#f4bd70;--s98p-link:#9bd4ff;--s98p-danger:#ff8896;--s98p-radius:8px}
       .soft98-pro-theme,.soft98-pro-theme body{background:#070b0f!important;color:var(--s98p-text)!important}
       .soft98-pro-theme body{min-height:100vh;background:linear-gradient(180deg,#0e171d 0,#090f14 30rem,#070b0f 100%)!important}
       .soft98-pro-theme body,.soft98-pro-theme p,.soft98-pro-theme li,.soft98-pro-theme dd,.soft98-pro-theme td,.soft98-pro-theme span{color:var(--s98p-text)}
@@ -931,17 +939,50 @@
       .soft98-pro-theme [data-soft98-pro-tone=body]{color:var(--s98p-text)!important}
       .soft98-pro-theme a[data-soft98-pro-tone=action]{background:var(--s98p-surface-2)!important;border-color:var(--s98p-border-soft)!important;color:var(--s98p-text)!important}
       .soft98-pro-theme a[data-soft98-pro-tone=action]:hover{background:var(--s98p-soft)!important}
-      .soft98-pro-theme [data-soft98-pro-utility-icon]{background-color:var(--s98p-elevated)!important;border-color:var(--s98p-border)!important;box-shadow:none!important;filter:none!important}
+      .soft98-pro-theme [data-soft98-pro-utility-icon]{background-color:var(--s98p-surface-2)!important;border-color:var(--s98p-border-soft)!important;box-shadow:none!important;filter:none!important}
       .soft98-pro-theme [data-soft98-pro-utility-art=ready]::before{background-image:var(--s98p-utility-art)!important;background-position:0 0!important;background-size:100% 100%!important}
       .soft98-pro-theme [data-soft98-pro-utility-card] > footer{background:var(--s98p-surface-2)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border)!important}
       .soft98-pro-theme [data-soft98-pro-utility-card] > footer:hover{background:var(--s98p-soft)!important}
       .soft98-pro-theme [data-soft98-pro-utility-header],.soft98-pro-theme [data-soft98-pro-utility-header] :is(h1,h2,h3,h4,h5,h6){border-color:var(--s98p-border)!important;text-shadow:none!important}
-      .soft98-pro-theme [data-soft98-pro-utility-header] :is(h1,h2,h3,h4,h5,h6)::before,.soft98-pro-theme [data-soft98-pro-utility-header] :is(h1,h2,h3,h4,h5,h6)::after{color:var(--s98p-faint)!important;text-shadow:none!important}
+      .soft98-pro-theme [data-soft98-pro-utility-header] :is(h1,h2,h3,h4,h5,h6)::before,.soft98-pro-theme [data-soft98-pro-utility-header] :is(h1,h2,h3,h4,h5,h6)::after{color:var(--s98p-muted)!important;text-shadow:none!important}
       .soft98-pro-theme [data-soft98-pro-download-group] :is(dt,dd,a,span,i),.soft98-pro-theme [data-soft98-pro-download-group] :is(dt,dd,a,span,i)::before,.soft98-pro-theme [data-soft98-pro-download-group] :is(dt,dd,a,span,i)::after{text-shadow:none!important}
-      .soft98-pro-theme [data-soft98-pro-latest] li a{color:var(--s98p-muted)!important}
-      .soft98-pro-theme [data-soft98-pro-latest] li a:is(:hover,:focus-visible){color:var(--s98p-link)!important}
+      .soft98-pro-theme [data-soft98-pro-page-icon]{display:inline-grid!important;place-items:center;flex:none;width:28px;height:28px;vertical-align:middle;margin-inline-end:8px;border-radius:6px;background:color-mix(in srgb,var(--icon-color) 11%,var(--s98p-bg-2))!important;color:var(--icon-color)!important;box-shadow:none!important;--icon-color:var(--s98p-muted)}
+      .soft98-pro-theme [data-soft98-pro-page-icon] svg{display:block;width:22px;height:22px;filter:none!important}
+      .soft98-pro-theme [data-soft98-pro-page-icon=windows]{--icon-color:#71c2ff}
+      .soft98-pro-theme [data-soft98-pro-page-icon=apple]{--icon-color:#dce8f7}
+      .soft98-pro-theme [data-soft98-pro-page-icon=android]{--icon-color:#7beeb6}
+      .soft98-pro-theme [data-soft98-pro-page-icon=linux]{--icon-color:#f4bd70}
+      .soft98-pro-theme [data-soft98-pro-page-icon=download]{--icon-color:var(--s98p-accent)}
+      .soft98-pro-theme [data-soft98-pro-page-icon=lock]{--icon-color:var(--s98p-accent-2)}
+      .soft98-pro-theme [data-soft98-pro-icon-host]::before,.soft98-pro-theme [data-soft98-pro-icon-host]::after,.soft98-pro-theme [data-soft98-pro-faq] summary div::before,.soft98-pro-theme [data-soft98-pro-faq] summary div::after{content:none!important}
+      :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-download-group] [data-soft98-pro-icon-host]::before,
+      :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-download-group] [data-soft98-pro-icon-host]::after,
+      :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-icon-host]:is([data-soft98-pro-password],[data-soft98-pro-annoyance])::before,
+      :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-icon-host]:is([data-soft98-pro-password],[data-soft98-pro-annoyance])::after{content:none!important;display:none!important}
+      .soft98-pro-theme [data-soft98-pro-download-group] > dt{background:var(--s98p-surface)!important;border-color:var(--s98p-border-soft)!important}
+      .soft98-pro-theme [data-soft98-pro-download-group] > dt [data-soft98-pro-icon-host]{padding-inline-start:0!important}
+      .soft98-pro-theme [data-soft98-pro-download-group] > dd{background:var(--s98p-bg-2)!important;border-color:var(--s98p-border-soft)!important}
+      .soft98-pro-theme [data-soft98-pro-download-group] > dd:nth-of-type(even){background:var(--s98p-surface)!important}
+      .soft98-pro-theme [data-soft98-pro-download-group] a[data-soft98-pro-icon-host]{color:var(--s98p-muted)!important}
+      .soft98-pro-theme [data-soft98-pro-download-group] a[data-soft98-pro-icon-host]:is(:hover,:focus-visible){color:var(--s98p-link)!important}
+      .soft98-pro-theme [data-soft98-pro-download-group] a[data-soft98-pro-icon-host=download]{color:var(--s98p-accent)!important;font-weight:700}
+      .soft98-pro-theme [data-soft98-pro-download-group] a[data-soft98-pro-icon-host=download]:is(:hover,:focus-visible){background:color-mix(in srgb,var(--s98p-accent) 10%,var(--s98p-bg-2))!important;color:#b2ffe1!important}
+      .soft98-pro-theme article [role=tabpanel] [data-soft98-pro-password]{background:color-mix(in srgb,var(--s98p-accent-2) 11%,var(--s98p-surface))!important;border-color:color-mix(in srgb,var(--s98p-accent-2) 28%,var(--s98p-border))!important;color:#ffe1b4!important;text-shadow:none!important}
+      .soft98-pro-theme [data-soft98-pro-password] span:not([aria-hidden=true]){color:inherit!important}
+      .soft98-pro-theme article [role=tabpanel] [data-soft98-pro-icon-host]:is([data-soft98-pro-password],[data-soft98-pro-annoyance]){padding-inline-start:12px!important}
+      .soft98-pro-theme [data-soft98-pro-faq] > summary{display:flex!important;align-items:center;gap:9px;list-style:none!important;padding-inline-start:0!important;color:var(--s98p-text)!important}
+      .soft98-pro-theme [data-soft98-pro-faq] > summary::-webkit-details-marker{display:none}
+      .soft98-pro-theme [data-soft98-pro-faq] [data-soft98-pro-page-icon]{margin-inline-end:0}
+      .soft98-pro-theme [data-soft98-pro-faq] summary:is(:hover,:focus-visible) [data-soft98-pro-page-icon],.soft98-pro-theme [data-soft98-pro-faq][open] [data-soft98-pro-page-icon]{--icon-color:var(--s98p-accent)}
+      .soft98-pro-theme [data-soft98-pro-faq]:dir(ltr) svg{transform:scaleX(-1)}
+      .soft98-pro-theme [data-soft98-pro-faq][open] svg{transform:rotate(-90deg)}
+      .soft98-pro-theme [data-soft98-pro-latest] li a:not([role=tab]){color:var(--s98p-muted)!important}
+      .soft98-pro-theme [data-soft98-pro-latest] li a:not([role=tab]):is(:hover,:focus-visible){color:var(--s98p-link)!important}
+      .soft98-pro-theme [data-soft98-pro-latest] li a:not([role=tab])::before{color:var(--s98p-faint)!important;text-shadow:none!important}
+      .soft98-pro-theme [data-soft98-pro-latest] li [data-soft98-pro-view-count],
+      .soft98-pro-theme [data-soft98-pro-latest] li [data-soft98-pro-view-count]::before{color:var(--s98p-faint)!important;text-shadow:none!important}
       .soft98-pro-theme [data-soft98-pro-view-count],.soft98-pro-theme [data-soft98-pro-view-count]::before{color:var(--s98p-faint)!important;text-shadow:none!important}
-      [data-soft98-pro-bidi]{unicode-bidi:isolate}
+      [data-soft98-pro-bidi]{direction:ltr!important;unicode-bidi:isolate!important}
       .soft98-pro-theme a{color:var(--s98p-link)!important;text-decoration-color:color-mix(in srgb,var(--s98p-link) 42%,transparent);transition:color .16s ease,text-decoration-color .16s ease,background-color .16s ease,border-color .16s ease,transform .16s ease,box-shadow .2s ease}
       .soft98-pro-theme a:hover{color:#d4efff!important;text-decoration-color:var(--s98p-accent)}
       .soft98-pro-theme a:focus-visible,.soft98-pro-theme button:focus-visible,.soft98-pro-theme input:focus-visible,.soft98-pro-theme select:focus-visible,.soft98-pro-theme textarea:focus-visible{outline:2px solid var(--s98p-accent)!important;outline-offset:3px!important}
@@ -1003,6 +1044,12 @@
       .soft98-pro-rgb img:not([data-soft98-brand-kind]){filter:saturate(.18) brightness(.72) contrast(1.08)!important;transition:filter .2s ease}
       .soft98-pro-rgb a:hover img:not([data-soft98-brand-kind]){filter:saturate(.38) brightness(.82) contrast(1.08)!important}
       .soft98-pro-rgb .soft98-pro-link-badge{border-color:var(--s98p-neon);background:#0c0f10;box-shadow:0 0 16px var(--s98p-neon-soft)}
+      :root.soft98-pro-theme [data-soft98-pro-surface=tab-list]{display:flex!important;flex-wrap:wrap!important;gap:2px 8px;margin-block-end:0!important;padding:4px 10px 0!important;background:var(--s98p-surface)!important;border:0!important;border-block-end:1px solid var(--s98p-border-soft)!important;border-radius:0!important;box-shadow:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-surface=tab-list]>:is(li,div){display:flex!important;flex:0 1 auto!important;min-width:0;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-surface=tab-list] :is([role=tab],[data-toggle=tab]){display:inline-flex!important;align-items:center;justify-content:center;gap:6px;min-height:44px;max-width:100%;margin:0!important;padding:7px 10px!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:inset 0 -3px transparent!important;color:var(--s98p-muted)!important;white-space:normal!important;text-align:center;text-decoration:none!important;transform:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-surface=tab-list] :is([role=tab],[data-toggle=tab]):is(:hover,:focus-visible){background:var(--s98p-surface-2)!important;color:var(--s98p-text)!important;outline-offset:-4px!important}
+      :root.soft98-pro-theme [data-soft98-pro-surface=tab-list] :is([role=tab],[data-toggle=tab]):is([aria-selected=true],[aria-expanded=true],.active,.active>[data-toggle=tab],[data-soft98-pro-tab-active=true]:not([aria-selected=false],[aria-expanded=false])){background:color-mix(in srgb,var(--s98p-accent) 8%,var(--s98p-surface))!important;box-shadow:inset 0 -3px var(--s98p-accent)!important;color:var(--s98p-accent)!important}
+      @media(max-width:560px){:root.soft98-pro-theme [data-soft98-pro-surface=tab-list]{gap:2px 4px;padding-inline:6px!important}:root.soft98-pro-theme [data-soft98-pro-surface=tab-list]>:is(li,div){flex:1 1 calc(50% - 4px)!important}:root.soft98-pro-theme [data-soft98-pro-surface=tab-list] :is([role=tab],[data-toggle=tab]){width:100%!important;padding-inline:7px!important}}
       @keyframes soft98-pro-neon{to{--s98p-neon-hue:515deg}}
       @media(max-width:820px){.soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-reading]{grid-template-columns:minmax(0,1fr)!important}.soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-reading]>[data-soft98-pro-column]{grid-column:1!important}.soft98-pro-compact [data-soft98-pro-column=primary]{order:1}.soft98-pro-compact [data-soft98-pro-column=secondary]{order:2}}
       @media(prefers-reduced-motion:reduce){.soft98-pro-theme *{scroll-behavior:auto!important}.soft98-pro-rgb{animation:none!important}.soft98-pro-theme a,.soft98-pro-theme button,.soft98-pro-theme input,.soft98-pro-theme select,.soft98-pro-theme textarea{transition:none!important}}
@@ -1131,7 +1178,22 @@
   function applyProLayoutHeuristics() {
     applyUtilityListHeuristics();
     for (const list of document.querySelectorAll("article [role=tabpanel] dl")) {
-      if (list.querySelector("dt") && list.querySelector("dd a[href]")) list.setAttribute("data-soft98-pro-download-group", "");
+      if (!list.querySelector("dt") || !list.querySelector("dd a[href]")) continue;
+      list.setAttribute("data-soft98-pro-download-group", "");
+      for (const label of list.querySelectorAll("dt > span,dd > a[href]")) {
+        const icon = downloadIcon(label);
+        if (icon) decorateIcon(label, icon);
+      }
+      const pane = list.closest("[role=tabpanel]");
+      for (const label of pane.querySelectorAll("[data-toggle=copy], :is(div,button):has(> input[readonly])")) {
+        if (!/^(?:پسوردفایل|رمزفایل|filepassword)/i.test(normalizedPersian(label.textContent || ""))) continue;
+        label.setAttribute("data-soft98-pro-password", "");
+        decorateIcon(label, "lock");
+      }
+    }
+    for (const details of document.querySelectorAll("article details:has(> summary)")) {
+      details.setAttribute("data-soft98-pro-faq", "");
+      decorateIcon(details.querySelector(":scope > summary"), "chevron");
     }
     if (!settings.compactLayout) return;
     for (const main of document.querySelectorAll("main")) {
@@ -1159,16 +1221,30 @@
   function applyPagePreferences() {
     if (settings.hideAnnoyances && !settings.darkDesign && !settings.rgbMode) applyUtilityListHeuristics();
     const rtlPage = document.documentElement.dir === "rtl" || /^fa\b/i.test(document.documentElement.lang);
+    const latestCards = new Set();
     for (const list of document.querySelectorAll("ul[role=tablist],ol[role=tablist]")) {
       const tab = [...list.querySelectorAll("[aria-controls]")].find((node) =>
         /^(?:مطالبنرمافزار|اخباروب|اخبارتکنولوژی)$/.test(normalizedPersian(node.textContent || "")));
       if (!tab) continue;
       const card = list.closest("section,article,[data-soft98-pro-surface=tab-card]") || list.parentElement?.parentElement;
       if (!card || card.closest("main,aside,#soft98-pro-control")) continue;
+      latestCards.add(card);
+    }
+    for (const heading of document.querySelectorAll("h2,h3,h4,h5,h6")) {
+      if (heading.closest("main,article,aside,#soft98-pro-control") ||
+          !/^(?:خبرهای(?:تکنولوژی|فناوری)|اخبار(?:تکنولوژی|فناوری|وب))$/.test(normalizedPersian(heading.textContent || ""))) continue;
+      for (let card = heading.parentElement, depth = 0; card && depth < 4; card = card.parentElement, depth += 1) {
+        if (card.querySelector("main,article,[role=tablist]")) break;
+        if (card.querySelectorAll("li a[href]").length < 3) continue;
+        latestCards.add(card);
+        break;
+      }
+    }
+    for (const card of latestCards) {
       card.setAttribute("data-soft98-pro-latest", "");
       for (const row of card.querySelectorAll("li a[href]")) {
         if (row.matches("[role=tab]")) continue;
-        if (rtlPage) isolateLatinRuns(row);
+        normalizeLabel(row, rtlPage);
         for (const count of row.querySelectorAll(":scope > span,:scope > small")) {
           if (/^[\s\d\u06f0-\u06f9\u0660-\u0669,.،٬]+$/u.test(count.textContent || "")) {
             count.setAttribute("data-soft98-pro-view-count", "");
@@ -1178,14 +1254,13 @@
     }
     for (const node of document.querySelectorAll("[data-soft98-pro-utility-card] > footer, article [role=tabpanel] a[href]")) {
       const label = normalizedPersian(node.textContent || "");
-      if (node.matches("footer") || /نرمافزاررابرایمننصبکن/.test(label)) {
+      if (node.matches("footer") || /نرمافزاررابرای(?:من|م)نصبکن/.test(label)) {
         node.setAttribute("data-soft98-pro-annoyance", "");
+        if (node.matches("a") && (settings.darkDesign || settings.rgbMode)) decorateIcon(node, "help");
       }
     }
-    if (rtlPage) {
-      for (const node of document.querySelectorAll("article h1, article h2, article h3, article [role=tabpanel] :is(dt span,dd a), [data-soft98-pro-list-copy] strong")) {
-        isolateLatinRuns(node);
-      }
+    for (const node of document.querySelectorAll("article :is(h1,h2,h3,details > summary), article [role=tabpanel] :is(dt span,dd a,[data-soft98-pro-password],[data-soft98-pro-annoyance],a[href]), [data-soft98-pro-list-copy] strong")) {
+      normalizeLabel(node, rtlPage);
     }
     syncPageVisibility();
   }
@@ -1207,16 +1282,62 @@
     }
   }
 
-  function isolateLatinRuns(node) {
+  function downloadIcon(node) {
+    const label = (node.textContent || "").normalize("NFKC");
+    const key = normalizedPersian(label);
+    if (/\b(?:windows|win(?:32|64))\b/i.test(label) || key.includes("ویندوز")) return "windows";
+    if (/\b(?:mac(?:os)?|ios|ipados)\b/i.test(label) || /مکینتاش/.test(key)) return "apple";
+    if (/\b(?:linux|ubuntu|debian)\b/i.test(label) || key.includes("لینوکس")) return "linux";
+    if (/\bandroid\b/i.test(label) || key.includes("اندروید")) return "android";
+    if (/^(?:سایرپلتفرم|سایرسیستمعامل|otherplatform)/i.test(key)) return "devices";
+    if (/^(?:اطلاعاتبیشتر|moreinfo)/i.test(key)) return "info";
+    if (/^(?:مطرحکردنسوال|askaquestion)/i.test(key)) return "help";
+    if (/^(?:لینک|تغییرات|سایتسازنده|official|changelog|website)/i.test(key)) return "link";
+    if (node.matches("a[href]") && /^(?:دانلود|download)/i.test(key)) return "download";
+    return null;
+  }
+
+  function decorateIcon(host, name) {
+    const current = host.querySelector(":scope > [data-soft98-pro-page-icon]");
+    if (current?.getAttribute("data-soft98-pro-page-icon") === name) return;
+    const icon = current || document.createElement("span");
+    icon.setAttribute("data-soft98-pro-page-icon", name);
+    icon.setAttribute("aria-hidden", "true");
+    icon.innerHTML = PAGE_ICONS[name];
+    host.setAttribute("data-soft98-pro-icon-host", name);
+    if (!current) host.prepend(icon);
+  }
+
+  function normalizeLabel(node, rtl) {
     const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
-    const mixed = [];
+    const labels = [];
     for (let textNode = walker.nextNode(); textNode; textNode = walker.nextNode()) {
-      if (!textNode.parentElement?.closest("bdi,[dir=ltr],script,style,code,pre")) mixed.push(textNode);
+      if (!textNode.parentElement?.closest("bdi,svg,[contenteditable],script,style,code,pre")) labels.push(textNode);
     }
-    for (const textNode of mixed) {
-      const value = textNode.nodeValue || "";
-      const runs = [...value.matchAll(/[A-Za-z][A-Za-z0-9]*(?:[ .+/_-]+[A-Za-z0-9]+)*/g)];
-      if (!runs.length) continue;
+    for (const textNode of labels) {
+      const original = textNode.nodeValue || "";
+      // Keep punctuation inside URLs, email addresses and numeric groups verbatim.
+      const tokens = /(?:https?:\/\/|www\.)[^\s<>()]+|[\w.+-]+@[\w.-]+\.[a-z]{2,}|[\w.+-]+\.(?:zip|rar|7z|exe|msi|dmg|apk|iso|deb|rpm|tar|gz)\b|\p{Nd}+(?:[,.،٬٫/]\p{Nd}+)+/giu;
+      let last = 0;
+      let value = "";
+      const tidy = (part) => part.replace(/\([ \t\u00a0]+/g, "(").replace(/[ \t\u00a0]+\)/g, ")")
+        .replace(/[ \t\u00a0]+([,،:])/g, "$1").replace(/([,،])[ \t\u00a0]*(?=[\p{L}\p{Nd}])/gu, "$1 ")
+        .replace(/\b(?:windows|linux|android|macos|ios|ipados|official link|anydesk)\b/gi, (word) => ({
+          windows: "Windows", linux: "Linux", android: "Android", macos: "macOS", ios: "iOS",
+          ipados: "iPadOS", "official link": "Official link", anydesk: "AnyDesk",
+        })[word.toLowerCase()]);
+      for (const match of original.matchAll(tokens)) {
+        value += tidy(original.slice(last, match.index)) + match[0];
+        last = match.index + match[0].length;
+      }
+      value += tidy(original.slice(last));
+      const runs = rtl && !textNode.parentElement?.closest("[dir=ltr]") ? [...value.matchAll(
+        /\((?=[^()\p{Script=Arabic}]*[A-Za-z])[^()\p{Script=Arabic}]+\)|[A-Za-z][A-Za-z0-9]*(?:(?:[ .+/_-]+|, +)[A-Za-z0-9]+)*/gu
+      )] : [];
+      if (!runs.length) {
+        if (value !== original) textNode.nodeValue = value;
+        continue;
+      }
       const fragment = document.createDocumentFragment();
       let cursor = 0;
       for (const run of runs) {
@@ -1527,7 +1648,7 @@
   }
 
   function enhanceLogo() {
-    if (!successAnnounced || !settings.pirateLogo) return restoreOriginalLogo();
+    if ((!successAnnounced && !settings.pro) || !settings.pirateLogo) return restoreOriginalLogo();
     for (const logo of originalLogos.keys()) {
       if (!logo.isConnected) originalLogos.delete(logo);
     }
@@ -1568,27 +1689,29 @@
     const previous = document.getElementById("soft98-ad-blocker-taunt");
     if (!successAnnounced || !settings.taunt) {
       if (previous) previous.remove();
+      clearTimeout(successNoticeTimer);
+      successNoticeTimer = null;
       return;
     }
-    const panel = document.getElementById("soft98-pro-panel-advanced");
-    if (!panel) return;
-    const note = previous || document.createElement("aside");
+    if (previous?.hasAttribute("data-soft98-pro-notice")) {
+      previous.setAttribute("data-theme", settings.pro && (settings.darkDesign || settings.rgbMode) ? "dark" : "light");
+      return;
+    }
+    if (successNoticeShown || !document.body) return;
+    if (previous) previous.remove();
+    successNoticeShown = true;
+    const note = document.createElement("aside");
     note.id = "soft98-ad-blocker-taunt";
     localizeElement(note);
-    note.setAttribute("data-theme", settings.pro && settings.darkDesign ? "dark" : "light");
-    note.innerHTML = `<span>${text("tauntText")}</span><a rel="noopener noreferrer" target="_blank" href="${EXTENSION_REPO}">${text("tauntLink")}</a>`;
-    const style = document.createElement("style");
-    style.textContent = `
-      #soft98-ad-blocker-taunt{--taunt-bg:#f7fafc;--taunt-border:#cbd7e1;--taunt-text:#1d2a35;--taunt-link:#0b6f55;grid-template-columns:minmax(0,1fr);gap:4px;padding:10px 12px;border:1px solid var(--taunt-border)!important;border-radius:7px;background:var(--taunt-bg)!important;color:var(--taunt-text)!important;font:inherit;text-align:start;direction:inherit}
-      #soft98-ad-blocker-taunt[data-theme=dark]{--taunt-bg:#101b24;--taunt-border:#344955;--taunt-text:#eef7f8;--taunt-link:#7ce0bd;box-shadow:0 12px 28px rgba(0,0,0,.28)}
-      #soft98-ad-blocker-taunt span{color:var(--taunt-text)!important;background:transparent!important;unicode-bidi:plaintext}
-      #soft98-ad-blocker-taunt a{color:var(--taunt-link)!important;background:transparent!important;font-weight:750;text-decoration:none;white-space:nowrap}
-      @media(max-width:560px){#soft98-ad-blocker-taunt{grid-template-columns:1fr}#soft98-ad-blocker-taunt a{white-space:normal}}
-    `;
-    note.appendChild(style);
-    if (!previous) {
-      panel.appendChild(note);
-    }
+    note.setAttribute("role", "status");
+    note.setAttribute("data-soft98-pro-notice", "");
+    note.setAttribute("data-theme", settings.pro && (settings.darkDesign || settings.rgbMode) ? "dark" : "light");
+    document.body.appendChild(note);
+    enqueueMicrotask(() => { note.textContent = text("tauntText"); });
+    successNoticeTimer = setTimeout(() => {
+      note.remove();
+      successNoticeTimer = null;
+    }, SUCCESS_NOTICE_MS);
   }
 
   function syncSuccessEnhancements() {

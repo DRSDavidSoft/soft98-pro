@@ -5,6 +5,8 @@
 <a href="README.md"><img src="docs/assets/badge-en.svg" alt="English" height="22"/></a>&nbsp;
 <a href="README.fa.md"><img src="docs/assets/badge-fa.svg" alt="فارسی" height="22"/></a>
 
+[Read in Persian (فارسی)](README.fa.md)
+
 <h1>Soft98 Pro</h1>
 
 ![Soft98 Pro protection, link recovery, and Pro themes](docs/assets/soft98-pro-banner.svg)
@@ -21,6 +23,8 @@
 ## 📸 Screenshot
 
 ![Soft98 Pro dark mode running on Soft98](docs/assets/soft98-pro-dark.png)
+
+[Compare the download page before and after the redesign](docs/assets/comparison/README.md)
 
 Soft98 Pro improves Soft98 with resilient ad blocking, anti-adblock patching, download-link recovery, warning cleanup, and a modern dark interface. It is available as both a userscript and browser extensions for Chrome, Edge, and Firefox.
 

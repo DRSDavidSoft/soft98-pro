@@ -89,6 +89,23 @@ async function main() {
           latest: document.querySelectorAll('[data-soft98-pro-latest]').length,
           counters: document.querySelectorAll('[data-soft98-pro-view-count]').length,
           isolatedText: document.querySelectorAll('bdi[dir=ltr]').length,
+          downloadPresentation: (() => {
+            const group = document.querySelector('[data-soft98-pro-download-group]');
+            const primary = group?.querySelector('[data-soft98-pro-icon-host=download]');
+            const windows = group?.querySelector('[data-soft98-pro-icon-host=windows]');
+            const password = document.querySelector('[data-soft98-pro-password]');
+            const tab = document.querySelector('article [data-soft98-pro-surface=tab-list] [data-soft98-pro-tab-active=true]');
+            return {
+              primary: primary?.textContent.trim(),
+              legacyWindows: windows && ['content','display','visibility'].map(key => getComputedStyle(windows, '::before')[key]),
+              passwordBackground: password && getComputedStyle(password).backgroundColor,
+              tabBorder: tab && getComputedStyle(tab).borderBottomWidth,
+              tabIndicator: tab && getComputedStyle(tab).boxShadow,
+              glyphSize: windows?.querySelector('svg')?.getBoundingClientRect().width,
+              glyphs: [...group?.querySelectorAll('[data-soft98-pro-page-icon] svg') || []]
+                .filter(svg => svg.getBoundingClientRect().width > 0).map(svg => svg.parentElement.getAttribute('data-soft98-pro-page-icon')),
+            };
+          })(),
           utility: (() => {
             const header = document.querySelector('[data-soft98-pro-utility-header]');
             const heading = header?.querySelector('h4');
@@ -105,7 +122,7 @@ async function main() {
             };
           })(),
         };`);
-      if (attempt >= 3 && result.downloadControls && (!addon || (result.control && result.brand.length && !result.banners.length))) break;
+      if (attempt >= 3 && result.downloadControls && (!addon || (result.control && result.brand.length && !result.banners.length && result.utility.transparentIcons))) break;
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
     console.log(JSON.stringify({ addon, browser: capabilities.browserVersion, ...result }, null, 2));
@@ -113,6 +130,11 @@ async function main() {
         result.control.panelVisible || !(result.preservedLinks || result.downloadControls) || result.promotions ||
         !result.compactBrand || result.brand.length < 2 || result.brand.some(({ variant, bundled }) => variant !== "pirateDark" || !bundled) ||
         result.banners.length || result.headerAd || !result.latest || !result.counters || !result.isolatedText ||
+        !["windows", "apple", "linux", "android", "download"].every(icon => result.downloadPresentation.glyphs.includes(icon)) ||
+        !result.downloadPresentation.legacyWindows?.some(value => value === "none" || value === "hidden") || !result.downloadPresentation.primary?.includes("(رایگان)") ||
+        !result.downloadPresentation.passwordBackground || result.downloadPresentation.passwordBackground === "rgb(223, 121, 100)" ||
+        result.downloadPresentation.glyphSize < 22 ||
+        (width > 820 && (result.downloadPresentation.tabBorder !== "0px" || !result.downloadPresentation.tabIndicator?.includes("inset"))) ||
         !result.utility.transparentIcons || result.utility.downloadIconShadow !== "none" ||
         (width > 820 && result.sidebarWidth && result.sidebarWidth < 250))) {
       throw new Error("Live Firefox page failed the Soft98 Pro smoke checks");
@@ -158,19 +180,20 @@ async function main() {
         const done = arguments[arguments.length - 1];
         const frame = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         (async () => {
-        const latest = document.querySelector('[data-soft98-pro-latest]');
-        const prompt = document.querySelector('[data-soft98-pro-annoyance]');
+        const latest = [...document.querySelectorAll('[data-soft98-pro-latest]')];
+        const prompts = [...document.querySelectorAll('[data-soft98-pro-annoyance]')];
         const visible = (node) => Boolean(node?.getClientRects().length);
-        const initial = [visible(latest), visible(prompt)];
+        const targets = [...latest, ...prompts].filter(visible);
+        const initial = targets.map(visible);
         window.Soft98Pro.configure({ showLatest: false, hideAnnoyances: true });
         await frame();
-        const hidden = [visible(latest), visible(prompt)];
+        const hidden = targets.map(visible);
         window.Soft98Pro.configure({ showLatest: true, hideAnnoyances: false });
         await frame();
-        done({ initial, hidden, restored: [visible(latest), visible(prompt)] });
+        done({ latest: latest.length, initial, hidden, restored: targets.map(visible) });
         })();
       ` });
-      if (!toggles.initial.every(Boolean) || toggles.hidden.some(Boolean) || !toggles.restored.every(Boolean)) {
+      if (toggles.latest < 2 || toggles.initial.length < 3 || !toggles.initial.every(Boolean) || toggles.hidden.some(Boolean) || !toggles.restored.every(Boolean)) {
         throw new Error(`Latest and extra-prompt controls did not round-trip: ${JSON.stringify(toggles)}`);
       }
     }
@@ -179,7 +202,7 @@ async function main() {
       await evaluate("document.querySelector('article [role=tabpanel] a[data-key]').scrollIntoView({block:'center',behavior:'instant'})");
       const compactVisible = await evaluate(`const logo = document.querySelector('[data-soft98-brand-compact][data-soft98-brand-variant="pirateDark"]');
         return Boolean(logo?.getClientRects().length)`);
-      if (addon && !compactVisible) throw new Error("The download preview does not show the compact pirate logo");
+      if (addon && width > 820 && !compactVisible) throw new Error("The download preview does not show the compact pirate logo");
       await screenshot(session, path.resolve(preview));
     }
     if (process.env.SOFT98_TEST_DOWNLOAD_LINK === "1") {

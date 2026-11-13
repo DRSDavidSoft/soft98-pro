@@ -26,6 +26,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Restored the bilingual documentation experience with an SVG-first hero, meaningful emoji navigation, stronger first-run guidance, direction-safe Persian copy, and a durable documentation style guide.
 - Reworked the shared patch engine so browser execution and historical compatibility tests use the same fail-safe transformations.
 - Refined the default Pro dark theme, distinct expert control console, megamenus, transition-safe tabbed cards, nested content surfaces, download-link presentation, logo treatment, and favicon status.
+- Redesigned the download list with modern platform icons, brighter primary actions, and quieter secondary links.
+- Replaced boxed page tabs with a responsive tab bar and a clear active indicator.
+- Made the optional success notification brief and off by default.
 - Made Pro styles self-healing with constructable stylesheets so page scripts cannot silently remove layout and theme repairs.
 - Improved ad and warning cleanup through structural, geometric, source, and behavior signals rather than generated page identifiers.
 - Improved release automation with curated changelog notes, richer workflow summaries, deterministic packages, and integrity guidance.
@@ -33,6 +36,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Fixed
 
 - Restored right-to-left layout for Persian content and isolated mixed-direction titles and platform names.
+- Corrected spacing, capitalization, and mixed-direction punctuation in visible download labels without changing their destinations.
 - Matched the utility card, icon tiles, dividers, and download icons to the dark theme.
 - Added controls for the top latest-posts and news panel and extra site prompts.
 

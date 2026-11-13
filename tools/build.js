@@ -24,6 +24,23 @@ const BRAND_FILES = {
   light: path.join(SRC, "assets", "soft98-pro-logo-light.png"),
   pirateDark: path.join(SRC, "assets", "soft98-pro-logo-pirate-dark.png"),
 };
+const { siLinux } = require("simple-icons");
+const TABLER_ROOT = path.resolve(path.dirname(require.resolve("@tabler/icons/outline/download.svg")), "../..");
+const ICON_NOTICE = `/*!
+Tabler Icons (https://github.com/tabler/tabler-icons)
+${fs.readFileSync(path.join(TABLER_ROOT, "LICENSE"), "utf8").trim().replace(/\r\n/g, "\n")}
+
+Linux icon from Simple Icons (https://simpleicons.org), CC0 1.0.
+Platform marks belong to their respective owners.
+*/`;
+const PAGE_ICONS = Object.fromEntries(Object.entries({
+  windows: "filled/brand-windows", apple: "filled/brand-apple", android: "outline/brand-android",
+  devices: "outline/devices", download: "outline/download", link: "outline/link",
+  info: "outline/info-circle", help: "outline/help-circle", lock: "outline/lock",
+  chevron: "outline/chevron-left",
+}).map(([key, name]) => [key, fs.readFileSync(path.join(TABLER_ROOT, "icons", name + ".svg"), "utf8")
+  .replace(/\s+class="[^"]*"/, "").replace(/>\s+</g, "><").replace(/\s+/g, " ").trim()]));
+PAGE_ICONS.linux = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="${siLinux.path}"/></svg>`;
 
 const commonManifest = {
   name: MESSAGES.locales.en.manifest.name,
@@ -70,6 +87,7 @@ function sourceReplacements(target) {
     __SOFT98_MESSAGES__: JSON.stringify(MESSAGES),
     __SOFT98_COMPATIBILITY__: JSON.stringify(COMPATIBILITY),
     __SOFT98_BRAND_ASSETS__: JSON.stringify(Object.fromEntries(Object.entries(BRAND_FILES).map(([key, file]) => [key, dataUrl(file)]))),
+    __SOFT98_PAGE_ICONS__: JSON.stringify(PAGE_ICONS),
     __SOFT98_NAME__: MESSAGES.locales.en.manifest.name,
     __SOFT98_DESCRIPTION__: MESSAGES.locales.en.manifest.description,
   };
@@ -106,7 +124,7 @@ async function minifySource(source, to) {
   });
   if (result.error) throw result.error;
   mkdir(path.dirname(to));
-  fs.writeFileSync(to, `${result.code}\n`, "utf8");
+  fs.writeFileSync(to, `${source.includes("const PAGE_ICONS =") ? ICON_NOTICE + "\n" : ""}${result.code}\n`, "utf8");
 }
 
 async function minifyFile(from, to) {
@@ -121,7 +139,7 @@ async function buildUserscript() {
     format: { ascii_only: false, comments: false },
   });
   if (result.error) throw result.error;
-  const output = `${meta}\n\n${result.code}\n`;
+  const output = `${meta}\n\n${ICON_NOTICE}\n${result.code}\n`;
   fs.writeFileSync(USERSCRIPT_OUT, output, "utf8");
   mkdir(path.join(DIST, "userscript"));
   fs.writeFileSync(path.join(DIST, "userscript", "soft98-pro.user.js"), output, "utf8");
