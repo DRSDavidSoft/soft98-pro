@@ -24,23 +24,24 @@ const BRAND_FILES = {
   light: path.join(SRC, "assets", "soft98-pro-logo-light.png"),
   pirateDark: path.join(SRC, "assets", "soft98-pro-logo-pirate-dark.png"),
 };
-const { siLinux } = require("simple-icons");
+const { siAndroid } = require("simple-icons");
 const TABLER_ROOT = path.resolve(path.dirname(require.resolve("@tabler/icons/outline/download.svg")), "../..");
 const ICON_NOTICE = `/*!
 Tabler Icons (https://github.com/tabler/tabler-icons)
 ${fs.readFileSync(path.join(TABLER_ROOT, "LICENSE"), "utf8").trim().replace(/\r\n/g, "\n")}
 
-Linux icon from Simple Icons (https://simpleicons.org), CC0 1.0.
+Android icon from Simple Icons (https://simpleicons.org), CC0 1.0.
 Platform marks belong to their respective owners.
 */`;
 const PAGE_ICONS = Object.fromEntries(Object.entries({
-  windows: "filled/brand-windows", apple: "filled/brand-apple", android: "outline/brand-android",
+  windows: "filled/brand-windows", apple: "filled/brand-apple",
   devices: "outline/devices", download: "outline/download", link: "outline/link",
   info: "outline/info-circle", help: "outline/help-circle", lock: "outline/lock",
-  chevron: "outline/chevron-left",
+  chevron: "outline/chevron-left", copy: "outline/copy", select: "outline/select-all",
 }).map(([key, name]) => [key, fs.readFileSync(path.join(TABLER_ROOT, "icons", name + ".svg"), "utf8")
   .replace(/\s+class="[^"]*"/, "").replace(/>\s+</g, "><").replace(/\s+/g, " ").trim()]));
-PAGE_ICONS.linux = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="${siLinux.path}"/></svg>`;
+PAGE_ICONS.android = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 1 26 22" fill="currentColor"><path d="${siAndroid.path}"/></svg>`;
+PAGE_ICONS.linux = fs.readFileSync(path.join(SRC, "assets", "linux-penguin.svg"), "utf8").trim();
 
 const commonManifest = {
   name: MESSAGES.locales.en.manifest.name,

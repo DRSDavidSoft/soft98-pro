@@ -124,6 +124,9 @@
           asiatech.setAttribute("data-test", "asiatech-frame");
           asiatech.innerHTML = '<h2>آسـیاتک</h2><div class="ad-body"></div>';
           document.body.appendChild(asiatech);
+          var sponsorHeader = document.createElement("header");
+          sponsorHeader.innerHTML = '<a data-test="iranicard-ad" href="https://ircd.me/soft98">ایـرانی‌کارت</a>';
+          document.body.appendChild(sponsorHeader);
 
           var advertisingSeparator = document.createElement("hr");
           advertisingSeparator.setAttribute("data-test", "advertising-separator");
@@ -298,6 +301,7 @@
             hostileBranding: document.querySelectorAll("[data-soft98-pro-brand-replaced]").length,
             kaprila: document.querySelectorAll("#kaprila_soft98_ir_related, [id*='kaprila']").length,
             asiatech: document.querySelectorAll("[data-test='asiatech-frame']").length,
+            iranicard: document.querySelectorAll("[data-test='iranicard-ad']").length,
             advertisingCard: document.querySelectorAll("[data-test='advertising-card']").length,
             advertisingSeparator: document.querySelectorAll("[data-test='advertising-separator']").length,
             advertisingNavigationLink: document.querySelectorAll("[data-test='advertising-navigation-link']").length,

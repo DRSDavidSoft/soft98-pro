@@ -8,6 +8,7 @@ const engine = require("../src/patch-engine.js");
 const { inspect, readSoft98Response, supportedScriptUrl, TEMPLATE_SCRIPT } = require("./check-soft98-upstream.js");
 const { decodePacker } = require("./decode-packer.js");
 const catalog = require("../src/compatibility/soft98-scripts.json");
+const baseline = require("../src/compatibility/upstream-baseline.json");
 
 for (const key of ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"]) delete process.env[key];
 
@@ -50,7 +51,7 @@ async function build() {
   fs.writeFileSync(outputFile, output, "utf8");
   const manifest = {
     schemaVersion: 1,
-    sourceUrl,
+    sourceUrl: sourceUrl === baseline.url ? baseline.url : null,
     sourceSha256,
     outputFile: path.basename(outputFile),
     outputSha256: sha256(Buffer.from(output)),

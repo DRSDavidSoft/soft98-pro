@@ -3,6 +3,7 @@
 const fs = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
+const { PNG } = require("pngjs");
 
 const driver = new URL(process.env.SOFT98_WEBDRIVER || "http://127.0.0.1:44983");
 const url = process.env.SOFT98_LIVE_URL || "https://soft98.ir/internet/remote-control/15737-anydesk-download.html";
@@ -28,7 +29,13 @@ async function screenshot(session, destination) {
   if (typeof base64 !== "string" || base64.length > 24 * 1024 * 1024 || !base64.startsWith("iVBORw0KGgo")) {
     throw new Error("WebDriver did not return a bounded PNG screenshot");
   }
-  await fs.writeFile(destination, Buffer.from(base64, "base64"));
+  const bytes = Buffer.from(base64, "base64");
+  if (bytes.length < 33 || bytes.toString("ascii", 12, 16) !== "IHDR" ||
+      bytes.readUInt32BE(16) > 4096 || bytes.readUInt32BE(20) > 4096) {
+    throw new Error("Unexpected screenshot dimensions");
+  }
+  const frame = PNG.sync.read(bytes);
+  await fs.writeFile(destination, PNG.sync.write(frame));
 }
 
 async function main() {
@@ -93,7 +100,7 @@ async function main() {
             const group = document.querySelector('[data-soft98-pro-download-group]');
             const primary = group?.querySelector('[data-soft98-pro-icon-host=download]');
             const windows = group?.querySelector('[data-soft98-pro-icon-host=windows]');
-            const password = document.querySelector('[data-soft98-pro-password]');
+            const password = document.querySelector('[data-soft98-pro-password-shell]');
             const tab = document.querySelector('article [data-soft98-pro-surface=tab-list] [data-soft98-pro-tab-active=true]');
             return {
               primary: primary?.textContent.trim(),
@@ -101,6 +108,13 @@ async function main() {
               passwordBackground: password && getComputedStyle(password).backgroundColor,
               tabBorder: tab && getComputedStyle(tab).borderBottomWidth,
               tabIndicator: tab && getComputedStyle(tab).boxShadow,
+              tabSurface: tab && getComputedStyle(tab).backgroundImage,
+              headingDividers: document.querySelectorAll('[data-soft98-pro-heading-divider]').length,
+              headingAccent: (() => {
+                const heading = document.querySelector('article [data-soft98-pro-heading-divider]');
+                return heading && getComputedStyle(heading, '::before').backgroundImage;
+              })(),
+              navButtons: document.querySelectorAll('[data-soft98-pro-nav-item]').length,
               glyphSize: windows?.querySelector('svg')?.getBoundingClientRect().width,
               glyphs: [...group?.querySelectorAll('[data-soft98-pro-page-icon] svg') || []]
                 .filter(svg => svg.getBoundingClientRect().width > 0).map(svg => svg.parentElement.getAttribute('data-soft98-pro-page-icon')),
@@ -134,7 +148,9 @@ async function main() {
         !result.downloadPresentation.legacyWindows?.some(value => value === "none" || value === "hidden") || !result.downloadPresentation.primary?.includes("(رایگان)") ||
         !result.downloadPresentation.passwordBackground || result.downloadPresentation.passwordBackground === "rgb(223, 121, 100)" ||
         result.downloadPresentation.glyphSize < 22 ||
-        (width > 820 && (result.downloadPresentation.tabBorder !== "0px" || !result.downloadPresentation.tabIndicator?.includes("inset"))) ||
+        !result.downloadPresentation.tabIndicator?.includes("inset") || !result.downloadPresentation.tabSurface?.includes("gradient") ||
+        !result.downloadPresentation.headingDividers || !result.downloadPresentation.headingAccent?.includes("gradient") ||
+        result.downloadPresentation.navButtons < 3 ||
         !result.utility.transparentIcons || result.utility.downloadIconShadow !== "none" ||
         (width > 820 && result.sidebarWidth && result.sidebarWidth < 250))) {
       throw new Error("Live Firefox page failed the Soft98 Pro smoke checks");
@@ -195,6 +211,38 @@ async function main() {
       ` });
       if (toggles.latest < 2 || toggles.initial.length < 3 || !toggles.initial.every(Boolean) || toggles.hidden.some(Boolean) || !toggles.restored.every(Boolean)) {
         throw new Error(`Latest and extra-prompt controls did not round-trip: ${JSON.stringify(toggles)}`);
+      }
+      if (width > 820) {
+        await evaluate("document.querySelector('[data-soft98-pro-password-shell]').scrollIntoView({block:'center',behavior:'instant'})");
+        const find = (value) => post("/element", { using: "css selector", value }).then((element) => Object.values(element)[0]);
+        await post(`/element/${await find('[data-soft98-pro-password-actions] [data-action=select]')}/click`, {});
+        const password = await evaluate(`
+          const row = document.querySelector('[data-soft98-pro-password-shell]');
+          const input = row.querySelector('input[readonly]');
+          return { selected: document.activeElement === input && input.selectionStart === 0 && input.selectionEnd === input.value.length,
+            dashed: getComputedStyle(input).borderTopStyle === 'dashed', copy: Boolean(row.querySelector('[data-action=copy]')) };
+        `);
+        if (!password.selected || !password.dashed || !password.copy) throw new Error("Password controls failed");
+        await post(`/element/${await find('[data-soft98-pro-password-actions] [data-action=copy]')}/click`, {});
+        const copied = await post("/execute/async", { args: [], script: `
+          const done = arguments[arguments.length - 1];
+          const started = performance.now();
+          const check = () => {
+            const status = document.querySelector('[data-soft98-pro-password-status]');
+            if (status?.textContent || performance.now() - started > 2600) {
+              const input = status?.parentElement.querySelector('input[readonly]');
+              done({ text: status?.textContent, selected: Boolean(input && document.activeElement === input &&
+                input.selectionStart === 0 && input.selectionEnd === input.value.length) });
+            } else setTimeout(check, 100);
+          };
+          check();
+        ` });
+        if (!["Password copied.", "رمز کپی شد."].includes(copied.text) && !copied.selected) {
+          throw new Error(`Firefox did not copy or select the password: ${JSON.stringify(copied)}`);
+        }
+        console.log(JSON.stringify({ passwordCopy: copied }));
+        await evaluate(`document.querySelector('[data-soft98-pro-password-status]').textContent = '';
+          document.activeElement.blur();`);
       }
     }
     const preview = process.argv[2] || process.env.SOFT98_DOWNLOAD_SCREENSHOT;

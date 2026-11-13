@@ -48,6 +48,7 @@
   const originalLogos = new Map();
   const utilitySprites = new Map();
   const hiddenPageDisplays = new WeakMap();
+  const passwordActions = new WeakMap();
   const trackedLinks = new Set();
   const pendingRoots = new Set();
   const stats = {
@@ -898,6 +899,9 @@
       [data-soft98-pro-brand-replaced]{border:1px solid #b8cbd5!important;border-radius:6px!important;background:#f7fafc!important;color:#1d2a35!important;box-shadow:0 6px 20px rgba(27,45,57,.12)!important;padding:.35em .65em!important;font:600 13px/1.6 system-ui,sans-serif!important;text-decoration:none!important}
       .soft98-pro-theme [data-soft98-pro-brand-replaced]{border-color:var(--s98p-border)!important;background:var(--s98p-surface-2)!important;color:var(--s98p-accent)!important;box-shadow:0 8px 24px rgba(0,0,0,.28)!important}
       :root:not(.soft98-pro-theme) [data-soft98-pro-page-icon]{display:none!important}
+      :root:not(.soft98-pro-theme) [data-soft98-pro-password-actions]{display:none!important}
+      :root:not(.soft98-pro-theme) [data-soft98-pro-password-shell]{display:contents}
+      :root:not(.soft98-pro-theme) [data-soft98-pro-password-status]{display:none!important}
       a[${DATA_HREF}]{pointer-events:auto}
       a[data-soft98-brand-compact]{min-height:36px!important;min-width:86px;background-size:86px auto!important;background-repeat:no-repeat!important;background-position:center!important}
       img[data-soft98-brand-compact]{width:86px!important;max-width:100%!important;height:38px!important;object-fit:cover!important}
@@ -948,10 +952,7 @@
       .soft98-pro-theme [data-soft98-pro-download-group] :is(dt,dd,a,span,i),.soft98-pro-theme [data-soft98-pro-download-group] :is(dt,dd,a,span,i)::before,.soft98-pro-theme [data-soft98-pro-download-group] :is(dt,dd,a,span,i)::after{text-shadow:none!important}
       .soft98-pro-theme [data-soft98-pro-page-icon]{display:inline-grid!important;place-items:center;flex:none;width:28px;height:28px;vertical-align:middle;margin-inline-end:8px;border-radius:6px;background:color-mix(in srgb,var(--icon-color) 11%,var(--s98p-bg-2))!important;color:var(--icon-color)!important;box-shadow:none!important;--icon-color:var(--s98p-muted)}
       .soft98-pro-theme [data-soft98-pro-page-icon] svg{display:block;width:22px;height:22px;filter:none!important}
-      .soft98-pro-theme [data-soft98-pro-page-icon=windows]{--icon-color:#71c2ff}
-      .soft98-pro-theme [data-soft98-pro-page-icon=apple]{--icon-color:#dce8f7}
-      .soft98-pro-theme [data-soft98-pro-page-icon=android]{--icon-color:#7beeb6}
-      .soft98-pro-theme [data-soft98-pro-page-icon=linux]{--icon-color:#f4bd70}
+      .soft98-pro-theme [data-soft98-pro-page-icon]:is([data-soft98-pro-page-icon=windows],[data-soft98-pro-page-icon=apple],[data-soft98-pro-page-icon=android],[data-soft98-pro-page-icon=linux]){--icon-color:#e2eaf6}
       .soft98-pro-theme [data-soft98-pro-page-icon=download]{--icon-color:var(--s98p-accent)}
       .soft98-pro-theme [data-soft98-pro-page-icon=lock]{--icon-color:var(--s98p-accent-2)}
       .soft98-pro-theme [data-soft98-pro-icon-host]::before,.soft98-pro-theme [data-soft98-pro-icon-host]::after,.soft98-pro-theme [data-soft98-pro-faq] summary div::before,.soft98-pro-theme [data-soft98-pro-faq] summary div::after{content:none!important}
@@ -967,9 +968,18 @@
       .soft98-pro-theme [data-soft98-pro-download-group] a[data-soft98-pro-icon-host]:is(:hover,:focus-visible){color:var(--s98p-link)!important}
       .soft98-pro-theme [data-soft98-pro-download-group] a[data-soft98-pro-icon-host=download]{color:var(--s98p-accent)!important;font-weight:700}
       .soft98-pro-theme [data-soft98-pro-download-group] a[data-soft98-pro-icon-host=download]:is(:hover,:focus-visible){background:color-mix(in srgb,var(--s98p-accent) 10%,var(--s98p-bg-2))!important;color:#b2ffe1!important}
-      .soft98-pro-theme article [role=tabpanel] [data-soft98-pro-password]{background:color-mix(in srgb,var(--s98p-accent-2) 11%,var(--s98p-surface))!important;border-color:color-mix(in srgb,var(--s98p-accent-2) 28%,var(--s98p-border))!important;color:#ffe1b4!important;text-shadow:none!important}
+      .soft98-pro-theme [data-soft98-pro-password-shell]{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:5px;padding:8px;background:var(--s98p-surface-2)!important;border:1px solid var(--s98p-border);border-radius:8px}
+      .soft98-pro-theme article [role=tabpanel] [data-soft98-pro-password]{grid-column:1/-1;grid-row:1;display:grid!important;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:8px;margin:0!important;padding:0!important;background:transparent!important;border:0!important;color:var(--s98p-text)!important;text-shadow:none!important;cursor:default}
       .soft98-pro-theme [data-soft98-pro-password] span:not([aria-hidden=true]){color:inherit!important}
-      .soft98-pro-theme article [role=tabpanel] [data-soft98-pro-icon-host]:is([data-soft98-pro-password],[data-soft98-pro-annoyance]){padding-inline-start:12px!important}
+      .soft98-pro-theme article [role=tabpanel] [data-soft98-pro-icon-host][data-soft98-pro-annoyance]{padding-inline-start:12px!important}
+      .soft98-pro-theme [data-soft98-pro-password]>[data-soft98-pro-page-icon]{margin:0}
+      :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-password] > input[readonly]{grid-column:1/-1;width:100%!important;max-width:none!important;min-width:0;box-sizing:border-box;min-height:38px;margin:0!important;padding:7px 10px!important;border:1px dashed var(--s98p-faint)!important;border-radius:6px!important;background:var(--s98p-bg-2)!important;color:var(--s98p-text)!important;font:600 13px/1.4 ui-monospace,Consolas,monospace!important;direction:ltr!important;text-align:left!important;cursor:text}
+      .soft98-pro-theme [data-soft98-pro-password-actions]{display:flex;gap:4px;grid-column:2;grid-row:1;z-index:1}
+      :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-password-shell] [data-soft98-pro-password]>span:not([aria-hidden=true]){display:flex!important;align-items:center;min-height:34px;padding:0!important;padding-inline-end:76px!important;line-height:1.5}
+      .soft98-pro-theme [data-soft98-pro-password-actions] button{display:grid!important;place-items:center;width:34px;height:34px;flex:none;padding:0!important;cursor:pointer}
+      .soft98-pro-theme [data-soft98-pro-password-actions] svg{width:17px;height:17px;pointer-events:none}
+      .soft98-pro-theme [data-soft98-pro-password-status]{grid-column:1/-1;color:var(--s98p-muted)!important;font-size:.85em}
+      .soft98-pro-theme [data-soft98-pro-password-status]:empty{display:none}
       .soft98-pro-theme [data-soft98-pro-faq] > summary{display:flex!important;align-items:center;gap:9px;list-style:none!important;padding-inline-start:0!important;color:var(--s98p-text)!important}
       .soft98-pro-theme [data-soft98-pro-faq] > summary::-webkit-details-marker{display:none}
       .soft98-pro-theme [data-soft98-pro-faq] [data-soft98-pro-page-icon]{margin-inline-end:0}
@@ -978,7 +988,10 @@
       .soft98-pro-theme [data-soft98-pro-faq][open] svg{transform:rotate(-90deg)}
       .soft98-pro-theme [data-soft98-pro-latest] li a:not([role=tab]){color:var(--s98p-muted)!important}
       .soft98-pro-theme [data-soft98-pro-latest] li a:not([role=tab]):is(:hover,:focus-visible){color:var(--s98p-link)!important}
-      .soft98-pro-theme [data-soft98-pro-latest] li a:not([role=tab])::before{color:var(--s98p-faint)!important;text-shadow:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-latest] li a[data-soft98-pro-news-link]::before{color:var(--s98p-faint)!important;text-shadow:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-latest] li a[data-soft98-pro-news-link]:not(:hover,:focus-visible){color:var(--s98p-muted)!important}
+      :root.soft98-pro-theme [data-soft98-pro-latest] li a[data-soft98-pro-news-link] [data-soft98-pro-view-count],
+      :root.soft98-pro-theme [data-soft98-pro-latest] li a[data-soft98-pro-news-link] [data-soft98-pro-view-count]::before{color:var(--s98p-faint)!important}
       .soft98-pro-theme [data-soft98-pro-latest] li [data-soft98-pro-view-count],
       .soft98-pro-theme [data-soft98-pro-latest] li [data-soft98-pro-view-count]::before{color:var(--s98p-faint)!important;text-shadow:none!important}
       .soft98-pro-theme [data-soft98-pro-view-count],.soft98-pro-theme [data-soft98-pro-view-count]::before{color:var(--s98p-faint)!important;text-shadow:none!important}
@@ -1044,11 +1057,25 @@
       .soft98-pro-rgb img:not([data-soft98-brand-kind]){filter:saturate(.18) brightness(.72) contrast(1.08)!important;transition:filter .2s ease}
       .soft98-pro-rgb a:hover img:not([data-soft98-brand-kind]){filter:saturate(.38) brightness(.82) contrast(1.08)!important}
       .soft98-pro-rgb .soft98-pro-link-badge{border-color:var(--s98p-neon);background:#0c0f10;box-shadow:0 0 16px var(--s98p-neon-soft)}
-      :root.soft98-pro-theme [data-soft98-pro-surface=tab-list]{display:flex!important;flex-wrap:wrap!important;gap:2px 8px;margin-block-end:0!important;padding:4px 10px 0!important;background:var(--s98p-surface)!important;border:0!important;border-block-end:1px solid var(--s98p-border-soft)!important;border-radius:0!important;box-shadow:none!important}
-      :root.soft98-pro-theme [data-soft98-pro-surface=tab-list]>:is(li,div){display:flex!important;flex:0 1 auto!important;min-width:0;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important}
-      :root.soft98-pro-theme [data-soft98-pro-surface=tab-list] :is([role=tab],[data-toggle=tab]){display:inline-flex!important;align-items:center;justify-content:center;gap:6px;min-height:44px;max-width:100%;margin:0!important;padding:7px 10px!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:inset 0 -3px transparent!important;color:var(--s98p-muted)!important;white-space:normal!important;text-align:center;text-decoration:none!important;transform:none!important}
-      :root.soft98-pro-theme [data-soft98-pro-surface=tab-list] :is([role=tab],[data-toggle=tab]):is(:hover,:focus-visible){background:var(--s98p-surface-2)!important;color:var(--s98p-text)!important;outline-offset:-4px!important}
-      :root.soft98-pro-theme [data-soft98-pro-surface=tab-list] :is([role=tab],[data-toggle=tab]):is([aria-selected=true],[aria-expanded=true],.active,.active>[data-toggle=tab],[data-soft98-pro-tab-active=true]:not([aria-selected=false],[aria-expanded=false])){background:color-mix(in srgb,var(--s98p-accent) 8%,var(--s98p-surface))!important;box-shadow:inset 0 -3px var(--s98p-accent)!important;color:var(--s98p-accent)!important}
+      :root.soft98-pro-theme{--s98p-control-bg:linear-gradient(180deg,#253341,#1a2430);--s98p-control-hover:linear-gradient(180deg,#344757,#233342);--s98p-control-edge:#415265;--s98p-control-shadow:0 1px 0 #ffffff12 inset,0 2px 4px #0004}
+      :root.soft98-pro-rgb{--s98p-control-bg:linear-gradient(180deg,#191d20,#0b0d0e);--s98p-control-hover:linear-gradient(180deg,#21262a,#15191b);--s98p-control-edge:#343c41}
+      :root.soft98-pro-theme [data-soft98-pro-tab-header]{padding-block:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-surface=tab-list]{display:flex!important;flex-wrap:wrap!important;align-items:stretch;gap:5px;margin:0!important;padding:5px!important;background:var(--s98p-bg-2)!important;border:1px solid var(--s98p-border-soft)!important;border-radius:8px!important;box-shadow:0 1px 3px #0006 inset!important}
+      :root.soft98-pro-theme [data-soft98-pro-surface=tab-list]>:is(li,div){display:flex!important;flex:1 1 auto!important;min-width:0;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-surface=tab-list] :is([role=tab],[data-toggle=tab]){display:inline-flex!important;align-items:center;justify-content:center;gap:7px;min-height:42px;max-width:100%;margin:0!important;padding:7px 10px!important;color:var(--s98p-muted)!important;white-space:normal!important;text-align:center;text-decoration:none!important;transform:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-surface=tab-list]>:is(li,div)>:is([role=tab],[data-toggle=tab]){width:100%!important}
+      :root.soft98-pro-theme :is([data-soft98-pro-surface=tab-list] :is([role=tab],[data-toggle=tab]),[data-soft98-pro-nav-item],[data-soft98-pro-password-actions] button){background:var(--s98p-control-bg)!important;border:1px solid transparent!important;border-radius:6px!important;box-shadow:var(--s98p-control-shadow)!important;text-shadow:none!important}
+      :root.soft98-pro-theme :is([data-soft98-pro-surface=tab-list] :is([role=tab],[data-toggle=tab]),[data-soft98-pro-nav-item],[data-soft98-pro-password-actions] button):is(:hover,:focus-visible){background:var(--s98p-control-hover)!important;border-color:var(--s98p-control-edge)!important;color:var(--s98p-text)!important;outline-offset:-3px!important}
+      :root.soft98-pro-theme [data-soft98-pro-surface=tab-list] :is([role=tab],[data-toggle=tab]):is([aria-selected=true],[aria-expanded=true],.active,.active>[data-toggle=tab],[data-soft98-pro-tab-active=true]:not([aria-selected=false],[aria-expanded=false])){background:linear-gradient(180deg,color-mix(in srgb,var(--s98p-accent) 18%,var(--s98p-elevated)),color-mix(in srgb,var(--s98p-accent) 6%,var(--s98p-bg-2)))!important;border-color:color-mix(in srgb,var(--s98p-accent) 32%,var(--s98p-border))!important;box-shadow:0 1px 0 #ffffff19 inset,0 -2px var(--s98p-accent) inset!important;color:var(--s98p-text)!important}
+      :root.soft98-pro-theme [data-soft98-pro-nav-item]{min-height:38px;display:inline-flex;align-items:center;justify-content:center;margin-inline:2px;color:var(--s98p-text)!important;transform:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-nav-item=icon]{width:42px;padding-inline:0!important}
+      :root.soft98-pro-theme [data-soft98-pro-nav-item=label]{padding-inline:10px!important}
+      :root.soft98-pro-theme [data-soft98-pro-nav-item][aria-expanded=true]{background:var(--s98p-control-hover)!important;border-color:var(--s98p-control-edge)!important}
+      :root.soft98-pro-theme [data-soft98-pro-nav-item]::before,:root.soft98-pro-theme [data-soft98-pro-nav-item]::after{color:inherit!important;text-shadow:none!important;box-shadow:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-nav-item]::after{border-block-start-color:var(--s98p-faint)!important}
+      :root.soft98-pro-theme [data-soft98-pro-heading-divider]{border-inline-start:0!important;padding-inline-start:14px!important;position:relative!important}
+      :root.soft98-pro-theme [data-soft98-pro-heading-divider]::before{content:""!important;position:absolute!important;inset-inline-start:0!important;inset-block-start:50%!important;transform:translateY(-50%)!important;width:4px!important;height:1.15em!important;border:0!important;border-radius:3px!important;background:linear-gradient(180deg,var(--s98p-link),color-mix(in srgb,var(--s98p-link) 40%,var(--s98p-border)))!important;box-shadow:0 0 8px color-mix(in srgb,var(--s98p-link) 15%,transparent)!important;pointer-events:none!important}
+      @media(max-width:560px){:root.soft98-pro-theme [data-soft98-pro-nav-item=icon]{width:clamp(32px,9vw,40px);margin-inline:1px}}
       @media(max-width:560px){:root.soft98-pro-theme [data-soft98-pro-surface=tab-list]{gap:2px 4px;padding-inline:6px!important}:root.soft98-pro-theme [data-soft98-pro-surface=tab-list]>:is(li,div){flex:1 1 calc(50% - 4px)!important}:root.soft98-pro-theme [data-soft98-pro-surface=tab-list] :is([role=tab],[data-toggle=tab]){width:100%!important;padding-inline:7px!important}}
       @keyframes soft98-pro-neon{to{--s98p-neon-hue:515deg}}
       @media(max-width:820px){.soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-reading]{grid-template-columns:minmax(0,1fr)!important}.soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-reading]>[data-soft98-pro-column]{grid-column:1!important}.soft98-pro-compact [data-soft98-pro-column=primary]{order:1}.soft98-pro-compact [data-soft98-pro-column=secondary]{order:2}}
@@ -1108,6 +1135,15 @@
       if (box.width >= window.innerWidth * 0.72 && box.height > 30 && box.height < 120 && /fixed|sticky/.test(style.position)) {
         shell.setAttribute("data-soft98-pro-surface", "nav-shell");
       }
+      const navigationBox = visibleBox(navigation);
+      if (navigationBox.width >= window.innerWidth * 0.72 && navigationBox.height <= 120) {
+        for (const item of navigation.querySelectorAll("li > :is(a[href],button), :scope > button")) {
+          if (item.closest("[data-soft98-pro-menu]") || item.closest("li")?.parentElement.closest("li")) continue;
+          const bounds = visibleBox(item);
+          if (!bounds.height || bounds.height > 72) continue;
+          item.setAttribute("data-soft98-pro-nav-item", item.textContent.trim() ? "label" : "icon");
+        }
+      }
       for (const candidate of (shell || navigation).querySelectorAll("div,ul,ol,section")) candidates.add(candidate);
     }
 
@@ -1160,6 +1196,9 @@
     for (const [list, tabs] of groups) {
       if (tabs.length < 2) continue;
       list.setAttribute("data-soft98-pro-surface", "tab-list");
+      if (list.parentElement?.children.length === 1 && !list.parentElement.matches("section,article,main")) {
+        list.parentElement.setAttribute("data-soft98-pro-tab-header", "");
+      }
       const panes = tabs.map(tabTarget).filter(Boolean);
       for (const pane of panes) pane.setAttribute("data-soft98-pro-surface", "tab-pane");
       let content = panes[0] && panes[0].parentElement;
@@ -1177,6 +1216,14 @@
 
   function applyProLayoutHeuristics() {
     applyUtilityListHeuristics();
+    for (const heading of document.querySelectorAll("h1,h2,h3,h4,h5,h6,[role=heading]")) {
+      if (isOwnedInterface(heading) || heading.hasAttribute("data-soft98-pro-heading-divider")) continue;
+      const style = getComputedStyle(heading);
+      if ((style.borderInlineStartStyle === "double" || Number.parseFloat(style.borderInlineStartWidth) >= 8) &&
+          Number.parseFloat(style.borderInlineStartWidth) >= 3) {
+        heading.setAttribute("data-soft98-pro-heading-divider", "");
+      }
+    }
     for (const list of document.querySelectorAll("article [role=tabpanel] dl")) {
       if (!list.querySelector("dt") || !list.querySelector("dd a[href]")) continue;
       list.setAttribute("data-soft98-pro-download-group", "");
@@ -1189,6 +1236,7 @@
         if (!/^(?:پسوردفایل|رمزفایل|filepassword)/i.test(normalizedPersian(label.textContent || ""))) continue;
         label.setAttribute("data-soft98-pro-password", "");
         decorateIcon(label, "lock");
+        enhancePassword(label);
       }
     }
     for (const details of document.querySelectorAll("article details:has(> summary)")) {
@@ -1244,6 +1292,7 @@
       card.setAttribute("data-soft98-pro-latest", "");
       for (const row of card.querySelectorAll("li a[href]")) {
         if (row.matches("[role=tab]")) continue;
+        row.setAttribute("data-soft98-pro-news-link", "");
         normalizeLabel(row, rtlPage);
         for (const count of row.querySelectorAll(":scope > span,:scope > small")) {
           if (/^[\s\d\u06f0-\u06f9\u0660-\u0669,.،٬]+$/u.test(count.textContent || "")) {
@@ -1306,6 +1355,71 @@
     icon.innerHTML = PAGE_ICONS[name];
     host.setAttribute("data-soft98-pro-icon-host", name);
     if (!current) host.prepend(icon);
+  }
+
+  function enhancePassword(container) {
+    const input = container.querySelector("input[readonly]");
+    if (!input || passwordActions.get(container)?.isConnected) return;
+    const existing = container.parentElement?.matches("[data-soft98-pro-password-shell]") ? container.parentElement : null;
+    const shell = existing || document.createElement("div");
+    const controls = document.createElement("span");
+    const status = document.createElement("span");
+    shell.setAttribute("data-soft98-pro-password-shell", "");
+    controls.setAttribute("data-soft98-pro-password-actions", "");
+    status.setAttribute("data-soft98-pro-password-status", "");
+    status.setAttribute("role", "status");
+    const select = () => {
+      input.focus({ preventScroll: true });
+      input.select();
+    };
+    for (const [icon, key] of [["select", "passwordSelect"], ["copy", "passwordCopy"]]) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.setAttribute("data-action", icon);
+      button.setAttribute("aria-label", text(key));
+      button.title = text(key);
+      button.innerHTML = PAGE_ICONS[icon];
+      button.firstElementChild.setAttribute("aria-hidden", "true");
+      button.addEventListener("click", async (event) => {
+        event.stopPropagation();
+        if (icon === "select") {
+          status.textContent = "";
+          select();
+          return;
+        }
+        status.textContent = "";
+        select();
+        // Keep the explicit click's user activation for browsers that gate clipboard writes.
+        try {
+          if (document.execCommand("copy")) {
+            status.textContent = text("passwordCopied");
+            return;
+          }
+        } catch (_error) {}
+        status.textContent = text("passwordCopyFallback");
+        try {
+          let deadline;
+          try {
+            await Promise.race([navigator.clipboard.writeText(input.value),
+              new Promise((_, reject) => { deadline = setTimeout(reject, 1500); })]);
+          } finally {
+            clearTimeout(deadline);
+          }
+          status.textContent = text("passwordCopied");
+        } catch (_error) {
+          // The password is already selected for manual copying.
+        }
+      });
+      controls.append(button);
+    }
+    if (!existing) {
+      container.before(shell);
+      shell.append(container);
+    } else {
+      shell.querySelectorAll(":scope > [data-soft98-pro-password-actions], :scope > [data-soft98-pro-password-status]").forEach((node) => node.remove());
+    }
+    shell.append(controls, status);
+    passwordActions.set(container, controls);
   }
 
   function normalizeLabel(node, rtl) {

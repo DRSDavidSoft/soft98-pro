@@ -27,7 +27,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Reworked the shared patch engine so browser execution and historical compatibility tests use the same fail-safe transformations.
 - Refined the default Pro dark theme, distinct expert control console, megamenus, transition-safe tabbed cards, nested content surfaces, download-link presentation, logo treatment, and favicon status.
 - Redesigned the download list with modern platform icons, brighter primary actions, and quieter secondary links.
-- Replaced boxed page tabs with a responsive tab bar and a clear active indicator.
+- Matched the responsive tabs, sticky navigation buttons, and password controls with a consistent raised style.
+- Added password copy and select-all controls, plus a clearer password field.
+- Replaced the Linux and Android icons with simpler, more readable artwork and unified the platform icon colors.
+- Replaced the old double bars in card headings with a consistent rounded accent.
 - Made the optional success notification brief and off by default.
 - Made Pro styles self-healing with constructable stylesheets so page scripts cannot silently remove layout and theme repairs.
 - Improved ad and warning cleanup through structural, geometric, source, and behavior signals rather than generated page identifiers.

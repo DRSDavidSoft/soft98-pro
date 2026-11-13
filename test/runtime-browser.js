@@ -140,7 +140,7 @@ function assertDarkTabSurfaces(name, theme) {
   assertEqual(name, "tab card surface", theme.cardSurface, "tab-card");
   assertEqual(name, "tab content surface", theme.contentSurface, "tab-content");
   if (theme.paneSurfaces.join(",") !== "tab-pane,tab-pane") throw new Error(`${name}: controlled tab panes were not classified`);
-  assertEqual(name, "no boxed tab border", theme.incomingBorder, "0px");
+  assertEqual(name, "thin tab edge", theme.incomingBorder, "1px");
   if (!/inset/.test(theme.incomingIndicator)) throw new Error(`${name}: active tab indicator is missing`);
   for (const [field, value] of Object.entries({
     card: theme.cardBackground,
@@ -162,6 +162,7 @@ function assertCase(name, results, expected) {
     hostileBranding: 1,
     kaprila: 0,
     asiatech: 0,
+    iranicard: 0,
     advertisingCard: 0,
     advertisingSeparator: 0,
     patch: "passed",
