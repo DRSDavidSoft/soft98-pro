@@ -1,3 +1,12 @@
+<div align="center">
+
+<a href="Userscript-vs-Extension.md"><img src="../assets/badge-en.svg" alt="English" height="22"/></a>&nbsp;
+<a href="fa/Userscript-vs-Extension.md"><img src="../assets/badge-fa.svg" alt="فارسی" height="22"/></a>
+
+</div>
+
+---
+
 # Userscript vs Extension 🧩
 
 Soft98 Pro supports two install paths and both use the same shared runtime.

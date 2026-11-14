@@ -1,0 +1,449 @@
+{
+  "schemaVersion": 1,
+  "locales": {
+    "en": {
+      "manifest": {
+        "name": "Soft98 Pro",
+        "description": "Soft98 Pro enhancements, ad blocking, anti-adblock patching, and download recovery."
+      },
+      "runtime": {
+        "product": "Soft98 Pro",
+        "ready": "ready",
+        "blockAds": "Block ads",
+        "patchScripts": "Patch Soft98 code",
+        "pro": "Enable Pro",
+        "darkDesign": "Modern dark design",
+        "compactLayout": "Refined layout",
+        "expandMain": "Widen article on scroll",
+        "utilityTitle": "Useful software",
+        "routeLoading": "Loading the software list…",
+        "comments": {"title":"Discussion","empty":"No comments yet.","editorLabel":"Write your comment"},
+        "articlePreview": "Downloads",
+        "downloadQueueFile": "Add to download queue",
+        "previewBefore": "Before",
+        "previewAfter": "After",
+        "downloadCopyAll": "Copy direct links",
+        "downloadLinkCopied": "{count} download link copied.",
+        "downloadLinksCopied": "{count} download links copied.",
+        "downloadCopyFailed": "Could not copy the links.",
+        "downloadNoDirectLinks": "No direct links to copy.",
+        "downloadExpandGroup": "Show downloads",
+        "downloadCollapseGroup": "Hide downloads",
+        "controlLauncherMenu": "Control center options",
+        "controlTuck": "Tuck launcher away",
+        "controlRestore": "Restore launcher",
+        "controlResetPosition": "Reset launcher position",
+        "navLabels": {"menu":"Menu","moon":"Toggle dark mode","bell":"Download notice","mail":"Messages","author":"Account","search":"Search"},
+        "footer": {"brand":"Soft98 Pro","tagline":"Appearance and download tools","resources":"Project","source":"Source code","releases":"Versions and updates","support":"Support","settings":"Open control center","report":"Report a problem","independent":"Independent project","top":"Back to top"},
+        "rgbMode": "Animated RGB mode",
+        "linkBadges": "Download badges",
+        "pirateLogo": "Pirate logo",
+        "taunt": "Success notification",
+        "diagnostics": "Console diagnostics",
+        "recommendExtension": "Recommend extension",
+        "moveControl": "Drag to move. Alt+Arrow keys also move this control.",
+        "controlTitle": "Expert protection console",
+        "controlSubtitle": "Live page telemetry and precision controls",
+        "controlLive": "Live",
+        "controlModules": "modules",
+        "controlProtection": "Protection",
+        "controlExperience": "Experience",
+        "controlAdvanced": "Advanced",
+        "controlOpenDownloads": "Open download manager",
+        "controlDownloadStates": { "active": "Active", "waiting": "Waiting", "finished": "Finished" },
+        "controlSectionDescriptions": {
+          "protection": "Interception, cleanup, and script integrity",
+          "experience": "Visual system, layout, and download workflow",
+          "advanced": "Diagnostics, feedback, and integration controls",
+          "downloads": "Download queue"
+        },
+        "controlProtectionActive": "Protection active",
+        "controlProtectionPaused": "Protection paused",
+        "controlCompatible": "Script reviewed",
+        "controlUnknown": "Review needed",
+        "controlWaiting": "Awaiting script fingerprint",
+        "controlAdsRemoved": "Ads removed",
+        "controlLinksSecured": "Links secured",
+        "controlCodePatches": "Code patches",
+        "controlDiagnostics": "Open diagnostics",
+        "controlOptions": {
+          "blockAds": {
+            "title": "Structural ad blocking",
+            "detail": "Remove advertising surfaces using source, geometry, and behavior signals."
+          },
+          "patchScripts": {
+            "title": "Modification engine",
+            "detail": "Inspect, unpack, and safely patch Soft98 application code before execution."
+          },
+          "pro": {
+            "title": "Soft98 Pro experience",
+            "detail": "Enable the enhanced interface and responsive experience layer."
+          },
+          "darkDesign": {
+            "title": "Dark theme",
+            "detail": "Switch between the Pro light and dark palettes. Pro tools stay on."
+          },
+          "rgbMode": {
+            "title": "Animated RGB atmosphere",
+            "detail": "Add restrained spectral glass effects with reduced-motion support."
+          },
+          "compactLayout": {
+            "title": "Refined content layout",
+            "detail": "Reorganize primary content and supporting information responsively."
+          },
+          "expandMain": {
+            "title": "Widen article on scroll",
+            "detail": "Widen the article as you scroll past the sidebar."
+          },
+          "utilityInHeader": {"title":"Useful software in the top bar","detail":"Move the utility list out of the sidebar and open it from the top bar."},
+          "quickNavigation": {"title":"Quick browsing","detail":"Load software lists without reloading the page. Articles still open normally."},
+          "soundFeedback": {"title":"Interface sounds","detail":"Play a short, quiet sound when you use a control."},
+          "linkBadges": {
+            "title": "Download recovery badges",
+            "detail": "Identify links that Soft98 Pro preserved or restored."
+          },
+          "showLatest": {
+            "title": "Show latest posts and news",
+            "detail": "Keep the latest software, Android posts, and news at the top of the page."
+          },
+          "hideAnnoyances": {
+            "title": "Hide extra site prompts",
+            "detail": "Hide the utility-list expansion prompt and the offer to install software for you."
+          },
+          "pirateLogo": {
+            "title": "Pirate branding",
+            "detail": "Use the bundled transparent pirate identity after successful protection."
+          },
+          "taunt": {
+            "title": "Success notification",
+            "detail": "Briefly show a message after cleanup. Off by default."
+          },
+          "diagnostics": {
+            "title": "Console telemetry",
+            "detail": "Record patch outcomes, recovered links, and structural decisions."
+          },
+          "recommendExtension": {
+            "title": "Extension recommendation",
+            "detail": "Recommend the fuller browser extension when the userscript is installed."
+          }
+        },
+        "scanNow": "Scan now",
+        "close": "Close",
+        "dismiss": "Dismiss",
+        "extensionTitle": "Browser extension is ready",
+        "extensionBody": "Install the extension for more precise control, richer settings, and steadier execution in Chrome, Edge, and Firefox.",
+        "extensionLink": "Get Soft98 Pro",
+        "tauntText": "Ads removed.",
+        "passwordSelect": "Select full password",
+        "passwordCopy": "Copy password",
+        "passwordCopied": "Password copied.",
+        "passwordCopyFallback": "Password selected. Use your device’s copy command.",
+        "successLog": "Page cleanup completed.",
+        "updateAvailable": "Soft98 Pro {version} is available.",
+        "updateAction": "Open release",
+        "scriptUnknownBadge": "Soft98 changed its packed script. Compatibility review is available.",
+        "compatibilityTitle": "Soft98 code changed",
+        "compatibilityStatusUnknown": "This script hash has not been reviewed yet.",
+        "compatibilityBody": "Protection is still active with fail-safe patching. If this page behaves incorrectly, you can disable the modification engine and send the script fingerprint for review.",
+        "compatibilityKeep": "Keep protection",
+        "compatibilityDisable": "Disable and reload",
+        "compatibilityReport": "Report update",
+        "compatibilityCopied": "Technical details copied. Paste them into the GitHub form.",
+        "compatibilityCopyFailed": "The report form opened. Add the displayed SHA-256 manually.",
+        "logs": {
+          "settingsPersistFailed": "Soft98 Pro could not persist settings",
+          "nativeEvalFailed": "Soft98 Pro native eval failed; retrying indirectly",
+          "patchedEvalFailed": "Soft98 Pro patched script failed; trying the original source once",
+          "invalidEvalSkipped": "Soft98 Pro skipped invalid evaluated code instead of breaking the page",
+          "patchStepSkipped": "Patch step skipped",
+          "adCardRemoved": "Removed ad card from structural signals",
+          "downloadLinkPreserved": "Preserved download link",
+          "downloadLinkRestored": "Restored sabotaged download link",
+          "adSurfaceRemoved": "Removed ad surface",
+          "warningRemoved": "Removed Soft98 warning node",
+          "blockerNoticeRemoved": "Removed external blocker notice",
+          "hostileBrandReplaced": "Replaced a hostile attribution with Soft98 Pro branding",
+          "faviconFailed": "Soft98 Pro could not render the canvas favicon",
+          "controlPositionFailed": "Soft98 Pro could not persist the control position",
+          "boarded": "Boarded successfully",
+          "applicationPatched": "Patched Soft98 application code",
+          "scriptCompatible": "Soft98 script hash is reviewed and compatible",
+          "scriptUnknown": "Detected an unreviewed Soft98 script hash",
+          "compatibilityEngineDisabled": "Modification engine disabled for the unreviewed script",
+          "scrollDetectorBlocked": "Blocked scroll-triggered Soft98 detector",
+          "documentHandlesChecked": "Checked document query handles",
+          "trapSummary": "Soft98 Pro trap check: {count} suspicious node(s)",
+          "diagnostics": "Soft98 Pro diagnostics",
+          "unknownError": "Unknown error",
+          "trapDisplayNone": "display none",
+          "trapNotVisible": "not visible",
+          "trapOpacityReduced": "opacity reduced",
+          "trapTransformed": "transformed",
+          "trapTooSmall": "too small",
+          "trapBlockerMarker": "blocker marker",
+          "trapSourceLessImage": "source-less image"
+        }
+      },
+      "options": {
+        "product": "Soft98 Pro",
+        "headline": "Precise page control without fragile names.",
+        "body": "Patch packed Soft98 code, preserve download links, remove ads and noisy blocker-side notices, then optionally tune the Soft98 Pro experience.",
+        "scan": "Scan active tab",
+        "repo": "Repository",
+        "version": "Installed version {version}",
+        "updateChecking": "Checking GitHub Releases...",
+        "updateCurrent": "You have the latest GitHub release.",
+        "updateAvailable": "Version {version} is available on GitHub Releases.",
+        "updateFailed": "The release check could not be completed. Your installed protection remains active.",
+        "updateAction": "Download update",
+        "compatibilityTitle": "Soft98 script compatibility",
+        "compatibilityCurrent": "The latest detected Soft98 script is reviewed and compatible.",
+        "compatibilityUnknown": "Soft98 deployed an unreviewed script. Protection remains fail-safe while review is pending.",
+        "compatibilityUnavailable": "No script compatibility result is available yet.",
+        "compatibilityHash": "SHA-256 {hash}",
+        "compatibilityChecked": "Checked {date}",
+        "compatibilityReport": "Report upstream change",
+        "options": {
+          "blockAds": ["Block ads", "Remove ad surfaces using source, shape, and link behavior."],
+          "patchScripts": ["Patch Soft98 code", "Unpack and patch Soft98 anti-adblock code before it runs."],
+          "pro": ["Soft98 Pro", "Enable the enhanced experience layer."],
+          "darkDesign": ["Dark theme", "Switch between the Pro light and dark palettes. Pro tools stay on."],
+          "compactLayout": ["Refined layout", "Organize semantic content and controls into a calmer responsive layout."],
+          "expandMain": ["Widen article on scroll", "Widen the article as you scroll past the sidebar."],
+          "utilityInHeader": ["Useful software in the top bar", "Move the utility list out of the sidebar and open it from the top bar."],
+          "quickNavigation": ["Quick browsing", "Load software lists without reloading the page. Articles still open normally."],
+          "soundFeedback": ["Interface sounds", "Play a short, quiet sound when you use a control."],
+          "showLatest": ["Show latest posts and news", "Show the software, Android, and news lists at the top of the page."],
+          "hideAnnoyances": ["Hide extra site prompts", "Hide the utility-list expansion prompt and the offer to install software for you."],
+          "rgbMode": ["Animated RGB mode", "Add a restrained spectral glass experience with efficient motion and reduced-motion support."],
+          "linkBadges": ["Download badges", "Mark recovered download links."],
+          "pirateLogo": ["Pirate logo", "Use the bundled pirate logo after successful cleanup."],
+          "taunt": ["Success notification", "Briefly show a message after cleanup. Off by default."],
+          "diagnostics": ["Console diagnostics", "Expose useful logs and interactive page APIs."]
+        }
+      }
+    },
+    "fa": {
+      "manifest": {
+        "name": "Soft98 Pro",
+        "description": "بهبود Soft98 با حذف تبلیغات، اصلاح ضدادبلاک و بازیابی لینک دانلود."
+      },
+      "runtime": {
+        "product": "Soft98 Pro",
+        "ready": "آماده",
+        "blockAds": "حذف تبلیغات",
+        "patchScripts": "اصلاح کد Soft98",
+        "pro": "فعال‌سازی Pro",
+        "darkDesign": "طراحی تیره مدرن",
+        "compactLayout": "چیدمان بهبودیافته",
+        "expandMain": "عریض‌شدن مطلب هنگام پیمایش",
+        "utilityTitle": "لیست نرم‌افزارهای کاربردی",
+        "routeLoading": "در حال بارگیری لیست نرم‌افزارها…",
+        "comments": {"title":"گفت‌وگو","empty":"هنوز نظری ثبت نشده.","editorLabel":"نظرت رو بنویس"},
+        "articlePreview": "دانلودها",
+        "downloadQueueFile": "افزودن به صف دانلود",
+        "previewBefore": "قبل",
+        "previewAfter": "بعد",
+        "downloadCopyAll": "کپی لینک‌های مستقیم",
+        "downloadLinkCopied": "{count} لینک دانلود کپی شد.",
+        "downloadLinksCopied": "{count} لینک دانلود کپی شدند.",
+        "downloadCopyFailed": "کپی لینک‌ها انجام نشد.",
+        "downloadNoDirectLinks": "لینک مستقیمی برای کپی نیست.",
+        "downloadExpandGroup": "نمایش دانلودها",
+        "downloadCollapseGroup": "بستن فهرست دانلودها",
+        "controlLauncherMenu": "گزینه‌های مرکز کنترل",
+        "controlTuck": "جمع کردن دکمهٔ مرکز کنترل",
+        "controlRestore": "برگرداندن دکمهٔ مرکز کنترل",
+        "controlResetPosition": "برگرداندن دکمه به جای اول",
+        "navLabels": {"menu":"منو","moon":"تغییر حالت تیره","bell":"اطلاعیهٔ دانلود","mail":"پیام‌ها","author":"حساب کاربری","search":"جست‌وجو"},
+        "footer": {"brand":"سافت‌۹۸ پرو","tagline":"یکی از تبلیغ‌دار ترین مراجع نرم‌افزاری در ایران","resources":"پروژه","source":"کد پروژه","releases":"نسخه‌ها و به‌روزرسانی‌ها","support":"پشتیبانی","settings":"باز کردن مرکز کنترل","report":"گزارش مشکل","independent":"پروژهٔ مستقل","top":"بالای صفحه"},
+        "rgbMode": "حالت RGB متحرک",
+        "linkBadges": "نشان لینک دانلود",
+        "pirateLogo": "لوگوی دزدان دریایی",
+        "taunt": "پیام موفقیت",
+        "diagnostics": "گزارش کنسول",
+        "recommendExtension": "پیشنهاد افزونه",
+        "moveControl": "برای جابه‌جایی بکشید. با Alt و کلیدهای جهت‌دار نیز حرکت می‌کند.",
+        "controlTitle": "مرکز کنترل Soft98 Pro",
+        "controlSubtitle": "پایش لحظه‌ای صفحه و مدیریت دقیق قابلیت‌ها",
+        "controlLive": "زنده",
+        "controlModules": "ماژول‌ها",
+        "controlProtection": "محافظت",
+        "controlExperience": "ظاهر",
+        "controlAdvanced": "پیشرفته",
+        "controlOpenDownloads": "باز کردن مدیر دانلود",
+        "controlDownloadStates": { "active": "فعال", "waiting": "در انتظار", "finished": "پایان‌یافته" },
+        "controlSectionDescriptions": {
+          "protection": "شناسایی، پاک‌سازی و بررسی سلامت اسکریپت‌ها",
+          "experience": "ظاهر، چیدمان و روند دانلود",
+          "advanced": "گزارش‌ها و تنظیمات بیشتر",
+          "downloads": "صف دانلود"
+        },
+        "controlProtectionActive": "حفاظت فعال است",
+        "controlProtectionPaused": "محافظت موقتاً متوقف است",
+        "controlCompatible": "اسکریپت تأیید شده است",
+        "controlUnknown": "نیاز به بررسی دارد",
+        "controlWaiting": "در انتظار شناسایی اسکریپت",
+        "controlAdsRemoved": "تبلیغات حذف‌شده",
+        "controlLinksSecured": "لینک‌های ایمن‌شده",
+        "controlCodePatches": "اصلاحات کد",
+        "controlDiagnostics": "نمایش گزارش فنی",
+        "controlOptions": {
+          "blockAds": {
+            "title": "حذف ساختاری تبلیغات",
+            "detail": "سطح‌های تبلیغاتی را با نشانه‌های منبع، هندسه و رفتار حذف می‌کند."
+          },
+          "patchScripts": {
+            "title": "موتور اصلاح اسکریپت",
+            "detail": "کد Soft98 را پیش از اجرا بررسی و بازگشایی می‌کند و اصلاحات لازم را با اطمینان اعمال می‌کند."
+          },
+          "pro": {
+            "title": "رابط حرفه‌ای Soft98 Pro",
+            "detail": "رابط پیشرفته و چیدمان واکنش‌گرای Soft98 Pro را فعال می‌کند."
+          },
+          "darkDesign": {
+            "title": "تم تیره",
+            "detail": "بین ظاهر روشن و تیره جابه‌جا شو؛ امکانات پرو فعال می‌مونن."
+          },
+          "rgbMode": {
+            "title": "افکت RGB متحرک",
+            "detail": "رنگ حاشیه‌ها و بخش‌های فعال را با حرکت ملایم RGB زنده می‌کند."
+          },
+          "compactLayout": {
+            "title": "چیدمان بهتر محتوا",
+            "detail": "محتوای اصلی و اطلاعات جانبی را متناسب با اندازه صفحه مرتب می‌کند."
+          },
+          "expandMain": {
+            "title": "عریض‌شدن مطلب هنگام پیمایش",
+            "detail": "وقتی از ستون کناری رد شدی، مطلب از فضای خالی آن استفاده کند."
+          },
+          "utilityInHeader": {"title":"نرم‌افزارهای کاربردی در نوار بالا","detail":"لیست را از ستون کناری بردار و از نوار بالا باز کن."},
+          "quickNavigation": {"title":"مرور سریع","detail":"لیست نرم‌افزارها بدون بارگیری دوبارهٔ صفحه باز می‌شه. مطالب مثل قبل باز می‌شن."},
+          "soundFeedback": {"title":"صدای دکمه‌ها","detail":"هنگام استفاده از دکمه‌ها، یک صدای کوتاه و ملایم پخش شود."},
+          "linkBadges": {
+            "title": "نشان بازیابی دانلود",
+            "detail": "لینک‌هایی را که Soft98 Pro حفظ یا بازیابی کرده مشخص می‌کند."
+          },
+          "showLatest": {
+            "title": "نمایش تازه‌ها و اخبار",
+            "detail": "فهرست تازه‌های نرم‌افزار، اندروید و اخبار را بالای صفحه نشان بده."
+          },
+          "hideAnnoyances": {
+            "title": "پنهان‌کردن گزینه‌های اضافه",
+            "detail": "دکمهٔ ادامهٔ فهرست کاربردی و پیشنهاد نصب نرم‌افزار را پنهان کن."
+          },
+          "pirateLogo": {
+            "title": "نشان دزدان دریایی",
+            "detail": "پس از موفقیت حفاظت، از نشان شفاف داخلی استفاده می‌کند."
+          },
+          "taunt": {
+            "title": "پیام موفقیت",
+            "detail": "بعد از پاک‌سازی، پیام را چند ثانیه نشان بده. پیش‌فرض خاموش است."
+          },
+          "diagnostics": {
+            "title": "گزارش عیب‌یابی",
+            "detail": "نتیجه اصلاحات، لینک‌های بازیابی‌شده و تغییرات ساختاری را ثبت می‌کند."
+          },
+          "recommendExtension": {
+            "title": "پیشنهاد افزونه",
+            "detail": "هنگام نصب کاربرانکریپت، افزونه کامل‌تر مرورگر را پیشنهاد می‌کند."
+          }
+        },
+        "scanNow": "بررسی مجدد",
+        "close": "بستن",
+        "dismiss": "بستن",
+        "extensionTitle": "افزونه مرورگر آماده نصب است",
+        "extensionBody": "برای کنترل بیشتر، تنظیمات کامل‌تر و اجرای مطمئن‌تر در Chrome، Edge و Firefox، افزونه مرورگر را نصب کنید.",
+        "extensionLink": "دریافت Soft98 Pro",
+        "tauntText": "تبلیغات حذف شد.",
+        "passwordSelect": "انتخاب کل رمز",
+        "passwordCopy": "کپی رمز",
+        "passwordCopied": "رمز کپی شد.",
+        "passwordCopyFallback": "رمز انتخاب شد. حالا می‌توانید آن را کپی کنید.",
+        "successLog": "پاک‌سازی صفحه انجام شد.",
+        "updateAvailable": "نسخه {version} از Soft98 Pro آماده است.",
+        "updateAction": "مشاهده نسخه",
+        "scriptUnknownBadge": "کد فشرده Soft98 تغییر کرده و نیازمند بررسی سازگاری است.",
+        "compatibilityTitle": "کد Soft98 تغییر کرده است",
+        "compatibilityStatusUnknown": "این نسخه از اسکریپت هنوز تأیید نشده است.",
+        "compatibilityBody": "محافظت با اصلاحات مقاوم در برابر خطا فعال می‌ماند. اگر صفحه درست کار نمی‌کند، می‌توانید موتور اصلاح را غیرفعال کنید و اثر انگشت اسکریپت را برای بررسی بفرستید.",
+        "compatibilityKeep": "ادامه محافظت",
+        "compatibilityDisable": "غیرفعال‌کردن و بارگذاری مجدد",
+        "compatibilityReport": "گزارش تغییرات",
+        "compatibilityCopied": "جزئیات فنی کپی شد؛ آن را در فرم GitHub جای‌گذاری کنید.",
+        "compatibilityCopyFailed": "فرم گزارش باز شد؛ SHA-256 نمایش‌داده‌شده را دستی وارد کنید.",
+        "logs": {
+          "settingsPersistFailed": "ذخیره تنظیمات Soft98 Pro ممکن نشد",
+          "nativeEvalFailed": "اجرای مستقیم کد Soft98 ناموفق بود؛ اجرای غیرمستقیم امتحان می‌شود",
+          "patchedEvalFailed": "اجرای کد اصلاح‌شده ناموفق بود؛ منبع اصلی یک بار امتحان می‌شود",
+          "invalidEvalSkipped": "برای جلوگیری از خرابی صفحه، اجرای کد نامعتبر رد شد",
+          "patchStepSkipped": "یک مرحله اصلاح رد شد",
+          "adCardRemoved": "کارت تبلیغاتی با نشانه‌های ساختاری حذف شد",
+          "downloadLinkPreserved": "لینک دانلود حفظ شد",
+          "downloadLinkRestored": "لینک دانلود دست‌کاری‌شده بازیابی شد",
+          "adSurfaceRemoved": "سطح تبلیغاتی حذف شد",
+          "warningRemoved": "هشدار Soft98 حذف شد",
+          "blockerNoticeRemoved": "هشدار مسدودکننده جانبی حذف شد",
+          "hostileBrandReplaced": "انتساب مخرب با نشان Soft98 Pro جایگزین شد",
+          "faviconFailed": "ساخت فاویکون وضعیت ممکن نشد",
+          "controlPositionFailed": "ذخیره جای کنترل Soft98 Pro ممکن نشد",
+          "boarded": "پاک‌سازی با موفقیت انجام شد",
+          "applicationPatched": "کد برنامه Soft98 اصلاح شد",
+          "scriptCompatible": "اثر انگشت اسکریپت Soft98 بررسی شده و سازگار است",
+          "scriptUnknown": "اثر انگشت بررسی‌نشده‌ای از اسکریپت Soft98 شناسایی شد",
+          "compatibilityEngineDisabled": "موتور اصلاح برای اسکریپت بررسی‌نشده غیرفعال شد",
+          "scrollDetectorBlocked": "تشخیص ضدادبلاک وابسته به پیمایش مسدود شد",
+          "documentHandlesChecked": "توابع جست‌وجوی سند بررسی شدند",
+          "trapSummary": "بررسی تله Soft98 Pro: {count} گره مشکوک",
+          "diagnostics": "گزارش تشخیصی Soft98 Pro",
+          "unknownError": "خطای ناشناخته",
+          "trapDisplayNone": "نمایش داده نمی‌شود",
+          "trapNotVisible": "قابل مشاهده نیست",
+          "trapOpacityReduced": "شفافیت کاهش یافته",
+          "trapTransformed": "تبدیل ظاهری اعمال شده",
+          "trapTooSmall": "بیش از حد کوچک است",
+          "trapBlockerMarker": "نشانه مسدودکننده دارد",
+          "trapSourceLessImage": "تصویر بدون منبع است"
+        }
+      },
+      "options": {
+        "product": "Soft98 Pro",
+        "headline": "کنترل دقیق صفحه بدون وابستگی به نام‌های شکننده.",
+        "body": "کد فشرده Soft98 را اصلاح کنید، لینک‌های دانلود را سالم نگه دارید، تبلیغات و اعلان‌های مزاحم را حذف کنید و تجربه Soft98 Pro را مطابق نیاز تنظیم کنید.",
+        "scan": "بررسی تب فعال",
+        "repo": "مخزن پروژه",
+        "version": "نسخه نصب‌شده {version}",
+        "updateChecking": "در حال بررسی نسخه‌های GitHub...",
+        "updateCurrent": "جدیدترین نسخه GitHub نصب است.",
+        "updateAvailable": "نسخه {version} در GitHub Releases آماده است.",
+        "updateFailed": "بررسی نسخه جدید انجام نشد؛ محافظت نصب‌شده همچنان فعال است.",
+        "updateAction": "دریافت به‌روزرسانی",
+        "compatibilityTitle": "سازگاری اسکریپت Soft98",
+        "compatibilityCurrent": "جدیدترین اسکریپت شناسایی‌شده Soft98 بررسی شده و سازگار است.",
+        "compatibilityUnknown": "Soft98 اسکریپت بررسی‌نشده‌ای منتشر کرده است؛ محافظت مقاوم در برابر خطا تا پایان بررسی فعال می‌ماند.",
+        "compatibilityUnavailable": "هنوز نتیجه‌ای برای سازگاری اسکریپت در دسترس نیست.",
+        "compatibilityHash": "SHA-256: {hash}",
+        "compatibilityChecked": "زمان بررسی: {date}",
+        "compatibilityReport": "گزارش تغییر بالادستی",
+        "options": {
+          "blockAds": ["حذف تبلیغات", "حذف سطح‌های تبلیغاتی بر اساس منبع، شکل و رفتار لینک."],
+          "patchScripts": ["اصلاح کد Soft98", "بازکردن و اصلاح کد ضد‌مسدودسازی پیش از اجرا."],
+          "pro": ["Soft98 Pro", "فعال‌سازی لایه تجربه پیشرفته."],
+          "darkDesign": ["تم تیره", "بین ظاهر روشن و تیره جابه‌جا شو؛ امکانات پرو فعال می‌مونن."],
+          "compactLayout": ["چیدمان بهبودیافته", "سازمان‌دهی محتوای معنایی و کنترل‌ها در یک چیدمان آرام و واکنش‌گرا."],
+          "expandMain": ["عریض‌شدن مطلب هنگام پیمایش", "وقتی از ستون کناری رد شدی، مطلب از فضای خالی آن استفاده کند."],
+          "utilityInHeader": ["نرم‌افزارهای کاربردی در نوار بالا", "لیست را از ستون کناری بردار و از نوار بالا باز کن."],
+          "quickNavigation": ["مرور سریع", "لیست نرم‌افزارها بدون بارگیری دوبارهٔ صفحه باز می‌شه. مطالب مثل قبل باز می‌شن."],
+          "soundFeedback": ["صدای دکمه‌ها", "هنگام استفاده از دکمه‌ها، یک صدای کوتاه و ملایم پخش شود."],
+          "showLatest": ["نمایش تازه‌ها و اخبار", "فهرست تازه‌های نرم‌افزار، اندروید و اخبار را بالای صفحه نشان بده."],
+          "hideAnnoyances": ["پنهان‌کردن گزینه‌های اضافه", "دکمهٔ ادامهٔ فهرست کاربردی و پیشنهاد نصب نرم‌افزار را پنهان کن."],
+          "rgbMode": ["حالت RGB متحرک", "افزودن ظاهر شیشه‌ای طیفی و کنترل‌شده با حرکت بهینه و پشتیبانی از کاهش حرکت."],
+          "linkBadges": ["نشان لینک دانلود", "نمایش نشان روی لینک‌های بازیابی‌شده."],
+          "pirateLogo": ["لوگوی دزدان دریایی", "استفاده از لوگوی داخلی پس از پاک‌سازی موفق."],
+          "taunt": ["پیام موفقیت", "بعد از پاک‌سازی، پیام را چند ثانیه نشان بده. پیش‌فرض خاموش است."],
+          "diagnostics": ["گزارش کنسول", "نمایش لاگ‌ها و APIهای تعاملی برای بررسی."]
+        }
+      }
+    }
+  }
+}

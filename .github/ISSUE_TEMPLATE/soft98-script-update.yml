@@ -1,0 +1,67 @@
+name: "🧬 Soft98 script update"
+description: Report an unreviewed packed Soft98 application script.
+title: "compat: review Soft98 script "
+labels: ["compatibility", "upstream-change"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form when Soft98 Pro reports an unfamiliar application-script fingerprint. Protection remains fail-safe until the revision is reviewed.
+  - type: input
+    id: script_url
+    attributes:
+      label: Packed script URL
+      placeholder: https://soft98.ir/templates/.../application.min.packed.js
+    validations:
+      required: true
+  - type: input
+    id: sha256
+    attributes:
+      label: SHA-256
+      placeholder: 64 lowercase hexadecimal characters
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Soft98 Pro version
+      placeholder: 1.2.0
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+    validations:
+      required: true
+  - type: dropdown
+    id: behavior
+    attributes:
+      label: Current page behavior
+      options:
+        - Protection works normally
+        - Download access is affected
+        - Page content is affected
+        - Anti-adblock warning appears
+        - Other regression
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details and reproduction
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostic
+    attributes:
+      label: Compatibility diagnostic
+      description: Paste the JSON copied by the Soft98 Pro compatibility prompt.
+      render: json
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Paste screenshots here so GitHub stores them as user attachments.

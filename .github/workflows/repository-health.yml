@@ -1,0 +1,66 @@
+name: "🛡️ Soft98 Pro · Repository Health"
+run-name: "🛡️ Repository health · ${{ github.ref_name }} · ${{ github.event_name }}"
+
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repository-health-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  policy:
+    name: "🔐 Source · Workflows · Docs"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: "📥 Check out source"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: "🟢 Install Node.js"
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: "🐹 Install Go for actionlint"
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: "1.25"
+
+      - name: "📦 Restore locked dependencies"
+        run: npm ci --ignore-scripts
+
+      - name: "🧭 Check repository policy"
+        run: npm run check:repo
+
+      - name: "🔬 Validate every GitHub Actions workflow"
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+
+      - name: "🧹 Check whitespace"
+        run: git show --check --oneline HEAD
+
+      - name: "✨ Publish repository quality summary"
+        if: success()
+        run: |
+          {
+            echo '# ✅ Soft98 Pro repository health passed'
+            echo
+            echo '| Quality gate | Result |'
+            echo '|---|---|'
+            echo '| Required source, policy, and documentation | ✅ present |'
+            echo '| Changelog and release notes | ✅ validated |'
+            echo '| Historical compatibility catalog | ✅ reviewed |'
+            echo '| External GitHub Actions | ✅ immutable SHA pins |'
+            echo '| GitHub Actions syntax | ✅ actionlint passed |'
+            echo '| Issue-only screenshots | ✅ excluded from source |'
+            echo '| Automation language | ✅ Node.js only |'
+          } >> "$GITHUB_STEP_SUMMARY"

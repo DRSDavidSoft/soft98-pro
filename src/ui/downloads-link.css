@@ -1,0 +1,22 @@
+.downloads-entry {
+  width: min(780px, 100%);
+  margin-inline: auto;
+  padding: 14px 20px 0;
+  text-align: end;
+}
+.downloads-entry a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--accent);
+  text-decoration: none;
+}
+.downloads-entry a:hover { border-color: var(--accent); }
+.downloads-entry a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.downloads-entry svg { display: block; width: 17px; height: 17px; }
+.downloads-entry [lang="fa"], html[lang="fa"] .downloads-entry [lang="en"] { display: none; }
+html[lang="fa"] .downloads-entry [lang="fa"] { display: inline; }

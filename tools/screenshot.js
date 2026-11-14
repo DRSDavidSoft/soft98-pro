@@ -71,6 +71,8 @@ async function main() {
     fs.rmSync(OUTPUT, { force: true });
     const args = [
       "--headless",
+      "--disable-extensions",
+      "--disable-component-extensions-with-background-pages",
       "--disable-gpu",
       "--no-sandbox",
       "--hide-scrollbars",

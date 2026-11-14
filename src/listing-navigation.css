@@ -1,0 +1,60 @@
+:root.soft98-pro-theme [data-soft98-pro-route-loading] {
+  position: fixed;
+  z-index: 2147483000;
+  inset: auto auto max(20px, env(safe-area-inset-bottom)) 50%;
+  translate: -50% 0;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  max-inline-size: calc(100% - 40px);
+  padding: 9px 14px 9px 10px;
+  color: var(--s98p-text);
+  background: color-mix(in srgb, var(--s98p-surface) 88%, transparent);
+  border: 1px solid var(--s98p-border);
+  border-radius: 8px;
+  box-shadow: 0 6px 24px #18303735;
+  backdrop-filter: blur(14px);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+.s98p-route-scene {
+  position: relative;
+  inline-size: 45px;
+  block-size: 31px;
+  flex: none;
+  overflow: hidden;
+  border-radius: 5px;
+  background: var(--s98p-elevated);
+}
+
+.s98p-route-scene::before {
+  content: "";
+  position: absolute;
+  inset: 3px 7px auto auto;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--s98p-accent-2);
+  animation: s98p-route-sun 1.2s ease-in-out infinite alternate;
+}
+
+.s98p-route-scene::after {
+  content: "";
+  position: absolute;
+  inset: 9px 4px 0;
+  clip-path: polygon(0 100%, 48% 0, 59% 9%, 100% 100%);
+  background: linear-gradient(var(--s98p-text) 30%, var(--s98p-accent) 32%, var(--s98p-accent));
+}
+
+@keyframes s98p-route-sun {
+  from { transform: translateY(5px); }
+  to { transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .s98p-route-scene::before { animation: none; }
+}
