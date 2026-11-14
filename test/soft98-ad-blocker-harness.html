@@ -75,7 +75,7 @@
       window.fetch = (input, init) => String(input) === location.origin + "/100-preview.html" ?
         Promise.resolve(new Response('<article><div role="tabpanel" id="test-file-panel"><dl><dt>Files</dt>' +
           '<dd><a data-key="test-key" href="/100-preview.html">Keyed file</a></dd>' +
-          '<dd><a href="https://dl2.soft98.ir/files/preview.zip?12345">Direct file</a></dd></dl></div></article>', {
+          '<dd><a href="https://href.li/?https://dl2.soft98.ir/files/preview.zip?12345">Direct file</a></dd></dl></div></article>', {
           headers: { "Content-Type": "text/html; charset=utf-8" }
         })) : String(input) === "https://dl2.soft98.ir/files/metadata.zip" && init?.method === "HEAD" ?
         Promise.resolve(new Response(null, { headers: {
@@ -225,7 +225,7 @@
             '<dd><a href="/platform/mac">نسخه macos</a></dd><dd><a href="/platform/linux">نسخه linux</a></dd>' +
             '<dd><a href="/platform/ios">نسخه ios</a></dd><dd><a href="/platform/android">نسخه android</a></dd>' +
             '<dd><a data-test="direct-download" href="https://dl2.soft98.ir/files/metadata.zip?123456">دانلود فایل</a></dd>' +
-            '<dd><a data-test="signed-download" href="https://dl2.soft98.ir/files/signed.zip?token=123456">دانلود فایل امضاشده</a></dd>' +
+            '<dd><a data-test="signed-download" href="https://href.li/?https://dl2.soft98.ir/files/signed.zip?token=123456">دانلود فایل امضاشده</a></dd>' +
             '<dt><span>اطلاعات بیشتر</span></dt><dd><a data-test="article-placeholder" data-key="hidden" href="/article.html">صفحهٔ نرم‌افزار</a></dd></dl>' +
             '<div><div data-toggle="copy"><span>پسورد فایل</span><input readonly value="soft98.ir"></div>' +
             '<button data-test="neutral-help" class="fixture-help" data-toggle="mbd" data-target="#fixture-help">Guide</button>' +

@@ -89,6 +89,7 @@
   let downloadCache;
   let downloadObserver;
   const trackedLinks = new Set();
+  const unwrappedLinks = new WeakSet();
   const pendingRoots = new Set();
   const stats = {
     adsRemoved: 0,
@@ -322,11 +323,46 @@
     return trimmed === location.href;
   }
 
+  const REFERRER_WRAPPER_LINK = 'a[href*="href.li" i]';
+
+  function unwrapReferrerLink(url) {
+    if (url.hostname !== "href.li" || url.pathname !== "/" || url.port || url.username || url.password ||
+        !/^https?:$/.test(url.protocol) || !url.search) return null;
+    // This service stores the whole destination in the query, not a named parameter.
+    let value = url.search.slice(1);
+    try {
+      if (/^https?%3a%2f%2f/i.test(value)) value = decodeURIComponent(value);
+      if (!/^https?:\/\/[^/?#]/i.test(value) || /[\x00-\x20\x7f\\]/.test(value)) return null;
+      const destination = new URL(value + url.hash);
+      return destination.hostname !== "href.li" && !destination.username && !destination.password ? destination : null;
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  function normalizeReferrerLink(link) {
+    if (!(link instanceof HTMLAnchorElement)) return;
+    let original;
+    try { original = new URL(link.href); } catch (_error) { return; }
+    const destination = unwrapReferrerLink(original);
+    if (!destination || isBadHref(destination.href)) return;
+    link.relList.add("noreferrer");
+    unwrappedLinks.add(link);
+    link.href = destination.href;
+  }
+
+  function normalizeReferrerLinks(root) {
+    if (!settings.pro) return;
+    if (root.matches?.(REFERRER_WRAPPER_LINK)) normalizeReferrerLink(root);
+    root.querySelectorAll?.(REFERRER_WRAPPER_LINK).forEach(normalizeReferrerLink);
+  }
+
   function normalizeHref(link, href) {
     const value = href || link.getAttribute("href") || "";
     if (isBadHref(value)) return "";
     try {
-      const url = new URL(value, location.href);
+      const original = new URL(value, location.href);
+      const url = settings.pro ? unwrapReferrerLink(original) || original : original;
       return (url.protocol === "https:" || url.protocol === "http:") && !url.username && !url.password ? url.href : "";
     } catch (_error) {
       return "";
@@ -598,7 +634,7 @@
     link.removeAttribute("onclick");
     link.removeAttribute("data-toggle");
     link.removeAttribute("data-target");
-    link.removeAttribute("target");
+    if (!unwrappedLinks.has(link)) link.removeAttribute("target");
     return true;
   }
 
@@ -846,6 +882,7 @@
 
   function processRoot(root) {
     removeLegacyBanners();
+    normalizeReferrerLinks(root);
     collectLinks(root);
     replaceHostileBranding(root);
     removeExternalAds(root);
@@ -1882,10 +1919,11 @@
       const { links, downloadPane } = destination ? await readArticleLinks(destination) : { links: [] };
       if (panel.hidden) return;
       panel.replaceChildren();
-      const makeLink = (label, href) => {
+      const makeLink = (label, href, hideReferrer = false) => {
         const item = document.createElement("a");
         item.textContent = label;
         item.href = href;
+        if (hideReferrer) item.rel = "noreferrer";
         return item;
       };
       const openArticle = downloadPane || destination;
@@ -1896,13 +1934,13 @@
         original.addEventListener("click", () => trigger.click());
         panel.append(original);
       } else if (!links.length) panel.append(makeLink(text("previewOpenArticle"), openArticle));
-      else if (links.length === 1) panel.append(makeLink(links[0].label, links[0].href));
+      else if (links.length === 1) panel.append(makeLink(links[0].label, links[0].href, links[0].hideReferrer));
       else {
         const disclosure = document.createElement("details");
         const summary = document.createElement("summary");
         summary.textContent = text("articlePreview");
         disclosure.open = true;
-        disclosure.append(summary, ...links.map((link) => makeLink(link.label, link.href)));
+        disclosure.append(summary, ...links.map((link) => makeLink(link.label, link.href, link.hideReferrer)));
         panel.append(disclosure);
       }
       if (links.length && openArticle) panel.append(makeLink(text("previewOpenArticle"), openArticle));
@@ -1942,7 +1980,8 @@
           const url = directDownloadUrl(link.getAttribute("href"), destination);
           if (!url || seen.has(url.href)) return [];
           seen.add(url.href);
-          return [{ href: url.href, label: link.textContent.trim().slice(0, 140) || url.pathname.split("/").at(-1) }];
+          return [{ href: url.href, hideReferrer: new URL(link.getAttribute("href"), destination).hostname === "href.li",
+            label: link.textContent.trim().slice(0, 140) || url.pathname.split("/").at(-1) }];
         }).slice(0, 12);
         const article = new URL(destination);
         article.hash = fragment;
@@ -2255,7 +2294,8 @@
   function directDownloadUrl(value, base = location.href) {
     try {
       if (!value || isBadHref(value)) return null;
-      const url = new URL(value, base);
+      const original = new URL(value, base);
+      const url = settings.pro ? unwrapReferrerLink(original) || original : original;
       if (url.protocol !== "https:" || url.username || url.password || url.port ||
           !/\.(?:zip|rar|7z|exe|msi|msix|appx|dmg|apk|iso|deb|rpm|tar|gz|xz|bz2|bin|img|pkg|001)$/i.test(url.pathname)) return null;
       if (/^\?\d+$/.test(url.search) && (url.hostname === "soft98.ir" || url.hostname.endsWith(".soft98.ir"))) url.search = "";
@@ -4582,12 +4622,14 @@
   }
 
   function installClickRepair() {
-    for (const eventName of ["click", "mouseover"]) {
+    for (const eventName of ["click", "auxclick", "mouseover"]) {
       document.addEventListener(
         eventName,
         (event) => {
-          const link = event.target && event.target.closest ? event.target.closest(`a[${DATA_HREF}]`) : null;
-          if (link) restoreLink(link);
+          const link = event.target?.closest?.(`a[${DATA_HREF}],${REFERRER_WRAPPER_LINK}`);
+          if (!link) return;
+          if (settings.pro && link.matches(REFERRER_WRAPPER_LINK)) normalizeReferrerLink(link);
+          if (link.hasAttribute(DATA_HREF)) restoreLink(link);
         },
         true
       );

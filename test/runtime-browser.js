@@ -378,7 +378,38 @@ async function main() {
           })()
         `);
         assertEqual("listing preview", "direct file", previewLinks[0], "https://dl2.soft98.ir/files/preview.zip");
+        assertEqual("listing preview", "referrer stays private", await evaluate(client,
+          "document.querySelector('[data-soft98-pro-preview-panel] a').relList.contains('noreferrer')"), true);
         assertEqual("listing preview", "visit keyed download tab", previewLinks[1], `http://127.0.0.1:${PORT}/100-preview.html#test-file-panel`);
+        const wrappers = await evaluate(client, `(async () => {
+          const samples = [
+            ['https://href.li/?https://example.org/a%2Fb?q=a+b&token=%2F%3F#install', 'https://example.org/a%2Fb?q=a+b&token=%2F%3F#install'],
+            ['//href.li/?' + encodeURIComponent('https://example.org/download?a=%2B&b=one+two#verify'), 'https://example.org/download?a=%2B&b=one+two#verify'],
+            ['https://href.li/?https&#58;//example.org/official', 'https://example.org/official'],
+            ['https://href.li/?javascript:alert(1)', null],
+            ['https://href.li/?https://user@example.org/', null],
+            ['https://href.li/?https://href.li/?https://example.org', null],
+            ['https://href.li.example.org/?https://example.org/', null],
+            ['https://href.li/other?https://example.org/', null],
+            ['https://href.li/?https%3A%2F%2Fexample.org%2F%XX', null],
+          ];
+          const group = document.createElement('div');
+          group.innerHTML = samples.map(([input]) => '<a href="' + input + '" target="_blank" rel="nofollow"><span>Guide</span></a>').join('');
+          document.body.append(group);
+          // Exercise immediate middle-click and asynchronously discovered links.
+          group.children[0].firstChild.dispatchEvent(new MouseEvent('auxclick', { bubbles:true, button:1 }));
+          const immediate = group.children[0].href === samples[0][1];
+          for (let i = 0; i < 10 && group.children[2].href !== samples[2][1]; i++) await new Promise(resolve => setTimeout(resolve, 35));
+          const results = [...group.children].map((link, i) => {
+            const [original, expected] = samples[i];
+            return expected ? link.href === expected && link.target === '_blank' && link.relList.contains('noreferrer') &&
+              link.relList.contains('nofollow') : link.getAttribute('href') === original && !link.relList.contains('noreferrer');
+          });
+          group.remove();
+          return { immediate, results };
+        })()`);
+        assertEqual("referrer links", "middle click", wrappers.immediate, true);
+        wrappers.results.forEach((valid, i) => assertEqual("referrer links", "case " + (i + 1), valid, true));
         const downloadTab = await evaluate(client, `
           (async () => {
             const article = document.querySelector('[data-test=keyed-article]');

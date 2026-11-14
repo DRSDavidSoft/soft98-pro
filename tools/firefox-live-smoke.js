@@ -220,6 +220,21 @@ async function main() {
       throw new Error("Live Firefox page failed the Soft98 Pro smoke checks");
     }
     if (process.env.SOFT98_LIVE_SCREENSHOT) await screenshot(session, process.env.SOFT98_LIVE_SCREENSHOT);
+    if (addon && process.env.SOFT98_REFERRER_CHECK === "1") {
+      const directLinks = await evaluate(`
+        const wanted = ['https://anydesk.com/', 'https://download.anydesk.com/changelog.txt'];
+        const links = [...document.querySelectorAll('article [role=tabpanel] a[href]')];
+        return wanted.map(url => {
+          const link = links.find(item => item.href === url);
+          return { url, found: Boolean(link), protected: Boolean(link?.relList.contains('noreferrer')),
+            newTab: link?.target === '_blank', visible: Boolean(link?.getClientRects().length) };
+        });
+      `);
+      if (directLinks.some(link => !link.found || !link.protected || !link.newTab || !link.visible)) {
+        throw new Error("Live href.li links were not normalized: " + JSON.stringify(directLinks));
+      }
+      console.log(JSON.stringify({ directLinks }));
+    }
     if (addon && process.env.SOFT98_PALETTE_CHECK === "1") {
       const palette = await evaluate(`
         const actions = [...document.querySelectorAll('.list-group-item-light')];
