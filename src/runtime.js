@@ -2433,7 +2433,8 @@
         if (!links.length) return showDownloadToast("downloadNoDirectLinks", true);
         try {
           await navigator.clipboard.writeText(links.join("\n"));
-          showDownloadToast("downloadLinksCopied");
+          const count = new Intl.NumberFormat(LOCALE).format(links.length);
+          showDownloadToast(links.length === 1 ? "downloadLinkCopied" : "downloadLinksCopied", false, { count });
         } catch (_error) {
           showDownloadToast("downloadCopyFailed", true);
         }
@@ -2899,8 +2900,8 @@
     showProToast(message || text("passwordCopied"), { tone: "success" });
   }
 
-  function showDownloadToast(key, failed = false) {
-    showProToast(text(key), { tone: failed ? "error" : "success" });
+  function showDownloadToast(key, failed = false, variables) {
+    showProToast(text(key, variables), { tone: failed ? "error" : "success" });
   }
 
   function copySiteToastContent(source) {

@@ -524,11 +524,19 @@ async function main() {
             const row = article.querySelector('[data-test="download-copy"]');
             const title = row.querySelector('[data-soft98-pro-download-title]').getBoundingClientRect();
             const meta = row.querySelector('[data-soft98-pro-download-meta]').getBoundingClientRect();
-            let copied;
+            let copied, singleToast, groupToast;
+            const toastText = () => document.querySelector('[data-soft98-pro-copy-toast] [data-role=message]').textContent;
             Object.defineProperty(navigator, 'clipboard', { configurable:true, value:{writeText: async value => { copied = value; }} });
             try {
+              const signed = article.querySelector('[data-test="signed-download"]').closest('dd');
+              signed.hidden = true;
               group.querySelector('button').click();
               await Promise.resolve();
+              singleToast = toastText();
+              signed.hidden = false;
+              group.querySelector('button').click();
+              await Promise.resolve();
+              groupToast = toastText();
             } finally {
               delete navigator.clipboard;
             }
@@ -538,7 +546,7 @@ async function main() {
             const reopened = linked.every(entry => !!entry.getClientRects().length);
             const input = article.querySelector('[data-soft98-pro-password] input');
             input.click();
-            return { copied, collapsed, reopened, placeholderExcluded: more.querySelector('button').hidden,
+            return { copied, singleToast, groupToast, collapsed, reopened, placeholderExcluded: more.querySelector('button').hidden,
               onePasswordAction: article.querySelectorAll('[data-soft98-pro-password-actions] button').length === 1,
               passwordSelected: document.activeElement === input && input.selectionStart === 0 && input.selectionEnd === input.value.length,
               metadataFits: meta.height > 0 && meta.top >= title.bottom - 1 && meta.bottom <= row.getBoundingClientRect().bottom + 1 };
@@ -547,8 +555,10 @@ async function main() {
         assertEqual(name, "group clipboard", controls.copied,
           ["https://dl2.soft98.ir/files/metadata.zip",
             "https://dl2.soft98.ir/files/signed.zip?token=123456"].join("\n"));
+        assertEqual(name, "one copied link toast", controls.singleToast, "۱ لینک دانلود کپی شد.");
+        assertEqual(name, "multiple copied links toast", controls.groupToast, "۲ لینک دانلود کپی شدند.");
         for (const [field, value] of Object.entries(controls)) {
-          if (field !== "copied") assertEqual(name, field, value, true);
+          if (!["copied", "singleToast", "groupToast"].includes(field)) assertEqual(name, field, value, true);
         }
         await waitForFaviconPixel(client, badgeDark, "the copy badge");
         await waitForFaviconPixel(client, idleDark, "the off frame");
