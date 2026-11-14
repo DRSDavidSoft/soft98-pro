@@ -54,6 +54,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Kept platform links together in the megamenu so labels with Windows and Mac links no longer split into separate lines.
 - Removed the second height jump at the end of FAQ expansion.
 - Opened links wrapped by href.li directly without sending a referrer, while preserving destination parameters and fragments.
 - Restored the site's original notification messages in Pro's themed toasts, including the archive password instructions.

@@ -174,9 +174,11 @@
           navigationShell.innerHTML =
             '<nav><div><button type="button" data-toggle="dropdown" aria-expanded="true">Menu</button>' +
             '<div data-test="megamenu" style="position:absolute;top:58px;left:30px;width:760px;height:180px;background:rgb(245,245,245)">' +
-            '<div>' +
+            '<div dir="rtl"><div><h4>نرم‌افزار</h4>' +
+            '<span data-test="platform-row">ابزار اینترنت ( <a href="/internet/">ویندوز</a> | <a href="/mac/internet-mac/">مکینتاش</a> )</span>' +
+            '<a href="/category/other">سایر ابزارها</a></div><div><h4>Categories</h4>' +
             Array.from({ length: 15 }, function (_item, index) { return '<a href="/category/' + index + '">Category ' + index + '</a>'; }).join("") +
-            "</div></div></div></nav>";
+            "</div></div></div></div></nav>";
           document.body.appendChild(navigationShell);
 
           var tabCard = document.createElement("section");

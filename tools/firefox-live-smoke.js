@@ -220,6 +220,43 @@ async function main() {
       throw new Error("Live Firefox page failed the Soft98 Pro smoke checks");
     }
     if (process.env.SOFT98_LIVE_SCREENSHOT) await screenshot(session, process.env.SOFT98_LIVE_SCREENSHOT);
+    if (addon && process.env.SOFT98_MEGA_PLATFORM_CHECK === "1") {
+      const platform = await post("/execute/async", { args: [], script: `
+        const done = arguments[0];
+        const nav = document.querySelector('nav[data-soft98-pro-nav-chrome]');
+        const link = nav?.querySelector('a[href="/mac/internet-mac/"]');
+        const owner = link?.closest('li:has(> [data-toggle=dropdown])');
+        const trigger = owner?.querySelector(':scope > [data-toggle=dropdown]');
+        if (!trigger) return done({ found:false });
+        const compactToggle = nav.querySelector(':scope > button[aria-controls]');
+        if (!trigger.getClientRects().length) compactToggle?.click();
+        setTimeout(() => {
+          trigger.click();
+          setTimeout(() => {
+          const menu = link.closest('[data-soft98-pro-mega-frame]');
+          if (!menu) return done({ menu:false, trigger:trigger.getAttribute('aria-expanded') });
+          const groups = [...menu.querySelectorAll('[data-soft98-pro-platform-links]')];
+          const middle = node => { const box = node.getBoundingClientRect(); return box.top + box.height / 2; };
+          const split = groups.filter(group => [...group.querySelectorAll('a')].some(a => Math.abs(middle(a) - middle(group)) > 5));
+          const row = link.closest('[data-soft98-pro-platform-row]');
+          const group = link.closest('[data-soft98-pro-platform-links]');
+          const title = new Range();
+          title.selectNodeContents(row.firstChild);
+          const label = title.getBoundingClientRect();
+          const sameLine = Math.abs(label.top + label.height / 2 - middle(group)) < 5;
+          const [first, second] = group.querySelectorAll('a');
+          const rtl = first.getBoundingClientRect().right > second.getBoundingClientRect().right;
+          const fits = group.getBoundingClientRect().left >= row.getBoundingClientRect().left - 1;
+          document.body.click();
+          done({ total:groups.length, split:split.length, sameLine, rtl, fits });
+          }, 360);
+        }, 250);
+      ` });
+      if (!platform.total || platform.split || !platform.rtl || !platform.fits || (width >= 1000 && !platform.sameLine)) {
+        throw new Error("Megamenu platform links wrapped incorrectly: " + JSON.stringify(platform));
+      }
+      console.log(JSON.stringify({ platform }));
+    }
     if (addon && process.env.SOFT98_REFERRER_CHECK === "1") {
       const directLinks = await evaluate(`
         const wanted = ['https://anydesk.com/', 'https://download.anydesk.com/changelog.txt'];

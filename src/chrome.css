@@ -436,7 +436,7 @@
 
 :root.soft98-pro-theme [data-soft98-pro-mega-frame] [data-soft98-pro-mega-grid] {
   display: grid !important;
-  grid-template-columns: repeat(auto-fit,minmax(min(155px,100%),1fr));
+  grid-template-columns: repeat(auto-fit,minmax(min(178px,100%),1fr));
   gap: 10px;
   align-items: start;
   width: 100% !important;
@@ -515,6 +515,26 @@
   border-inline-start: 2px solid var(--mega-tint) !important;
   padding-inline-start: 5px !important;
   box-shadow: 0 1px #ffffff21 inset;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-mega-group] [data-soft98-pro-platform-row] {
+  display: block;
+  box-sizing: border-box;
+  padding-inline: 6px !important;
+  white-space: normal !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-mega-group] [data-soft98-pro-platform-links] {
+  display: inline-block;
+  white-space: nowrap;
+  unicode-bidi: isolate;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-mega-group] [data-soft98-pro-platform-links] > a[href] {
+  display: inline;
+  white-space: nowrap !important;
+  padding: 2px !important;
+  border-inline-start-width: 0 !important;
 }
 
 :root.soft98-pro-theme :is(.list-group-item-light,[data-soft98-pro-help-action]):not(#soft98-pro-control *) {

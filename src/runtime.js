@@ -1517,8 +1517,28 @@
       for (const { group, heading } of groups) {
         if (!group.hasAttribute("data-soft98-pro-mega-group")) group.setAttribute("data-soft98-pro-mega-group", "");
         if (!heading.hasAttribute("data-soft98-pro-mega-heading")) heading.setAttribute("data-soft98-pro-mega-heading", "");
+        for (const row of group.querySelectorAll(":is(span,li,div):has(> a[href]):not([data-soft98-pro-platform-row],[data-soft98-pro-platform-links])")) {
+          groupMegamenuPlatformLinks(row);
+        }
       }
     }
+  }
+
+  function groupMegamenuPlatformLinks(row) {
+    const nodes = [...row.childNodes].filter((node) => node.nodeType !== Node.COMMENT_NODE && node.textContent.trim());
+    const [label, ...tail] = nodes;
+    if (!label || label.nodeType !== Node.TEXT_NODE || !/\S.*\(\s*$/s.test(label.data)) return;
+    const end = tail.pop();
+    if (tail.length < 3 || tail.length % 2 === 0 || end?.nodeType !== Node.TEXT_NODE || end.data.trim() !== ")") return;
+    if (!tail.every((node, i) => i % 2 === 0 ? node.nodeType === Node.ELEMENT_NODE && node.matches("a[href]") :
+      node.nodeType === Node.TEXT_NODE && node.data.trim() === "|")) return;
+    const links = document.createElement("span");
+    links.setAttribute("data-soft98-pro-platform-links", "");
+    row.setAttribute("data-soft98-pro-platform-row", "");
+    label.data = label.data.replace(/\s*\(\s*$/, " ");
+    label.after(links);
+    links.append("(", ...tail, end);
+    end.data = ")";
   }
 
   function tabTarget(trigger) {

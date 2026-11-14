@@ -348,6 +348,23 @@ async function main() {
         `);
         for (const key of ["animated", "reversible", "openSettled", "moved", "restored"]) assertEqual("FAQ motion", key, faqMotion[key], true);
         idleDark = await faviconPixel(client);
+        const platformLayout = await evaluate(client, `(() => {
+          const row = document.querySelector('[data-test=platform-row]');
+          const group = row.querySelector('[data-soft98-pro-platform-links]');
+          const [first, second] = group.querySelectorAll('a');
+          const title = new Range();
+          title.selectNodeContents(row.firstChild);
+          const sameLine = (a,b) => Math.abs(a.top + a.height / 2 - b.top - b.height / 2) < 5;
+          const wide = sameLine(title.getBoundingClientRect(), group.getBoundingClientRect());
+          row.style.width = '150px';
+          const narrow = sameLine(first.getBoundingClientRect(), second.getBoundingClientRect()) &&
+            first.getBoundingClientRect().right > second.getBoundingClientRect().right && group.getBoundingClientRect().width <= 150;
+          row.removeAttribute('style');
+          return {wide,narrow,paths:first.pathname + '|' + second.pathname};
+        })()`);
+        assertEqual("megamenu platform links", "wide", platformLayout.wide, true);
+        assertEqual("megamenu platform links", "narrow RTL", platformLayout.narrow, true);
+        assertEqual("megamenu platform links", "destinations", platformLayout.paths, "/internet/|/mac/internet-mac/");
         if (idleDark.split(",").some(value => Number(value) > 40)) throw new Error("The idle favicon has a bright badge");
         const latest = await evaluate(client, `
           (() => {
