@@ -10,6 +10,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Added a dedicated Pro light theme with its own palette for the page, header, and control center.
 - Added a browser download queue with parallel transfers, progress, pause and resume where supported, and the browser's Save As options.
 - Added article download previews for public direct links, a top-bar shortcut to useful software that is enabled by default, and optional interface sounds.
 - Added control-center previews from live screenshots, including an animated RGB comparison, plus a technical report, a keyboard-friendly context menu, and a launcher that remembers its docked corner.
@@ -49,6 +50,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Kept Pro tools available when switching between light and dark modes.
 - Kept the news panel and article surround in the Pro palette when Soft98's own night mode loads first, and removed the empty strip between them.
 - Kept settings rows and scroll position stable when a preview opens.
 - Kept the sidebar on the same side while the article widens and reclaimed its space when no sidebar content remains.

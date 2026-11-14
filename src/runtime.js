@@ -842,7 +842,7 @@
       try {
         ensureStyleIntegrity();
         for (const item of roots) processRoot(item);
-        if (settings.pro && (settings.darkDesign || settings.rgbMode)) {
+        if (settings.pro) {
           applyInteractiveSurfaceHeuristics();
           applyProLayoutHeuristics();
         }
@@ -973,8 +973,9 @@
   }
 
   function installProStyle() {
-    const active = settings.pro && (settings.darkDesign || settings.rgbMode);
+    const active = settings.pro;
     document.documentElement.classList.toggle("soft98-pro-theme", active);
+    document.documentElement.classList.toggle("soft98-pro-light", active && !settings.darkDesign && !settings.rgbMode);
     document.documentElement.classList.toggle("soft98-pro-rgb", active && settings.rgbMode);
     document.documentElement.classList.toggle("soft98-pro-compact", active && settings.compactLayout);
     scheduleContentGridUpdate();
@@ -1265,6 +1266,34 @@
       @media(prefers-reduced-motion:reduce){:root.soft98-pro-theme details[data-soft98-pro-faq] > summary svg{transition:none}}
       :root.soft98-pro-theme [data-soft98-pro-heading-divider]{border-inline-start:0!important;padding-inline-start:14px!important;position:relative!important}
       :root.soft98-pro-theme [data-soft98-pro-heading-divider]::before{content:""!important;position:absolute!important;inset-inline-start:0!important;inset-block-start:50%!important;transform:translateY(-50%)!important;width:4px!important;height:1.15em!important;border:0!important;border-radius:3px!important;background:linear-gradient(180deg,var(--s98p-link),color-mix(in srgb,var(--s98p-link) 40%,var(--s98p-border)))!important;box-shadow:0 0 8px color-mix(in srgb,var(--s98p-link) 15%,transparent)!important;pointer-events:none!important}
+      :root.soft98-pro-light{color-scheme:light;--s98p-bg:#e9eff2;--s98p-bg-2:#f2f6f8;--s98p-nav:#f5faf9;--s98p-surface:#fff;--s98p-surface-2:#edf4f5;--s98p-elevated:#e5f0f0;--s98p-soft:#deecee;--s98p-border:#a8bdc6;--s98p-border-soft:#d4e0e5;--s98p-text:#172e39;--s98p-muted:#435e6b;--s98p-faint:#556f7c;--s98p-accent:#087468;--s98p-accent-2:#8a5318;--s98p-link:#205b88;--s98p-danger:#a6294b;--s98p-control-bg:linear-gradient(180deg,#fff,#e9f3f4);--s98p-control-hover:linear-gradient(180deg,#f1faf9,#d7ebeb);--s98p-control-edge:#9cbac0;--s98p-control-shadow:0 1px #fff inset,0 1px 2px #14323f14;--s98p-light-shadow:0 8px 24px #153d4d14,0 1px 3px #153d4d0e}
+      :root.soft98-pro-light{background:var(--s98p-bg)!important}
+      :root.soft98-pro-light body{background:linear-gradient(180deg,#edf7f6 0,var(--s98p-bg) 32rem)!important}
+      :root.soft98-pro-light :is(h1,h2,h3,h4,h5,h6,strong){color:var(--s98p-text)!important}
+      :root.soft98-pro-light a:hover{color:#143e62!important}
+      :root.soft98-pro-light :is(article,aside,[data-soft98-pro-surface=raised]){background:var(--s98p-surface)!important;box-shadow:var(--s98p-light-shadow)}
+      :root.soft98-pro-light :is([data-soft98-pro-surface=tab-card],[data-soft98-pro-surface=tab-content],[data-soft98-pro-surface=tab-pane]){background:var(--s98p-surface)!important;color:var(--s98p-text)!important}
+      :root.soft98-pro-light [data-soft98-pro-surface=tab-list]{background:var(--s98p-bg-2)!important}
+      :root.soft98-pro-light :is([role=tab][aria-selected=true],[data-toggle=tab][aria-expanded=true],[data-soft98-pro-tab-active=true],[aria-current=page]){background:var(--s98p-surface-2)!important;color:var(--s98p-text)!important;border-color:var(--s98p-control-edge)!important}
+      :root.soft98-pro-light [data-soft98-pro-surface=nav-shell]{background:#f1f8f7ed!important;box-shadow:0 7px 22px #153d4d20!important}
+      :root.soft98-pro-light [data-soft98-pro-nav-chrome]{box-shadow:0 1px #fffb inset,0 6px 22px #18343e18!important}
+      :root.soft98-pro-light :is([data-soft98-pro-surface=menu],[data-soft98-pro-surface=megamenu]){background:linear-gradient(145deg,#fffffff5,#e9f3f3f2)!important;border-color:var(--s98p-border-soft)!important;box-shadow:0 16px 38px #16334229,0 1px #fff inset!important}
+      :root.soft98-pro-light :is([data-soft98-pro-surface=menu],[data-soft98-pro-surface=megamenu]) :is(a,button):is(:hover,:focus-visible){background:var(--s98p-soft)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border-soft)!important}
+      :root.soft98-pro-light :is(button,[role=button],input[type=button],input[type=submit]):not(#soft98-pro-control *){background:var(--s98p-control-bg)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border)!important}
+      :root.soft98-pro-light :is(button,[role=button]):not(#soft98-pro-control *):is(:hover,:focus-visible){background:var(--s98p-control-hover)!important;color:var(--s98p-text)!important;border-color:var(--s98p-control-edge)!important}
+      :root.soft98-pro-light :is(dt,dd){background:var(--s98p-bg-2)!important;border-color:var(--s98p-border-soft)!important}
+      :root.soft98-pro-light dd:nth-child(odd){background:var(--s98p-surface-2)!important}
+      :root.soft98-pro-light [data-soft98-pro-download-group] a[data-soft98-pro-icon-host=download]:is(:hover,:focus-visible){color:#06554e!important}
+      :root.soft98-pro-light [data-soft98-pro-page-icon]:is([data-soft98-pro-page-icon=windows],[data-soft98-pro-page-icon=apple],[data-soft98-pro-page-icon=android],[data-soft98-pro-page-icon=linux]){--icon-color:#395665}
+      :root.soft98-pro-light [data-soft98-pro-utility-icon] > [data-soft98-pro-page-icon]{--icon-color:#395665}
+      :root.soft98-pro-light [data-soft98-pro-latest] li a[data-soft98-pro-news-link] [data-soft98-pro-news-counter]{color:var(--s98p-faint)!important}
+      :root.soft98-pro-light [role=alert]{background:#fff4db!important;border-color:#e1bd78!important;color:#664214!important}
+      :root.soft98-pro-light :is(pre,code){background:#e8f1f4!important;color:#244958!important}
+      :root.soft98-pro-light ::selection{background:#bce6de;color:#123b38}
+      :root.soft98-pro-light .soft98-pro-link-badge{background:#e1f5ef;color:#0d574f;border-color:#9acabd}
+      :root.soft98-pro-light [data-soft98-pro-dialog],:root.soft98-pro-light [data-soft98-pro-native-dialog]::backdrop{background:#223c5147!important}
+      :root.soft98-pro-light [data-soft98-pro-dialog-panel]{box-shadow:0 20px 60px #16283936,0 1px #fff inset!important}
+      :root.soft98-pro-light [data-soft98-pro-footer] > section{background:var(--s98p-surface)!important;box-shadow:var(--s98p-light-shadow)}
       @media(max-width:560px){:root.soft98-pro-theme [data-soft98-pro-nav-item=icon]{width:clamp(32px,9vw,40px);margin-inline:1px}}
       @media(max-width:560px){:root.soft98-pro-theme [data-soft98-pro-surface=tab-list]{gap:2px 4px;padding-inline:6px!important}:root.soft98-pro-theme [data-soft98-pro-surface=tab-list]>:is(li,div){flex:1 1 calc(50% - 4px)!important}:root.soft98-pro-theme [data-soft98-pro-surface=tab-list] :is([role=tab],[data-toggle=tab]){width:100%!important;padding-inline:7px!important}}
       @keyframes soft98-pro-neon{to{--s98p-neon-hue:515deg}}
@@ -1282,7 +1311,7 @@
   }
 
   function applyProThemeHeuristics(root) {
-    if (!settings.pro || (!settings.darkDesign && !settings.rgbMode)) return;
+    if (!settings.pro) return;
     const element = asElement(root) || document;
     const surfaces = [];
     if (element.matches && element.matches("header,nav,main,article,aside,section,footer,form,table,[role]")) surfaces.push(element);
@@ -1292,7 +1321,8 @@
       const box = visibleBox(node);
       if (box.width < 120 || box.height < 28 || box.width * box.height < 4200) continue;
       const background = colorMetrics(getComputedStyle(node).backgroundColor);
-      if (!background || background.alpha < 0.45 || background.luminance < 0.55) continue;
+      if (!background || background.alpha < 0.45 || (document.documentElement.classList.contains("soft98-pro-light")
+        ? background.luminance > 0.24 : background.luminance < 0.55)) continue;
       node.setAttribute("data-soft98-pro-surface", node.matches("nav,[role=navigation]") ? "nav" : "raised");
     }
 
@@ -1302,7 +1332,8 @@
     for (const node of textNodes) {
       if (node.closest("#soft98-pro-control,#soft98-extension-recommendation,#soft98-ad-blocker-taunt")) continue;
       const foreground = colorMetrics(getComputedStyle(node).color);
-      if (!foreground || foreground.alpha < 0.5 || foreground.luminance > 0.42) continue;
+      if (!foreground || foreground.alpha < 0.5 || (document.documentElement.classList.contains("soft98-pro-light")
+        ? foreground.luminance < 0.50 : foreground.luminance > 0.42)) continue;
       node.setAttribute("data-soft98-pro-tone", node.matches("small,time") ? "muted" : "body");
     }
     const links = element.matches?.("a[href]") ? [element] : [...element.querySelectorAll("a[href]")];
@@ -1491,8 +1522,7 @@
     if (gridFrame) return;
     gridFrame = requestAnimationFrame(() => {
       gridFrame = 0;
-      const enabled = settings.pro && settings.compactLayout && settings.expandMain &&
-        (settings.darkDesign || settings.rgbMode) && innerWidth > 820;
+      const enabled = settings.pro && settings.compactLayout && settings.expandMain && innerWidth > 820;
       for (const [grid, sidebar] of contentGrids) {
         if (!grid.isConnected || sidebar.parentElement !== grid) {
           contentGrids.delete(grid);
@@ -1585,7 +1615,7 @@
         if (!kind) continue;
         decorateIcon(button, kind);
         button.setAttribute("data-soft98-pro-header-icon", "");
-        if (!button.hasAttribute("aria-label")) button.setAttribute("aria-label", text("navLabels." + (kind === "sun" ? "moon" : kind)));
+        if (toggle === "night-mode" || !button.hasAttribute("aria-label")) button.setAttribute("aria-label", text("navLabels." + (kind === "sun" ? "moon" : kind)));
         if (kind === "bell") {
           button.setAttribute("data-soft98-pro-download-notice", "");
           button.removeAttribute("title");
@@ -2278,7 +2308,6 @@
   }
 
   function applyPagePreferences() {
-    if (settings.hideAnnoyances && !settings.darkDesign && !settings.rgbMode) applyUtilityListHeuristics();
     const rtlPage = document.documentElement.dir === "rtl" || /^fa\b/i.test(document.documentElement.lang);
     const latestCards = new Set();
     for (const list of document.querySelectorAll("ul[role=tablist],ol[role=tablist]")) {
@@ -2314,7 +2343,7 @@
           if (/^[\s\d\u06f0-\u06f9\u0660-\u0669,.،٬]+$/u.test(count.textContent || "")) {
             count.setAttribute("data-soft98-pro-view-count", "");
             count.setAttribute("data-soft98-pro-news-counter", "");
-            if (settings.darkDesign || settings.rgbMode) decorateIcon(count, "eye");
+            decorateIcon(count, "eye");
           }
         }
       }
@@ -2347,7 +2376,7 @@
       const label = normalizedPersian(node.textContent || "");
       if (node.matches("footer") || /نرمافزاررابرای(?:من|م)نصبکن/.test(label)) {
         node.setAttribute("data-soft98-pro-annoyance", "");
-        if (node.matches("a") && (settings.darkDesign || settings.rgbMode)) decorateIcon(node, "help");
+        if (node.matches("a")) decorateIcon(node, "help");
       }
     }
     for (const node of document.querySelectorAll("article :is(h1,h2,h3,details > summary), article [role=tabpanel] :is(dt span,dd a,[data-soft98-pro-password],[data-soft98-pro-annoyance],a[href]), [data-soft98-pro-list-copy] strong")) {
@@ -2556,7 +2585,7 @@
           row.copy.setAttribute("data-soft98-pro-list-copy", "true");
           if (utilityCard) {
             row.media.setAttribute("data-soft98-pro-utility-icon", "");
-            if (settings.darkDesign || settings.rgbMode) themeUtilityIcon(row.media, row.copy.textContent + " " + row.link.pathname);
+            themeUtilityIcon(row.media, row.copy.textContent + " " + row.link.pathname);
           }
         }
       }
@@ -2592,7 +2621,7 @@
 
 
   function updateFavicon() {
-    const state = settings.pro && settings.rgbMode ? "rgb" : settings.pro && settings.darkDesign ? "pro" : successAnnounced ? "success" : "";
+    const state = settings.pro ? (settings.rgbMode ? "rgb" : settings.darkDesign ? "pro" : "pro-light") : successAnnounced ? "success" : "";
     if (state === faviconState) return;
     const previous = document.getElementById(FAVICON_ID);
     if (previous) previous.remove();
@@ -2618,13 +2647,14 @@
       canvas.height = 64;
       const ctx = canvas.getContext && canvas.getContext("2d");
       if (!ctx) return "";
-      const pro = state === "pro" || state === "rgb";
+      const pro = state !== "success";
+      const dark = state === "pro" || state === "rgb";
       const rgb = state === "rgb";
-      const background = pro ? "#08111a" : "#f7fbff";
-      const foreground = pro ? "#70e1b2" : "#1fb36b";
-      const shadow = pro ? "rgba(112,225,178,.32)" : "rgba(31,179,107,.28)";
-      const ring = pro ? "#253f58" : "#d4e7f4";
-      const accent = pro ? "#ffd166" : "#2f80ed";
+      const background = dark ? "#08111a" : "#f7fbff";
+      const foreground = dark ? "#70e1b2" : pro ? "#12645a" : "#1fb36b";
+      const shadow = dark ? "rgba(112,225,178,.32)" : "rgba(31,179,107,.28)";
+      const ring = dark ? "#253f58" : "#d4e7f4";
+      const accent = dark ? "#ffd166" : "#2f80ed";
       ctx.clearRect(0, 0, 64, 64);
       if (rgb) {
         const gradient = ctx.createLinearGradient(5, 5, 59, 59);
@@ -2977,6 +3007,12 @@
 
   function syncControlSettings(wrap) {
     wrap.dataset.theme = settings.rgbMode && settings.pro ? "rgb" : settings.darkDesign && settings.pro ? "dark" : "light";
+    const brand = wrap.dataset.theme === "light" ? BRAND_ASSETS.light : BRAND_ASSETS.pirateDark;
+    if (brand) {
+      for (const image of wrap.querySelectorAll("[data-role=toggle] img,.s98p-brand-mark img")) {
+        if (image.getAttribute("src") !== brand) image.src = brand;
+      }
+    }
     for (const input of wrap.querySelectorAll(".s98p-switch input")) input.checked = Boolean(settings[input.name]);
     refreshControlTelemetry();
   }
@@ -3112,6 +3148,11 @@
       #soft98-pro-control{--c-bg:rgba(246,250,251,.985);--c-bg-soft:#e7f0f2;--c-bg-raised:#fff;--c-border:#9ebac2;--c-border-soft:#ccdde1;--c-text:#11232a;--c-muted:#526b74;--c-accent:#087a63;--c-accent-2:#a56b13;--c-accent-soft:rgba(8,122,99,.11);--c-danger:#b84152;position:fixed;z-index:2147483647;width:42px;height:42px;direction:ltr;font-family:inherit!important;font-size:13px;line-height:1.6;font-weight:400;color:var(--c-text);letter-spacing:0;isolation:isolate}
       #soft98-pro-control[data-theme=dark],#soft98-pro-control[data-theme=rgb]{--c-bg:rgba(5,10,14,.985);--c-bg-soft:#0d1a21;--c-bg-raised:#14252d;--c-border:#41616c;--c-border-soft:#203943;--c-text:#f3f8f9;--c-muted:#a6bbc1;--c-accent:#70e1b2;--c-accent-2:#e0bd70;--c-accent-soft:rgba(112,225,178,.12);--c-danger:#ff8796}
       #soft98-pro-control[data-theme=rgb]{--c-bg:rgba(2,3,4,.99);--c-bg-soft:#07090a;--c-bg-raised:#0c0f10;--c-border:color-mix(in srgb,var(--c-accent) 75%,#24292c);--c-border-soft:#24292c;--c-text:#d9dee0;--c-muted:#a1aab0;--c-accent:var(--s98p-neon,#70e1b2);--c-accent-2:color-mix(in srgb,var(--c-accent) 68%,#dce1e3);--c-accent-soft:color-mix(in srgb,var(--c-accent) 17%,transparent)}
+      #soft98-pro-control[data-theme=light]{color-scheme:light;--c-bg:#f6fafb;--c-bg-soft:#e9f2f4;--c-bg-raised:#fff;--c-border:#91b0ba;--c-border-soft:#cddde2;--c-text:#193440;--c-muted:#44616e;--c-accent:#087468;--c-accent-2:#87561d;--c-accent-soft:#e3f3ed;--c-danger:#a6294b}
+      #soft98-pro-control:is([data-theme=dark],[data-theme=rgb]){color-scheme:dark}
+      #soft98-pro-control[data-theme=light] form{box-shadow:0 0 0 1px #fff inset,0 0 0 4px #f8fcfbbf,0 18px 60px #15364740!important}
+      #soft98-pro-control[data-theme=light] :is(.s98p-brand-mark,[data-role=toggle],.s98p-option-preview){box-shadow:0 5px 18px #15364722}
+      #soft98-pro-control[data-theme=light] .s98p-tabs button[aria-selected=true]{box-shadow:0 1px 4px #15364716!important}
       #soft98-pro-control :is(form,button,input,label,strong,small,dt,dd){font-family:inherit!important;letter-spacing:0!important}
       #soft98-pro-control>[data-role=toggle]{position:absolute;inset:0;display:grid;place-items:center;width:42px;height:42px;margin:0;padding:0;float:none;border:1px solid var(--c-border)!important;border-radius:50%;background:var(--c-bg-soft)!important;background-image:none!important;color:var(--c-accent)!important;line-height:1;box-shadow:0 10px 30px rgba(0,0,0,.3);cursor:grab;touch-action:none;user-select:none;transition:transform .18s ease,background-color .18s ease,border-color .18s ease,box-shadow .18s ease}
       #soft98-pro-control>[data-role=toggle] img{display:block;width:30px;height:30px;object-fit:contain;filter:none!important;pointer-events:none}
@@ -3150,7 +3191,7 @@
       #soft98-pro-control .s98p-status-copy{display:grid;min-width:0;gap:0;direction:inherit;unicode-bidi:plaintext;text-align:start}
       #soft98-pro-control .s98p-status-copy strong{color:var(--c-text)!important;font-size:12px}
       #soft98-pro-control .s98p-status-copy small{color:var(--c-muted)!important;font-size:10.5px}
-      #soft98-pro-control .s98p-status code{padding:3px 6px;border:1px solid var(--c-border-soft);border-radius:4px;background:var(--c-bg);color:var(--c-muted);font:10px/1.2 ui-monospace,monospace}
+      #soft98-pro-control .s98p-status code{padding:3px 6px;border:1px solid var(--c-border-soft);border-radius:4px;background:var(--c-bg)!important;color:var(--c-muted)!important;font:10px/1.2 ui-monospace,monospace}
       #soft98-pro-control .s98p-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:9px 14px 0;padding:0}
       #soft98-pro-control .s98p-metrics div{display:grid;gap:3px;padding:9px 8px;border:1px solid var(--c-border-soft);border-radius:7px;background:color-mix(in srgb,var(--c-bg-raised) 72%,transparent);text-align:center}
       #soft98-pro-control .s98p-metrics div:first-child{border-color:color-mix(in srgb,var(--c-accent) 25%,var(--c-border-soft))}

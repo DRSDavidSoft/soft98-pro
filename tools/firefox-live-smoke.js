@@ -245,6 +245,19 @@ async function main() {
       };
       await capture("dark-on");
       await capture("dark-off", "Soft98Pro.configure({darkDesign:false})");
+      if (process.env.SOFT98_LIGHT_SCREENSHOT) {
+        await screenshot(session, process.env.SOFT98_LIGHT_SCREENSHOT);
+        await evaluate("document.querySelector('#soft98-pro-control [data-role=toggle]').click()");
+        await new Promise((resolve) => setTimeout(resolve, 340));
+        if (process.env.SOFT98_LIGHT_CONTROL_SCREENSHOT) await screenshot(session, process.env.SOFT98_LIGHT_CONTROL_SCREENSHOT);
+        await evaluate("document.querySelector('#soft98-pro-control [data-role=close]').click()");
+        if (process.env.SOFT98_LIGHT_DOWNLOAD_SCREENSHOT) {
+          await evaluate("document.querySelector('article [data-soft98-pro-download-heading]').scrollIntoView({block:'start',behavior:'instant'}); scrollBy(0,-110)");
+          await new Promise((resolve) => setTimeout(resolve, 340));
+          await screenshot(session, process.env.SOFT98_LIGHT_DOWNLOAD_SCREENSHOT);
+          await evaluate("scrollTo(0,0)");
+        }
+      }
       await capture("pirate-off", "Soft98Pro.configure({darkDesign:true,pirateLogo:false})");
       await capture("pirate-on", "Soft98Pro.configure({pirateLogo:true})");
       await capture("latest-on");
@@ -446,6 +459,23 @@ async function main() {
         (async () => {
           const start = check();
           night.click(); await settle(); const light = check();
+          const root = document.documentElement;
+          const control = document.querySelector('#soft98-pro-control');
+          const utilityTrigger = () => document.querySelector('nav [aria-haspopup=dialog]:has([data-soft98-pro-page-icon=grid])');
+          const utilityDialog = () => document.querySelector('dialog[aria-labelledby=soft98-pro-utility-title]');
+          const lightFeatures = {
+            pro: root.classList.contains('soft98-pro-theme') && Soft98Pro.settings.pro,
+            palette: getComputedStyle(root).colorScheme,
+            panel: [control.dataset.theme, getComputedStyle(control.querySelector('form')).backgroundColor,
+              getComputedStyle(control.querySelector('form')).color],
+            utility: Boolean(utilityTrigger()),
+            downloads: Boolean(document.querySelector('[data-soft98-pro-download-actions] button')?.getClientRects().length),
+          };
+          utilityTrigger()?.click();
+          await settle();
+          lightFeatures.utilityOpened = Boolean(utilityDialog()?.open && utilityDialog()?.querySelector('ul a[href]'));
+          utilityDialog()?.close();
+          await settle();
           night.click(); await settle(); const dark = check();
           const hotkey = new KeyboardEvent('keydown',{key:'F2',bubbles:true,cancelable:true});
           document.body.dispatchEvent(hotkey);
@@ -463,11 +493,15 @@ async function main() {
           if (opened) history.back();
           await settle();
           const closed = !location.hash && !document.querySelector('dialog[open]');
-          done({start,light,dark,search,searchState,handled:hotkey.defaultPrevented,opened,closed});
+          done({start,light,dark,lightFeatures,search,searchState,handled:hotkey.defaultPrevented,opened,closed});
         })();
       ` });
       if (!chromeBehavior.start.every(Boolean) || chromeBehavior.light.some(Boolean) || !chromeBehavior.dark.every(Boolean) ||
-          !chromeBehavior.search || !chromeBehavior.opened || !chromeBehavior.closed) {
+          !chromeBehavior.search || !chromeBehavior.opened || !chromeBehavior.closed ||
+          !chromeBehavior.lightFeatures.pro || !chromeBehavior.lightFeatures.utility || !chromeBehavior.lightFeatures.utilityOpened ||
+          !chromeBehavior.lightFeatures.downloads ||
+          chromeBehavior.lightFeatures.palette !== "light" ||
+          chromeBehavior.lightFeatures.panel.join("|") !== "light|rgb(246, 250, 251)|rgb(25, 52, 64)") {
         throw new Error(`Theme, search, or dialog behavior failed: ${JSON.stringify(chromeBehavior)}`);
       }
       console.log(JSON.stringify({chromeBehavior}));

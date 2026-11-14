@@ -171,25 +171,25 @@ function assertCase(name, results, expected) {
     tauntTheme: expected.tauntTheme,
     tauntBackground: expected.tauntBackground,
     tauntStatus: expected.tauntTheme ? "status" : null,
-    downloadCopy: "دانلود (Official link)" + (expected.dark ? "" : "، حجم 1,200 مگابایت"),
+    downloadCopy: "دانلود (Official link)",
     downloadPath: "/files/AnyDesk.9.8.3.zip",
-    downloadSize: expected.dark ? "1,200 مگابایت" : null,
-    downloadIcons: expected.dark ? "chevron,windows,download,apple,linux,apple,android,download,download,info,link,lock" : "",
-    normalizedDownload: "https://dl2.soft98.ir/files/metadata.zip" + (expected.dark ? "" : "?123456"),
+    downloadSize: "1,200 مگابایت",
+    downloadIcons: "chevron,windows,download,apple,linux,apple,android,download,download,info,link,lock",
+    normalizedDownload: "https://dl2.soft98.ir/files/metadata.zip",
     signedDownload: "https://dl2.soft98.ir/files/signed.zip?token=123456",
     isolatedParenthesis: true,
     logoVariant: expected.logo,
     rgbMode: expected.rgb,
     rgbAmbient: false,
-    megamenuSurface: expected.dark ? "megamenu" : null,
+    megamenuSurface: "megamenu",
     nestedLightSurface: expected.dark ? "raised" : null,
     controlTabChanged: true,
     controlOutsideCollapsed: true,
     logoRestored: true,
-    constructableTheme: expected.dark,
-    utilityLayout: expected.dark ? "utility-list" : null,
-    utilityRows: expected.dark,
-    utilityCopies: expected.dark,
+    constructableTheme: true,
+    utilityLayout: "utility-list",
+    utilityRows: true,
+    utilityCopies: true,
   };
   for (const [field, value] of Object.entries(exact)) assertEqual(name, field, results[field], value);
   if (expected.dark) {
@@ -208,6 +208,10 @@ function assertCase(name, results, expected) {
     }
   } else {
     assertEqual(name, "light tab card", results.tabTheme.cardBackground, "rgb(255, 255, 255)");
+    assertEqual(name, "light tab structure", results.tabTheme.cardSurface, "tab-card");
+    assertEqual(name, "light color scheme", results.colorScheme, "light");
+    assertEqual(name, "light control panel", results.controlBackground, "rgb(246, 250, 251)");
+    assertEqual(name, "light control text", results.controlForeground, "rgb(25, 52, 64)");
   }
 }
 
