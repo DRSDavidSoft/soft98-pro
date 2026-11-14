@@ -24,7 +24,7 @@ async function request(method, endpoint, body) {
   return value;
 }
 
-async function screenshot(session, destination) {
+async function screenshotPixels(session) {
   const base64 = await request("GET", session + "/screenshot");
   if (typeof base64 !== "string" || base64.length > 24 * 1024 * 1024 || !base64.startsWith("iVBORw0KGgo")) {
     throw new Error("WebDriver did not return a bounded PNG screenshot");
@@ -34,8 +34,11 @@ async function screenshot(session, destination) {
       bytes.readUInt32BE(16) > 4096 || bytes.readUInt32BE(20) > 4096) {
     throw new Error("Unexpected screenshot dimensions");
   }
-  const frame = PNG.sync.read(bytes);
-  await fs.writeFile(destination, PNG.sync.write(frame));
+  return PNG.sync.read(bytes);
+}
+
+async function screenshot(session, destination) {
+  await fs.writeFile(destination, PNG.sync.write(await screenshotPixels(session)));
 }
 
 async function main() {
@@ -49,6 +52,9 @@ async function main() {
           pageLoadStrategy: "eager",
           "moz:firefoxOptions": { args: ["-headless"], prefs: {
             "network.proxy.type": 0,
+            ...(process.env.SOFT98_RGB_CHECK === "1" ? {
+              "ui.prefersReducedMotion": process.env.SOFT98_RGB_REDUCED_MOTION === "1" ? 1 : 0,
+            } : {}),
             "browser.download.folderList": 2,
             "browser.download.dir": downloadDirectory,
             "browser.download.useDownloadDir": true,
@@ -214,6 +220,67 @@ async function main() {
       throw new Error("Live Firefox page failed the Soft98 Pro smoke checks");
     }
     if (process.env.SOFT98_LIVE_SCREENSHOT) await screenshot(session, process.env.SOFT98_LIVE_SCREENSHOT);
+    if (addon && process.env.SOFT98_RGB_CHECK === "1") {
+      await evaluate(`
+        Soft98Pro.configure({ darkDesign:true, rgbMode:true });
+        document.querySelector('#soft98-pro-control > [data-role=toggle]').click();
+      `);
+      await new Promise(resolve => setTimeout(resolve, 400));
+      const samples = [];
+      for (const time of [0, 5300]) {
+        const result = await evaluate(`
+          const panel = document.querySelector('#soft98-pro-control form');
+          const animation = document.documentElement.getAnimations().find(entry => entry.animationName === 'soft98-pro-neon');
+          if (animation) {
+            animation.pause();
+            animation.currentTime = ${time};
+          }
+          const style = (node, pseudo) => node && getComputedStyle(node, pseudo).backgroundImage;
+          const box = panel.getBoundingClientRect();
+          return {
+            ribbon: style(panel, '::before'),
+            layers: style(panel),
+            launcher: style(document.querySelector('#soft98-pro-control > [data-role=toggle]')),
+            tab: style(document.querySelector('[data-soft98-pro-latest-tabs] [aria-selected=true]')),
+            heading: style(document.querySelector('article [data-soft98-pro-heading-divider]'), '::before'),
+            metadata: style(document.querySelector('[data-soft98-pro-article-meta]')),
+            switchKnob: style(panel.querySelector('.s98p-switch input:checked+span'), '::after'),
+            panel: [box.x,box.y,box.width], viewport: innerWidth,
+            animated: Boolean(animation),
+          };
+        `);
+        const gradients = Object.fromEntries(["ribbon", "layers", "launcher", "tab", "heading", "metadata", "switchKnob"]
+          .map(key => [key, (result[key]?.match(/linear-gradient\(/g) || []).length]));
+        if (gradients.ribbon !== 1 || gradients.layers !== 2 || gradients.launcher !== 2 ||
+            gradients.tab !== 2 || gradients.heading !== 1 || gradients.metadata !== 2 || gradients.switchKnob !== 1) {
+          throw new Error("Missing RGB surfaces: " + JSON.stringify(result));
+        }
+        const pixels = await screenshotPixels(session);
+        const scale = pixels.width / result.viewport;
+        const [x, y, panelWidth] = result.panel;
+        const colors = [.12, .5, .86].map(fraction => {
+          const index = (Math.floor((y + 2.3) * scale) * pixels.width + Math.floor((x + fraction * panelWidth) * scale)) * 4;
+          return [...pixels.data.subarray(index, index + 3)];
+        });
+        const distance = (a, b) => Math.hypot(...a.map((value, i) => value - b[i]));
+        if (colors.some(color => color.length !== 3 || Math.max(...color) < 170) ||
+            Math.min(distance(colors[0], colors[1]), distance(colors[1], colors[2]), distance(colors[0], colors[2])) < 65) {
+          throw new Error("RGB ribbon is not visibly multicolored: " + JSON.stringify({ colors, panel: result.panel }));
+        }
+        if (time === 0 && process.env.SOFT98_RGB_SCREENSHOT) {
+          await fs.writeFile(process.env.SOFT98_RGB_SCREENSHOT, PNG.sync.write(pixels));
+        }
+        samples.push({ animated: result.animated, colors, gradients });
+      }
+      const still = process.env.SOFT98_RGB_REDUCED_MOTION === "1";
+      const same = JSON.stringify(samples[0].colors) === JSON.stringify(samples[1].colors);
+      if (samples.some(frame => frame.animated === still) || same !== still) {
+        throw new Error("The rendered RGB ribbon did not respect the motion preference");
+      }
+      console.log(JSON.stringify({ rgb: samples }));
+      await evaluate("document.querySelector('#soft98-pro-control [data-role=close]').click(); Soft98Pro.configure({ rgbMode:false })");
+      await new Promise(resolve => setTimeout(resolve, 380));
+    }
     if (process.env.SOFT98_ARTICLE_DOWNLOAD_CHECK === "1") {
       const report = await post("/execute/async", { args: [], script: `
         const done = arguments[0];

@@ -97,11 +97,14 @@ async function verify() {
   const ribbon = readAccent(form, "::before");
   const selectedLine = readAccent(appearance, "::after");
   const colors = [...ribbon.matchAll(/(?:rgb|hsl|color)\([^)]+\)/g)].map(([color]) => color);
-  check(new Set(colors).size === 3 && ribbon === selectedLine && readAccent(form).startsWith("linear-gradient"),
+  const frameGradient = readAccent(form), launcherGradient = readAccent(toggle);
+  const gradientCount = (value) => (value.match(/linear-gradient\(/g) || []).length;
+  check(new Set(colors).size === 3 && ribbon === selectedLine && gradientCount(frameGradient) === 2 && gradientCount(launcherGradient) === 2,
     "RGB flattened the control-center surface or its three-color accent: " + ribbon);
   animation.currentTime = 5300;
   check(win.getComputedStyle(wrap).getPropertyValue("--c-accent") !== accent, "Panel accent does not follow the page animation");
   check(readAccent(form, "::before") !== ribbon, "The ribbon gradient does not animate");
+  check(readAccent(form) !== frameGradient && readAccent(toggle) !== launcherGradient, "RGB borders do not animate");
 
   role("diagnostics").click();
   const report = get("#soft98-pro-report");
