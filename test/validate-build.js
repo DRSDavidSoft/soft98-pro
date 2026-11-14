@@ -108,7 +108,7 @@ if (!chromium.permissions.includes("webRequest") || !firefox.permissions.include
 const runtime = fs.readFileSync(path.join(DIST, "chromium", "assets", "runtime.page.js"), "utf8");
 const userscript = fs.readFileSync(path.join(ROOT, "soft98-pro.user.js"), "utf8");
 assert.match(userscript, /rgbMode:\{files:\["data:image\/webp;base64,/);
-assert.doesNotMatch(userscript, /raw\.githubusercontent\.com\/DRSDavidSoft\/soft98-pro\/.+\/docs\/assets\/settings\//);
+assert.ok(!userscript.includes("/docs/assets/settings/"), "The userscript must not load its previews remotely");
 const inlineBitmap = /data:image\/(png|webp|svg\+xml);base64,[A-Za-z0-9+/=]+/g;
 const runtimeWithoutImages = runtime.replace(inlineBitmap, "data:image/$1;base64,ASSET");
 const userscriptWithoutImages = userscript.replace(inlineBitmap, "data:image/$1;base64,ASSET");
