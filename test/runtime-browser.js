@@ -7,6 +7,7 @@ const http = require("http");
 const net = require("net");
 const os = require("os");
 const path = require("path");
+const { PNG } = require("pngjs");
 
 const ROOT = path.resolve(__dirname, "..");
 const PORT = Number(process.env.TEST_PORT || 8799);
@@ -132,6 +133,24 @@ async function waitForResults(client) {
   throw new Error("Timed out waiting for Soft98 runtime results");
 }
 
+async function faviconPixel(client) {
+  const href = await evaluate(client, "document.getElementById('soft98-pro-favicon')?.href");
+  if (!href?.startsWith("data:image/png;base64,")) throw new Error("Missing Soft98 Pro favicon PNG");
+  const { data, width } = PNG.sync.read(Buffer.from(href.split(",")[1], "base64"));
+  const offset = (16 * width + 49) * 4;
+  return Array.from(data.subarray(offset, offset + 3)).join(",");
+}
+
+async function waitForFaviconPixel(client, pixel, label, timeout = 1000) {
+  const deadline = Date.now() + timeout;
+  do {
+    const actual = await faviconPixel(client);
+    if (actual === pixel) return;
+    await delay(35);
+  } while (Date.now() < deadline);
+  throw new Error(`The favicon did not show ${label}`);
+}
+
 function assertEqual(name, field, actual, expected) {
   if (actual !== expected) throw new Error(`${name}: expected ${field}=${expected}, received ${actual == null ? "<missing>" : actual}`);
 }
@@ -254,6 +273,9 @@ async function main() {
     await client.send("Page.enable");
     await client.send("Runtime.enable");
     await client.send("Emulation.setTimezoneOverride", { timezoneId: "Asia/Tehran" });
+    await client.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "no-preference" }] });
+    const badgeDark = "255,209,102";
+    let idleDark;
     const cases = [
       ["default-dark", "taunt=0&dark=1", { dark: true, rgb: false, tauntTheme: null, tauntBackground: null, logo: "pirateDark" }],
       ["taunt-dark", "taunt=1&dark=1", { dark: true, rgb: false, tauntTheme: "dark", tauntBackground: "rgb(16, 27, 36)", logo: "pirateDark" }],
@@ -265,6 +287,8 @@ async function main() {
       const results = await waitForResults(client);
       assertCase(name, results, expected);
       if (name === "default-dark") {
+        idleDark = await faviconPixel(client);
+        if (idleDark.split(",").some(value => Number(value) > 40)) throw new Error("The idle favicon has a bright badge");
         const controls = await evaluate(client, `
           (async () => {
             const article = document.querySelector('[data-test="download-article"]');
@@ -301,6 +325,13 @@ async function main() {
         for (const [field, value] of Object.entries(controls)) {
           if (field !== "copied") assertEqual(name, field, value, true);
         }
+        await waitForFaviconPixel(client, badgeDark, "the copy badge");
+        await waitForFaviconPixel(client, idleDark, "the off frame");
+        await waitForFaviconPixel(client, badgeDark, "a second pulse");
+        await waitForFaviconPixel(client, idleDark, "the clean icon after the second pulse");
+        await delay(850);
+        assertEqual(name, "expired copy toast", await evaluate(client, "Boolean(document.querySelector('[data-soft98-pro-copy-toast][data-visible]'))"), false);
+        assertEqual(name, "clean icon after expiry", await faviconPixel(client), idleDark);
         await evaluate(client, `document.querySelector('[data-test="direct-download"]').scrollIntoView(); true`);
         for (let attempt = 0; attempt < 15; attempt += 1) {
           if (await evaluate(client, `JSON.parse(localStorage.getItem('soft98-pro.download-metadata') || '[]').some(([url, value]) =>
@@ -313,10 +344,27 @@ async function main() {
         if (!metadata.includes(date)) throw new Error("Download date was not displayed in the Persian calendar");
       }
       if (name === "taunt-dark") {
+        await waitForFaviconPixel(client, badgeDark, "the optional success badge");
         await delay(6100);
         assertEqual(name, "expired success notification", await evaluate(client, `window.Soft98Pro.configure({ taunt: true }); Boolean(document.getElementById("soft98-ad-blocker-taunt"))`), false);
+        assertEqual(name, "clean icon after success", await faviconPixel(client), idleDark);
       }
     }
+    await client.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] });
+    await evaluate(client, `(() => {
+      const hash = "b".repeat(64);
+      document.documentElement.setAttribute("data-soft98-pro-compatibility", encodeURIComponent(JSON.stringify({ sha256: hash })));
+      window.dispatchEvent(new CustomEvent("soft98-pro:compatibility"));
+    })()`);
+    await waitForFaviconPixel(client, badgeDark, "the compatibility badge");
+    await delay(750);
+    assertEqual("reduced motion", "static badge", await faviconPixel(client), badgeDark);
+    await evaluate(client, `document.querySelector('#soft98-pro-compatibility [data-action=keep]').click()`);
+    const rgbIdle = await faviconPixel(client);
+    if (rgbIdle === badgeDark) throw new Error("Dismissing the notification did not clear its favicon badge");
+    await delay(500);
+    assertEqual("dismissed notice", "clean icon remains", await faviconPixel(client), rgbIdle);
+    await client.send("Emulation.setEmulatedMedia", { features: [] });
     for (const [width, columns] of [[1000, 2], [375, 1]]) {
       await client.send("Emulation.setDeviceMetricsOverride", { width, height: 900, deviceScaleFactor: 1, mobile: false });
       await client.send("Page.navigate", { url: `http://127.0.0.1:${PORT}/test/comments.html?width=${width}#${columns}` });

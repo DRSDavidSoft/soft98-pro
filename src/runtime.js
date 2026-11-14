@@ -32,6 +32,8 @@
   const CHROME_CSS = __SOFT98_CHROME_CSS__;
   const comments = Soft98Comments.create(document);
   const SUCCESS_NOTICE_MS = 6000;
+  const FAVICON_PULSE_MS = 600;
+  const FAVICON_NOTICE_MS = 4 * FAVICON_PULSE_MS;
   const PatchEngine = globalThis.__Soft98PatchEngine;
   const LOCALE = preferredLocale();
   const RTL = LOCALE === "fa";
@@ -106,7 +108,9 @@
   let successAnnounced = false;
   let successNoticeTimer = null;
   let successNoticeShown = false;
-  let faviconState = "";
+  const faviconImages = new Map();
+  let faviconNotice = null;
+  let faviconTimer;
   let controlPanel = null;
   let controlSection = "protection";
   let settings = readSettings();
@@ -2572,9 +2576,11 @@
     toast.toggleAttribute("data-error", failed);
     toast.textContent = text(key);
     toast.setAttribute("data-visible", "");
+    pulseFavicon(toast);
     downloadToastTimer = setTimeout(() => {
       toast.removeAttribute("data-visible");
       toast.textContent = "";
+      stopFaviconPulse(toast);
     }, 2600);
   }
 
@@ -2681,27 +2687,56 @@
   }
 
 
-  function updateFavicon() {
-    const state = settings.pro ? (settings.rgbMode ? "rgb" : settings.darkDesign ? "pro" : "pro-light") : successAnnounced ? "success" : "";
-    if (state === faviconState) return;
-    const previous = document.getElementById(FAVICON_ID);
-    if (previous) previous.remove();
-    if (!state) {
-      faviconState = "";
-      return;
-    }
-    const href = drawFavicon(state);
-    if (!href) return;
-    const link = document.createElement("link");
-    link.id = FAVICON_ID;
-    link.rel = "icon";
-    link.type = "image/png";
-    link.href = href;
-    (document.head || document.documentElement).appendChild(link);
-    faviconState = state;
+  function pulseFavicon(notice) {
+    faviconNotice = { node: notice, started: performance.now() };
+    updateFavicon();
   }
 
-  function drawFavicon(state) {
+  function stopFaviconPulse(notice) {
+    if (faviconNotice?.node !== notice) return;
+    faviconNotice = null;
+    updateFavicon();
+  }
+
+  function updateFavicon() {
+    clearTimeout(faviconTimer);
+    let badge = false;
+    if (faviconNotice) {
+      const { node, started } = faviconNotice;
+      const elapsed = performance.now() - started;
+      if (elapsed >= FAVICON_NOTICE_MS || !node.isConnected ||
+          (!settings.pro && node.hasAttribute("data-soft98-pro-copy-toast"))) {
+        faviconNotice = null;
+      } else {
+        const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+        badge = still || Math.floor(elapsed / FAVICON_PULSE_MS) % 2 === 0;
+        faviconTimer = setTimeout(updateFavicon, still ? FAVICON_NOTICE_MS - elapsed : FAVICON_PULSE_MS - elapsed % FAVICON_PULSE_MS);
+      }
+    }
+    const state = settings.pro ? (settings.rgbMode ? "rgb" : settings.darkDesign ? "pro" : "pro-light") :
+      successAnnounced || badge ? "success" : "";
+    let link = document.getElementById(FAVICON_ID);
+    if (!state) {
+      link?.remove();
+      return;
+    }
+    const key = badge ? state + "-badge" : state;
+    const href = faviconImages.get(key) || drawFavicon(state, badge);
+    if (!href) return;
+    faviconImages.set(key, href);
+    if (!link) {
+      link = document.createElement("link");
+      link.id = FAVICON_ID;
+      link.rel = "icon";
+      link.type = "image/png";
+      link.href = href;
+      (document.head || document.documentElement).appendChild(link);
+    } else if (link.href !== href) {
+      link.href = href;
+    }
+  }
+
+  function drawFavicon(state, badge) {
     try {
       const canvas = document.createElement("canvas");
       canvas.width = 64;
@@ -2715,7 +2750,6 @@
       const foreground = dark ? "#70e1b2" : pro ? "#12645a" : "#1fb36b";
       const shadow = dark ? "rgba(112,225,178,.32)" : "rgba(31,179,107,.28)";
       const ring = dark ? "#253f58" : "#d4e7f4";
-      const accent = dark ? "#ffd166" : "#2f80ed";
       ctx.clearRect(0, 0, 64, 64);
       if (rgb) {
         const gradient = ctx.createLinearGradient(5, 5, 59, 59);
@@ -2739,10 +2773,12 @@
       ctx.textBaseline = "middle";
       ctx.fillText("S", 32, 34);
       ctx.shadowBlur = 0;
-      ctx.fillStyle = accent;
-      ctx.beginPath();
-      ctx.arc(49, 16, pro ? 6 : 5, 0, Math.PI * 2);
-      ctx.fill();
+      if (badge) {
+        ctx.fillStyle = dark ? "#ffd166" : "#2f80ed";
+        ctx.beginPath();
+        ctx.arc(49, 16, pro ? 6 : 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
       if (pro) {
         ctx.strokeStyle = foreground;
         ctx.lineWidth = 3;
@@ -2891,6 +2927,7 @@
     const previous = document.getElementById("soft98-ad-blocker-taunt");
     if (!successAnnounced || !settings.taunt) {
       if (previous) previous.remove();
+      stopFaviconPulse(previous);
       clearTimeout(successNoticeTimer);
       successNoticeTimer = null;
       return;
@@ -2910,8 +2947,10 @@
     note.setAttribute("data-theme", settings.pro && (settings.darkDesign || settings.rgbMode) ? "dark" : "light");
     document.body.appendChild(note);
     enqueueMicrotask(() => { note.textContent = text("tauntText"); });
+    pulseFavicon(note);
     successNoticeTimer = setTimeout(() => {
       note.remove();
+      stopFaviconPulse(note);
       successNoticeTimer = null;
     }, SUCCESS_NOTICE_MS);
   }
@@ -3737,6 +3776,7 @@
     const panel = document.getElementById("soft98-pro-compatibility");
     if (panel) {
       panel.removeAttribute("data-open");
+      stopFaviconPulse(panel);
       window.setTimeout(() => panel.remove(), 220);
     }
   }
@@ -3842,7 +3882,11 @@
       window.open(compatibilityIssueUrl(report), "_blank", "noopener,noreferrer");
     });
     document.body.appendChild(panel);
-    requestAnimationFrame(() => panel.setAttribute("data-open", "true"));
+    requestAnimationFrame(() => {
+      if (!panel.isConnected || dismissedCompatibilityHashes().includes(report.sha256)) return;
+      panel.setAttribute("data-open", "true");
+      pulseFavicon(panel);
+    });
     panel.querySelector("[data-action=keep]").focus({ preventScroll: true });
   }
 
@@ -3854,7 +3898,10 @@
     refreshControlTelemetry();
     if (compatibilityState.status === "compatible") {
       const panel = document.getElementById("soft98-pro-compatibility");
-      if (panel) panel.remove();
+      if (panel) {
+        panel.remove();
+        stopFaviconPulse(panel);
+      }
       log("info", text("logs.scriptCompatible"), compatibilityState);
     } else {
       log("warn", text("logs.scriptUnknown"), compatibilityState);
@@ -4240,6 +4287,7 @@
   }
 
   function init() {
+    document.addEventListener("visibilitychange", updateFavicon);
     window.addEventListener("soft98-pro:compatibility", receiveExtensionCompatibility);
     window.addEventListener("soft98-pro:upstream-payload", receiveExtensionPatchedScript);
     if (IS_EXTENSION) {

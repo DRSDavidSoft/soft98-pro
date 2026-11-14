@@ -511,6 +511,14 @@ async function main() {
             actions: row.querySelectorAll('[data-soft98-pro-password-actions] button').length };
         `);
         if (!password.selected || !password.dashed || !password.copy || password.actions !== 1 || password.titleLine !== 1) throw new Error("Password controls failed");
+        const idleFavicon = await evaluate("return document.querySelector('#soft98-pro-favicon')?.href");
+        await evaluate(`
+          const icon = document.querySelector('#soft98-pro-favicon');
+          const timeline = window.__soft98TestFavicon = { frames: [icon.href] };
+          const observer = new MutationObserver(() => timeline.frames.push(icon.href));
+          observer.observe(icon, { attributes: true, attributeFilter: ['href'] });
+          setTimeout(() => observer.disconnect(), 4000);
+        `);
         await post(`/element/${await find('[data-soft98-pro-password-actions] [data-action=copy]')}/click`, {});
         const copied = await post("/execute/async", { args: [], script: `
           const done = arguments[arguments.length - 1];
@@ -528,7 +536,28 @@ async function main() {
         if (!copied.text || !copied.selected) {
           throw new Error("Firefox did not show clipboard feedback while retaining the full password selection");
         }
-        await evaluate("document.querySelector('[data-soft98-pro-copy-toast]').removeAttribute('data-visible'); document.activeElement.blur();");
+        const { frames, settled, reduced, visible } = await post("/execute/async", { args: [], script: `
+          const done = arguments[0];
+          setTimeout(() => done({
+            frames: window.__soft98TestFavicon.frames,
+            settled: document.querySelector('#soft98-pro-favicon')?.href,
+            reduced: matchMedia('(prefers-reduced-motion: reduce)').matches,
+            visible: Boolean(document.querySelector('[data-soft98-pro-copy-toast][data-visible]')),
+          }), 2700);
+        ` });
+        const badgePixel = (icon) => {
+          const { data, width } = PNG.sync.read(Buffer.from(icon.split(",")[1], "base64"));
+          const offset = (16 * width + 49) * 4;
+          return data.subarray(offset, offset + 3).join(",");
+        };
+        const badge = frames[1];
+        const sequence = reduced ? [idleFavicon, badge, idleFavicon] :
+          [idleFavicon, badge, idleFavicon, badge, idleFavicon];
+        if (!badge || badge === idleFavicon || badgePixel(badge) !== "255,209,102" ||
+            frames.length !== sequence.length || !frames.every((frame, i) => frame === sequence[i]) ||
+            settled !== idleFavicon || visible) throw new Error("Firefox favicon did not pulse and clear after copy feedback");
+        console.log(JSON.stringify({ favicon: { idle: badgePixel(idleFavicon), badge: badgePixel(badge), pulses: reduced ? 0 : 2, cleared: true } }));
+        await evaluate("document.activeElement.blur()");
       }
     }
     const preview = process.argv[2] || process.env.SOFT98_DOWNLOAD_SCREENSHOT;
