@@ -1095,9 +1095,17 @@
       :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-password] > input[readonly]{grid-row:2}
       .soft98-pro-theme [data-soft98-pro-password-actions] button{display:grid!important;place-items:center;width:34px;height:34px;flex:none;padding:0!important;cursor:pointer}
       .soft98-pro-theme [data-soft98-pro-password-actions] svg{width:17px;height:17px;pointer-events:none}
-      .soft98-pro-theme [data-soft98-pro-copy-toast]{position:fixed;z-index:2147483000;inset:auto auto 16px 50%;translate:-50% 0;max-width:min(440px,calc(100vw - 32px));box-sizing:border-box;padding:9px 14px;border:1px solid var(--s98p-border);border-inline-start:3px solid var(--s98p-accent);border-radius:8px;background:var(--s98p-elevated);color:var(--s98p-text);box-shadow:0 6px 24px #0005;opacity:0;transform:translateY(6px);transition:opacity .16s ease,transform .16s ease;pointer-events:none}
-      .soft98-pro-theme [data-soft98-pro-copy-toast][data-visible]{opacity:1;transform:none}
-      .soft98-pro-theme [data-soft98-pro-copy-toast][data-error]{border-inline-start-color:var(--s98p-danger)}
+      .soft98-pro-theme [data-soft98-pro-copy-toast]{--toast-accent:var(--s98p-link);position:fixed;z-index:2147483000;inset:auto auto max(16px,env(safe-area-inset-bottom)) 50%;translate:-50% 0;display:grid;grid-template-columns:28px minmax(0,1fr) 30px;align-items:center;gap:10px;width:max-content;max-width:min(480px,calc(100vw - 32px));box-sizing:border-box;padding:10px 12px;border:1px solid var(--s98p-border);border-inline-start:3px solid var(--toast-accent);border-radius:8px;background:var(--s98p-elevated);color:var(--s98p-text);box-shadow:0 6px 24px #0005;opacity:0;visibility:hidden;transform:translateY(6px);transition:opacity .16s ease,transform .16s ease,visibility 0s linear .16s;pointer-events:none}
+      .soft98-pro-theme [data-soft98-pro-copy-toast][data-visible]{opacity:1;visibility:visible;transform:none;transition-delay:0s;pointer-events:auto}
+      .soft98-pro-theme [data-soft98-pro-copy-toast][data-tone=success]{--toast-accent:var(--s98p-accent)}
+      .soft98-pro-theme [data-soft98-pro-copy-toast][data-error]{--toast-accent:var(--s98p-danger)}
+      .soft98-pro-theme [data-soft98-pro-copy-toast] [data-role=message]{min-inline-size:0;overflow-wrap:anywhere;line-height:1.5;text-align:start}
+      .soft98-pro-theme [data-soft98-pro-copy-toast] [data-role=message] a{color:var(--s98p-link)!important;text-decoration:underline}
+      .soft98-pro-theme [data-soft98-pro-copy-toast] :is([data-role=icon],button){display:grid;place-items:center;inline-size:28px;block-size:28px;border-radius:6px;color:var(--toast-accent)}
+      .soft98-pro-theme [data-soft98-pro-copy-toast] [data-role=icon]{background:color-mix(in srgb,var(--toast-accent) 16%,transparent)}
+      :root.soft98-pro-theme [data-soft98-pro-copy-toast] button{padding:0!important;background:transparent!important;border:1px solid transparent!important;color:var(--s98p-muted)!important;cursor:pointer}
+      :root.soft98-pro-theme [data-soft98-pro-copy-toast] button:is(:hover,:focus-visible){background:var(--s98p-soft)!important;color:var(--s98p-text)!important}
+      .soft98-pro-theme [data-soft98-pro-copy-toast] svg{width:18px;height:18px;pointer-events:none}
       @starting-style{.soft98-pro-theme [data-soft98-pro-copy-toast][data-visible]{opacity:0;transform:translateY(6px)}}
       @media (prefers-reduced-motion:reduce){.soft98-pro-theme :is([data-soft98-pro-download-row],[data-soft98-pro-download-actions] [aria-expanded] svg,[data-soft98-pro-copy-toast]){transition:none!important}}
       .soft98-pro-theme [data-soft98-pro-faq] > summary{display:flex!important;align-items:center;gap:9px;list-style:none!important;padding-inline-start:0!important;color:var(--s98p-text)!important}
@@ -2809,11 +2817,11 @@
       event.stopPropagation();
       select();
       try {
-        if (document.execCommand("copy")) return showDownloadToast("passwordCopied");
+        if (document.execCommand("copy")) return showPasswordCopied(container);
       } catch (_error) {}
       try {
         await navigator.clipboard.writeText(input.value);
-        showDownloadToast("passwordCopied");
+        showPasswordCopied(container);
       } catch (_error) {
         showDownloadToast("passwordCopyFallback", true);
       }
@@ -2827,25 +2835,85 @@
     passwordActions.set(container, { input, controls, listeners });
   }
 
+  function showPasswordCopied(container) {
+    const message = (container.getAttribute("data-text-success") || container.getAttribute("data-text_success") || "").trim();
+    showProToast(message || text("passwordCopied"), { tone: "success" });
+  }
+
   function showDownloadToast(key, failed = false) {
+    showProToast(text(key), { tone: failed ? "error" : "success" });
+  }
+
+  function copySiteToastContent(source) {
+    const fragment = document.createDocumentFragment();
+    let remaining = 200;
+    let characters = 2000;
+    const copy = (node, parent, depth) => {
+      if (remaining-- <= 0 || characters <= 0 || depth > 12) return;
+      if (node.nodeType === Node.TEXT_NODE) {
+        const value = node.data.slice(0, characters);
+        characters -= value.length;
+        parent.append(value);
+      } else if (node.nodeType === Node.ELEMENT_NODE && !node.matches("script,style,template,svg,iframe,object")) {
+        const format = node.matches("strong,b,em,i,br,bdi,a") ? document.createElement(node.localName) : null;
+        if (format?.localName === "a") {
+          const href = normalizeHref(node);
+          if (href) {
+            format.href = href;
+            if (node.target === "_blank") format.target = "_blank";
+            format.rel = "noopener noreferrer";
+          }
+        }
+        if (format) parent.append(format);
+        for (const child of node.childNodes) {
+          if (remaining <= 0 || characters <= 0) break;
+          copy(child, format || parent, depth + 1);
+        }
+      }
+    };
+    copy(source, fragment, 0);
+    return fragment;
+  }
+
+  function receiveSiteToast(event) {
+    if (!settings.pro || !document.body || !(event.detail?.content instanceof Element)) return;
+    const content = copySiteToastContent(event.detail.content);
+    if (!content.textContent.trim()) return;
+    showProToast(content, { duration: event.detail.duration, tone: "info" });
+    event.preventDefault();
+  }
+
+  function showProToast(content, { duration = 2600, tone }) {
+    if (!settings.pro || !document.body) return;
     let toast = document.querySelector("[data-soft98-pro-copy-toast]");
     if (!toast) {
       toast = localizeElement(document.createElement("div"));
       toast.setAttribute("data-soft98-pro-copy-toast", "");
-      toast.setAttribute("role", "status");
-      toast.setAttribute("aria-atomic", "true");
+      toast.innerHTML = '<span data-role="icon" aria-hidden="true"></span><div data-role="message" role="status" aria-atomic="true" dir="auto"></div>';
+      const close = downloadButton("close");
+      close.setAttribute("aria-label", text("close"));
+      close.title = text("close");
+      close.addEventListener("mousedown", (event) => event.preventDefault());
+      close.addEventListener("click", () => dismissProToast(toast));
+      toast.append(close);
       document.body.append(toast);
     }
     clearTimeout(downloadToastTimer);
-    toast.toggleAttribute("data-error", failed);
-    toast.textContent = text(key);
+    toast.dataset.tone = tone;
+    toast.toggleAttribute("data-error", tone === "error");
+    toast.querySelector('[data-role="icon"]').innerHTML = PAGE_ICONS[tone === "success" ? "check" : tone === "error" ? "help" : "info"];
+    toast.querySelector('[data-role="message"]').replaceChildren(content);
     toast.setAttribute("data-visible", "");
     pulseFavicon(toast);
-    downloadToastTimer = setTimeout(() => {
-      toast.removeAttribute("data-visible");
-      toast.textContent = "";
-      stopFaviconPulse(toast);
-    }, 2600);
+    downloadToastTimer = setTimeout(() => dismissProToast(toast), typeof duration === "number" && Number.isFinite(duration) ?
+      Math.min(12000, Math.max(1800, duration)) : 4000);
+  }
+
+  function dismissProToast(toast) {
+    clearTimeout(downloadToastTimer);
+    toast.removeAttribute("data-visible");
+    stopFaviconPulse(toast);
+    downloadToastTimer = setTimeout(() => toast.querySelector('[data-role="message"]').replaceChildren(), 180);
   }
 
   function normalizeLabel(node, rtl) {
@@ -4623,6 +4691,7 @@
   }
 
   function init() {
+    document.addEventListener("soft98-pro:site-toast", receiveSiteToast);
     document.addEventListener("visibilitychange", updateFavicon);
     window.addEventListener("hashchange", restorePageIdentity);
     window.addEventListener("soft98-pro:compatibility", receiveExtensionCompatibility);

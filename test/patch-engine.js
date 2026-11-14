@@ -45,4 +45,30 @@ if (engine.patch(genericTimer).patches.includes("anti-adblock-style-rewrite-time
   throw new Error("Styling patch matched a generic timer without its expected signature");
 }
 
+const toastSource = `
+  var marker = "adblock", displayCount = 0, scheduled = 0;
+  function setTimeout() { scheduled++; }
+  function render(){var t=this;return document.body.appendChild(this.view[0]),setTimeout(function(){t.view[0].classList.add("shown")},1),setTimeout(function(){t.hide()},this.duration),this}
+  var toast = { view:["Current site message"], duration:8000, render };
+  var chainable = toast.render() === toast;
+`;
+const patchedToast = engine.patch(toastSource);
+if (!patchedToast.patches.includes("site-toast-renderer")) throw new Error("The native toast renderer was not recognized");
+for (const handled of [true, false]) {
+  let dispatched;
+  const toastSandbox = {
+    CustomEvent: class { constructor(type, options) { Object.assign(this, { type, ...options }); } },
+    document: {
+      dispatchEvent(event) { dispatched = event; return !handled; },
+      body: { appendChild() { toastSandbox.displayCount++; } },
+    },
+  };
+  vm.runInNewContext(patchedToast.code, toastSandbox, { timeout:1000 });
+  if (dispatched?.type !== "soft98-pro:site-toast" || !dispatched.cancelable || dispatched.detail.content !== "Current site message" ||
+      dispatched.detail.duration !== 8000 || toastSandbox.displayCount !== Number(!handled) ||
+      toastSandbox.scheduled !== 2 * Number(!handled) || !toastSandbox.chainable) {
+    throw new Error("The toast bridge lost the original payload or broke the native fallback");
+  }
+}
+
 console.log("Shared patch engine tests passed");

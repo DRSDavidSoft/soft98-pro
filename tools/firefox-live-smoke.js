@@ -867,14 +867,17 @@ async function main() {
             const status = document.querySelector('[data-soft98-pro-copy-toast]');
             if (status?.textContent || performance.now() - started > 2600) {
               const input = document.querySelector('[data-soft98-pro-password] input[readonly]');
-              done({ text: status?.textContent, selected: Boolean(input && document.activeElement === input &&
+              const source = input?.closest('[data-soft98-pro-password]');
+              done({ text: status?.querySelector('[data-role=message]')?.textContent,
+                expected: source?.getAttribute('data-text_success') || source?.getAttribute('data-text-success'),
+                tone: status?.dataset.tone, selected: Boolean(input && document.activeElement === input &&
                 input.selectionStart === 0 && input.selectionEnd === input.value.length) });
             } else setTimeout(check, 100);
           };
           check();
         ` });
-        if (!copied.text || !copied.selected) {
-          throw new Error("Firefox did not show clipboard feedback while retaining the full password selection");
+        if (!copied.expected || copied.text !== copied.expected.trim() || copied.tone !== "success" || !copied.selected) {
+          throw new Error("Firefox did not show the site's archive instructions while retaining the full password selection: " + JSON.stringify(copied));
         }
         const { frames, settled, reduced, visible } = await post("/execute/async", { args: [], script: `
           const done = arguments[0];
@@ -897,6 +900,18 @@ async function main() {
             frames.length !== sequence.length || !frames.every((frame, i) => frame === sequence[i]) ||
             settled !== idleFavicon || visible) throw new Error("Firefox favicon did not pulse and clear after copy feedback");
         console.log(JSON.stringify({ favicon: { idle: badgePixel(idleFavicon), badge: badgePixel(badge), pulses: reduced ? 0 : 2, cleared: true } }));
+        const upstreamToast = await evaluate(`
+          const api = window.app?.Toast;
+          // These two method names are taken from the reviewed AnyDesk bundle for this smoke test only.
+          api?.pmb('Current site status from the original toast API').s();
+          const toast = document.querySelector('[data-soft98-pro-copy-toast]');
+          const redirected = toast?.querySelector('[data-role=message]')?.textContent === 'Current site status from the original toast API' &&
+            toast.dataset.tone === 'info' && toast.hasAttribute('data-visible');
+          toast?.querySelector('button').click();
+          return redirected && !toast.hasAttribute('data-visible');
+        `);
+        if (!upstreamToast) throw new Error("The stock toast API did not forward its message into the Pro renderer");
+        console.log(JSON.stringify({ toast: { originalPasswordMessage: true, upstreamRenderer: true, dismiss: true } }));
         await evaluate("document.activeElement.blur()");
       }
     }

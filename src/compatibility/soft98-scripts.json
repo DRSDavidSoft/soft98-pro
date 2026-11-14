@@ -25,7 +25,8 @@
         "anti-adblock-warning-throws",
         "anti-adblock-style-rewrite-timer",
         "anti-adblock-download-probe",
-        "anti-adblock-page-reset"
+        "anti-adblock-page-reset",
+        "site-toast-renderer"
       ],
       "review": {
         "sourceCommit": "96ef83409482",

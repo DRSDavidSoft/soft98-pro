@@ -61,6 +61,11 @@
       pattern: /\bfunction\s+([\w$]+)\s*\(\s*\)\s*\{(?=\s*function\s+[\w$]+\s*\(\s*\)\s*\{\s*document\.title\s*\|\|[\s\S]{0,320}?\.reload\s*\(\s*\)[\s\S]{0,330}?["']#[\w-]+(?:\s*,\s*#[\w-]+){2}["'][\s\S]{0,200}?\.innerHTML\s*=\s*["']["'])/g,
       replacement: "$&return;",
     },
+    {
+      name: "site-toast-renderer",
+      pattern: /(\breturn\s+)(?=document\.body\.appendChild\(this\.([\w$]+)\[0\]\),\s*setTimeout\(function\(\)\{[\w$]+\.\2\[0\]\.classList\.add\([^)]*\)\},\s*1\),\s*setTimeout\(function\(\)\{[\w$]+\.hide\(\)\},\s*this\.([\w$]+)\),\s*this\b)/g,
+      replacement: 'if(!document.dispatchEvent(new CustomEvent("soft98-pro:site-toast",{cancelable:true,detail:{content:this.$2[0],duration:this.$3}})))return this;$1',
+    },
   ];
 
   function matchingParen(source, openIndex) {

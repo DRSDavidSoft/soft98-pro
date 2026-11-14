@@ -512,6 +512,43 @@ async function main() {
         })()`);
         for (const [field, value] of Object.entries(helpPalette)) assertEqual("download help palette", field, value, true);
         assertEqual(name, "clean icon after expiry", await faviconPixel(client), idleDark);
+        const toastContract = await evaluate(client, `(async () => {
+          const source = document.querySelector('[data-soft98-pro-password]');
+          const input = source.querySelector('input');
+          const copy = document.querySelector('[data-soft98-pro-password-actions] button');
+          const toast = document.querySelector('[data-soft98-pro-copy-toast]');
+          const message = toast.querySelector('[data-role=message]');
+          const originalCopy = document.execCommand;
+          document.execCommand = command => command === 'copy';
+          try {
+            source.setAttribute('data-text_success', 'First server-provided instruction');
+            copy.click();
+            const first = message.textContent;
+            source.setAttribute('data-text-success', 'Updated server-provided instruction');
+            copy.click();
+            const updated = message.textContent;
+            const selected = document.activeElement === input && input.selectionEnd - input.selectionStart === input.value.length;
+            source.removeAttribute('data-text_success');
+            source.removeAttribute('data-text-success');
+            copy.click();
+            const fallback = Boolean(message.textContent) && message.textContent !== first && message.textContent !== updated;
+            const content = document.createElement('div');
+            content.innerHTML = '<strong>Server response</strong> <a href="/help" onclick="window.didRun=1">Guide</a> <a href="javascript:void(0)">Bad link</a><script>untrusted()</' + 'script>';
+            const notify = () => document.dispatchEvent(new CustomEvent('soft98-pro:site-toast', { cancelable:true, detail:{content,duration:8000} }));
+            const handled = !notify();
+            const safe = message.querySelector('strong')?.textContent === 'Server response' &&
+              message.querySelector('a[href]')?.pathname === '/help' && message.querySelectorAll('a[href]').length === 1 &&
+              !message.querySelector('[onclick],script') && !message.textContent.includes('untrusted');
+            toast.querySelector('button').click();
+            const dismissed = !toast.hasAttribute('data-visible');
+            Soft98Pro.configure({pro:false});
+            const nativeFallback = notify();
+            Soft98Pro.configure({pro:true});
+            return { first:first === 'First server-provided instruction', updated:updated === 'Updated server-provided instruction',
+              selected, fallback, handled, safe, dismissed, nativeFallback };
+          } finally { document.execCommand = originalCopy; }
+        })()`);
+        for (const [field, value] of Object.entries(toastContract)) assertEqual("toast content", field, value, true);
         await evaluate(client, `document.querySelector('[data-test="direct-download"]').scrollIntoView(); true`);
         for (let attempt = 0; attempt < 15; attempt += 1) {
           if (await evaluate(client, `JSON.parse(localStorage.getItem('soft98-pro.download-metadata') || '[]').some(([url, value]) =>
