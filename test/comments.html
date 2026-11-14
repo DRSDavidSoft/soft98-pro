@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="fa" dir="rtl" class="soft98-pro-theme">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; form-action 'none'">
+<title>Comments module fixture</title>
+<link rel="stylesheet" href="../src/comments.css">
+<style>
+  body { margin: 0; font: 16px Tahoma, sans-serif; }
+  html[data-mobile] main { max-width: 360px; }
+  .fixture-closed, [hidden] { display: none; }
+  .soft98-pro-light {
+    --s98p-bg: #e9eff2; --s98p-bg-2: #f2f6f8; --s98p-surface: #fff;
+    --s98p-surface-2: #edf4f5; --s98p-text: #172e39; --s98p-muted: #435e6b;
+    --s98p-border: #a8bdc6; --s98p-border-soft: #d4e0e5; --s98p-accent: #087468;
+  }
+</style>
+<main>
+  <article>
+    <a href="#p" role="tab" aria-controls="p" aria-selected="false">ارسال نظر</a>
+    <div id="p" role="tabpanel" hidden>
+      <form name="comment-add-form" method="post" data-url="/never-submit" data-user_hash="test">
+        <div>
+          <div role="alert"><h4>انجمن سافت ۹۸</h4><p><a href="/forum">به انجمن مراجعه کنید</a></p></div>
+          <div role="alert"><a href="#" data-toggle="collapse" data-target="#composer">ارسال نظر</a></div>
+        </div>
+        <div id="composer" class="fixture-closed">
+          <div>
+            <header><h5>ارسال نظرات</h5></header>
+            <div>
+              <div><input name="name" placeholder="نام" required></div>
+              <div><input type="email" name="mail" placeholder="ایمیل"></div>
+              <div><div><textarea id="editor" name="comments" rows="5"></textarea></div></div>
+              <button type="button" data-toggle="captcha-reload">تازه‌سازی تصویر</button>
+              <div><input name="sec_code" placeholder="کد تصویر"></div>
+              <button type="submit" name="submit" data-toggle="comment-add-save">ارسال</button>
+            </div>
+          </div>
+        </div>
+        <input type="hidden" name="post_id" value="123">
+      </form>
+      <form method="post" name="dlemasscomments">
+        <div id="dle-comments-list">
+          <div id="dle-ajax-comments"></div>
+          <ol>
+            <li id="comments-tree-item-1">
+              <div id="comment-id-1">
+                <div data-comment_id="0">
+                  <div></div>
+                  <div><strong>مجتبی</strong> (مهمان) <span data-toggle="fn">1401/11/6</span>
+                    <div><div role="group"><button data-toggle="comment-reply" data-id="1" type="button">پاسخ</button></div></div>
+                  </div>
+                  <div><div id="comm-id-1">سلام، فایل service.conf نیاز به بررسی دارد.
+                    <a href="/help">https://example.test/a-very-long-unbroken-link-for-the-responsive-comments-layout-and-more-text</a>
+                  </div></div>
+                </div>
+              </div>
+              <ol>
+                <li id="comments-tree-item-2"><div data-comment_id="-1">
+                  <div><strong>SalaR</strong> <span data-toggle="fn">1401/11/7</span></div>
+                  <div><div id="comm-id-2">Thank you for checking.</div></div>
+                </div></li>
+              </ol>
+            </li>
+          </ol>
+        </div>
+      </form>
+      <nav><a href="/page/2" data-toggle="comment-page">۲</a></nav>
+    </div>
+    <div role="tabpanel"><form><textarea name="comments"></textarea></form></div>
+  </article>
+</main>
+<output id="result"></output>
+<script src="../src/comments.js"></script>
+<script>
+  const $ = (selector) => document.querySelector(selector);
+  const assert = (condition, message) => { if (!condition) throw new Error(message); };
+  const pane = $("#p");
+  const form = pane.querySelector("form");
+  const editor = $("#editor");
+  const submit = $('[type="submit"]');
+  const reply = $('[data-toggle="comment-reply"]');
+  const page = $('[data-toggle="comment-page"]');
+  const opener = $('[data-toggle="collapse"]');
+  const captcha = $('[data-toggle="captcha-reload"]');
+  const tab = $('[role="tab"]');
+  const composer = $("#composer");
+  const list = $("#dle-comments-list");
+  const controls = [...form.elements];
+  const controller = Soft98Comments.create(document);
+  if (location.hash === "#1") document.documentElement.dataset.mobile = "";
+  let calls = [];
+  const listen = (node, type, name, callback = () => {}) => node.addEventListener(type, (event) => {
+    event.preventDefault();
+    calls.push(name);
+    callback();
+  });
+  listen(tab, "click", "tab", () => { pane.hidden = false; tab.setAttribute("aria-selected", "true"); });
+  listen(opener, "click", "collapse", () => composer.classList.remove("fixture-closed"));
+  listen(captcha, "click", "captcha");
+  listen(page, "click", "pagination");
+  listen(reply, "click", "reply");
+  listen(form, "submit", "submit");
+  const structure = (part) => $('[data-soft98-pro-comments-structure="' + part + '"]');
+  const ownPart = (part) => $('[data-soft98-pro-comments-part="' + part + '"]');
+  const text = (key) => ({
+    "comments.title": "Discussion",
+    "comments.empty": "No comments yet.",
+    "comments.editorLabel": "Comment text"
+  })[key];
+  const sync = () => controller.sync({ text });
+  const style = (node) => getComputedStyle(node);
+  try {
+    sync();
+    assert(pane.hidden && composer.classList.contains("fixture-closed"), "initial visibility changed");
+    assert(document.querySelectorAll("[data-soft98-pro-comments]").length === 1, "unrelated form matched");
+    assert(form.dataset.url === "/never-submit" && form.dataset.user_hash === "test", "form attributes changed");
+    assert([...form.elements].every((element, index) => element === controls[index]), "form controls changed");
+    assert(form.elements.name.required && form.elements.post_id.value === "123", "native form metadata changed");
+    const title = ownPart("title");
+    const empty = ownPart("empty");
+    assert(editor.labels.length === 1 && editor.labels[0].textContent === "Comment text", "missing editor label");
+    assert(structure("comment") === $('[data-comment_id="0"]') && structure("fields").contains(submit), "structure not detected");
+    tab.click();
+    assert(style(composer).display === "none", "closed composer forced open");
+    opener.click();
+    reply.click();
+    page.click();
+    captcha.click();
+    form.elements.name.value = "Tester";
+    editor.value = "متن آزمایشی";
+    editor.focus();
+    pane.prepend(title.cloneNode(true));
+    editor.parentElement.append(editor.labels[0].cloneNode(true));
+    sync();
+    assert(ownPart("title") === title && document.activeElement === editor, "resync replaced content or focus");
+    assert(pane.querySelectorAll('[data-soft98-pro-comments-part="title"]').length === 1 &&
+      editor.labels.length === 1, "owned duplicates were not removed");
+    assert(editor.value === "متن آزمایشی" && editor.form === form, "draft or form ownership changed");
+    form.requestSubmit(submit);
+    assert(calls.join(",") === "tab,collapse,reply,pagination,captcha,submit", "native listeners changed: " + calls);
+    assert(style(pane).direction === "rtl" && style(empty).display === "none", "RTL or populated state failed");
+    const columns = style(structure("fields")).gridTemplateColumns.split(" ").length;
+    assert(columns === Number(location.hash.slice(1)), "wrong responsive columns: " + columns);
+    assert(pane.scrollWidth <= pane.clientWidth, "panel overflows horizontally");
+    assert($("#comments-tree-item-2").closest("ol").getBoundingClientRect().right <
+      $("#comments-tree-item-1").closest("ol").getBoundingClientRect().right, "nested thread not indented from RTL start");
+    const dark = style(pane).backgroundColor;
+    document.documentElement.classList.add("soft98-pro-light");
+    assert(dark === "rgb(21, 27, 35)" && style(pane).backgroundColor === "rgb(255, 255, 255)", "palette failed");
+    const oldItem = $("#comments-tree-item-1");
+    list.querySelector("ol").remove();
+    page.parentElement.remove();
+    assert(style(empty).display !== "none", "missing empty state");
+    list.insertAdjacentHTML("beforeend", '<div data-comment_id="9"><div><strong>New</strong></div><div id="comm-id-9">New reply</div></div>');
+    sync();
+    assert(style(empty).display === "none" && structure("comment") === $('[data-comment_id="9"]'), "replacement not styled");
+    assert(!oldItem.hasAttribute("data-soft98-pro-comments-structure"), "old node still marked");
+    const native = document.createElement("label");
+    native.htmlFor = editor.id;
+    form.prepend(native);
+    sync();
+    assert(editor.labels.length === 1 && editor.labels[0] === native, "native label overwritten");
+    const clonedPane = pane.cloneNode(true);
+    clonedPane.id = "replacement-pane";
+    pane.replaceWith(clonedPane);
+    const clonedTitle = clonedPane.querySelector('[data-soft98-pro-comments-part="title"]');
+    sync();
+    assert(ownPart("title") === clonedTitle, "replacement pane did not adopt cloned heading");
+    assert(!pane.hasAttribute("data-soft98-pro-comments"), "detached pane was not cleaned");
+    clonedPane.replaceWith(pane);
+    sync();
+    controller.sync({ enabled: false, text });
+    assert(!ownPart("title") && !structure("comment") && !pane.hasAttribute("data-soft98-pro-comments"), "cleanup incomplete");
+    assert(editor.value === "متن آزمایشی" && form.elements.comments === editor && form.contains(native), "cleanup altered form");
+    $("#result").textContent = "comments-pass";
+    $("#result").dataset.pass = "true";
+  } catch (error) {
+    $("#result").textContent = error.stack;
+  }
+</script>

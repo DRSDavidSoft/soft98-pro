@@ -63,6 +63,8 @@ Both formats are built from the shared runtime in [`src/runtime.js`](src/runtime
 - **Dark design:** enables a modern dark reading experience by default.
 - **Expert control console:** provides live cleanup telemetry, reviewed-script status, and grouped protection, experience, and advanced controls directly on the page.
 - **RGB experience:** optionally adds a restrained animated spectral glass design with reduced-motion support.
+- **Quick browsing:** opt in under Appearance to stay on the same page while moving between software listings. Articles, downloads, and new-tab links keep their normal behavior.
+- **Discussions:** read threaded replies and use the original comment form in either Pro theme.
 - **Bilingual interface:** uses Persian when the browser language is `fa` or the timezone is `Asia/Tehran`; otherwise it uses English.
 - **Status favicon:** generates a canvas favicon that reflects the current protection state.
 

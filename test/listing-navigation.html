@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Test listing</title></head>
+<body>
+  <main>
+    <article><header><h2>First listing</h2></header></article>
+    <article><header><h2>Second entry</h2></header></article>
+    <nav><a href="/page/2/">Page 2</a><a href="/page/3/">Page 3</a><a href="/page/4/" target="_blank">New tab</a></nav>
+  </main>
+  <script src="/src/listing-navigation.js"></script>
+  <script>
+    async function verifyListingNavigation() {
+      history.replaceState(null, "", "/test/");
+      const main = document.querySelector("main");
+      const calls = [];
+      const requests = new Map();
+      const check = (condition, error) => { if (!condition) throw new Error(error); };
+      const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+      let enabled = false;
+      installSoft98ListingNavigation({
+        enabled: () => enabled,
+        label: () => "Loading",
+        locale: "en",
+        afterRender: () => {},
+        fetchPage: (url, options) => new Promise((resolve, reject) => {
+          const path = new URL(url).pathname;
+          calls.push(path);
+          requests.set(path, { resolve, signal: options.signal });
+          options.signal.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")), { once: true });
+        }),
+      });
+      const click = (link, flags) => {
+        const event = new MouseEvent("click", { bubbles: true, cancelable: true, button: 0, ...flags });
+        document.addEventListener("click", function suppressBrowserDefault(e) {
+          e.preventDefault();
+        }, { once: true });
+        link.dispatchEvent(event);
+      };
+      const [page2, page3, blank] = main.querySelectorAll("a");
+      click(page2);
+      enabled = true;
+      click(blank);
+      click(page2, { ctrlKey: true });
+      check(!calls.length, "Opt-out, new-tab, or modified click was intercepted");
+      click(page2);
+      await wait(210);
+      check(main.getAttribute("aria-busy") === "true" && document.querySelector('[data-soft98-pro-route-loading][role="status"]'),
+        "Pending navigation did not show the accessible preloader");
+      click(page3);
+      check(requests.get("/page/2/").signal.aborted, "Newer navigation did not cancel the old request");
+      const payload = '<html><head><title>Page 3</title></head><body><main>' +
+        '<article onclick="window.executed=true"><header><h2>Fetched listing</h2></header>' +
+        '<p>Example <a href="javascript:alert(1)">unsafe URL</a></p><script>window.executed=true;<\/script></article>' +
+        '<article><header><h2>Another entry</h2></header></article></main></body></html>';
+      requests.get("/page/3/").resolve(new Response(payload, { headers: { "content-type": "text/html; charset=utf-8" } }));
+      await wait(80);
+      check(location.pathname === "/page/3/" && document.title === "Page 3" &&
+        main === document.querySelector("main") && main.querySelector("h2").textContent === "Fetched listing",
+        "Fetched listing did not update in the same document");
+      check(!main.querySelector("script,[onclick],[href^='javascript:']") && !window.executed,
+        "Fetched markup remained executable");
+      check(!main.hasAttribute("aria-busy") && !document.querySelector("[data-soft98-pro-route-loading]"),
+        "The preloader did not clear");
+      history.back();
+      await wait(80);
+      check(requests.has("/test/"), "Back did not request the previous listing");
+      requests.get("/test/").resolve(new Response(payload.replace("Fetched listing", "Original listing"),
+        { headers: { "content-type": "text/html" } }));
+      await wait(80);
+      check(location.pathname === "/test/" && main.querySelector("h2").textContent === "Original listing", "Back did not restore the first listing");
+      window.triggerListingFallback = () => {
+        const link = document.createElement("a");
+        link.href = "/test/fallback/";
+        main.append(link);
+        click(link);
+        requests.get("/test/fallback/").resolve(new Response("Not a listing", { headers: { "content-type": "text/plain" } }));
+      };
+      return "pass";
+    }
+  </script>
+</body>
+</html>

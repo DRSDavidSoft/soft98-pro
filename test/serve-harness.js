@@ -71,6 +71,11 @@ http
   .createServer(async (request, response) => {
     try {
       const requestUrl = new URL(request.url, "http://127.0.0.1");
+      if (requestUrl.pathname === "/test/fallback/") {
+        response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+        response.end("<!doctype html><title>Full-page fallback</title><p>Normal browser navigation completed.</p>");
+        return;
+      }
       if (requestUrl.pathname === "/proxy") {
         const target = requestUrl.searchParams.get("url") || "";
         if (!isSoft98Url(target)) throw new Error("Proxy target must be a Soft98 asset");

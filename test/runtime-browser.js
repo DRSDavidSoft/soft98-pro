@@ -317,6 +317,28 @@ async function main() {
         assertEqual(name, "expired success notification", await evaluate(client, `window.Soft98Pro.configure({ taunt: true }); Boolean(document.getElementById("soft98-ad-blocker-taunt"))`), false);
       }
     }
+    for (const [width, columns] of [[1000, 2], [375, 1]]) {
+      await client.send("Emulation.setDeviceMetricsOverride", { width, height: 900, deviceScaleFactor: 1, mobile: false });
+      await client.send("Page.navigate", { url: `http://127.0.0.1:${PORT}/test/comments.html?width=${width}#${columns}` });
+      for (let attempt = 0; attempt < 30; attempt += 1) {
+        const result = await evaluate(client, "document.querySelector('#result')?.textContent").catch(() => "");
+        if (result === "comments-pass") break;
+        if (attempt === 29 || String(result).includes("Error:")) throw new Error(`Comments at ${width}px: ${result}`);
+        await delay(100);
+      }
+    }
+    await client.send("Emulation.clearDeviceMetricsOverride");
+    await client.send("Page.navigate", { url: `http://127.0.0.1:${PORT}/test/listing-navigation.html` });
+    for (let attempt = 0; attempt < 30 && await evaluate(client, "typeof verifyListingNavigation") !== "function"; attempt += 1) {
+      await delay(100);
+    }
+    assertEqual("quick navigation", "listing fixture", await evaluate(client, "verifyListingNavigation()"), "pass");
+    await evaluate(client, "setTimeout(triggerListingFallback, 100); true");
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      if (await evaluate(client, "document.title").catch(() => "") === "Full-page fallback") break;
+      if (attempt === 29) throw new Error("Unsupported AJAX response did not fall back to ordinary navigation");
+      await delay(100);
+    }
     console.log("Soft98 runtime browser acceptance passed");
   } finally {
     if (client) client.close();

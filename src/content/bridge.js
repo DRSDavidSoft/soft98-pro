@@ -12,6 +12,7 @@
     compactLayout: true,
     expandMain: false,
     utilityInHeader: true,
+    quickNavigation: false,
     soundFeedback: false,
     linkBadges: true,
     pirateLogo: true,

@@ -525,6 +525,115 @@ async function main() {
       if (feedback.support || !feedback.footer) throw new Error(`Feedback cleanup failed: ${JSON.stringify(feedback)}`);
       console.log(JSON.stringify({ listing, feedback }));
     }
+    if (addon && process.env.SOFT98_COMMENTS_SCREENSHOT) {
+      const comments = await post("/execute/async", { args: [], script: `
+        const done = arguments[arguments.length - 1];
+        const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+        (async () => {
+          if (Soft98Pro.version == null) return done({enhanced:false});
+          if (${process.env.SOFT98_COMMENTS_LIGHT === "1"}) {
+            Soft98Pro.configure({darkDesign:false,rgbMode:false});
+            await wait(250);
+          }
+          const pane = document.querySelector('[data-soft98-pro-comments]');
+          const tab = [...document.querySelectorAll('[role=tab][aria-controls]')].find(tab => tab.getAttribute('aria-controls') === pane?.id);
+          if (!pane || !tab) return done({enhanced:false});
+          tab.click();
+          await wait(300);
+          const composer = pane.querySelector('form[name=comment-add-form] [data-toggle=collapse][aria-expanded=false]');
+          composer?.click();
+          await wait(350);
+          pane.scrollIntoView({block:'start',behavior:'instant'});
+          scrollBy(0,-125);
+          await wait(180);
+          const editor = pane.querySelector('textarea[name=comments]');
+          const threads = pane.querySelectorAll('[data-soft98-pro-comments-structure=comment]').length;
+          const reply = pane.querySelector('[data-toggle=comment-reply]');
+          const submit = pane.querySelector('[type=submit]');
+          done({enhanced:pane.querySelectorAll('[data-soft98-pro-comments-part=title]').length === 1, threads,
+            visible:!!editor?.getClientRects().length, labelled:!!editor?.labels.length,
+            submit:!!submit?.form, reply:!!reply, withinBounds:pane.scrollWidth <= pane.clientWidth + 1});
+        })().catch(error => done({error:String(error)}));
+      ` });
+      if (!comments.enhanced || !comments.visible || !comments.labelled || !comments.submit || !comments.reply ||
+          comments.threads < 2 || !comments.withinBounds) throw new Error("Live comments failed: " + JSON.stringify(comments));
+      console.log(JSON.stringify({comments}));
+      await screenshot(session, process.env.SOFT98_COMMENTS_SCREENSHOT);
+    }
+    if (addon && process.env.SOFT98_UTILITY_ARTWORK_SCREENSHOT) {
+      const artwork = await post("/execute/async", { args: [], script: `
+        const done = arguments[arguments.length - 1];
+        const button = document.querySelector('nav [aria-haspopup=dialog]:has([data-soft98-pro-page-icon=grid])');
+        button?.click();
+        const dialog = document.querySelector('dialog[aria-labelledby=soft98-pro-utility-title]');
+        const expand = [...dialog?.querySelectorAll('footer[data-toggle=collapse]') || []].find(node => {
+          const list = document.getElementById(node.getAttribute('aria-controls') || '');
+          return list && dialog.contains(list);
+        });
+        expand?.click();
+        setTimeout(() => {
+          const icons = [...dialog?.querySelectorAll('[data-soft98-pro-utility-icon][data-soft98-pro-icon-host]') || []]
+            .map(node => ({name:node.getAttribute('data-soft98-pro-icon-host'), visible:node.checkVisibility?.({checkVisibilityCSS:true}) ?? !!node.getClientRects().length}));
+          const box = dialog?.getBoundingClientRect();
+          if (dialog) dialog.scrollTop = dialog.scrollHeight;
+          const sample = dialog?.querySelector('[data-soft98-pro-icon-host=parsinegar]');
+          const iconBox = sample?.getBoundingClientRect();
+          done({icons, expanded:expand?.getAttribute('aria-expanded') === 'true' && !!iconBox?.width && !!iconBox.height &&
+            iconBox.top >= box.top && iconBox.bottom <= box.bottom,
+            centered:!!box && box.top >= 0 && box.bottom <= innerHeight + 1 && box.left >= 0 && box.right <= innerWidth + 1,
+            detail:[expand?.outerHTML.slice(0,250), dialog?.scrollTop, dialog?.scrollHeight, iconBox?.top, box?.top, box?.bottom,
+              [...dialog?.querySelectorAll('footer') || []].map(node => node.outerHTML.slice(0,250))]});
+        }, 500);
+      ` });
+      if (!artwork.centered) throw new Error("Expanded software dialog was outside the viewport");
+      if (!artwork.expanded) throw new Error("Expanded artwork did not scroll into view: " + JSON.stringify(artwork.detail));
+      for (const name of ["java-duke", "parsinegar", "foxit-reader-token", "net-disabler-token", "utility-disc"]) {
+        if (!artwork.icons.some((icon) => icon.name === name && icon.visible)) throw new Error("Expanded software list is missing visible " + name);
+      }
+      console.log(JSON.stringify({ utilityArtwork: artwork }));
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      await screenshot(session, process.env.SOFT98_UTILITY_ARTWORK_SCREENSHOT);
+      await evaluate("document.querySelector('dialog[aria-labelledby=soft98-pro-utility-title]').close()");
+    }
+    if (addon && process.env.SOFT98_CHECK_QUICK_NAVIGATION === "1") {
+      await post("/url", {url:"https://soft98.ir/os/"});
+      const result = await post("/execute/async", { args: [], script: `
+        const done = arguments[arguments.length - 1];
+        const waitFor = async check => {
+          for (let i = 0; i < 40; i++) {
+            if (check()) return true;
+            await new Promise(resolve => setTimeout(resolve, 150));
+          }
+          return false;
+        };
+        (async () => {
+          if (!await waitFor(() => window.Soft98Pro && document.querySelector('main nav a[href*="/page/2/"]'))) return done({listing:false});
+          const main = document.querySelector('main');
+          const heading = () => main.querySelector('article h2').textContent.trim();
+          const old = heading();
+          const link = main.querySelector('nav a[href*="/page/2/"]');
+          const originalLocation = location.pathname;
+          const disabledByDefault = !Soft98Pro.settings.quickNavigation;
+          Soft98Pro.configure({quickNavigation:true});
+          await new Promise(resolve => setTimeout(resolve, 60));
+          link.click();
+          const next = await waitFor(() => location.pathname === '/os/page/2/' && heading() !== old);
+          const sameDocument = main === document.querySelector('main') && document.activeElement === main;
+          history.back();
+          const back = await waitFor(() => location.pathname === originalLocation && heading() === old);
+          history.forward();
+          const forward = await waitFor(() => location.pathname === '/os/page/2/' && heading() !== old);
+          const navStillWorks = Boolean(main.querySelector('nav a[href*="/page/3/"]'));
+          const ready = !main.hasAttribute('aria-busy') && !document.querySelector('[data-soft98-pro-route-loading]');
+          Soft98Pro.configure({quickNavigation:false});
+          done({disabledByDefault,next,sameDocument,back,forward,navStillWorks,ready});
+        })().catch(error => done({error:String(error)}));
+      ` });
+      if (!result.next || Object.values(result).some(value => value !== true)) {
+        throw new Error("Live quick navigation failed: " + JSON.stringify(result));
+      }
+      console.log(JSON.stringify({ quickNavigation: result }));
+    }
   } finally {
     try {
       if (session) await request("DELETE", session);

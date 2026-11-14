@@ -16,6 +16,8 @@
         "compactLayout": "Refined layout",
         "expandMain": "Widen article on scroll",
         "utilityTitle": "Useful software",
+        "routeLoading": "Loading the software list…",
+        "comments": {"title":"Discussion","empty":"No comments yet.","editorLabel":"Write your comment"},
         "articlePreview": "Downloads",
         "previewLoading": "Checking available links…",
         "previewOpenArticle": "Open article for downloads",
@@ -93,6 +95,7 @@
             "detail": "Widen the article as you scroll past the sidebar."
           },
           "utilityInHeader": {"title":"Useful software in the top bar","detail":"Move the utility list out of the sidebar and open it from the top bar."},
+          "quickNavigation": {"title":"Quick browsing","detail":"Load software lists without reloading the page. Articles still open normally."},
           "soundFeedback": {"title":"Interface sounds","detail":"Play a short, quiet sound when you use a control."},
           "linkBadges": {
             "title": "Download recovery badges",
@@ -207,6 +210,7 @@
           "compactLayout": ["Refined layout", "Organize semantic content and controls into a calmer responsive layout."],
           "expandMain": ["Widen article on scroll", "Widen the article as you scroll past the sidebar."],
           "utilityInHeader": ["Useful software in the top bar", "Move the utility list out of the sidebar and open it from the top bar."],
+          "quickNavigation": ["Quick browsing", "Load software lists without reloading the page. Articles still open normally."],
           "soundFeedback": ["Interface sounds", "Play a short, quiet sound when you use a control."],
           "showLatest": ["Show latest posts and news", "Show the software, Android, and news lists at the top of the page."],
           "hideAnnoyances": ["Hide extra site prompts", "Hide the utility-list expansion prompt and the offer to install software for you."],
@@ -233,6 +237,8 @@
         "compactLayout": "چیدمان بهبودیافته",
         "expandMain": "عریض‌شدن مطلب هنگام پیمایش",
         "utilityTitle": "لیست نرم‌افزارهای کاربردی",
+        "routeLoading": "در حال بارگیری لیست نرم‌افزارها…",
+        "comments": {"title":"گفت‌وگو","empty":"هنوز نظری ثبت نشده.","editorLabel":"نظرت رو بنویس"},
         "articlePreview": "دانلودها",
         "previewLoading": "در حال بررسی لینک‌ها…",
         "previewOpenArticle": "باز کردن مطلب برای دانلود",
@@ -310,6 +316,7 @@
             "detail": "وقتی از ستون کناری رد شدی، مطلب از فضای خالی آن استفاده کند."
           },
           "utilityInHeader": {"title":"نرم‌افزارهای کاربردی در نوار بالا","detail":"لیست را از ستون کناری بردار و از نوار بالا باز کن."},
+          "quickNavigation": {"title":"مرور سریع","detail":"لیست نرم‌افزارها بدون بارگیری دوبارهٔ صفحه باز می‌شه. مطالب مثل قبل باز می‌شن."},
           "soundFeedback": {"title":"صدای دکمه‌ها","detail":"هنگام استفاده از دکمه‌ها، یک صدای کوتاه و ملایم پخش شود."},
           "linkBadges": {
             "title": "نشان بازیابی دانلود",
@@ -424,6 +431,7 @@
           "compactLayout": ["چیدمان بهبودیافته", "سازمان‌دهی محتوای معنایی و کنترل‌ها در یک چیدمان آرام و واکنش‌گرا."],
           "expandMain": ["عریض‌شدن مطلب هنگام پیمایش", "وقتی از ستون کناری رد شدی، مطلب از فضای خالی آن استفاده کند."],
           "utilityInHeader": ["نرم‌افزارهای کاربردی در نوار بالا", "لیست را از ستون کناری بردار و از نوار بالا باز کن."],
+          "quickNavigation": ["مرور سریع", "لیست نرم‌افزارها بدون بارگیری دوبارهٔ صفحه باز می‌شه. مطالب مثل قبل باز می‌شن."],
           "soundFeedback": ["صدای دکمه‌ها", "هنگام استفاده از دکمه‌ها، یک صدای کوتاه و ملایم پخش شود."],
           "showLatest": ["نمایش تازه‌ها و اخبار", "فهرست تازه‌های نرم‌افزار، اندروید و اخبار را بالای صفحه نشان بده."],
           "hideAnnoyances": ["پنهان‌کردن گزینه‌های اضافه", "دکمهٔ ادامهٔ فهرست کاربردی و پیشنهاد نصب نرم‌افزار را پنهان کن."],

@@ -25,7 +25,11 @@
   const COMPATIBILITY = __SOFT98_COMPATIBILITY__;
   const BRAND_ASSETS = __SOFT98_BRAND_ASSETS__;
   const PAGE_ICONS = __SOFT98_PAGE_ICONS__;
+  const UTILITY_PATH_ICONS = __SOFT98_UTILITY_PATH_ICONS__;
   const OPTION_PREVIEWS = __SOFT98_OPTION_PREVIEWS__;
+  const LISTING_NAVIGATION_CSS = __SOFT98_LISTING_NAVIGATION_CSS__;
+  const COMMENTS_CSS = __SOFT98_COMMENTS_CSS__;
+  const comments = Soft98Comments.create(document);
   const SUCCESS_NOTICE_MS = 6000;
   const PatchEngine = globalThis.__Soft98PatchEngine;
   const LOCALE = preferredLocale();
@@ -39,6 +43,7 @@
     compactLayout: true,
     expandMain: false,
     utilityInHeader: true,
+    quickNavigation: false,
     soundFeedback: false,
     linkBadges: true,
     pirateLogo: true,
@@ -842,6 +847,7 @@
       try {
         ensureStyleIntegrity();
         for (const item of roots) processRoot(item);
+        comments.sync({ enabled: settings.pro, text });
         if (settings.pro) {
           applyInteractiveSurfaceHeuristics();
           applyProLayoutHeuristics();
@@ -1244,16 +1250,15 @@
       :root.soft98-pro-theme [data-soft98-pro-dialog]:not([open])[data-soft98-pro-native-dialog]{display:none!important}
       :root.soft98-pro-theme dialog[data-soft98-pro-native-dialog]::backdrop{background:#060a105e;backdrop-filter:blur(7px)}
       :root.soft98-pro-theme dialog[data-soft98-pro-native-dialog]{margin:auto;padding:0;color:var(--s98p-text);direction:inherit;inset:auto 0;max-inline-size:min(680px,calc(100vw - 24px))}
+      :root.soft98-pro-theme dialog[aria-labelledby=soft98-pro-utility-title]{position:fixed;inset:0;inline-size:min(560px,calc(100vw - 24px));max-block-size:calc(100dvh - 32px);overscroll-behavior:contain}
+      :root.soft98-pro-theme dialog[aria-labelledby=soft98-pro-utility-title] > header{display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:8;isolation:isolate}
+      :root.soft98-pro-theme dialog[aria-labelledby=soft98-pro-utility-title] > [data-soft98-pro-utility-card]{position:relative;z-index:0}
+      :root.soft98-pro-theme dialog[aria-labelledby=soft98-pro-utility-title][open] [data-soft98-pro-utility-header]{display:none!important}
       :root.soft98-pro-theme dialog[data-soft98-pro-native-dialog] > :not(header){padding:14px 16px}
       :root.soft98-pro-theme [data-soft98-pro-footer]{max-width:var(--s98p-page-width,1280px);margin:28px auto 0;padding:16px;display:grid;grid-template-columns:minmax(0,2fr) repeat(2,minmax(0,1fr));gap:12px;background:transparent!important;color:var(--s98p-text);position:relative;overflow:visible}
       :root.soft98-pro-theme [data-soft98-pro-footer] > section{display:grid;align-content:start;gap:6px;padding:14px;background:var(--s98p-surface-2)!important;border:1px solid var(--s98p-border-soft);border-radius:8px}
       :root.soft98-pro-theme [data-soft98-pro-footer] :is(p,strong){margin:0;color:inherit}
       :root.soft98-pro-theme [data-soft98-pro-footer] button{justify-self:start;padding:5px 10px}
-      :root.soft98-pro-theme [data-soft98-pro-forum]{background:var(--s98p-surface)!important;border:1px solid var(--s98p-border-soft);border-radius:8px;padding:12px}
-      :root.soft98-pro-theme [data-soft98-pro-forum] :is(textarea,input){border-radius:6px;padding:8px}
-      :root.soft98-pro-theme [data-soft98-pro-forum] form{display:grid;gap:9px;padding:12px;background:var(--s98p-surface-2);border-radius:7px}
-      :root.soft98-pro-theme [data-soft98-pro-forum] li{margin-block:7px;border-inline-start:2px solid var(--s98p-border);padding-inline-start:9px}
-      :root.soft98-pro-theme [data-soft98-pro-forum] ol{padding-inline-start:min(12px,3vw)}
       :root.soft98-pro-theme [data-soft98-pro-legacy-accent~="color"]{color:var(--s98p-accent)!important}
       :root.soft98-pro-theme [data-soft98-pro-legacy-accent~="background-color"]{background-color:color-mix(in srgb,var(--s98p-accent) 23%,var(--s98p-surface))!important}
       :root.soft98-pro-theme [data-soft98-pro-legacy-accent~="border-block-start-color"]{border-block-start-color:var(--s98p-accent)!important}
@@ -1650,10 +1655,6 @@
       for (const rule of list.querySelectorAll(":scope > hr")) {
         if (!isLiveSidebarCard(rule.previousElementSibling) || !isLiveSidebarCard(rule.nextElementSibling)) rule.remove();
       }
-    }
-    for (const input of document.querySelectorAll("article textarea[name=comments]")) {
-      const pane = input.closest("[role=tabpanel]") || input.parentElement.closest("section");
-      if (pane) pane.setAttribute("data-soft98-pro-forum", "");
     }
     for (const image of document.querySelectorAll("[data-soft98-pro-search] img")) {
       const label = ((image.alt || "") + " " + (image.closest("a")?.pathname || "") + " " + image.src).toLowerCase();
@@ -2585,36 +2586,17 @@
           row.copy.setAttribute("data-soft98-pro-list-copy", "true");
           if (utilityCard) {
             row.media.setAttribute("data-soft98-pro-utility-icon", "");
-            themeUtilityIcon(row.media, row.copy.textContent + " " + row.link.pathname);
+            themeUtilityIcon(row.media, row.link);
           }
         }
       }
     }
   }
 
-  function themeUtilityIcon(icon, value) {
-    const label = normalizedPersian(value).toLowerCase();
-    const kind =
-      /winrar/.test(label) ? "winrar" :
-      /revo-?uninstaller/.test(label) ? "revo" :
-      /freedownloadmanager|free-download-manager|\/tags\/download\+manager\//.test(label) ? "freedownloadmanager" :
-      /firefox/.test(label) ? "firefox" :
-      /google-?chrome/.test(label) ? "chrome" :
-      /microsoft-?edge/.test(label) ? "edge" :
-      /kaspersky/.test(label) ? "kaspersky" :
-      /\.netframework|dotnet/.test(label) ? "dotnet" :
-      /javase|openjdk|sun-java/.test(label) ? "java" :
-      /rustdesk/.test(label) ? "rustdesk" :
-      /7-zip|archive/.test(label) ? "archive" :
-      /browser|opera|مرورگر/.test(label) ? "web" :
-      /uninstaller|حذفنرمافزار/.test(label) ? "remove" :
-      /downloadmanager|دانلودمنیجر|مدیریتدانلود/.test(label) ? "download" :
-      /photoshop|paint|photo|تصویر/.test(label) ? "photo" :
-      /\bvlc\b|vlcmedia|vlc-player/.test(value.toLowerCase()) ? "vlc" :
-      /office|reader|pdf|notepad|document/.test(label) ? "document" :
-      /antivirus|defender|security/.test(label) ? "shield" :
-      /player|vlc|potplayer/.test(label) ? "play" :
-      /audio|music|aimp/.test(label) ? "music" : "desktop";
+  function themeUtilityIcon(icon, link) {
+    const path = link.origin === location.origin && /^https?:$/.test(link.protocol)
+      ? link.pathname.toLowerCase().replaceAll("%2b", "+") : "";
+    const kind = Object.hasOwn(UTILITY_PATH_ICONS, path) ? UTILITY_PATH_ICONS[path] : "desktop";
     decorateIcon(icon, kind);
     icon.setAttribute("data-soft98-pro-utility-art", "ready");
   }
@@ -3065,7 +3047,7 @@
     wrap.dataset.open = "false";
     const groups = {
       protection: ["blockAds", "patchScripts"],
-      experience: ["pro", "darkDesign", "rgbMode", "compactLayout", "expandMain", "showLatest", "hideAnnoyances", "utilityInHeader", "linkBadges", "pirateLogo"],
+      experience: ["pro", "darkDesign", "rgbMode", "compactLayout", "expandMain", "quickNavigation", "showLatest", "hideAnnoyances", "utilityInHeader", "linkBadges", "pirateLogo"],
       advanced: ["taunt", "soundFeedback", "diagnostics", "recommendExtension"],
     };
     const groupLabels = {
@@ -4194,6 +4176,15 @@
     receiveExtensionPatchedScript();
     installProStyle();
     installClickRepair();
+    setPersistentStyle("soft98-pro-listing-style", LISTING_NAVIGATION_CSS);
+    setPersistentStyle("soft98-pro-comments-style", COMMENTS_CSS);
+    installSoft98ListingNavigation({
+      enabled: () => settings.pro && settings.quickNavigation,
+      fetchPage: nativeFetch,
+      label: text,
+      locale: LOCALE,
+      afterRender: (title) => { originalTitle = title; schedule(document); },
+    });
     schedule(document);
     installObserver();
     document.documentElement.setAttribute("data-soft98-runtime-ready", VERSION);

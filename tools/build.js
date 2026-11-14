@@ -27,6 +27,8 @@ const BRAND_FILES = {
 const { siAndroid, siKaspersky, siDotnet, siOpenjdk, siRustdesk } = require("simple-icons");
 const TABLER_ROOT = path.resolve(path.dirname(require.resolve("@tabler/icons/outline/download.svg")), "../..");
 const UTILITY_ASSETS = path.join(SRC, "assets", "utility");
+const UTILITY_CATALOG = JSON.parse(fs.readFileSync(path.join(SRC, "utility-artwork.json"), "utf8"));
+const UTILITY_NOTICES = ["PAPIRUS-LICENSE.txt", ...new Set(Object.values(UTILITY_CATALOG.artwork).map((art) => art.notice))];
 const ICON_NOTICE = `/*!
 Tabler Icons (https://github.com/tabler/tabler-icons)
 ${fs.readFileSync(path.join(TABLER_ROOT, "LICENSE"), "utf8").trim().replace(/\r\n/g, "\n")}
@@ -35,7 +37,9 @@ Android, Kaspersky, .NET, OpenJDK and RustDesk paths from Simple Icons (https://
 VLC icon copyright (c) 1996-2010 VideoLAN. Use is permitted to identify VideoLAN
 and its products; no endorsement is implied. https://www.videolan.org/goodies.html
 Firefox and Free Download Manager artwork by Papirus contributors (GPL-3.0).
+Java Duke by Sun Microsystems (BSD-3-Clause); LeoMoon ParsiNegar artwork by LeoMoon Studios (MIT).
 Sources and license: https://github.com/DRSDavidSoft/soft98-pro/tree/develop/src/assets/utility
+${UTILITY_NOTICES.slice(1).map((file) => fs.readFileSync(path.join(UTILITY_ASSETS, file), "utf8").trim()).join("\n\n")}
 Platform marks belong to their respective owners.
 */`;
 const PAGE_ICONS = Object.fromEntries(Object.entries({
@@ -50,6 +54,7 @@ const PAGE_ICONS = Object.fromEntries(Object.entries({
   menu: "outline/menu-2", moon: "outline/moon", sun: "outline/sun",
   bell: "outline/bell", mail: "outline/mail", search: "outline/search",
   grid: "outline/layout-grid", arrow: "outline/arrow-left",
+  ...UTILITY_CATALOG.genericIcons,
 }).map(([key, name]) => [key, fs.readFileSync(path.join(TABLER_ROOT, "icons", name + ".svg"), "utf8")
   .replace(/\s+class="[^"]*"/, "").replace(/>\s+</g, "><").replace(/\s+/g, " ").trim()]));
 PAGE_ICONS.android = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 1 26 22" fill="currentColor"><path d="${siAndroid.path}"/></svg>`;
@@ -59,10 +64,23 @@ for (const [key, icon, fill] of [
 ]) PAGE_ICONS[key] = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${fill}"><path d="${icon.path}"/></svg>`;
 PAGE_ICONS.linux = fs.readFileSync(path.join(SRC, "assets", "linux-penguin.svg"), "utf8").trim();
 PAGE_ICONS.vlc = `<img alt="" width="26" height="28" src="${dataUrl(path.join(SRC, "assets", "vlc.png"))}">`;
-for (const name of ["firefox", "freedownloadmanager", "chrome", "edge", "winrar", "revo"]) {
-  const svg = fs.readFileSync(path.join(UTILITY_ASSETS, name + ".svg"), "utf8");
-  PAGE_ICONS[name] = `<img alt="" width="32" height="32" src="data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}">`;
+const utilityImages = Object.fromEntries(["firefox", "freedownloadmanager", "chrome", "edge", "winrar", "revo"]
+  .map((name) => [name, name + ".svg"]));
+for (const [key, info] of Object.entries(UTILITY_CATALOG.artwork)) utilityImages[key] = info.file;
+const utilityImage = (svg) => `<img alt="" width="32" height="32" src="data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}">`;
+for (const [name, file] of Object.entries(utilityImages)) {
+  PAGE_ICONS[name] = utilityImage(fs.readFileSync(path.join(UTILITY_ASSETS, file), "utf8"));
 }
+for (const [name, { text, background, foreground }] of Object.entries(UTILITY_CATALOG.tokens || {})) {
+  if (!/^[A-Z]{2,3}$/.test(text) || ![background, foreground].every((color) => /^#[\da-f]{6}$/i.test(color))) {
+    throw new Error("Invalid utility tile: " + name);
+  }
+  PAGE_ICONS[name] = utilityImage(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect x="1" y="1" width="30" height="30" rx="6" fill="${background}"/><path d="M7 24h18" stroke="${foreground}" opacity=".28"/><text x="16" y="19.5" text-anchor="middle" fill="${foreground}" font-family="sans-serif" font-weight="700" font-size="10">${text}</text></svg>`);
+}
+const UTILITY_PATH_ICONS = Object.fromEntries(UTILITY_CATALOG.rows.flatMap(({ paths, icon }) => {
+  if (!Object.hasOwn(PAGE_ICONS, icon)) throw new Error("Unknown utility icon: " + icon);
+  return paths.map((route) => [route, icon]);
+}));
 
 const commonManifest = {
   name: MESSAGES.locales.en.manifest.name,
@@ -101,7 +119,9 @@ function dataUrl(file) {
   return `data:image/png;base64,${fs.readFileSync(file).toString("base64")}`;
 }
 
+const replacementCache = new Map();
 function sourceReplacements(target) {
+  if (replacementCache.has(target)) return replacementCache.get(target);
   const previewFiles = {
     darkDesign: ["dark-off.webp", "dark-on.webp"],
     rgbMode: ["dark-on.webp", "rgb.webp", "rgb-still.webp"],
@@ -117,7 +137,7 @@ function sourceReplacements(target) {
     };
     return [key, files.map(resolve)];
   }));
-  return {
+  const replacements = {
     __SOFT98_BUILD_TARGET__: target,
     __SOFT98_RECOMMEND_EXTENSION__: target === "extension" ? "false" : "true",
     __SOFT98_VERSION__: VERSION,
@@ -125,10 +145,15 @@ function sourceReplacements(target) {
     __SOFT98_COMPATIBILITY__: JSON.stringify(COMPATIBILITY),
     __SOFT98_BRAND_ASSETS__: JSON.stringify(Object.fromEntries(Object.entries(BRAND_FILES).map(([key, file]) => [key, dataUrl(file)]))),
     __SOFT98_PAGE_ICONS__: JSON.stringify(PAGE_ICONS),
+    __SOFT98_UTILITY_PATH_ICONS__: JSON.stringify(UTILITY_PATH_ICONS),
     __SOFT98_OPTION_PREVIEWS__: JSON.stringify(previews),
+    __SOFT98_LISTING_NAVIGATION_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "listing-navigation.css"), "utf8")),
+    __SOFT98_COMMENTS_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "comments.css"), "utf8")),
     __SOFT98_NAME__: MESSAGES.locales.en.manifest.name,
     __SOFT98_DESCRIPTION__: MESSAGES.locales.en.manifest.description,
   };
+  replacementCache.set(target, replacements);
+  return replacements;
 }
 
 function applyReplacements(source, target) {
@@ -151,7 +176,8 @@ function copyFile(from, to) {
 }
 
 function runtimeSource(target) {
-  return `${fs.readFileSync(PATCH_ENGINE, "utf8")}\n${applyReplacements(fs.readFileSync(RUNTIME, "utf8"), target)}`;
+  const modules = [PATCH_ENGINE, path.join(SRC, "listing-navigation.js"), path.join(SRC, "comments.js"), RUNTIME];
+  return modules.map((file) => applyReplacements(fs.readFileSync(file, "utf8"), target)).join("\n");
 }
 
 async function minifySource(source, to) {
@@ -181,7 +207,7 @@ async function buildUserscript() {
   fs.writeFileSync(USERSCRIPT_OUT, output, "utf8");
   mkdir(path.join(DIST, "userscript"));
   fs.writeFileSync(path.join(DIST, "userscript", "soft98-pro.user.js"), output, "utf8");
-  copyFile(path.join(UTILITY_ASSETS, "PAPIRUS-LICENSE.txt"), path.join(DIST, "userscript", "PAPIRUS-LICENSE.txt"));
+  for (const notice of UTILITY_NOTICES) copyFile(path.join(UTILITY_ASSETS, notice), path.join(DIST, "userscript", notice));
 }
 
 function writeJson(target, value) {
@@ -334,7 +360,7 @@ function chromiumRules() {
 async function buildTarget(name, manifest) {
   const target = path.join(DIST, name);
   mkdir(path.join(target, "assets"));
-  copyFile(path.join(UTILITY_ASSETS, "PAPIRUS-LICENSE.txt"), path.join(target, "PAPIRUS-LICENSE.txt"));
+  for (const notice of UTILITY_NOTICES) copyFile(path.join(UTILITY_ASSETS, notice), path.join(target, notice));
   writeJson(path.join(target, "manifest.json"), manifest);
   copyUi(target);
   copyFile(path.join(SRC, "user-origin.css"), path.join(target, "assets", "user-origin.css"));

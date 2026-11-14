@@ -10,6 +10,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Added opt-in Quick Browsing for software listings and pagination, with a mountain preloader and browser Back and Forward support.
 - Added a dedicated Pro light theme with its own palette for the page, header, and control center.
 - Added a browser download queue with parallel transfers, progress, pause and resume where supported, and the browser's Save As options.
 - Added article download previews for public direct links, a top-bar shortcut to useful software that is enabled by default, and optional interface sounds.
@@ -27,6 +28,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Redesigned the article discussion and comment form for light and dark modes while keeping the site's posting and reply controls.
+- Added licensed Java Duke and LeoMoon ParsiNegar artwork, plus distinct tiles for other named software and clearer icons for categories.
 - Reworked the sticky header, megamenus, article cards, and footer with clearer focus states, readable surfaces, and room for ultrawide displays.
 - Replaced legacy top-bar icons and softened news counters, download notice motion, and the old green accents.
 - Made the useful-software list and discussion controls easier to navigate, with cleaner product artwork and spacing.

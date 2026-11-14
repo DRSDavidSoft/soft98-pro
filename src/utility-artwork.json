@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "artwork": {
+    "java-duke": {
+      "file": "java-duke.svg",
+      "source": "https://github.com/openjdk/duke/blob/eacfa3a4ee49a5f1810238e8adb15430bf42688a/vector/Hips.svg",
+      "permission": "https://www.oracle.com/a/ocom/docs/java-licensing-logo-guidelines-1908204.pdf",
+      "license": "BSD-3-Clause",
+      "notice": "DUKE-BSD.txt"
+    },
+    "parsinegar": {
+      "file": "parsinegar.svg",
+      "source": "https://github.com/leomoon-studios/leomoon-parsinegar/blob/40eecbd529c5661555bd6fc4dea0f6174509a1a8/assets/app-icon.svg",
+      "permission": "https://github.com/leomoon-studios/leomoon-parsinegar/blob/40eecbd529c5661555bd6fc4dea0f6174509a1a8/LICENSE",
+      "license": "MIT",
+      "notice": "PARSINEGAR-MIT.txt"
+    }
+  },
+  "tokens": {
+    "foxit-reader-token": { "text": "FPR", "background": "#fae7d2", "foreground": "#733914" },
+    "firewall-control-token": { "text": "WFC", "background": "#d9eef4", "foreground": "#17576a" },
+    "visual-c-redistributable-token": { "text": "VCR", "background": "#e3e8fa", "foreground": "#34458c" },
+    "bluelife-hosts-token": { "text": "BHE", "background": "#e0f2e5", "foreground": "#216042" },
+    "net-disabler-token": { "text": "ND", "background": "#f8e3eb", "foreground": "#842e51" }
+  },
+  "rows": [
+    { "paths": ["/tags/download+manager/"], "icon": "download" },
+    { "paths": ["/software/compress/21-winrar-c.html"], "icon": "winrar" },
+    { "paths": ["/internet/web-browser/3176-mozilla-firefox.html", "/internet/web-browser/3176-6-mozilla-firefox.html"], "icon": "firefox" },
+    { "paths": ["/internet/web-browser/244-google-chrome.html", "/internet/web-browser/244-google-chrome-desktop.html"], "icon": "chrome" },
+    { "paths": ["/internet/web-browser/3545-microsoft-edge.html", "/internet/web-browser/3545-microsoft-edge-2.html"], "icon": "edge" },
+    { "paths": ["/software/uninstall/439-revo-uninstaller-pro.html", "/software/uninstall/439-revo-uninstaller-2.html"], "icon": "revo" },
+    { "paths": ["/tags/music+player/"], "icon": "music" },
+    { "paths": ["/tags/player/"], "icon": "play" },
+    { "paths": ["/tags/burn+cd/"], "icon": "utility-disc" },
+    { "paths": ["/tags/virtual+drive/"], "icon": "utility-virtual-drive" },
+    { "paths": ["/software/pdf/44-foxit-reader.html"], "icon": "foxit-reader-token" },
+    { "paths": ["/tags/remote/"], "icon": "utility-remote" },
+    { "paths": ["/security/firewall/14349-windows-firewall-control.html", "/security/firewall/14349-windows-firewall-control-a.html"], "icon": "firewall-control-token" },
+    { "paths": ["/software/optimization/17338-advanced-systemcare.html", "/software/optimization/17338-advanced-systemcare-a.html"], "icon": "utility-tune-up" },
+    { "paths": ["/software/692-sun-java-se-runtime-environment.html"], "icon": "java-duke" },
+    { "paths": ["/software/programming/3134-microsoft-visual-c-redistributable.html", "/software/programming/3134-visual-c-a.html"], "icon": "visual-c-redistributable-token" },
+    { "paths": ["/software/209-microsoft-net-framework.html", "/software/209-net-framework-a.html"], "icon": "utility-code" },
+    { "paths": ["/tags/eset/"], "icon": "shield" },
+    { "paths": ["/tags/kaspersky/"], "icon": "shield" },
+    { "paths": ["/tags/display+driver/"], "icon": "utility-display-driver" },
+    { "paths": ["/software/farsi/285-leomoon-parsinegar.html"], "icon": "parsinegar" },
+    { "paths": ["/software/1379-bluelife-hosts-editor.html", "/software/1379-bluelife-hosts-editor-1.html"], "icon": "bluelife-hosts-token" },
+    { "paths": ["/internet/17819-net-disabler.html"], "icon": "net-disabler-token" }
+  ],
+  "genericIcons": {
+    "utility-disc": "outline/disc",
+    "utility-virtual-drive": "outline/server",
+    "utility-remote": "outline/devices-pc",
+    "utility-tune-up": "outline/gauge",
+    "utility-code": "outline/code",
+    "utility-display-driver": "outline/device-desktop-code"
+  }
+}

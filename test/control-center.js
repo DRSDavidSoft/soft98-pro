@@ -18,10 +18,13 @@ const substitutions = {
   MESSAGES: source("src/messages.json"),
   COMPATIBILITY: source("src/compatibility/soft98-scripts.json"),
   PAGE_ICONS: "{}",
+  UTILITY_PATH_ICONS: "{}",
+  LISTING_NAVIGATION_CSS: '""',
+  COMMENTS_CSS: '""',
   OPTION_PREVIEWS: JSON.stringify({ rgbMode: ["dark-on.webp", "rgb.webp", "rgb-still.webp"].map((file) =>
     "data:image/webp;base64," + fs.readFileSync(path.join(root, "docs", "assets", "settings", file)).toString("base64")) }),
 };
-const runtime = source("src/patch-engine.js") + "\n" + source("src/runtime.js").replace(/__SOFT98_([A-Z_]+)__/g,
+const runtime = ["src/patch-engine.js", "src/listing-navigation.js", "src/comments.js"].map(source).join("\n") + "\n" + source("src/runtime.js").replace(/__SOFT98_([A-Z_]+)__/g,
   (token, name) => Object.hasOwn(substitutions, name) ? substitutions[name] : token);
 
 async function verify() {
