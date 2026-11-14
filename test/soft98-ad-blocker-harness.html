@@ -6,6 +6,8 @@
     <style>
       .night-mode .list-group-item-light, .night-mode .fixture-help { background-color: #252525; color: #b7b7b7; }
       .fixture-report { background-color: #71263b; }
+      .night-mode .fixture-install { background: #283e12; }
+      .fixture-install::after { content: ""; background: radial-gradient(circle, #315012, #384e21); }
       details { overflow: hidden; }
       details[open] { margin-block-end: .2rem; }
       details p { margin-block: 0 16px; }
@@ -232,6 +234,7 @@
             '<dt><span>اطلاعات بیشتر</span></dt><dd><a data-test="article-placeholder" data-key="hidden" href="/article.html">صفحهٔ نرم‌افزار</a></dd></dl>' +
             '<div><div data-toggle="copy"><span>پسورد فایل</span><input readonly value="soft98.ir"></div>' +
             '<button data-test="neutral-help" class="fixture-help" data-toggle="mbd" data-target="#fixture-help">Guide</button>' +
+            '<a data-test="install-help" class="fixture-install" href="https://example.org/install">نرم‌افزار را برایم نصب کنید</a>' +
             '<button data-test="report-help" class="fixture-report" data-toggle="complaint" data-url="/report" data-target="#fixture-report">Report</button></div></div>';
           document.body.appendChild(downloadArticle);
 

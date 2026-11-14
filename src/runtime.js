@@ -2676,7 +2676,10 @@
       const label = normalizedPersian(node.textContent || "");
       if (node.matches("footer") || /نرمافزاررابرای(?:من|م)نصبکن/.test(label)) {
         node.setAttribute("data-soft98-pro-annoyance", "");
-        if (node.matches("a")) decorateIcon(node, "help");
+        if (node.matches("a")) {
+          node.setAttribute("data-soft98-pro-help-action", "install");
+          decorateIcon(node, "help");
+        }
       }
     }
     for (const node of document.querySelectorAll("article :is(h1,h2,h3,details > summary), article [role=tabpanel] :is(dt span,dd a,[data-soft98-pro-password],[data-soft98-pro-annoyance],a[href]), [data-soft98-pro-list-copy] strong")) {

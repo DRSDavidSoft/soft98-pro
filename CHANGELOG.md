@@ -57,7 +57,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Removed the second height jump at the end of FAQ expansion.
 - Opened links wrapped by href.li directly without sending a referrer, while preserving destination parameters and fragments.
 - Restored the site's original notification messages in Pro's themed toasts, including the archive password instructions.
-- Replaced the stock grey on download help actions with the Pro palette, including hover and keyboard focus.
+- Replaced the stock grey and olive download-help colors with the Pro palette, including hover and keyboard focus.
 - Reduced stutter while scrolling, dragging the control center, and expanding FAQ answers. Recognized scroll detectors are stopped before registration instead of adding more work to each scroll event.
 - Kept the article tabs in normal flow and stabilized scrolling from related posts through the footer.
 - Stopped the site's repeating style edits and injected download checks from shifting the page, without removing its download link handler.

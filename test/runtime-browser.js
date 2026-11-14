@@ -193,7 +193,7 @@ function assertCase(name, results, expected) {
     downloadCopy: "دانلود (Official link)",
     downloadPath: "/files/AnyDesk.9.8.3.zip",
     downloadSize: "1,200 مگابایت",
-    downloadIcons: "chevron,windows,download,apple,linux,apple,android,download,download,info,link,lock",
+    downloadIcons: "chevron,windows,download,apple,linux,apple,android,download,download,info,link,lock,help",
     normalizedDownload: "https://dl2.soft98.ir/files/metadata.zip",
     signedDownload: "https://dl2.soft98.ir/files/signed.zip?token=123456",
     isolatedParenthesis: true,
@@ -523,6 +523,7 @@ async function main() {
           const settle = () => new Promise(resolve => setTimeout(resolve, 200));
           const help = document.querySelector('[data-test="neutral-help"]');
           const report = document.querySelector('[data-test="report-help"]');
+          const install = document.querySelector('[data-test="install-help"]');
           const late = document.createElement('a');
           late.className = 'list-group-item-light';
           late.href = '/other';
@@ -539,6 +540,9 @@ async function main() {
             return color(probe);
           };
           const dark = color(help) === token('surface-2') && color(late) === token('surface-2');
+          const installThemed = install.getAttribute('data-soft98-pro-help-action') === 'install' &&
+            color(install) === token('surface-2') && getComputedStyle(install,'::after').display === 'none' &&
+            install.href === 'https://example.org/install';
           Soft98Pro.configure({darkDesign:false});
           await settle();
           const light = color(help) === token('surface-2') && color(help) !== 'rgb(37, 37, 37)';
@@ -549,12 +553,13 @@ async function main() {
           document.body.classList.add('night-mode');
           await settle();
           const stock = color(help) === 'rgb(37, 37, 37)' && color(late) === 'rgb(37, 37, 37)';
+          const installStock = color(install) === 'rgb(40, 62, 18)' && getComputedStyle(install,'::after').backgroundImage.includes('radial-gradient');
           const reportUnchanged = !report.hasAttribute('data-soft98-pro-help-action') && color(report) === 'rgb(113, 38, 59)';
           Soft98Pro.configure({pro:true,darkDesign:true,rgbMode:false});
           help.style.removeProperty('transition');
           probe.remove();
           late.remove();
-          return {dark, light, rgb, stock, reportUnchanged};
+          return {dark, light, rgb, stock, reportUnchanged, installThemed, installStock};
         })()`);
         for (const [field, value] of Object.entries(helpPalette)) assertEqual("download help palette", field, value, true);
         assertEqual(name, "clean icon after expiry", await faviconPixel(client), idleDark);

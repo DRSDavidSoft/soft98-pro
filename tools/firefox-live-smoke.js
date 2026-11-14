@@ -238,6 +238,7 @@ async function main() {
     if (addon && process.env.SOFT98_PALETTE_CHECK === "1") {
       const palette = await evaluate(`
         const actions = [...document.querySelectorAll('.list-group-item-light')];
+        const install = document.querySelector('[data-soft98-pro-help-action=install]');
         const read = node => getComputedStyle(node).backgroundColor;
         const probe = document.createElement('i');
         probe.style.backgroundColor = 'var(--s98p-surface-2)';
@@ -249,11 +250,14 @@ async function main() {
         }));
         probe.remove();
         const leftover = [...document.querySelectorAll('body *')].filter(node =>
-          node.getClientRects().length && read(node) === 'rgb(37, 37, 37)').length;
-        return { rows, expected, leftover };
+          node.getClientRects().length && ['rgb(37, 37, 37)', 'rgb(40, 62, 18)'].includes(read(node))).length;
+        return { rows, expected, leftover, install: install && {
+          background: read(install), ripple: getComputedStyle(install,'::after').display, href: install.href,
+        } };
       `);
       if (palette.rows.length < 3 || palette.rows.some(row => row.background !== palette.expected ||
-          row.image !== "none" || !row.tagged || !row.visible) || palette.leftover) {
+          row.image !== "none" || !row.tagged || !row.visible) || palette.leftover ||
+          palette.install?.background !== palette.expected || palette.install.ripple !== "none" || !palette.install.href) {
         throw new Error("Stock night surface remained visible: " + JSON.stringify(palette));
       }
       console.log(JSON.stringify({ palette }));
