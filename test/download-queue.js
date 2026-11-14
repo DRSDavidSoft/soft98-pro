@@ -22,11 +22,14 @@ test("both built extensions package the internal manager without exposing it to 
     assert.match(read("downloads.html"), /src="downloads\.js"/);
     assert.doesNotMatch(read("downloads.js"), /__SOFT98_DOWNLOAD_(MESSAGES|ICONS)__/);
     assert.match(read("assets/background.js"), /soft98:downloads/);
-    assert.doesNotMatch(read("assets/bridge.js"), /soft98:downloads/);
+    assert.doesNotMatch(read("assets/bridge.js"), /["']soft98:downloads["']/);
+    assert.match(read("assets/bridge.js"), /soft98:downloads-summary/);
     assert.match(read("assets/bridge.js"), /soft98:open-downloads/);
     assert.match(read("downloads.js"), /soft98:download-prefill/);
     assert.ok(read("downloads.css"));
     assert.ok(read("downloads-link.css"));
+    assert.ok(fs.statSync(path.join(DIST, target, "assets", "vazirmatn-arabic-wght-normal.woff2")).size > 0);
+    assert.match(read("VAZIRMATN-LICENSE.txt"), /SIL OPEN FONT LICENSE/i);
   }
 });
 
