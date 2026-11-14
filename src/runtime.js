@@ -1110,6 +1110,12 @@
       :root.soft98-pro-theme article [data-soft98-pro-download-group] [data-soft98-pro-download-row]:active{background-color:color-mix(in srgb,var(--s98p-accent) 16%,var(--s98p-surface))!important}
       .soft98-pro-theme [data-soft98-pro-download-row] > *{pointer-events:none}
       .soft98-pro-theme [data-soft98-pro-download-row] > [data-soft98-pro-page-icon]{grid-column:1;grid-row:1;margin:0}
+      :root.soft98-pro-theme dd:has(> [data-soft98-pro-download-manager=file]){display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px}
+      :root.soft98-pro-theme dd[data-soft98-pro-download-collapsed]:has(> [data-soft98-pro-download-manager=file]){display:none!important}
+      :root:not(.soft98-pro-theme) [data-soft98-pro-download-manager]{display:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-download-manager=file]{display:grid;place-items:center;width:34px;height:32px;padding:0;margin-inline-end:6px;border:1px solid var(--s98p-border);border-radius:6px;background:var(--s98p-surface-2);color:var(--s98p-text);cursor:pointer}
+      :root.soft98-pro-theme [data-soft98-pro-download-manager=file]:is(:hover,:focus-visible){border-color:var(--s98p-accent);color:var(--s98p-accent)}
+      [data-soft98-pro-download-manager=file] svg{width:17px;height:17px;pointer-events:none}
       [data-soft98-pro-download-check]{display:none!important}
       .soft98-pro-theme [data-soft98-pro-download-activated] > [data-soft98-pro-page-icon]{--icon-color:var(--s98p-accent)}
       .soft98-pro-theme [data-soft98-pro-download-activated] > [data-soft98-pro-page-icon] > :not([data-soft98-pro-download-check]){display:none!important}
@@ -1897,6 +1903,7 @@
       if (roles.length) node.setAttribute("data-soft98-pro-legacy-accent", roles.join(" "));
     }
     styleSiteDialogs();
+    syncDownloadManagerEntry(nav);
     syncUtilityPlacement(nav);
     renderSiteFooter();
     document.documentElement.setAttribute("data-soft98-pro-chrome", "");
@@ -2171,6 +2178,23 @@
           event.clientY < box.top || event.clientY > box.bottom)) dialog.close();
     });
     restoredUtilityCards.set(card, { marker, dialog, button });
+  }
+
+  function syncDownloadManagerEntry(nav) {
+    if (!IS_EXTENSION || !nav || nav.querySelector('[data-soft98-pro-download-manager="open"]')) return;
+    const list = nav.querySelector('[data-toggle="search"]')?.closest("li")?.parentElement;
+    if (!list) return;
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.soft98ProDownloadManager = "open";
+    button.setAttribute("data-soft98-pro-nav-item", "icon");
+    button.setAttribute("data-soft98-pro-header-icon", "");
+    button.setAttribute("aria-label", text("articlePreview"));
+    button.title = text("articlePreview");
+    decorateIcon(button, "download");
+    item.append(button);
+    list.append(item);
   }
 
   function renderSiteFooter() {
@@ -2482,6 +2506,16 @@
 
   function prepareDownloadRow(link, icon, url) {
     const previous = downloadRows.get(link);
+    if (IS_EXTENSION) {
+      const existing = link.nextElementSibling?.matches('[data-soft98-pro-download-manager="file"]') && link.nextElementSibling;
+      if (url && !existing) {
+        const button = downloadButton("plus");
+        button.dataset.soft98ProDownloadManager = "file";
+        button.title = text("downloadQueueFile");
+        button.setAttribute("aria-label", button.title);
+        link.after(button);
+      } else if (!url && existing) existing.remove();
+    }
     const direct = url || /^(?:دانلود|download)/i.test(normalizedPersian(link.textContent || ""));
     decorateIcon(link, direct && icon === "link" ? "download" : icon);
     const glyph = link.querySelector(":scope > [data-soft98-pro-page-icon]");

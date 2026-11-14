@@ -45,6 +45,13 @@ const Soft98DownloadQueue = (() => {
       (sender.frameId === undefined || sender.frameId === 0) && !sender.incognito && !sender.tab?.incognito);
   }
 
+  function articleFileUrl(input) {
+    const url = new URL(directUrl(input));
+    if (url.protocol !== "https:" || url.port ||
+        !/\.(?:zip|rar|7z|exe|msi|msix|appx|dmg|apk|iso|deb|rpm|tar|gz|xz|bz2|bin|img|pkg|001)$/i.test(url.pathname)) fail("invalid-url");
+    return url.href;
+  }
+
   function applyNative(job, item) {
     if (!item) {
       if (!TERMINAL.has(job.status)) Object.assign(job, { status: "missing", error: "missing", resumable: false });
@@ -56,6 +63,9 @@ const Soft98DownloadQueue = (() => {
     job.name = String(item.filename || "").split(/[/\\]/).pop().slice(0, 255);
     job.bytes = Math.max(0, item.bytesReceived || 0);
     job.total = item.totalBytes >= 0 ? item.totalBytes : null;
+    job.startedAt = Date.parse(item.startTime) || null;
+    job.endedAt = Date.parse(item.endTime) || null;
+    job.estimatedEndAt = Date.parse(item.estimatedEndTime) || null;
     job.exists = item.exists === true;
     job.resumable = item.canResume === true;
     job.error = "";
@@ -99,7 +109,7 @@ const Soft98DownloadQueue = (() => {
     async function save() {
       const snapshot = { ...state, jobs: state.jobs.map((job) => {
         if (TERMINAL.has(job.status)) return job;
-        const { bytes, total, ...entry } = job;
+        const { bytes, total, estimatedEndAt, ...entry } = job;
         return entry;
       }) };
       const encoded = JSON.stringify(snapshot);
@@ -296,7 +306,7 @@ const Soft98DownloadQueue = (() => {
     return { request };
   }
 
-  return { CHANNEL, STORAGE_KEY, directUrl, relativeFilename, trustedSender, create };
+  return { CHANNEL, STORAGE_KEY, directUrl, articleFileUrl, relativeFilename, trustedSender, create };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = Soft98DownloadQueue;

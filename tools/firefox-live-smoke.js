@@ -107,7 +107,11 @@ async function main() {
           ...(process.env.SOFT98_AD_FRAME_CHECK === "1" ? { webSocketUrl: true } : {}),
           pageLoadStrategy: "eager",
           "moz:firefoxOptions": { args: ["-headless"], prefs: {
-            "network.proxy.type": 0,
+            "network.proxy.type": process.env.SOFT98_DOWNLOAD_PROXY_PORT ? 1 : 0,
+            ...(process.env.SOFT98_DOWNLOAD_PROXY_PORT ? {
+              "network.proxy.ssl": "127.0.0.1",
+              "network.proxy.ssl_port": Number(process.env.SOFT98_DOWNLOAD_PROXY_PORT),
+            } : {}),
             ...(process.env.SOFT98_RGB_CHECK === "1" ? {
               "ui.prefersReducedMotion": process.env.SOFT98_RGB_REDUCED_MOTION === "1" ? 1 : 0,
             } : {}),
@@ -1126,6 +1130,52 @@ async function main() {
       }
       console.log(JSON.stringify(clickResult));
       if (!newTab && !files.length) throw new Error("The native download control did not open its destination tab or start a transfer");
+    }
+    if (addon && process.env.SOFT98_TEST_MANAGED_DOWNLOAD === "1") {
+      const until = async (script, label) => {
+        for (let i = 0; i < 100; i++) {
+          const result = await evaluate(script);
+          if (result) return result;
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+        const state = await evaluate("return {url:location.href,title:document.title,feedback:document.querySelector('#feedback')?.textContent, jobs:[...document.querySelectorAll('.job')].map(row=>[row.dataset.state,row.querySelector('.metrics')?.textContent])}");
+        throw new Error("Timed out checking " + label + ": " + JSON.stringify(state));
+      };
+      const windows = await request("GET", session + "/window/handles");
+      const ready = await until(`
+        const row = [...document.querySelectorAll('article a[data-soft98-pro-download-row]')].find(a => /AnyDesk[.].+[.]zip$/i.test(a.pathname));
+        const button = row?.nextElementSibling;
+        return button?.matches('[data-soft98-pro-download-manager=file]') && row.href;
+      `, "the official archive's resolved link and queue action");
+      if (!await evaluate("return !!document.querySelector('[data-soft98-pro-download-manager=open]')")) throw new Error("The Downloads header action is missing");
+      const element = await post("/element", { using: "css selector", value: "article a[href*='AnyDesk'][href$='.zip'] + [data-soft98-pro-download-manager=file]" });
+      await post(`/element/${Object.values(element)[0]}/click`, {});
+      const targets = await request("GET", session + "/window/handles");
+      const manager = targets.find(handle => !windows.includes(handle));
+      if (!manager) throw new Error("The article button did not open the manager");
+      await post("/window", { handle: manager });
+      const prefilled = await until("return document.getElementById('add')?.disabled === false && document.getElementById('urls')?.value", "the exact URL prefilled into the manager");
+      if (prefilled !== ready) throw new Error("The manager did not receive the original file URL");
+      if (await evaluate("return document.querySelectorAll('.job').length")) throw new Error("The download started before confirmation");
+      const add = await post("/element", { using: "css selector", value: "#add" });
+      await post(`/element/${Object.values(add)[0]}/click`, {});
+      const reading = await until(`
+        const job = document.querySelector('.job[data-state=downloading]');
+        const n = job?.querySelector('.metrics');
+        const metric = key => n.querySelector('[data-metric='+key+']');
+        if (!n || !metric('speed').textContent || metric('eta').textContent.match(/Estimating|برآورد/) ||
+            metric('percent').hidden || !(+n.dataset.received >= +n.dataset.total * .18 && +n.dataset.received < +n.dataset.total)) return false;
+        return {name:job.querySelector('strong').textContent, percent:metric('percent').textContent,
+          received:+n.dataset.received, total:+n.dataset.total, speed:metric('speed').textContent, eta:metric('eta').textContent,
+          elapsed:metric('elapsed').textContent};
+      `, "meaningful in-progress AnyDesk metrics");
+      if (process.env.SOFT98_MANAGER_SCREENSHOT) await screenshot(session, path.resolve(process.env.SOFT98_MANAGER_SCREENSHOT));
+      const complete = await until("const job=document.querySelector('.job[data-state=complete]'); return job && +job.querySelector('.metrics').dataset.received", "AnyDesk completion");
+      const file = path.join(downloadDirectory, reading.name);
+      const payload = await fs.readFile(file);
+      if (payload.length !== complete || payload.subarray(0,4).toString("hex") !== "504b0304") throw new Error("Browser did not save the complete AnyDesk ZIP");
+      if (process.env.SOFT98_MANAGER_COMPLETE_SCREENSHOT) await screenshot(session, path.resolve(process.env.SOFT98_MANAGER_COMPLETE_SCREENSHOT));
+      console.log(JSON.stringify({ managedDownload: { url:ready, reading, complete, file:reading.name } }));
     }
     if (addon && process.env.SOFT98_CHECK_SECONDARY_PAGES === "1") {
       const chromeBehavior = await post("/execute/async", { args: [], script: `

@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { setTimeout: sleep } = require("node:timers/promises");
 const { test } = require("node:test");
-const { create, directUrl, relativeFilename, trustedSender } = require("../src/download-queue");
+const { create, directUrl, articleFileUrl, relativeFilename, trustedSender } = require("../src/download-queue");
 
 const EXTENSION_ID = "soft98-test";
 const PREFIX = "https://example.test/";
@@ -23,6 +23,8 @@ test("both built extensions package the internal manager without exposing it to 
     assert.doesNotMatch(read("downloads.js"), /__SOFT98_DOWNLOAD_(MESSAGES|ICONS)__/);
     assert.match(read("assets/background.js"), /soft98:downloads/);
     assert.doesNotMatch(read("assets/bridge.js"), /soft98:downloads/);
+    assert.match(read("assets/bridge.js"), /soft98:open-downloads/);
+    assert.match(read("downloads.js"), /soft98:download-prefill/);
     assert.ok(read("downloads.css"));
     assert.ok(read("downloads-link.css"));
   }
@@ -84,6 +86,10 @@ async function eventually(q, predicate) {
 test("accepts explicit HTTP(S) URLs, preserves signed queries, and rejects unsafe URL and path inputs", () => {
   assert.equal(directUrl(`${PREFIX}file.zip?sig=A%2Fb&time=123#local`), `${PREFIX}file.zip?sig=A%2Fb&time=123`);
   assert.equal(directUrl("http://example.test/file.zip"), "http://example.test/file.zip");
+  assert.equal(articleFileUrl("https://example.test/AnyDesk.zip?sig=A%2Fb"), "https://example.test/AnyDesk.zip?sig=A%2Fb");
+  for (const url of ["https://example.test/download.html", "http://example.test/file.zip", "https://example.test:8443/file.zip"]) {
+    assert.throws(() => articleFileUrl(url), { queueCode: "invalid-url" }, url);
+  }
   for (const url of ["//example.test/f.zip", "file:///a.zip", "data:text/plain,a", "blob:https://example.test/1", "javascript:alert(1)", "https:///f.zip", "https://@example.test/", "https://a:b@example.test/", "https://example.test/\\evil", "https://example.test/a\nb"]) {
     assert.throws(() => directUrl(url), { queueCode: "invalid-url" }, url);
   }

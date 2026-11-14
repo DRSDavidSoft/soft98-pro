@@ -133,6 +133,17 @@
     document.addEventListener("DOMContentLoaded", () => discoverScripts(document), { once: true });
   }
 
+  if (!(api.extension && api.extension.inIncognitoContext)) {
+    document.addEventListener("click", (event) => {
+      if (!event.isTrusted || event.button !== 0 || event.defaultPrevented) return;
+      const control = event.target instanceof Element && event.target.closest("button[data-soft98-pro-download-manager]");
+      if (!control || control.disabled) return;
+      const row = control.previousElementSibling;
+      if (control.dataset.soft98ProDownloadManager === "file" && !row?.matches("a[data-soft98-pro-download-row]")) return;
+      sendRuntime({ type: "soft98:open-downloads", url: row?.matches("a[data-soft98-pro-download-row]") ? row.href : "" });
+    }, true);
+  }
+
   function readSettings(callback) {
     api.storage.local.get({ [STORAGE_KEY]: DEFAULT_SETTINGS }, (result) => {
       callback({ ...DEFAULT_SETTINGS, ...(result && result[STORAGE_KEY]) });

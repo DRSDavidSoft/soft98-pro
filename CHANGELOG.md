@@ -54,6 +54,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Made the Downloads manager accessible from the site header and direct download rows, with live percentage, transferred bytes, speed, and estimated time remaining.
 - Showed a brief checkmark when a download link is activated without changing the site's download behavior.
 - Hid promotional banners before the Photoshop article and similar pages finish loading.
 - Replaced the stock green pagination highlight with the Pro accent in all themes.

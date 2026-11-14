@@ -8,6 +8,9 @@
   const locale = [navigator.language, ...(navigator.languages || [])].some((lang) => /^fa(?:-|$)/i.test(lang)) ||
     Intl.DateTimeFormat().resolvedOptions().timeZone === "Asia/Tehran" ? "fa" : "en";
   const number = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
+  const percent = new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: 1 });
+  const durations = Object.fromEntries(["hour", "minute", "second"].map(unit =>
+    [unit, new Intl.NumberFormat(locale, { style: "unit", unit, unitDisplay: "short" })]));
   const states = {
     active: new Set(["starting", "resuming", "downloading"]),
     waiting: new Set(["queued", "resume-queued", "paused"]),
@@ -23,13 +26,58 @@
 
   function text(key, values = {}) {
     return (catalog[locale][key] || catalog.en[key] || catalog[locale]["native-error"])
-      .replace(/\{(\w+)\}/g, (_, name) => number.format(values[name]));
+      .replace(/\{(\w+)\}/g, (_, name) => typeof values[name] === "number" ? number.format(values[name]) : values[name] ?? "");
   }
 
   function bytes(value) {
-    const units = ["B", "KB", "MB", "GB", "TB"];
+    const units = ["B", "KiB", "MiB", "GiB", "TiB"];
     const unit = value > 0 ? Math.min(units.length - 1, Math.floor(Math.log(value) / Math.log(1024))) : 0;
-    return `${number.format(value / 1024 ** unit)} ${units[unit]}`;
+    return `\u2066${number.format(value / 1024 ** unit)} ${units[unit]}\u2069`;
+  }
+
+  function duration(seconds) {
+    const remaining = Math.ceil(Math.max(0, seconds));
+    const parts = [];
+    if (remaining >= 3600) parts.push(durations.hour.format(Math.floor(remaining / 3600)));
+    if (remaining >= 60) parts.push(durations.minute.format(Math.floor(remaining % 3600 / 60)));
+    if (remaining < 3600 && (remaining < 60 || remaining % 60)) parts.push(durations.second.format(remaining % 60));
+    return parts.join(" ");
+  }
+
+  function updateMetrics(job, nodes) {
+    const now = Date.now();
+    const received = job.bytes || 0;
+    const known = Number.isFinite(job.total) && job.total >= 0;
+    const active = job.status === "downloading";
+    let sample = nodes.sample;
+    if (!active || !sample || sample.browserId !== job.browserId || received < sample.bytes) {
+      const started = active && !sample && job.startedAt && now > job.startedAt && now - job.startedAt < 30000;
+      sample = active ? { at: started ? job.startedAt : now, bytes: started ? 0 : received, browserId: job.browserId } : null;
+    }
+    if (sample && now - sample.at >= 250) {
+      const rate = (received - sample.bytes) * 1000 / (now - sample.at);
+      sample.speed = rate ? (sample.speed ? sample.speed * .55 + rate * .45 : rate) : 0;
+      sample.at = now;
+      sample.bytes = received;
+    }
+    nodes.sample = sample;
+    const ratio = job.status === "complete" ? 1 : known && job.total > 0 ? Math.min(received / job.total, 1) : null;
+    const estimated = job.estimatedEndAt > now ? (job.estimatedEndAt - now) / 1000 :
+      known && sample?.speed > 0 ? (job.total - received) / sample.speed : null;
+    const facts = {
+      percent: ratio !== null ? percent.format(ratio) : "",
+      bytes: known ? text("bytes", { received:bytes(received), total:bytes(job.total) }) : active || received ? bytes(received) : "",
+      speed: active && sample?.speed > 0 ? text("speed", { rate:bytes(sample.speed) }) : "",
+      eta: active ? estimated !== null ? text("eta", { duration:duration(estimated) }) : text("etaUnknown") : "",
+      elapsed: job.startedAt ? text("elapsed", { duration:duration(((job.endedAt || now) - job.startedAt) / 1000) }) : "",
+    };
+    for (const node of nodes.metrics.children) {
+      node.textContent = facts[node.dataset.metric];
+      node.hidden = !node.textContent;
+    }
+    nodes.metrics.dataset.received = received;
+    nodes.metrics.dataset.total = known ? job.total : "";
+    nodes.metrics.title = known ? text("bytes", { received:`\u2066${number.format(received)} B\u2069`, total:`\u2066${number.format(job.total)} B\u2069` }) : "";
   }
 
   function buttonContent(node, label, icon) {
@@ -53,7 +101,7 @@
   function createRow(job) {
     const row = document.createElement("li");
     row.className = "job";
-    row.innerHTML = '<div class="job-head"><strong><bdi></bdi></strong><span class="state"></span></div><div class="source"><bdi dir="ltr"></bdi></div><progress hidden></progress><div class="job-footer"><span class="metrics" dir="auto"></span><div class="actions"></div></div><small class="detail" hidden></small>';
+    row.innerHTML = '<div class="job-head"><strong><bdi></bdi></strong><span class="state"></span></div><div class="source"><bdi dir="ltr"></bdi></div><progress hidden></progress><div class="job-footer"><div class="metrics"><bdi data-metric="percent"></bdi><bdi data-metric="bytes"></bdi><bdi data-metric="speed"></bdi><bdi data-metric="eta"></bdi><bdi data-metric="elapsed"></bdi></div><div class="actions"></div></div><small class="detail" hidden></small>';
     const nodes = { row, name: row.querySelector("strong bdi"), state: row.querySelector(".state"), source: row.querySelector(".source bdi"), progress: row.querySelector("progress"), metrics: row.querySelector(".metrics"), actions: row.querySelector(".actions"), detail: row.querySelector(".detail") };
     for (const [action, icon] of Object.entries(actionIcons)) {
       const button = document.createElement("button");
@@ -80,9 +128,7 @@
     nodes.source.textContent = url.host;
     const received = job.bytes || 0;
     const known = Number.isFinite(job.total) && job.total >= 0;
-    nodes.metrics.textContent = known && !states.finished.has(status)
-      ? catalog[locale].bytes.replace("{received}", bytes(received)).replace("{total}", bytes(job.total))
-      : received || known ? bytes(received) : "";
+    updateMetrics(job, nodes);
     nodes.progress.hidden = status !== "downloading";
     nodes.progress.setAttribute("aria-label", `${text(status)}: ${name}`);
     if (known && job.total > 0) {
@@ -201,7 +247,7 @@
     if (!document.hidden) timer = setTimeout(async () => {
       await request("list");
       if (!state || state.jobs.some((job) => states.active.has(job.status))) refresh();
-    }, 800);
+    }, 500);
   }
 
   document.documentElement.lang = locale;
@@ -245,5 +291,23 @@
     if (area === "local" && changes.soft98DownloadQueue) refresh();
   });
   document.addEventListener("visibilitychange", refresh);
-  request("list").then(refresh);
+  async function initialize() {
+    const token = /^#import=([a-f0-9-]{36})$/.exec(location.hash)?.[1];
+    if (token) {
+      try {
+        const message = { type: "soft98:download-prefill", token };
+        const response = usesPromises ? await api.runtime.sendMessage(message) : await new Promise((resolve) => {
+          api.runtime.sendMessage(message, result => { void api.runtime.lastError; resolve(result); });
+        });
+        if (response?.url) {
+          $("urls").value = response.url;
+          $("urls").focus();
+        } else report(text("importExpired"), true);
+      } catch (_error) { report(text("importExpired"), true); }
+      finally { history.replaceState(null, "", location.pathname); }
+    }
+    await request("list");
+    refresh();
+  }
+  initialize();
 })();
