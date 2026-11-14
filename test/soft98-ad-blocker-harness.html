@@ -219,6 +219,19 @@
             '<div data-toggle="copy"><span>پسورد فایل</span><input readonly value="soft98.ir"></div></div>';
           document.body.appendChild(downloadArticle);
 
+          var keyedArticle = document.createElement("article");
+          keyedArticle.setAttribute("data-test", "keyed-article");
+          keyedArticle.innerHTML = '<ul role="tablist">' +
+            '<li><a role="tab" data-toggle="tab" aria-controls="harness.requirements" href="#harness.requirements" aria-selected="true">Requirements</a></li>' +
+            '<li><a role="tab" data-toggle="tab" aria-controls="harness.downloads" href="#harness.downloads" aria-selected="false">Downloads</a></li>' +
+            '</ul><div><div role="tabpanel" id="harness.requirements">Requirements</div>' +
+            '<div role="tabpanel" id="harness.downloads" aria-hidden="true" style="display:none;opacity:0">' +
+            '<div id="harness-gate" style="display:none"><span data-target="#harness-gate" style="opacity:0;pointer-events:none">' +
+            '<p role="alert">افزونه حذف تبلیغات را غیرفعال کنید</p><dl data-json="{}"><dt>Windows</dt>' +
+            '<dd><a data-key="test-key" href="/file/sample.zip" target="_blank">Download ZIP</a></dd></dl></span></div>' +
+            '<div data-test="unrelated-hidden" style="display:none">Unrelated hidden content</div></div></div>';
+          document.body.appendChild(keyedArticle);
+
           var utilityAside = document.createElement("aside");
           utilityAside.setAttribute("data-test", "utility-aside");
           utilityAside.style.cssText = "width:340px;background:rgb(255,255,255);color:rgb(30,30,30)";

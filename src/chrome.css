@@ -58,14 +58,30 @@
   min-height: 0 !important;
 }
 
-:root.soft98-pro-theme [data-soft98-pro-latest-pane="inactive"] {
+:root.soft98-pro-theme [data-soft98-pro-content-pane="inactive"] {
   display: none !important;
 }
 
-:root.soft98-pro-theme [data-soft98-pro-latest-pane="active"] {
+:root.soft98-pro-theme [data-soft98-pro-content-pane="active"] {
   display: block !important;
   opacity: 1 !important;
   visibility: visible !important;
+}
+
+:root.soft98-pro-theme article [data-soft98-pro-content-pane="active"] [data-soft98-pro-download-recovery] {
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  content-visibility: visible !important;
+}
+
+:root.soft98-pro-theme article [data-soft98-pro-content-pane="active"] [data-soft98-pro-download-recovery="frame"] {
+  display: block !important;
+}
+
+:root.soft98-pro-theme article [data-soft98-pro-content-pane="active"] [data-soft98-pro-download-recovery="row"] {
+  display: flex !important;
+  flex-wrap: wrap;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-tech-news] {
@@ -388,7 +404,7 @@
   --mega-mint: var(--s98p-accent-2);
   --mega-tile: #121618;
   --mega-tile-highlight: #1b2023;
-  --mega-surface: #080a0b;
+  --mega-surface: linear-gradient(155deg, #14191ef7, #080a0bf5) #080a0b;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-mega-frame] [data-soft98-pro-mega-grid] {

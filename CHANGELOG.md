@@ -54,6 +54,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Preserved the dark surface gradients in RGB mode and gave the control center and its selected tab a multicolor accent.
+- Kept the article download tab usable when the site's tab handler fails, and restored the download list when its own wrapper was left hidden.
 - Centered the technology news shortcuts and kept the latest-content tabs working even when the site's tab script is unavailable.
 - Removed the permanent favicon dot. The tab icon now pulses briefly for notifications and stays still when reduced motion is enabled.
 - Aligned the latest-content tabs with the technology news header and refreshed the news rows, shortcuts, and view counts.

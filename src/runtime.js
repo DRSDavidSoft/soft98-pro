@@ -69,7 +69,7 @@
   const siteReadOnlyDialogs = new Map();
   const dialogState = new WeakMap();
   const articlePreviewCache = new Map();
-  const latestTabs = new Map();
+  const contentTabs = new Map();
   let audioContext;
   let audioAt = 0;
   const legacyToneKinds = ["color", "background-color", "border-block-start-color", "border-inline-start-color"];
@@ -689,7 +689,7 @@
     }
     for (const node of nodes) {
       const removable = adRemovalRoot(node);
-      if (removable?.isConnected) {
+      if (removable?.isConnected && !containsKeyedDownloadList(removable)) {
         const advertiser = isIranicardBanner(node) ? "Iranicard" : undefined;
         removable.remove();
         stats.adsRemoved += 1;
@@ -726,9 +726,16 @@
     if (!element || !element.querySelectorAll) return false;
     if (element.matches("html,body,main,article,#content,#main,.content,.main,.entry,.post,.download-list,.download-list-item")) return true;
     if (element.querySelector("main,article,#content,#main,.content,.main,.entry,.post,.download-list,.download-list-item")) return true;
+    if (containsKeyedDownloadList(element)) return true;
     const links = element.querySelectorAll("a[href]");
     if (links.length >= 5) return true;
     return Boolean(element.querySelector(SELECTORS.links));
+  }
+
+  function containsKeyedDownloadList(element) {
+    return Boolean(element.closest("article [role=tabpanel]") &&
+      (element.matches("dl") || element.querySelector("dl")) &&
+      element.querySelector("dd a[data-key], dd a[download]"));
   }
 
   function isCompactNotice(element) {
@@ -1172,12 +1179,13 @@
       .soft98-pro-compact [data-soft98-pro-list-copy]{display:grid!important;grid-template-columns:minmax(0,1fr)!important;width:auto!important;min-width:0!important;max-width:none!important;overflow:visible!important}
       .soft98-pro-compact [data-soft98-pro-list-copy] :is(strong,small,span){min-width:0!important;max-width:100%!important;white-space:normal!important;overflow-wrap:break-word!important}
       @property --s98p-neon-hue{syntax:"<angle>";inherits:true;initial-value:155deg}
-      .soft98-pro-rgb{--s98p-neon-hue:155deg;--s98p-neon:hsl(var(--s98p-neon-hue) 95% 67%);--s98p-neon-soft:hsl(var(--s98p-neon-hue) 86% 58% / .18);--s98p-bg:#020304;--s98p-bg-2:#050607;--s98p-nav:#060708;--s98p-surface:#080a0b;--s98p-surface-2:#0b0d0f;--s98p-elevated:#101315;--s98p-soft:#15191b;--s98p-border:var(--s98p-neon);--s98p-border-soft:color-mix(in srgb,var(--s98p-neon) 25%,#1b2023);--s98p-text:#d5dadd;--s98p-muted:#858c91;--s98p-faint:#656b70;--s98p-accent:var(--s98p-neon);--s98p-accent-2:color-mix(in srgb,var(--s98p-neon) 72%,#d7dce0);--s98p-link:color-mix(in srgb,var(--s98p-neon) 78%,#dce1e4);animation:soft98-pro-neon 16s linear infinite}
-      .soft98-pro-rgb,.soft98-pro-rgb body{background:#020304!important;background-image:none!important}
-      .soft98-pro-rgb nav,.soft98-pro-rgb [role=navigation],.soft98-pro-rgb [data-soft98-pro-surface=nav],.soft98-pro-rgb [data-soft98-pro-surface=nav-shell]{background:#060708!important;background-image:none!important;border-color:color-mix(in srgb,var(--s98p-neon) 38%,#202427)!important;box-shadow:0 16px 46px rgba(0,0,0,.62),0 0 18px var(--s98p-neon-soft)!important}
-      .soft98-pro-rgb article,.soft98-pro-rgb aside,.soft98-pro-rgb [role=dialog],.soft98-pro-rgb [role=menu],.soft98-pro-rgb [role=listbox],.soft98-pro-rgb [data-soft98-pro-surface=raised],.soft98-pro-rgb [data-soft98-pro-surface=tab-card],.soft98-pro-rgb [data-soft98-pro-surface=tab-content],.soft98-pro-rgb [data-soft98-pro-surface=tab-pane],.soft98-pro-rgb [data-soft98-pro-surface=menu],.soft98-pro-rgb [data-soft98-pro-surface=megamenu]{background:#080a0b!important;background-image:none!important;border-color:color-mix(in srgb,var(--s98p-neon) 28%,#202427)!important;box-shadow:0 20px 52px rgba(0,0,0,.58),0 0 16px color-mix(in srgb,var(--s98p-neon) 10%,transparent)!important;backdrop-filter:blur(18px) saturate(75%)}
+      .soft98-pro-rgb{--s98p-neon-hue:155deg;--s98p-neon:hsl(var(--s98p-neon-hue) 95% 67%);--s98p-neon-2:hsl(calc(var(--s98p-neon-hue) + 80deg) 95% 73%);--s98p-neon-3:hsl(calc(var(--s98p-neon-hue) + 158deg) 93% 70%);--s98p-neon-line:linear-gradient(90deg in oklab,var(--s98p-neon),var(--s98p-neon-2),var(--s98p-neon-3));--s98p-neon-soft:hsl(var(--s98p-neon-hue) 86% 58% / .18);--s98p-bg:#020304;--s98p-bg-2:#050607;--s98p-nav:#060708;--s98p-surface:#080a0b;--s98p-surface-2:#0b0d0f;--s98p-elevated:#101315;--s98p-soft:#15191b;--s98p-border:var(--s98p-neon);--s98p-border-soft:color-mix(in srgb,var(--s98p-neon) 25%,#1b2023);--s98p-text:#d5dadd;--s98p-muted:#858c91;--s98p-faint:#656b70;--s98p-accent:var(--s98p-neon);--s98p-accent-2:var(--s98p-neon-2);--s98p-link:color-mix(in srgb,var(--s98p-neon) 78%,#dce1e4);animation:soft98-pro-neon 16s linear infinite}
+      .soft98-pro-rgb{background-color:var(--s98p-bg)!important}
+      .soft98-pro-rgb body{background:linear-gradient(180deg,var(--s98p-nav),var(--s98p-bg) 30rem)!important}
+      .soft98-pro-rgb nav,.soft98-pro-rgb [role=navigation],.soft98-pro-rgb [data-soft98-pro-surface=nav],.soft98-pro-rgb [data-soft98-pro-surface=nav-shell]{background:linear-gradient(165deg,var(--s98p-elevated),var(--s98p-nav))!important;border-color:color-mix(in srgb,var(--s98p-neon) 38%,#202427)!important;box-shadow:0 16px 46px rgba(0,0,0,.62),0 0 18px var(--s98p-neon-soft)!important}
+      .soft98-pro-rgb article,.soft98-pro-rgb aside,.soft98-pro-rgb [role=dialog],.soft98-pro-rgb [role=menu],.soft98-pro-rgb [role=listbox],.soft98-pro-rgb [data-soft98-pro-surface=raised],.soft98-pro-rgb [data-soft98-pro-surface=tab-card],.soft98-pro-rgb [data-soft98-pro-surface=tab-content],.soft98-pro-rgb [data-soft98-pro-surface=tab-pane],.soft98-pro-rgb [data-soft98-pro-surface=menu],.soft98-pro-rgb [data-soft98-pro-surface=megamenu]{background:linear-gradient(160deg,var(--s98p-surface-2),var(--s98p-bg-2)) var(--s98p-surface)!important;border-color:color-mix(in srgb,var(--s98p-neon) 28%,#202427)!important;box-shadow:0 20px 52px rgba(0,0,0,.58),0 0 16px color-mix(in srgb,var(--s98p-neon) 10%,transparent)!important;backdrop-filter:blur(18px) saturate(75%)}
       .soft98-pro-rgb article:hover,.soft98-pro-rgb aside:hover,.soft98-pro-rgb [data-soft98-pro-surface=raised]:hover,.soft98-pro-rgb button:hover,.soft98-pro-rgb [role=button]:hover{border-color:color-mix(in srgb,var(--s98p-neon) 72%,#303639)!important;box-shadow:0 22px 58px rgba(0,0,0,.66),0 0 24px var(--s98p-neon-soft)!important}
-      .soft98-pro-rgb [role=tab][aria-selected=true],.soft98-pro-rgb [role=tab].active,.soft98-pro-rgb [data-toggle=tab][aria-selected=true],.soft98-pro-rgb [data-toggle=tab][aria-expanded=true],.soft98-pro-rgb [data-toggle=tab].active,.soft98-pro-rgb .active>[data-toggle=tab],.soft98-pro-rgb [data-soft98-pro-tab-active=true],.soft98-pro-rgb [aria-current=page]{background:#111416!important;background-image:none!important;border-color:var(--s98p-neon)!important;color:#f3f6f7!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--s98p-neon) 28%,transparent) inset,0 0 18px var(--s98p-neon-soft)!important}
+      :root.soft98-pro-rgb :is([role=tab][aria-selected=true],[data-toggle=tab][aria-expanded=true],[data-soft98-pro-tab-active=true],[aria-current=page]){background:linear-gradient(160deg,color-mix(in srgb,var(--s98p-neon) 11%,var(--s98p-elevated)),color-mix(in srgb,var(--s98p-neon-2) 8%,var(--s98p-bg-2)))!important;border-color:var(--s98p-neon)!important;color:#f3f6f7!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--s98p-neon) 28%,transparent) inset,0 0 18px var(--s98p-neon-soft)!important}
       .soft98-pro-rgb img:not([data-soft98-brand-kind]){filter:saturate(.18) brightness(.72) contrast(1.08)!important;transition:filter .2s ease}
       .soft98-pro-rgb a:hover img:not([data-soft98-brand-kind]){filter:saturate(.38) brightness(.82) contrast(1.08)!important}
       .soft98-pro-rgb .soft98-pro-link-badge{border-color:var(--s98p-neon);background:#0c0f10;box-shadow:0 0 16px var(--s98p-neon-soft)}
@@ -1227,7 +1235,7 @@
       :root.soft98-pro-theme [data-soft98-pro-header-icon] > [data-soft98-pro-page-icon]{background:transparent!important;margin:0!important;--icon-color:var(--s98p-text);pointer-events:none}
       :root.soft98-pro-theme [data-soft98-pro-header-icon] svg{width:21px;height:21px}
       :root.soft98-pro-theme [data-soft98-pro-surface=megamenu]{max-inline-size:calc(100vw - 28px);max-block-size:calc(100dvh - 80px);overflow:auto;border-radius:8px!important;background:linear-gradient(155deg,color-mix(in srgb,var(--s98p-elevated) 95%,transparent),color-mix(in srgb,var(--s98p-bg-2) 93%,transparent))!important;box-shadow:0 1px #ffffff20 inset,0 24px 70px #000a,0 0 0 1px #0004!important;backdrop-filter:blur(22px) saturate(140%)}
-      :root.soft98-pro-rgb [data-soft98-pro-surface=megamenu]{background:#080a0b!important;background-image:none!important}
+      :root.soft98-pro-rgb [data-soft98-pro-surface=megamenu]{background:linear-gradient(155deg,#14191ef7,#080a0bf5) #080a0b!important}
       :root.soft98-pro-theme [data-soft98-pro-surface=megamenu] a:is(:hover,:focus-visible){padding-inline:6px;border-radius:4px;color:#fff!important;outline-offset:-2px!important;background:color-mix(in srgb,var(--s98p-accent) 16%,var(--s98p-elevated))!important;box-shadow:0 1px #ffffff20 inset,0 3px 6px #0005}
       :root.soft98-pro-theme [data-soft98-pro-surface=megamenu] a{box-sizing:border-box;padding-inline:6px;transition:background .14s ease,color .14s ease}
       :root.soft98-pro-theme [data-soft98-pro-utility-card] [data-soft98-pro-list-row]{border:1px solid transparent!important;border-radius:6px;background:transparent!important;box-shadow:none!important;transform:none!important}
@@ -1448,11 +1456,7 @@
     const raw = trigger.getAttribute("aria-controls") || trigger.getAttribute("data-target") || trigger.getAttribute("href") || "";
     const hash = raw.includes("#") ? raw.slice(raw.indexOf("#")) : raw ? `#${raw}` : "";
     if (!/^#[A-Za-z][\w:.-]*$/.test(hash)) return null;
-    try {
-      return document.querySelector(hash);
-    } catch (_error) {
-      return null;
-    }
+    return document.getElementById(hash.slice(1));
   }
 
   function applyTabSurfaceHeuristics() {
@@ -1483,6 +1487,11 @@
         const active = selected === "true" || (selected === null && (trigger.getAttribute("aria-expanded") === "true" ||
           trigger.matches(".active") || Boolean(trigger.parentElement?.matches(".active"))));
         trigger.setAttribute("data-soft98-pro-tab-active", active ? "true" : "false");
+      }
+      const article = list.closest("article");
+      const downloadPane = article && panes.find((pane) => pane.querySelector("dl > dd a[data-key],dl > dd a[download]"));
+      if (downloadPane && panes.every((pane) => pane.matches('[role="tabpanel"]') && pane.closest("article") === article)) {
+        bindContentTabs(list, downloadPane);
       }
     }
   }
@@ -2145,7 +2154,22 @@
           ![...list.querySelectorAll(":scope > dd > a[href]")].some((link) => directDownloadUrl(link.getAttribute("href")) ||
             /^(?:دانلود|download)/i.test(normalizedPersian(link.textContent || "")))) continue;
       list.setAttribute("data-soft98-pro-download-group", "");
-      panes.add(list.closest("[role=tabpanel]"));
+      const pane = list.closest("[role=tabpanel]");
+      panes.add(pane);
+      const row = list.parentElement;
+      const frame = row?.parentElement;
+      // Soft98 wraps its keyed list in a self-referencing gate. Do not touch unrelated hidden content.
+      if (list.hasAttribute("data-json") && list.querySelector("dd a[data-key]") && frame?.id &&
+          row.getAttribute("data-target") === "#" + frame.id && frame !== pane && pane.contains(frame)) {
+        for (const [node, type] of [[frame, "frame"], [row, "row"]]) {
+          if (node.hasAttribute("data-soft98-pro-download-recovery")) continue;
+          const style = getComputedStyle(node);
+          if (style.display === "none" || style.contentVisibility === "hidden" || style.pointerEvents === "none" ||
+              style.visibility === "hidden" || Number(style.opacity) === 0) {
+            node.setAttribute("data-soft98-pro-download-recovery", type);
+          }
+        }
+      }
       let heading;
       let entries = [];
       const finish = () => { if (heading && entries.length) enhanceDownloadHeading(heading, entries); };
@@ -2380,7 +2404,7 @@
       const header = list.parentElement?.matches("[data-soft98-pro-tab-header]") ? list.parentElement : list;
       header.setAttribute("data-soft98-pro-latest-header", "tabs");
       list.setAttribute("data-soft98-pro-latest-tabs", "");
-      bindLatestTabs(list);
+      bindContentTabs(list);
       latestCards.add(card);
     }
     for (const heading of document.querySelectorAll("h2,h3,h4,h5,h6")) {
@@ -2493,11 +2517,11 @@
     }
   }
 
-  function bindLatestTabs(list) {
-    if (latestTabs.has(list)) return;
+  function bindContentTabs(list, downloadPane = null) {
+    if (contentTabs.has(list)) return;
     const tabs = [...list.querySelectorAll('[role="tab"],[data-toggle="tab"]')];
     const panes = tabs.map(tabTarget);
-    if (tabs.length < 2 || panes.some((pane) => !pane || !pane.querySelector("li a[href]")) ||
+    if (tabs.length < 2 || panes.some((pane) => !pane || (!downloadPane && !pane.querySelector("li a[href]"))) ||
         new Set(panes).size !== tabs.length || !panes.every((pane) => pane.parentElement === panes[0].parentElement)) return;
 
     const listeners = new AbortController();
@@ -2506,7 +2530,8 @@
       tabIndex: tab.getAttribute("tabindex"),
       active: tab.classList.contains("active"),
     }));
-    latestTabs.set(list, { tabs, panes, listeners, original });
+    const originalPaneHidden = panes.map((pane) => pane.getAttribute("aria-hidden"));
+    contentTabs.set(list, { tabs, panes, listeners, original, originalPaneHidden });
     let active = tabs.findIndex((tab) => tab.getAttribute("aria-selected") === "true");
     const select = (index, focus = false) => {
       active = index;
@@ -2516,18 +2541,30 @@
         if (tab.getAttribute("aria-selected") !== value) tab.setAttribute("aria-selected", value);
         tab.classList.toggle("active", selected);
         tab.tabIndex = selected ? 0 : -1;
-        panes[i].setAttribute("data-soft98-pro-latest-pane", selected ? "active" : "inactive");
+        panes[i].setAttribute("data-soft98-pro-content-pane", selected ? "active" : "inactive");
+        if (originalPaneHidden[i] !== null) panes[i].setAttribute("aria-hidden", String(!selected));
       });
       if (focus) tabs[index].focus();
     };
-    select(active < 0 ? 0 : active);
+    const hashIndex = () => panes.findIndex((pane) => "#" + pane.id === safeDecode(location.hash));
+    const initial = downloadPane ? hashIndex() : -1;
+    select(initial >= 0 ? initial : active >= 0 ? active : Math.max(0, panes.indexOf(downloadPane)));
+    if (downloadPane) window.addEventListener("hashchange", () => {
+      const index = hashIndex();
+      if (index >= 0) select(index);
+    }, { signal: listeners.signal });
     list.addEventListener("click", (event) => {
       if (!settings.pro || event.button || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
       const index = tabs.indexOf(event.target.closest?.('[role="tab"],[data-toggle="tab"]'));
       if (index < 0) return;
       event.preventDefault();
-      event.stopPropagation();
-      select(index);
+      if (downloadPane) {
+        // Let the site run any article-tab callbacks before applying the visibility fallback.
+        enqueueMicrotask(() => { if (!listeners.signal.aborted) select(index); });
+      } else {
+        event.stopPropagation();
+        select(index);
+      }
     }, { capture: true, signal: listeners.signal });
     list.addEventListener("keydown", (event) => {
       if (!settings.pro || !tabs.includes(event.target) || event.ctrlKey || event.metaKey || event.altKey) return;
@@ -2549,11 +2586,14 @@
   }
 
   function syncPageVisibility() {
-    for (const [list, { tabs, panes, listeners, original }] of latestTabs) {
+    for (const [list, { tabs, panes, listeners, original, originalPaneHidden }] of contentTabs) {
       if (settings.pro && list.isConnected && tabs.every((tab) => list.contains(tab)) &&
           panes.every((pane, i) => tabTarget(tabs[i]) === pane)) continue;
       listeners.abort();
-      panes.forEach((pane) => pane.removeAttribute("data-soft98-pro-latest-pane"));
+      panes.forEach((pane, i) => {
+        pane.removeAttribute("data-soft98-pro-content-pane");
+        if (originalPaneHidden[i] !== null) pane.setAttribute("aria-hidden", originalPaneHidden[i]);
+      });
       tabs.forEach((tab, i) => {
         const { selected, tabIndex, active } = original[i];
         for (const [attr, value] of [["aria-selected", selected], ["tabindex", tabIndex]]) {
@@ -2562,7 +2602,7 @@
         }
         tab.classList.toggle("active", active);
       });
-      latestTabs.delete(list);
+      contentTabs.delete(list);
     }
     for (const node of document.querySelectorAll("[data-soft98-pro-latest],[data-soft98-pro-annoyance]")) {
       const hide = settings.pro && ((!settings.showLatest && node.hasAttribute("data-soft98-pro-latest")) ||
@@ -3361,7 +3401,8 @@
       #soft98-pro-control form[data-opens=down]{transform:translateY(-7px) scale(.98);transform-origin:left top}
       #soft98-pro-control form[data-align=right][data-opens=down]{transform-origin:right top}
       #soft98-pro-control[data-open=true] form{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0) scale(1);transition:opacity .18s ease,transform .22s cubic-bezier(.2,.8,.2,1),visibility 0s}
-      #soft98-pro-control[data-theme=rgb] form{border-color:var(--c-accent)!important;background:#030405!important;background-image:none!important;box-shadow:0 0 0 1px rgba(255,255,255,.035) inset,0 0 0 4px rgba(0,0,0,.72),0 32px 94px rgba(0,0,0,.72),0 0 32px var(--c-accent-soft)!important}
+      #soft98-pro-control[data-theme=rgb] form{border-color:color-mix(in srgb,var(--c-accent) 65%,var(--c-border-soft))!important;box-shadow:0 0 0 1px rgba(255,255,255,.035) inset,0 0 0 4px rgba(0,0,0,.72),0 32px 94px rgba(0,0,0,.72),0 0 32px var(--c-accent-soft)!important}
+      #soft98-pro-control[data-theme=rgb] form::before,#soft98-pro-control[data-theme=rgb] .s98p-tabs [aria-selected=true]::after{background:var(--s98p-neon-line)}
       #soft98-pro-control .s98p-console-header{position:relative;display:grid;grid-template-columns:46px minmax(0,1fr) auto 30px 30px;align-items:center;gap:8px;padding:17px 15px 14px;border-bottom:1px solid var(--c-border-soft);background:linear-gradient(180deg,color-mix(in srgb,var(--c-bg-raised) 88%,transparent),color-mix(in srgb,var(--c-bg) 92%,transparent));color:var(--c-text)}
       #soft98-pro-control .s98p-brand-mark{display:grid;place-items:center;width:44px;height:44px;border:1px solid color-mix(in srgb,var(--c-accent) 45%,var(--c-border));border-radius:8px;background:var(--c-bg-soft);box-shadow:0 0 0 3px var(--c-accent-soft),0 8px 22px rgba(0,0,0,.22)}
       #soft98-pro-control .s98p-brand-mark img{display:block;width:38px;height:38px;object-fit:contain;filter:none!important}

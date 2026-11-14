@@ -213,8 +213,8 @@ function assertCase(name, results, expected) {
   for (const [field, value] of Object.entries(exact)) assertEqual(name, field, results[field], value);
   if (expected.dark) {
     if (expected.rgb) {
-      if (results.megamenuBackgroundImage !== "none" || !/^rgb\((?:8, 10, 11|6, 7, 8)\)$/.test(results.megamenuBackground || "")) {
-        throw new Error(`${name}: RGB megamenu must use a solid neutral night surface`);
+      if (!results.megamenuBackgroundImage?.includes("linear-gradient") || results.megamenuBackground !== "rgb(8, 10, 11)") {
+        throw new Error(`${name}: RGB megamenu lost its dark gradient or base color`);
       }
     } else if (!/gradient/i.test(results.megamenuBackgroundImage || "")) throw new Error(`${name}: megamenu dark surface is missing`);
     if (/rgba?\(255,\s*255,\s*255/.test(results.nestedLightBackground || "") || results.nestedLightBackground === "rgb(245, 245, 245)") {
@@ -323,6 +323,40 @@ async function main() {
         assertEqual("latest-tabs", "keyboard focus", latest.focused, true);
         assertEqual("news", "shortcut count", latest.shortcuts, 5);
         assertEqual("news", "shortcut SVG centers", latest.centered, true);
+        const downloadTab = await evaluate(client, `
+          (async () => {
+            const article = document.querySelector('[data-test=keyed-article]');
+            const [requirements, downloads] = article.querySelectorAll('[role=tab]');
+            const pane = document.getElementById('harness.downloads');
+            const link = pane.querySelector('a[data-key]');
+            const state = () => ({
+              selected: downloads.getAttribute('aria-selected') === 'true',
+              visible: Boolean(link.getClientRects().length) && getComputedStyle(link).pointerEvents !== 'none' &&
+                getComputedStyle(link.closest('[data-target]')).opacity === '1',
+              mislabeled: pane.getAttribute('aria-hidden') === 'true',
+              notWarning: !pane.querySelector('[role=alert]'),
+              unrelatedHidden: !pane.querySelector('[data-test=unrelated-hidden]').getClientRects().length,
+              originalHref: new URL(link.href).pathname === '/file/sample.zip',
+            });
+            const before = state();
+            downloads.click();
+            await Promise.resolve();
+            const clicked = state();
+            requirements.click();
+            await Promise.resolve();
+            const away = state();
+            history.replaceState(null, '', '#harness.downloads');
+            dispatchEvent(new HashChangeEvent('hashchange'));
+            const fragment = state();
+            history.replaceState(null, '', location.pathname + location.search);
+            return { before, clicked, away, fragment };
+          })()
+        `);
+        for (const [step, expected] of [["before", false], ["clicked", true], ["away", false], ["fragment", true]]) {
+          assertEqual("article download tab", step, JSON.stringify(downloadTab[step]), JSON.stringify({
+            selected:expected, visible:expected, mislabeled:!expected, notWarning:true, unrelatedHidden:true, originalHref:true,
+          }));
+        }
         const controls = await evaluate(client, `
           (async () => {
             const article = document.querySelector('[data-test="download-article"]');

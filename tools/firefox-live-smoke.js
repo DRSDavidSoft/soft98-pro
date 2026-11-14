@@ -214,6 +214,46 @@ async function main() {
       throw new Error("Live Firefox page failed the Soft98 Pro smoke checks");
     }
     if (process.env.SOFT98_LIVE_SCREENSHOT) await screenshot(session, process.env.SOFT98_LIVE_SCREENSHOT);
+    if (process.env.SOFT98_ARTICLE_DOWNLOAD_CHECK === "1") {
+      const report = await post("/execute/async", { args: [], script: `
+        const done = arguments[0];
+        (async () => {
+          const links = [...document.querySelectorAll('article [role=tabpanel] dl dd a[data-key]')];
+          const pane = links[0]?.closest('[role=tabpanel]');
+          const tab = pane && document.getElementById(pane.getAttribute('aria-labelledby'));
+          const other = tab && [...tab.closest('[role=tablist]').querySelectorAll('[role=tab]')].find(item => item !== tab);
+          if (!links.length || !tab || !other) return done({ found:false });
+          const visible = () => links.filter(link => {
+            const style = getComputedStyle(link);
+            const box = link.getBoundingClientRect();
+            return box.width > 0 && box.height > 0 && style.visibility === 'visible' && style.pointerEvents !== 'none';
+          }).length;
+          const wait = () => new Promise(resolve => setTimeout(resolve, 420));
+          const initial = visible();
+          other.click(); await wait();
+          const away = visible();
+          tab.click(); await wait();
+          const returned = visible();
+          let recovered;
+          if (window.Soft98Pro) {
+            const list = links[0].closest('dl');
+            const row = list.parentElement, frame = row.parentElement;
+            const before = frame.getAttribute('style');
+            frame.style.display = 'none';
+            await wait();
+            recovered = { visible: visible(), marked: frame.hasAttribute('data-soft98-pro-download-recovery') };
+            if (before === null) frame.removeAttribute('style');
+            else frame.setAttribute('style', before);
+          }
+          done({ found:true, rows:links.length, initial, away, returned, recovered });
+        })().catch(error => done({ error:String(error) }));
+      ` });
+      if (!report.found || report.initial !== report.rows || report.away !== 0 || report.returned !== report.rows ||
+          (addon && (!report.recovered?.marked || report.recovered.visible !== report.rows))) {
+        throw new Error("Article download visibility check failed: " + JSON.stringify(report));
+      }
+      console.log(JSON.stringify({ articleDownloads: report }));
+    }
     if (addon && process.env.SOFT98_LATEST_HEADER_CHECK === "1") {
       const headers = await post("/execute/async", { args: [], script: `
         const done = arguments[arguments.length - 1];
