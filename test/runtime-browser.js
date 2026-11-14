@@ -289,6 +289,40 @@ async function main() {
       if (name === "default-dark") {
         idleDark = await faviconPixel(client);
         if (idleDark.split(",").some(value => Number(value) > 40)) throw new Error("The idle favicon has a bright badge");
+        const latest = await evaluate(client, `
+          (() => {
+            const list = document.querySelector('[data-test=latest-tabs] [role=tablist]');
+            const tabs = [...list.querySelectorAll('[role=tab]')];
+            const panes = tabs.map(tab => document.getElementById(tab.getAttribute('aria-controls')));
+            const check = () => ({
+              selected: tabs.findIndex(tab => tab.getAttribute('aria-selected') === 'true'),
+              visible: panes.flatMap((pane, i) => pane.getClientRects().length && getComputedStyle(pane).opacity === '1' ? [i] : []),
+              tabbable: tabs.flatMap((tab, i) => tab.tabIndex === 0 ? [i] : []),
+            });
+            const initial = check();
+            tabs[1].click();
+            const click = check();
+            tabs[1].focus();
+            tabs[1].dispatchEvent(new KeyboardEvent('keydown', { key:'ArrowLeft', bubbles:true }));
+            const rtl = check();
+            const focused = document.activeElement === tabs[2];
+            tabs[2].dispatchEvent(new KeyboardEvent('keydown', { key:'Home', bubbles:true }));
+            const home = check();
+            const shortcuts = [...document.querySelectorAll('[data-test=tech-news] [data-soft98-pro-news-shortcut]')];
+            const centered = shortcuts.every(link => {
+              const a = link.getBoundingClientRect(), b = link.querySelector('svg').getBoundingClientRect();
+              return b.width >= 15 && Math.abs(a.left+a.width/2-b.left-b.width/2) < 1 &&
+                Math.abs(a.top+a.height/2-b.top-b.height/2) < 1;
+            });
+            return { initial, click, rtl, focused, home, centered, shortcuts:shortcuts.length };
+          })()
+        `);
+        for (const [step, index] of [["initial", 0], ["click", 1], ["rtl", 2], ["home", 0]]) {
+          assertEqual("latest-tabs", step, JSON.stringify(latest[step]), JSON.stringify({ selected:index, visible:[index], tabbable:[index] }));
+        }
+        assertEqual("latest-tabs", "keyboard focus", latest.focused, true);
+        assertEqual("news", "shortcut count", latest.shortcuts, 5);
+        assertEqual("news", "shortcut SVG centers", latest.centered, true);
         const controls = await evaluate(client, `
           (async () => {
             const article = document.querySelector('[data-test="download-article"]');

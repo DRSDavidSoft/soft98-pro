@@ -181,6 +181,29 @@
             "</div>";
           document.body.appendChild(tabCard);
 
+          var latest = document.createElement("section");
+          latest.dir = "rtl";
+          latest.setAttribute("data-test", "latest-tabs");
+          latest.innerHTML = '<header><ul role="tablist">' +
+            ["مطالب نرم‌افزار", "مطالب اندروید", "اخبار وب"].map((label, i) =>
+              '<li><a role="tab" data-toggle="tab" aria-controls="randomized-' + i + '" aria-selected="' + (i === 0) +
+                '" class="' + (i === 0 ? 'active' : '') + '" href="#randomized-' + i + '">' + label + '</a></li>').join("") +
+            '</ul></header><div>' + ["Software", "Android", "Web"].map((label, i) =>
+              '<div id="randomized-' + i + '" style="display:' + (i === 0 ? 'block' : 'none') + ';opacity:' + (i === 0 ? 1 : 0) +
+                '"><ul><li><a href="/latest/' + i + '">' + label + ' story</a></li></ul></div>').join("") + "</div>";
+          document.body.appendChild(latest);
+
+          var techNews = document.createElement("section");
+          techNews.dir = "rtl";
+          techNews.setAttribute("data-test", "tech-news");
+          techNews.innerHTML = '<header><h4>خبرهای تکنولوژی</h4><ul>' +
+            ['https://linkdoni.soft98.ir/', 'https://linkdoni.soft98.ir/rss.xml', 'https://x.com/soft98',
+              'https://www.facebook.com/soft98', 'https://instagram.com/soft98.ir'].map((url, i) =>
+                '<li><a href="' + url + '" style="padding:4px 11px 1px 3px"><span>Shortcut ' + i + '</span></a></li>').join("") +
+            '</ul></header><div><ul>' + [1, 2, 3].map(i => '<li><a href="/news/' + i + '"><span>55</span>News ' + i + '</a></li>').join("") +
+            '</ul></div>';
+          document.body.appendChild(techNews);
+
           var downloadArticle = document.createElement("article");
           downloadArticle.setAttribute("data-test", "download-article");
           downloadArticle.dir = "rtl";

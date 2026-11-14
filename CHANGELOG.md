@@ -54,6 +54,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Centered the technology news shortcuts and kept the latest-content tabs working even when the site's tab script is unavailable.
 - Removed the permanent favicon dot. The tab icon now pulses briefly for notifications and stays still when reduced motion is enabled.
 - Aligned the latest-content tabs with the technology news header and refreshed the news rows, shortcuts, and view counts.
 - Kept Pro tools available when switching between light and dark modes.

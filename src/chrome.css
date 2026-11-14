@@ -58,6 +58,16 @@
   min-height: 0 !important;
 }
 
+:root.soft98-pro-theme [data-soft98-pro-latest-pane="inactive"] {
+  display: none !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-latest-pane="active"] {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
 :root.soft98-pro-theme [data-soft98-pro-tech-news] {
   --s98p-news-row-accent: color-mix(in srgb,var(--s98p-accent) 8%,var(--s98p-surface));
 }
@@ -115,10 +125,62 @@
   color: var(--s98p-muted) !important;
 }
 
+:root.soft98-pro-theme [data-soft98-pro-news-actions] a[data-soft98-pro-news-shortcut] {
+  position: relative !important;
+  box-sizing: border-box;
+  float: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  text-indent: 0 !important;
+  background: var(--s98p-control-bg) !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-news-actions] a[data-soft98-pro-news-shortcut]::before,
+:root.soft98-pro-theme [data-soft98-pro-news-actions] a[data-soft98-pro-news-shortcut]::after {
+  content: none !important;
+  display: none !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-news-actions] [data-soft98-pro-news-shortcut] > span:not([data-soft98-pro-page-icon]) {
+  position: absolute !important;
+  inset: 0 auto auto 0 !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  clip-path: inset(50%) !important;
+  display: block !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-news-actions] [data-soft98-pro-news-shortcut] > [data-soft98-pro-page-icon] {
+  display: grid !important;
+  place-items: center;
+  position: static !important;
+  width: 16px !important;
+  height: 16px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: inherit !important;
+  background: none !important;
+  transform: none !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-news-actions] [data-soft98-pro-news-shortcut] svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
 :root.soft98-pro-theme [data-soft98-pro-news-actions] a[data-soft98-pro-news-link]:is(:hover,:focus-visible) {
   background: var(--s98p-control-hover);
   border-color: var(--s98p-control-edge);
   color: var(--s98p-link) !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-news-actions] a[data-soft98-pro-news-shortcut]:is(:hover,:focus-visible) {
+  background: var(--s98p-control-hover) !important;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-tech-news] [data-soft98-pro-news-body] {

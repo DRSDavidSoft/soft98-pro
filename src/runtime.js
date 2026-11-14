@@ -69,6 +69,7 @@
   const siteReadOnlyDialogs = new Map();
   const dialogState = new WeakMap();
   const articlePreviewCache = new Map();
+  const latestTabs = new Map();
   let audioContext;
   let audioAt = 0;
   const legacyToneKinds = ["color", "background-color", "border-block-start-color", "border-inline-start-color"];
@@ -1478,7 +1479,9 @@
       for (let depth = 0; card && content && !card.contains(content) && depth < 4; depth += 1) card = card.parentElement;
       if (card && card !== document.body) card.setAttribute("data-soft98-pro-surface", "tab-card");
       for (const trigger of tabs) {
-        const active = trigger.getAttribute("aria-selected") === "true" || trigger.getAttribute("aria-expanded") === "true" || trigger.matches(".active") || Boolean(trigger.parentElement && trigger.parentElement.matches(".active"));
+        const selected = trigger.getAttribute("aria-selected");
+        const active = selected === "true" || (selected === null && (trigger.getAttribute("aria-expanded") === "true" ||
+          trigger.matches(".active") || Boolean(trigger.parentElement?.matches(".active"))));
         trigger.setAttribute("data-soft98-pro-tab-active", active ? "true" : "false");
       }
     }
@@ -2377,6 +2380,7 @@
       const header = list.parentElement?.matches("[data-soft98-pro-tab-header]") ? list.parentElement : list;
       header.setAttribute("data-soft98-pro-latest-header", "tabs");
       list.setAttribute("data-soft98-pro-latest-tabs", "");
+      bindLatestTabs(list);
       latestCards.add(card);
     }
     for (const heading of document.querySelectorAll("h2,h3,h4,h5,h6")) {
@@ -2397,7 +2401,14 @@
         while (header.parentElement && header.parentElement !== panel) header = header.parentElement;
         if (header.parentElement === panel) {
           header.setAttribute("data-soft98-pro-latest-header", "news");
-          header.querySelector("ul,ol")?.setAttribute("data-soft98-pro-news-actions", "");
+          const shortcuts = header.querySelector("ul,ol");
+          shortcuts?.setAttribute("data-soft98-pro-news-actions", "");
+          for (const link of shortcuts?.querySelectorAll("a[href]") || []) {
+            const icon = newsShortcutIcon(link);
+            if (!icon) continue;
+            link.setAttribute("data-soft98-pro-news-shortcut", "");
+            decorateIcon(link, icon);
+          }
           for (const section of panel.children) {
             if (section !== header && section.querySelectorAll("li a[href]").length >= 3) {
               section.setAttribute("data-soft98-pro-news-body", "");
@@ -2469,7 +2480,90 @@
     syncPageVisibility();
   }
 
+  function newsShortcutIcon(link) {
+    const url = URL.parse(link.href);
+    if (!url || !/^https?:$/.test(url.protocol)) return null;
+    switch (url.hostname.replace(/^www\./, "")) {
+      case "linkdoni.soft98.ir": return /(?:^|\/)rss(?:\.xml)?\/?$/i.test(url.pathname) ? "rss" : "external";
+      case "twitter.com":
+      case "x.com": return "twitter";
+      case "facebook.com": return "facebook";
+      case "instagram.com": return "instagram";
+      default: return null;
+    }
+  }
+
+  function bindLatestTabs(list) {
+    if (latestTabs.has(list)) return;
+    const tabs = [...list.querySelectorAll('[role="tab"],[data-toggle="tab"]')];
+    const panes = tabs.map(tabTarget);
+    if (tabs.length < 2 || panes.some((pane) => !pane || !pane.querySelector("li a[href]")) ||
+        new Set(panes).size !== tabs.length || !panes.every((pane) => pane.parentElement === panes[0].parentElement)) return;
+
+    const listeners = new AbortController();
+    const original = tabs.map((tab) => ({
+      selected: tab.getAttribute("aria-selected"),
+      tabIndex: tab.getAttribute("tabindex"),
+      active: tab.classList.contains("active"),
+    }));
+    latestTabs.set(list, { tabs, panes, listeners, original });
+    let active = tabs.findIndex((tab) => tab.getAttribute("aria-selected") === "true");
+    const select = (index, focus = false) => {
+      active = index;
+      tabs.forEach((tab, i) => {
+        const selected = i === index;
+        const value = String(selected);
+        if (tab.getAttribute("aria-selected") !== value) tab.setAttribute("aria-selected", value);
+        tab.classList.toggle("active", selected);
+        tab.tabIndex = selected ? 0 : -1;
+        panes[i].setAttribute("data-soft98-pro-latest-pane", selected ? "active" : "inactive");
+      });
+      if (focus) tabs[index].focus();
+    };
+    select(active < 0 ? 0 : active);
+    list.addEventListener("click", (event) => {
+      if (!settings.pro || event.button || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      const index = tabs.indexOf(event.target.closest?.('[role="tab"],[data-toggle="tab"]'));
+      if (index < 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      select(index);
+    }, { capture: true, signal: listeners.signal });
+    list.addEventListener("keydown", (event) => {
+      if (!settings.pro || !tabs.includes(event.target) || event.ctrlKey || event.metaKey || event.altKey) return;
+      const step = getComputedStyle(list).direction === "rtl" ? -1 : 1;
+      let index;
+      switch (event.key) {
+        case "Home": index = 0; break;
+        case "End": index = tabs.length - 1; break;
+        case "ArrowLeft": index = active - step; break;
+        case "ArrowRight": index = active + step; break;
+        case "Enter":
+        case " ": index = tabs.indexOf(event.target); break;
+        default: return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      select((index + tabs.length) % tabs.length, true);
+    }, { signal: listeners.signal });
+  }
+
   function syncPageVisibility() {
+    for (const [list, { tabs, panes, listeners, original }] of latestTabs) {
+      if (settings.pro && list.isConnected && tabs.every((tab) => list.contains(tab)) &&
+          panes.every((pane, i) => tabTarget(tabs[i]) === pane)) continue;
+      listeners.abort();
+      panes.forEach((pane) => pane.removeAttribute("data-soft98-pro-latest-pane"));
+      tabs.forEach((tab, i) => {
+        const { selected, tabIndex, active } = original[i];
+        for (const [attr, value] of [["aria-selected", selected], ["tabindex", tabIndex]]) {
+          if (value === null) tab.removeAttribute(attr);
+          else tab.setAttribute(attr, value);
+        }
+        tab.classList.toggle("active", active);
+      });
+      latestTabs.delete(list);
+    }
     for (const node of document.querySelectorAll("[data-soft98-pro-latest],[data-soft98-pro-annoyance]")) {
       const hide = settings.pro && ((!settings.showLatest && node.hasAttribute("data-soft98-pro-latest")) ||
         (settings.hideAnnoyances && node.hasAttribute("data-soft98-pro-annoyance")));

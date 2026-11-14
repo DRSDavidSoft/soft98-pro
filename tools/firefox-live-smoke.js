@@ -223,39 +223,57 @@ async function main() {
           const newsHeader = document.querySelector('[data-soft98-pro-latest-header=news]');
           const tabs = [...tabHeader?.querySelectorAll('[role=tab]') || []];
           if (!newsHeader || tabs.length !== 3) return done({found:false});
+          const panes = tabs.map(tab => document.getElementById(tab.getAttribute('aria-controls')));
           const measure = () => {
             const a = tabHeader.getBoundingClientRect(), b = newsHeader.getBoundingClientRect();
             const boxes = tabs.map(tab => tab.getBoundingClientRect());
             const sharedRow = b.width > 0 && Math.abs(a.top - b.top) <= 1;
+            const shortcuts = [...newsHeader.querySelectorAll('[data-soft98-pro-news-shortcut]')];
+            const centered = !b.width || shortcuts.every(link => {
+              const button = link.getBoundingClientRect(), icon = link.querySelector('svg').getBoundingClientRect();
+              return icon.width >= 15 && Math.abs(button.left + button.width / 2 - icon.left - icon.width / 2) <= 1 &&
+                Math.abs(button.top + button.height / 2 - icon.top - icon.height / 2) <= 1;
+            });
             return {sharedRow, sameDivider:!sharedRow || Math.abs(a.bottom-b.bottom) <= 1,
               tabsFit:boxes.every(box => box.width > 0 && box.left >= a.left-1 && box.right <= a.right+1 && box.bottom <= a.bottom+1),
+              shortcuts:shortcuts.length, centered,
               pixels:[a.height,b.height]};
           };
           const start = measure();
+          const visibleDownloads = () => [...document.querySelectorAll('article [role=tabpanel] a[data-key]')]
+            .filter(link => link.getClientRects().length).length;
+          const downloadsBefore = visibleDownloads();
           const tabStates = [];
           for (const tab of [...tabs.slice(1),tabs[0]]) {
             tab.click(); await new Promise(resolve => setTimeout(resolve, 400));
-            const pane = document.getElementById(tab.getAttribute('aria-controls'));
+            const pane = panes[tabs.indexOf(tab)];
             const style = pane && getComputedStyle(pane);
             tabStates.push({selected:tab.getAttribute('aria-selected') === 'true',
-              visible:!!pane?.getClientRects().length && style.visibility !== 'hidden', aligned:measure().sameDivider,
+              visible:!!pane?.getClientRects().length && style.visibility === 'visible' && Number(style.opacity) > .99 &&
+                panes.every(other => other === pane || !other?.getClientRects().length),
+              links:[...pane.querySelectorAll('li a[href]')].filter(link => link.getClientRects().length).length,
+              downloadLinks:visibleDownloads(),
+              aligned:measure().sameDivider,
               pane:tab.getAttribute('aria-controls'), display:style?.display});
           }
           Soft98Pro.configure({darkDesign:false}); await new Promise(resolve => setTimeout(resolve, 300));
           const light = measure();
-          if (!${Boolean(process.env.SOFT98_LATEST_HEADER_SCREENSHOT)}) Soft98Pro.configure({darkDesign:true});
           const stories = [...document.querySelectorAll('[data-soft98-pro-news-story]')];
           const newsStyled = stories.length > 0 && stories.every(story => getComputedStyle(story).display === 'flex' &&
             !!story.querySelector('[data-soft98-pro-news-label]') && story.hasAttribute('href'));
           const storyStyle = stories[0] && getComputedStyle(stories[0]);
           const stripe = storyStyle?.backgroundColor;
-          const newsContrast = light.pixels[1] === 0 || (stripe === 'rgb(240, 245, 255)' && storyStyle?.color === 'rgb(20, 40, 74)');
-          done({found:true,start,light,tabStates,newsStyled,newsContrast,stripe,newsInk:storyStyle?.color});
+          const newsInk = storyStyle?.color;
+          const newsContrast = light.pixels[1] === 0 || (stripe === 'rgb(240, 245, 255)' && newsInk === 'rgb(20, 40, 74)');
+          if (!${Boolean(process.env.SOFT98_LATEST_HEADER_SCREENSHOT)}) Soft98Pro.configure({darkDesign:true});
+          done({found:true,start,light,tabStates,downloadsBefore,newsStyled,newsContrast,stripe,newsInk});
         })().catch(error => done({error:String(error)}));
       ` });
       if (!headers.found || !headers.start.sameDivider || !headers.light.sameDivider || !headers.start.tabsFit ||
           !headers.light.tabsFit || !headers.newsStyled || !headers.newsContrast ||
-          !headers.tabStates.every(state => state.selected && state.visible && state.aligned) ||
+          !headers.start.centered || !headers.light.centered || headers.start.shortcuts < 5 ||
+          !headers.downloadsBefore || !headers.tabStates.every(state => state.selected && state.visible && state.links > 0 &&
+            state.downloadLinks === headers.downloadsBefore && state.aligned) ||
           (width >= 1000 && !headers.start.sharedRow)) {
         throw new Error("Latest header alignment failed: " + JSON.stringify(headers));
       }
