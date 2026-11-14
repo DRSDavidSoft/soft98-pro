@@ -1328,6 +1328,7 @@
       :root.soft98-pro-theme [data-soft98-pro-utility-card]>footer [data-soft98-pro-page-icon=chevron]{transition:rotate .24s cubic-bezier(.2,.8,.2,1)}
       :root.soft98-pro-theme [data-soft98-pro-utility-card]>footer[aria-expanded=true] [data-soft98-pro-page-icon=chevron]{rotate:180deg}
       :root.soft98-pro-theme [data-soft98-pro-read-more]{display:inline-flex!important;gap:8px;align-items:center;padding:6px 12px!important;border:1px solid var(--s98p-border)!important;border-radius:6px;background:var(--s98p-control-bg)!important;color:var(--s98p-text)!important;text-decoration:none!important;min-height:36px}
+      :root.soft98-pro-theme [data-soft98-pro-read-more] > [data-soft98-pro-page-icon]{order:1;margin:0}
       :root.soft98-pro-theme [data-soft98-pro-read-more]:is(:hover,:focus-visible){background:var(--s98p-control-hover)!important;border-color:var(--s98p-accent)!important}
       :root.soft98-pro-theme [data-soft98-pro-search]{max-inline-size:min(720px,calc(100vw - 20px))!important;max-block-size:calc(100dvh - 66px);overflow:auto!important}
       :root.soft98-pro-theme [data-soft98-pro-search] :is(form,input,div){box-sizing:border-box;max-inline-size:100%}

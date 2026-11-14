@@ -427,6 +427,12 @@ async function main() {
           (async () => {
             const trigger = document.querySelector('[data-test=article-preview-trigger]');
             const keyed = document.querySelector('[data-test=keyed-preview-trigger]');
+            trigger.dir = 'rtl';
+            const icon = trigger.querySelector('[data-soft98-pro-page-icon]');
+            const label = new Range();
+            label.selectNodeContents(trigger);
+            label.setStartAfter(icon);
+            const trailing = icon.getBoundingClientRect().right <= label.getBoundingClientRect().left;
             const noUnverifiedControls = !trigger.nextElementSibling && !keyed.nextElementSibling;
             trigger.dispatchEvent(new PointerEvent('pointerenter'));
             keyed.focus({ preventScroll:true });
@@ -435,11 +441,12 @@ async function main() {
             const preview = trigger.nextElementSibling;
             preview.querySelector('button').click();
             keyed.blur();
-            return { noUnverifiedControls, noKeyedPreview: !keyed.nextElementSibling,
+            return { trailing, noUnverifiedControls, noKeyedPreview: !keyed.nextElementSibling,
               links: [...preview.querySelectorAll('[data-soft98-pro-preview-panel] a')].map(link => link.getAttribute('href')) };
           })()
         `);
         assertEqual("listing preview", "direct file only", previewLinks.links.join(","), "https://dl2.soft98.ir/files/preview.zip");
+        assertEqual("read more", "RTL icon follows the label", previewLinks.trailing, true);
         assertEqual("listing preview", "no controls before verification", previewLinks.noUnverifiedControls, true);
         assertEqual("listing preview", "no placeholder for keyed controls", previewLinks.noKeyedPreview, true);
         assertEqual("listing preview", "referrer stays private", await evaluate(client,
