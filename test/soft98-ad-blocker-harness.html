@@ -187,11 +187,13 @@
           downloadArticle.innerHTML =
             '<details><summary>پرسش درباره anydesk ( windows )</summary><p>پاسخ</p></details>' +
             '<div role="tabpanel"><dl><dt><span>نسخه windows</span></dt>' +
-            '<dd><a data-test="download-copy" href="/files/AnyDesk.9.8.3.zip">دانلود ( official link ) ، حجم 1,200 مگابایت</a></dd>' +
+            '<dd><a data-test="download-copy" href="/files/AnyDesk.9.8.3.zip">دانلود ( official link ) ، <span>حجم <strong>1,200</strong> مگابایت</span></a></dd>' +
             '<dd><a href="/platform/mac">نسخه macos</a></dd><dd><a href="/platform/linux">نسخه linux</a></dd>' +
             '<dd><a href="/platform/ios">نسخه ios</a></dd><dd><a href="/platform/android">نسخه android</a></dd>' +
             '<dd><a data-test="direct-download" href="https://dl2.soft98.ir/files/metadata.zip?123456">دانلود فایل</a></dd>' +
-            '<dd><a data-test="signed-download" href="https://dl2.soft98.ir/files/signed.zip?token=123456">دانلود فایل امضاشده</a></dd></dl></div>';
+            '<dd><a data-test="signed-download" href="https://dl2.soft98.ir/files/signed.zip?token=123456">دانلود فایل امضاشده</a></dd>' +
+            '<dt><span>اطلاعات بیشتر</span></dt><dd><a data-test="article-placeholder" data-key="hidden" href="/article.html">صفحهٔ نرم‌افزار</a></dd></dl>' +
+            '<div data-toggle="copy"><span>پسورد فایل</span><input readonly value="soft98.ir"></div></div>';
           document.body.appendChild(downloadArticle);
 
           var utilityAside = document.createElement("aside");

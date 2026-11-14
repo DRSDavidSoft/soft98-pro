@@ -171,10 +171,10 @@ function assertCase(name, results, expected) {
     tauntTheme: expected.tauntTheme,
     tauntBackground: expected.tauntBackground,
     tauntStatus: expected.tauntTheme ? "status" : null,
-    downloadCopy: "دانلود (Official link)، حجم 1,200 مگابایت",
+    downloadCopy: "دانلود (Official link)" + (expected.dark ? "" : "، حجم 1,200 مگابایت"),
     downloadPath: "/files/AnyDesk.9.8.3.zip",
     downloadSize: expected.dark ? "1,200 مگابایت" : null,
-    downloadIcons: expected.dark ? "chevron,windows,download,apple,linux,apple,android,download,download" : "",
+    downloadIcons: expected.dark ? "chevron,windows,download,apple,linux,apple,android,download,download,info,link,lock" : "",
     normalizedDownload: "https://dl2.soft98.ir/files/metadata.zip" + (expected.dark ? "" : "?123456"),
     signedDownload: "https://dl2.soft98.ir/files/signed.zip?token=123456",
     isolatedParenthesis: true,
@@ -261,6 +261,42 @@ async function main() {
       const results = await waitForResults(client);
       assertCase(name, results, expected);
       if (name === "default-dark") {
+        const controls = await evaluate(client, `
+          (async () => {
+            const article = document.querySelector('[data-test="download-article"]');
+            const [group, more] = article.querySelectorAll('[data-soft98-pro-download-actions]');
+            const button = group.querySelector('[aria-expanded]');
+            const linked = button.getAttribute('aria-controls').split(' ').map(id => document.getElementById(id));
+            const outside = article.querySelector('[data-test="article-placeholder"]');
+            const row = article.querySelector('[data-test="download-copy"]');
+            const title = row.querySelector('[data-soft98-pro-download-title]').getBoundingClientRect();
+            const meta = row.querySelector('[data-soft98-pro-download-meta]').getBoundingClientRect();
+            let copied;
+            Object.defineProperty(navigator, 'clipboard', { configurable:true, value:{writeText: async value => { copied = value; }} });
+            try {
+              group.querySelector('button').click();
+              await Promise.resolve();
+            } finally {
+              delete navigator.clipboard;
+            }
+            button.click();
+            const collapsed = linked.every(entry => !entry.getClientRects().length) && !!outside.getClientRects().length;
+            button.click();
+            const reopened = linked.every(entry => !!entry.getClientRects().length);
+            const input = article.querySelector('[data-soft98-pro-password] input');
+            input.click();
+            return { copied, collapsed, reopened, placeholderExcluded: more.querySelector('button').hidden,
+              onePasswordAction: article.querySelectorAll('[data-soft98-pro-password-actions] button').length === 1,
+              passwordSelected: document.activeElement === input && input.selectionStart === 0 && input.selectionEnd === input.value.length,
+              metadataFits: meta.height > 0 && meta.top >= title.bottom - 1 && meta.bottom <= row.getBoundingClientRect().bottom + 1 };
+          })()
+        `);
+        assertEqual(name, "group clipboard", controls.copied,
+          ["https://dl2.soft98.ir/files/metadata.zip",
+            "https://dl2.soft98.ir/files/signed.zip?token=123456"].join("\n"));
+        for (const [field, value] of Object.entries(controls)) {
+          if (field !== "copied") assertEqual(name, field, value, true);
+        }
         await evaluate(client, `document.querySelector('[data-test="direct-download"]').scrollIntoView(); true`);
         for (let attempt = 0; attempt < 15; attempt += 1) {
           if (await evaluate(client, `JSON.parse(localStorage.getItem('soft98-pro.download-metadata') || '[]').some(([url, value]) =>

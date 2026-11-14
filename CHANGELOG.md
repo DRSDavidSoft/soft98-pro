@@ -10,6 +10,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Added a browser download queue with parallel transfers, progress, pause and resume where supported, and the browser's Save As options.
+- Added article download previews for public direct links, an optional top-bar shortcut to useful software, and optional interface sounds.
+- Added control-center previews, a technical report, a keyboard-friendly context menu, and a launcher that remembers its docked corner.
 - Added an optional animated RGB Pro mode with a subdued night palette, animated neon borders and active states, responsive interactions, keyboard focus treatments, and reduced-motion support.
 - Added responsive semantic layout refinement that organizes primary content and supporting panels without relying on generated Soft98 identifiers.
 - Added a reviewed compatibility catalog covering 65 archived Soft98 packed-script hashes.
@@ -23,6 +26,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Reworked the sticky header, megamenus, article cards, and footer with clearer focus states, readable surfaces, and room for ultrawide displays.
+- Replaced legacy top-bar icons and softened news counters, download notice motion, and the old green accents.
+- Made the useful-software list and discussion controls easier to navigate, with cleaner product artwork and spacing.
 - Restored the bilingual documentation experience with an SVG-first hero, meaningful emoji navigation, stronger first-run guidance, direction-safe Persian copy, and a durable documentation style guide.
 - Reworked the shared patch engine so browser execution and historical compatibility tests use the same fail-safe transformations.
 - Refined the default Pro dark theme, distinct expert control console, megamenus, transition-safe tabbed cards, nested content surfaces, download-link presentation, logo treatment, and favicon status.
@@ -43,6 +49,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Kept the sidebar on the same side while the article widens and reclaimed its space when no sidebar content remains.
+- Repaired leftover ad cards, orphaned dividers, and the floating feedback banner.
+- Aligned multi-line download rows, removed the stock hover ring, added copy and collapse controls where direct links are available, and kept archive passwords selected while showing copy feedback.
+- Synced the site night-mode toggle with Soft98 Pro and added F2 for search.
+- Fixed control-center scrolling, animated accents, and menu placement after settings and viewport changes.
+
+See the [visual change log](docs/changes/v1.2.0.md) for before-and-after captures and verification notes.
 - Restored right-to-left layout for Persian content and isolated mixed-direction titles and platform names.
 - Corrected spacing, capitalization, and mixed-direction punctuation in visible download labels without changing their destinations.
 - Matched the utility card, icon tiles, dividers, and download icons to the dark theme.

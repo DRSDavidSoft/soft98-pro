@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="downloads.css">
+    <title>Soft98 Pro</title>
+  </head>
+  <body>
+    <main class="workspace">
+      <header class="masthead">
+        <a href="options.html">Soft98 Pro</a>
+        <h1 data-copy="title"></h1>
+      </header>
+      <section class="composer" aria-labelledby="add-title">
+        <h2 id="add-title" data-copy="addTitle"></h2>
+        <form id="composer">
+          <label for="urls" data-copy="urls"></label>
+          <textarea id="urls" dir="ltr" rows="4" required aria-describedby="url-help"></textarea>
+          <small id="url-help" data-copy="urlHelp"></small>
+          <details>
+            <summary data-copy="saveOptions"></summary>
+            <label for="filename" data-copy="path"></label>
+            <input id="filename" dir="ltr" type="text" maxlength="240" placeholder="Tools/file.zip">
+            <label class="check"><input id="save-as" type="checkbox"><span data-copy="saveAs"></span></label>
+          </details>
+          <button id="add" type="submit" class="primary" disabled></button>
+        </form>
+        <output id="feedback" role="status"></output>
+      </section>
+      <section class="queue" aria-labelledby="queue-title">
+        <header class="queue-header">
+          <div><h2 id="queue-title" data-copy="queue"></h2><p id="counts"></p></div>
+          <div class="controls">
+            <label class="limit"><span data-copy="parallel"></span><select id="limit" disabled></select></label>
+            <button id="hold" type="button" disabled></button>
+          </div>
+        </header>
+        <div class="filters">
+          <label class="search"><span class="visually-hidden" data-copy="search"></span><input id="search" type="search"></label>
+          <label><span class="visually-hidden" data-copy="filter"></span><select id="filter"></select></label>
+          <button id="clear" type="button" disabled></button>
+        </div>
+        <p id="notice" role="status"></p>
+        <p id="empty" class="empty"></p>
+        <ul id="jobs" class="jobs"></ul>
+      </section>
+    </main>
+    <script src="downloads.js"></script>
+  </body>
+</html>

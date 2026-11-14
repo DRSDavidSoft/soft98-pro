@@ -40,6 +40,22 @@
     if (operation && typeof operation.catch === "function") operation.catch(() => {});
   }
 
+  const queue = Soft98DownloadQueue.create({
+    extensionId: api.runtime.id,
+    storage: {
+      read: async () => (await call(api.storage.local, "get", Soft98DownloadQueue.STORAGE_KEY))[Soft98DownloadQueue.STORAGE_KEY],
+      write: (state) => call(api.storage.local, "set", { [Soft98DownloadQueue.STORAGE_KEY]: state }),
+    },
+    downloads: Object.fromEntries(["search", "download", "pause", "resume", "cancel"].map((method) => [method, (...args) => call(api.downloads, method, ...args)])),
+  });
+
+  function refreshDownloadQueue(id) {
+    ignore(queue.request({ action: "list" }, id));
+  }
+
+  api.downloads.onChanged.addListener(({ id }) => refreshDownloadQueue(id));
+  api.downloads.onErased.addListener(refreshDownloadQueue);
+
   function isProtectedPage(url) {
     try {
       return /(?:^|\.)soft98\.ir$/i.test(new URL(url).hostname);
@@ -265,6 +281,7 @@
   if (api.runtime.onStartup) api.runtime.onStartup.addListener(() => {
     ignore(checkRelease());
     ignore(protectOpenTabs());
+    refreshDownloadQueue();
   });
   api.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (changeInfo.status === "loading" || changeInfo.url) installUserOriginProtection(tabId, changeInfo.url || (tab && tab.url));
@@ -287,6 +304,12 @@
   }
   api.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!message || typeof message !== "object") return false;
+    if (message.type === Soft98DownloadQueue.CHANNEL) {
+      if (!Soft98DownloadQueue.trustedSender(sender, api.runtime.id, api.runtime.getURL("downloads.html"))) return false;
+      queue.request(message).then((state) => sendResponse({ ok: true, state }))
+        .catch((error) => sendResponse({ ok: false, error: error.queueCode || "native-error" }));
+      return true;
+    }
     if (message.type === "soft98:inspect-script") {
       inspectScript(message.url, sender && sender.tab && sender.tab.id, Boolean(message.force))
         .then((report) => sendResponse({ ok: true, report }))

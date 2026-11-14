@@ -24,14 +24,14 @@ const BRAND_FILES = {
   light: path.join(SRC, "assets", "soft98-pro-logo-light.png"),
   pirateDark: path.join(SRC, "assets", "soft98-pro-logo-pirate-dark.png"),
 };
-const { siAndroid } = require("simple-icons");
+const { siAndroid, siKaspersky, siDotnet, siOpenjdk, siRustdesk } = require("simple-icons");
 const TABLER_ROOT = path.resolve(path.dirname(require.resolve("@tabler/icons/outline/download.svg")), "../..");
 const UTILITY_ASSETS = path.join(SRC, "assets", "utility");
 const ICON_NOTICE = `/*!
 Tabler Icons (https://github.com/tabler/tabler-icons)
 ${fs.readFileSync(path.join(TABLER_ROOT, "LICENSE"), "utf8").trim().replace(/\r\n/g, "\n")}
 
-Android icon from Simple Icons (https://simpleicons.org), CC0 1.0.
+Android, Kaspersky, .NET, OpenJDK and RustDesk paths from Simple Icons (https://simpleicons.org), CC0 1.0.
 VLC icon copyright (c) 1996-2010 VideoLAN. Use is permitted to identify VideoLAN
 and its products; no endorsement is implied. https://www.videolan.org/goodies.html
 Firefox and Free Download Manager artwork by Papirus contributors (GPL-3.0).
@@ -47,9 +47,16 @@ const PAGE_ICONS = Object.fromEntries(Object.entries({
   photo: "outline/photo", document: "outline/file-text", shield: "outline/shield",
   play: "outline/player-play", music: "outline/music", desktop: "outline/device-desktop",
   folder: "outline/folder", author: "outline/user", date: "outline/calendar",
+  menu: "outline/menu-2", moon: "outline/moon", sun: "outline/sun",
+  bell: "outline/bell", mail: "outline/mail", search: "outline/search",
+  grid: "outline/layout-grid", arrow: "outline/arrow-left",
 }).map(([key, name]) => [key, fs.readFileSync(path.join(TABLER_ROOT, "icons", name + ".svg"), "utf8")
   .replace(/\s+class="[^"]*"/, "").replace(/>\s+</g, "><").replace(/\s+/g, " ").trim()]));
 PAGE_ICONS.android = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 1 26 22" fill="currentColor"><path d="${siAndroid.path}"/></svg>`;
+for (const [key, icon, fill] of [
+  ["kaspersky", siKaspersky, "#5ad8bc"], ["dotnet", siDotnet, "#aab5ff"],
+  ["java", siOpenjdk, "#ff9c68"], ["rustdesk", siRustdesk, "#94cef9"],
+]) PAGE_ICONS[key] = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${fill}"><path d="${icon.path}"/></svg>`;
 PAGE_ICONS.linux = fs.readFileSync(path.join(SRC, "assets", "linux-penguin.svg"), "utf8").trim();
 PAGE_ICONS.vlc = `<img alt="" width="26" height="28" src="${dataUrl(path.join(SRC, "assets", "vlc.png"))}">`;
 for (const name of ["firefox", "freedownloadmanager", "chrome", "edge", "winrar", "revo"]) {
@@ -95,6 +102,13 @@ function dataUrl(file) {
 }
 
 function sourceReplacements(target) {
+  const previews = Object.fromEntries(["protection", "appearance", "layout"].map((name) => {
+    const file = name + "-preview.svg";
+    const source = target === "extension" ?
+      "data:image/svg+xml;base64," + fs.readFileSync(path.join(ROOT, "docs", "assets", file)).toString("base64") :
+      "https://raw.githubusercontent.com/DRSDavidSoft/soft98-pro/develop/docs/assets/" + file;
+    return [name, source];
+  }));
   return {
     __SOFT98_BUILD_TARGET__: target,
     __SOFT98_RECOMMEND_EXTENSION__: target === "extension" ? "false" : "true",
@@ -103,6 +117,7 @@ function sourceReplacements(target) {
     __SOFT98_COMPATIBILITY__: JSON.stringify(COMPATIBILITY),
     __SOFT98_BRAND_ASSETS__: JSON.stringify(Object.fromEntries(Object.entries(BRAND_FILES).map(([key, file]) => [key, dataUrl(file)]))),
     __SOFT98_PAGE_ICONS__: JSON.stringify(PAGE_ICONS),
+    __SOFT98_OPTION_PREVIEWS__: JSON.stringify(previews),
     __SOFT98_NAME__: MESSAGES.locales.en.manifest.name,
     __SOFT98_DESCRIPTION__: MESSAGES.locales.en.manifest.description,
   };
@@ -170,7 +185,7 @@ function chromiumManifest() {
   return {
     manifest_version: 3,
     ...commonManifest,
-    permissions: ["storage", "tabs", "alarms", "scripting", "webRequest", "declarativeNetRequestWithHostAccess"],
+    permissions: ["storage", "tabs", "alarms", "scripting", "webRequest", "declarativeNetRequestWithHostAccess", "downloads"],
     host_permissions: [
       "*://*.soft98.ir/*",
       "https://github.com/DRSDavidSoft/soft98-pro/releases/*",
@@ -217,6 +232,7 @@ function firefoxManifest() {
       "alarms",
       "webRequest",
       "webRequestBlocking",
+      "downloads",
       "*://*.soft98.ir/*",
       "https://github.com/DRSDavidSoft/soft98-pro/releases/*",
       "https://api.github.com/repos/DRSDavidSoft/soft98-pro/releases/*",
@@ -238,16 +254,30 @@ function firefoxManifest() {
 }
 
 function copyUi(target) {
+  const catalog = JSON.parse(fs.readFileSync(path.join(SRC, "ui", "downloads.messages.json"), "utf8"));
+  if (JSON.stringify(Object.keys(catalog.en).sort()) !== JSON.stringify(Object.keys(catalog.fa).sort())) throw new Error("Download catalogs must have identical keys");
+  const icons = Object.fromEntries(["download", "plus", "player-play", "player-pause", "x", "rotate-clockwise", "folder-open", "trash"].map((name) => [name,
+    fs.readFileSync(path.join(TABLER_ROOT, "icons", "outline", `${name}.svg`), "utf8")]));
   for (const file of ["popup.html", "options.html", "options.js", "styles.css"]) {
     const from = path.join(SRC, "ui", file);
     const to = path.join(target, file);
     if (file.endsWith(".js")) {
       mkdir(path.dirname(to));
       fs.writeFileSync(to, applyReplacements(fs.readFileSync(from, "utf8"), "extension"), "utf8");
+    } else if (file.endsWith(".html")) {
+      const labels = ["en", "fa"].map((lang) => `<span lang="${lang}">${catalog[lang].title.replace(/[&<>]/g, (value) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[value])}</span>`).join("");
+      const nav = `<nav class="downloads-entry" aria-label="Soft98 Pro"><a href="downloads.html" target="_blank" rel="noopener"><span aria-hidden="true">${icons.download}</span>${labels}</a></nav>`;
+      fs.writeFileSync(to, fs.readFileSync(from, "utf8").replace("<main data-app>", `${nav}\n    <main data-app>`).replace('<link rel="stylesheet" href="styles.css">', '<link rel="stylesheet" href="styles.css">\n    <link rel="stylesheet" href="downloads-link.css">'), "utf8");
     } else {
       copyFile(from, to);
     }
   }
+  for (const file of ["downloads.html", "downloads.css", "downloads-link.css"]) copyFile(path.join(SRC, "ui", file), path.join(target, file));
+  copyFile(path.join(TABLER_ROOT, "LICENSE"), path.join(target, "TABLER-LICENSE.txt"));
+  const downloads = fs.readFileSync(path.join(SRC, "ui", "downloads.js"), "utf8")
+    .replace("__SOFT98_DOWNLOAD_MESSAGES__", () => JSON.stringify(catalog))
+    .replace("__SOFT98_DOWNLOAD_ICONS__", () => JSON.stringify(icons));
+  fs.writeFileSync(path.join(target, "downloads.js"), downloads, "utf8");
 }
 
 async function zipDirectory(source, output) {
@@ -303,7 +333,8 @@ async function buildTarget(name, manifest) {
   await minifyFile(path.join(SRC, "release-client.js"), path.join(target, "assets", "release-client.js"));
   await minifySource(runtimeSource("extension"), path.join(target, "assets", "runtime.page.js"));
   const backgroundPrefix = name === "chromium" ? 'importScripts("release-client.js");\n' : "";
-  await minifySource(backgroundPrefix + applyReplacements(fs.readFileSync(path.join(SRC, "background.js"), "utf8"), "extension"), path.join(target, "assets", "background.js"));
+  const queue = fs.readFileSync(path.join(SRC, "download-queue.js"), "utf8");
+  await minifySource(backgroundPrefix + queue + "\n" + applyReplacements(fs.readFileSync(path.join(SRC, "background.js"), "utf8"), "extension"), path.join(target, "assets", "background.js"));
   await minifyFile(path.join(SRC, "content", "bridge.js"), path.join(target, "assets", "bridge.js"));
   await minifyFile(path.join(SRC, "content", "upstream-gateway.js"), path.join(target, "assets", "upstream-gateway.js"));
   if (name === "chromium") writeJson(path.join(target, "rules.json"), chromiumRules());

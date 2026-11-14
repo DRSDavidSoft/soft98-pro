@@ -60,7 +60,7 @@ async function main() {
     const post = (route, body) => request("POST", session + route, body);
     const evaluate = (script) => post("/execute/sync", { script, args: [] });
     const width = Number(process.env.SOFT98_VIEWPORT_WIDTH || 1440);
-    await post("/window/rect", { width, height: 1000 });
+    await post("/window/rect", { width, height: Number(process.env.SOFT98_VIEWPORT_HEIGHT || 1000) });
     const addon = process.env.SOFT98_BASELINE === "1" ? null : await post("/moz/addon/install", {
       path: path.resolve(__dirname, "..", "dist", "packages", `soft98-pro-firefox-${require("../package.json").version}.zip`),
       temporary: true,
@@ -89,6 +89,26 @@ async function main() {
           footer: document.querySelector('footer')?.innerText.trim().slice(0, 180),
           viewport: [innerWidth, innerHeight, document.documentElement.scrollWidth],
           sidebarWidth: document.querySelector('[data-soft98-pro-column=secondary]')?.getBoundingClientRect().width,
+          articleFrame: Math.round(document.querySelector('[data-soft98-pro-layout=content-grid]')?.getBoundingClientRect().width || 0),
+          narrowBand: (() => {
+            const frame = document.querySelector('[data-soft98-pro-layout=content-grid]')?.parentElement;
+            const band = frame?.previousElementSibling;
+            if (!band?.matches('div[data-soft98-pro-surface=raised]') ||
+                !band.previousElementSibling?.hasAttribute('data-soft98-pro-latest-frame')) return false;
+            const box = band.getBoundingClientRect();
+            return box.height > 1 && (band.hasAttribute('data-soft98-pro-empty-band') || box.width + 2 < frame.getBoundingClientRect().width);
+          })(),
+          columnsAligned: (() => {
+            const primary = document.querySelector('[data-soft98-pro-column=primary]');
+            const sidebar = document.querySelector('[data-soft98-pro-column=secondary]');
+            if (!primary || !sidebar) return true;
+            const main = primary.getBoundingClientRect();
+            const side = sidebar.getBoundingClientRect();
+            return Math.abs(main.top - side.top) < 50 &&
+              (getComputedStyle(primary.parentElement).direction === 'rtl' ? main.right <= side.left : side.left >= main.right);
+          })(),
+          nativeNight: document.body.classList.contains('night-mode'),
+          footerBrand: Boolean(document.querySelector('[data-soft98-pro-footer]')?.getClientRects().length),
           banners: [...document.querySelectorAll('header img')].filter(n => n.getBoundingClientRect().width >= 450 && n.getBoundingClientRect().height <= 180).map(n => n.currentSrc),
           downloadControls: [...document.querySelectorAll('article [role=tabpanel] a[data-key]')].filter(a => a.getClientRects().length).length,
           compactBrand: Boolean(document.querySelector('[data-soft98-brand-compact]')),
@@ -98,7 +118,7 @@ async function main() {
           isolatedText: document.querySelectorAll('bdi[dir=ltr]').length,
           downloadPresentation: (() => {
             const group = document.querySelector('[data-soft98-pro-download-group]');
-            const primary = group?.querySelector('[data-soft98-pro-icon-host=download]');
+            const primary = group?.querySelector('[data-soft98-pro-download-row][data-soft98-pro-inline-size]');
             const windows = group?.querySelector('[data-soft98-pro-icon-host=windows]');
             const password = document.querySelector('[data-soft98-pro-password-shell]');
             const tab = document.querySelector('article [data-soft98-pro-surface=tab-list] [data-soft98-pro-tab-active=true]');
@@ -110,8 +130,12 @@ async function main() {
                 if (!primary) return null;
                 const title = primary.querySelector('[data-soft98-pro-download-title]')?.getBoundingClientRect();
                 const meta = primary.querySelector('[data-soft98-pro-download-meta]')?.getBoundingClientRect();
+                const anchor = primary.getBoundingClientRect();
+                const row = primary.parentElement.getBoundingClientRect();
                 return Boolean(meta?.height && title && meta.top >= title.bottom - 1 &&
-                  meta.bottom <= primary.parentElement.getBoundingClientRect().bottom + 1);
+                  meta.bottom <= anchor.bottom + 1 && Math.abs(row.width - anchor.width) < 2 &&
+                  getComputedStyle(primary.parentElement, '::before').display === 'none' &&
+                  getComputedStyle(primary.parentElement, '::after').display === 'none');
               })(),
               legacyWindows: windows && ['content','display','visibility'].map(key => getComputedStyle(windows, '::before')[key]),
               passwordBackground: password && getComputedStyle(password).backgroundColor,
@@ -159,7 +183,8 @@ async function main() {
         result.banners.length || result.headerAd || !result.latest || !result.counters || !result.isolatedText ||
         !["windows", "apple", "linux", "android", "download"].every(icon => result.downloadPresentation.glyphs.includes(icon)) ||
         !result.downloadPresentation.legacyWindows?.some(value => value === "none" || value === "hidden") || !result.downloadPresentation.primary?.includes("(رایگان)") ||
-        !result.downloadPresentation.inlineSize || !result.downloadPresentation.metadataFits || result.downloadPresentation.downloadRows < 5 ||
+        !result.downloadPresentation.inlineSize || result.downloadPresentation.primary.includes("حجم") ||
+        !result.downloadPresentation.metadataFits || result.downloadPresentation.downloadRows < 5 ||
         !result.downloadPresentation.passwordBackground || result.downloadPresentation.passwordBackground === "rgb(223, 121, 100)" ||
         result.downloadPresentation.glyphSize < 22 ||
         !result.downloadPresentation.tabIndicator?.includes("inset") || !result.downloadPresentation.tabSurface?.includes("gradient") ||
@@ -167,7 +192,8 @@ async function main() {
         result.downloadPresentation.navButtons < 3 || !result.downloadPresentation.navGroups ||
         !result.downloadPresentation.navIndicators || result.downloadPresentation.articleMetadata < 3 ||
         !result.utility.transparentIcons || result.utility.productIcons < 5 || result.utility.downloadIconShadow !== "none" ||
-        (width > 820 && result.sidebarWidth && result.sidebarWidth < 250))) {
+        (width > 820 && result.sidebarWidth && result.sidebarWidth < 250) ||
+        (width >= 2000 && (result.articleFrame < 1750 || result.narrowBand)) || (width > 820 && !result.columnsAligned))) {
       throw new Error("Live Firefox page failed the Soft98 Pro smoke checks");
     }
     if (process.env.SOFT98_LIVE_SCREENSHOT) await screenshot(session, process.env.SOFT98_LIVE_SCREENSHOT);
@@ -184,6 +210,10 @@ async function main() {
       await post(`/element/${buttonId}/click`, {});
       if (await evaluate("return document.querySelector('#soft98-pro-control').dataset.open") !== "true") {
         throw new Error("Firefox could not open the Pro console");
+      }
+      if (process.env.SOFT98_CONTROL_SCREENSHOT) {
+        await new Promise((resolve) => setTimeout(resolve, 250));
+        await screenshot(session, process.env.SOFT98_CONTROL_SCREENSHOT);
       }
       const close = await post("/element", { using: "css selector", value: "#soft98-pro-control [data-role=close]" });
       await new Promise((resolve) => setTimeout(resolve, 250));
@@ -237,6 +267,7 @@ async function main() {
           (async () => {
             scrollTo(0,0); await frame();
             const before = size();
+            const sidebarLeft = Math.round(sidebar.getBoundingClientRect().left);
             const start = Math.ceil(sidebar.getBoundingClientRect().bottom);
             const samples = [];
             for (const pixels of [80, 160, 80]) {
@@ -249,11 +280,12 @@ async function main() {
             const disabled = size();
             window.Soft98Pro.configure({ expandMain:true }); await frame();
             scrollTo(0,0); await frame();
-            done({ before, expanded, disabled, restored:size(), samples });
+            done({ before, expanded, disabled, restored:size(), samples,
+              sidebarStable: Math.round(sidebar.getBoundingClientRect().left) === sidebarLeft });
           })();
         ` });
         if (widths.expanded < widths.before + 200 || widths.before !== widths.disabled || widths.before !== widths.restored ||
-            widths.samples.some(({ added, scrolled }) => Math.abs(added - scrolled) > 2)) {
+            !widths.sidebarStable || widths.samples.some(({ added, scrolled }) => Math.abs(added - scrolled) > 2)) {
           throw new Error(`Article width did not round-trip: ${JSON.stringify(widths)}`);
         }
         console.log(JSON.stringify({ articleWidths: widths }));
@@ -264,7 +296,7 @@ async function main() {
         }
         await evaluate("document.querySelector('[data-soft98-pro-password-shell]').scrollIntoView({block:'center',behavior:'instant'})");
         const find = (value) => post("/element", { using: "css selector", value }).then((element) => Object.values(element)[0]);
-        await post(`/element/${await find('[data-soft98-pro-password-actions] [data-action=select]')}/click`, {});
+        await post(`/element/${await find('[data-soft98-pro-password] input[readonly]')}/click`, {});
         const password = await evaluate(`
           const row = document.querySelector('[data-soft98-pro-password-shell]');
           const input = row.querySelector('input[readonly]');
@@ -273,28 +305,28 @@ async function main() {
           range.selectNodeContents(title);
           return { titleLine: [...range.getClientRects()].filter(rect => rect.width > 0).length,
             selected: document.activeElement === input && input.selectionStart === 0 && input.selectionEnd === input.value.length,
-            dashed: getComputedStyle(input).borderTopStyle === 'dashed', copy: Boolean(row.querySelector('[data-action=copy]')) };
+            dashed: getComputedStyle(input).borderTopStyle === 'dashed', copy: Boolean(row.querySelector('[data-action=copy]')),
+            actions: row.querySelectorAll('[data-soft98-pro-password-actions] button').length };
         `);
-        if (!password.selected || !password.dashed || !password.copy || password.titleLine !== 1) throw new Error("Password controls failed");
+        if (!password.selected || !password.dashed || !password.copy || password.actions !== 1 || password.titleLine !== 1) throw new Error("Password controls failed");
         await post(`/element/${await find('[data-soft98-pro-password-actions] [data-action=copy]')}/click`, {});
         const copied = await post("/execute/async", { args: [], script: `
           const done = arguments[arguments.length - 1];
           const started = performance.now();
           const check = () => {
-            const status = document.querySelector('[data-soft98-pro-password-status]');
+            const status = document.querySelector('[data-soft98-pro-copy-toast]');
             if (status?.textContent || performance.now() - started > 2600) {
-              const input = status?.parentElement.querySelector('input[readonly]');
+              const input = document.querySelector('[data-soft98-pro-password] input[readonly]');
               done({ text: status?.textContent, selected: Boolean(input && document.activeElement === input &&
                 input.selectionStart === 0 && input.selectionEnd === input.value.length) });
             } else setTimeout(check, 100);
           };
           check();
         ` });
-        if (!["Password copied.", "رمز کپی شد."].includes(copied.text) && !copied.selected) {
-          throw new Error("Firefox did not copy or select the full value");
+        if (!copied.text || !copied.selected) {
+          throw new Error("Firefox did not show clipboard feedback while retaining the full password selection");
         }
-        await evaluate(`document.querySelector('[data-soft98-pro-password-status]').textContent = '';
-          document.activeElement.blur();`);
+        await evaluate("document.querySelector('[data-soft98-pro-copy-toast]').removeAttribute('data-visible'); document.activeElement.blur();");
       }
     }
     const preview = process.argv[2] || process.env.SOFT98_DOWNLOAD_SCREENSHOT;
@@ -321,6 +353,63 @@ async function main() {
       }
       console.log(JSON.stringify(clickResult));
       if (!newTab && !files.length) throw new Error("The native download control did not open its destination tab or start a transfer");
+    }
+    if (addon && process.env.SOFT98_CHECK_SECONDARY_PAGES === "1") {
+      const chromeBehavior = await post("/execute/async", { args: [], script: `
+        const done = arguments[arguments.length - 1];
+        const settle = () => new Promise(resolve => setTimeout(resolve, 400));
+        const night = document.querySelector('nav [data-toggle=night-mode]');
+        const check = () => [document.body.classList.contains('night-mode'), Soft98Pro.settings.darkDesign];
+        (async () => {
+          const start = check();
+          night.click(); await settle(); const light = check();
+          night.click(); await settle(); const dark = check();
+          const hotkey = new KeyboardEvent('keydown',{key:'F2',bubbles:true,cancelable:true});
+          document.body.dispatchEvent(hotkey);
+          await settle();
+          const search = document.activeElement?.type === 'search';
+          const searchState = search ? null : [...document.querySelectorAll('nav [data-toggle=search],[data-soft98-pro-search],input[type=search]')].map(n => {
+            const box = n.getBoundingClientRect();
+            const css = getComputedStyle(n);
+            return { tag:n.tagName, className:n.className, box:[box.left,box.top,box.width,box.height], display:css.display, visibility:css.visibility };
+          });
+          Soft98Pro.configure({utilityInHeader:true});
+          await settle();
+          const button = document.querySelector('nav [aria-haspopup=dialog]:has([data-soft98-pro-page-icon=grid])');
+          button?.click();
+          await settle();
+          const opened = location.hash === '#s98p-dialog=utility' && !!document.querySelector('dialog[open]');
+          if (opened) history.back();
+          await settle();
+          const closed = !location.hash && !document.querySelector('dialog[open]');
+          Soft98Pro.configure({utilityInHeader:false});
+          done({start,light,dark,search,searchState,handled:hotkey.defaultPrevented,opened,closed});
+        })();
+      ` });
+      if (!chromeBehavior.start.every(Boolean) || chromeBehavior.light.some(Boolean) || !chromeBehavior.dark.every(Boolean) ||
+          !chromeBehavior.search || !chromeBehavior.opened || !chromeBehavior.closed) {
+        throw new Error(`Theme, search, or dialog behavior failed: ${JSON.stringify(chromeBehavior)}`);
+      }
+      console.log(JSON.stringify({chromeBehavior}));
+      await post("/url", {url:"https://soft98.ir/os/windows-11/"});
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const listing = await evaluate(`
+        const normalize = n => n.textContent.normalize('NFKC').replace(/[\\s\\u0640\\u200c]+/g,'');
+        return {
+          more: document.querySelectorAll('[data-soft98-pro-read-more]').length,
+          previews: document.querySelectorAll('[data-soft98-pro-read-preview]').length,
+          emptyAd: [...document.querySelectorAll('aside :is(h2,h3,h4)')].some(n => normalize(n) === 'تبلیغات'),
+          badDivider: [...document.querySelectorAll('aside > hr')].some(n => !n.previousElementSibling || !n.nextElementSibling),
+        };
+      `);
+      if (!listing.more || !listing.previews || listing.emptyAd || listing.badDivider) throw new Error(`Listing cleanup failed: ${JSON.stringify(listing)}`);
+      if (process.env.SOFT98_LISTING_SCREENSHOT) await screenshot(session, process.env.SOFT98_LISTING_SCREENSHOT);
+      await post("/url", {url:"https://soft98.ir/feedback.html"});
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const feedback = await evaluate(`return { support: Boolean(document.querySelector('img[src$="/support.png"]')),
+        footer: Boolean(document.querySelector('[data-soft98-pro-footer]')?.getClientRects().length) };`);
+      if (feedback.support || !feedback.footer) throw new Error(`Feedback cleanup failed: ${JSON.stringify(feedback)}`);
+      console.log(JSON.stringify({ listing, feedback }));
     }
   } finally {
     try {

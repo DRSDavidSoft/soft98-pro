@@ -216,6 +216,8 @@ window.Soft98AdBlocker.stats
 
 The friendly alias `window.Soft98Pro` is also available. See the [Diagnostics Guide](docs/wiki/Diagnostics.md) for examples and interpretation.
 
+Use `Soft98Pro.inspectedRoles()` in DevTools to see readable page roles alongside the site's current class names. The original classes remain in place so Soft98 can continue to use them.
+
 <a id="documentation"></a>
 
 ## 📚 Documentation

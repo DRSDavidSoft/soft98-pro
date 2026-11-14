@@ -11,6 +11,8 @@
     darkDesign: true,
     compactLayout: true,
     expandMain: true,
+    utilityInHeader: false,
+    soundFeedback: false,
     linkBadges: true,
     pirateLogo: true,
     taunt: false,

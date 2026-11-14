@@ -25,6 +25,7 @@
   const COMPATIBILITY = __SOFT98_COMPATIBILITY__;
   const BRAND_ASSETS = __SOFT98_BRAND_ASSETS__;
   const PAGE_ICONS = __SOFT98_PAGE_ICONS__;
+  const OPTION_PREVIEWS = __SOFT98_OPTION_PREVIEWS__;
   const SUCCESS_NOTICE_MS = 6000;
   const PatchEngine = globalThis.__Soft98PatchEngine;
   const LOCALE = preferredLocale();
@@ -37,6 +38,8 @@
     darkDesign: true,
     compactLayout: true,
     expandMain: true,
+    utilityInHeader: false,
+    soundFeedback: false,
     linkBadges: true,
     pirateLogo: true,
     taunt: false,
@@ -51,7 +54,26 @@
   const hiddenPageDisplays = new WeakMap();
   const passwordActions = new WeakMap();
   const contentGrids = new Map();
+  const restoredUtilityCards = new Map();
+  const stockFooters = new Map();
+  const faqAnimations = new WeakMap();
+  const proDialogs = new Map();
+  const siteReadOnlyDialogs = new Map();
+  const dialogState = new WeakMap();
+  const articlePreviewCache = new Map();
+  let audioContext;
+  let audioAt = 0;
+  const legacyToneKinds = ["color", "background-color", "border-block-start-color", "border-inline-start-color"];
+  let currentDialogKey = "";
+  let dialogRequested = false;
+  let dialogHistoryBound = false;
+  let updatingSiteTheme = false;
+  let nativeThemeChangePending = false;
+  let siteThemeReady = false;
   const downloadRows = new WeakMap();
+  const downloadHeadings = new WeakMap();
+  let downloadRowId = 0;
+  let downloadToastTimer;
   const downloadProbes = new Map();
   let downloadCache;
   let downloadObserver;
@@ -79,7 +101,7 @@
   let successNoticeTimer = null;
   let successNoticeShown = false;
   let faviconState = "";
-  let controlAbortController = null;
+  let controlPanel = null;
   let controlSection = "protection";
   let settings = readSettings();
   let compatibilityState = null;
@@ -194,6 +216,7 @@
       } catch (_error) {}
     }
     installProStyle();
+    syncNativeNightMode();
     renderControlPanel();
     syncSuccessEnhancements();
     schedule(document);
@@ -350,9 +373,12 @@
   function headingCardFromSignals(heading) {
     if (!heading || !/^H[1-6]$/.test(heading.tagName)) return null;
     const header = heading.closest("header");
-    const card = (header && header.closest("section,article,aside")) || (header && header.parentElement);
+    const card = header?.parentElement;
     if (!card || card === document.body || card === document.documentElement || isProtectedContentContainer(card)) return null;
-    const headingLength = String(heading.textContent || "").normalize("NFKC").replace(/[\u0640\u200c\u200d\s]+/g, "").length;
+    const title = normalizedPersian(heading.textContent || "");
+    if (title === "تبلیغات" && card !== header && !card.matches("main,article") &&
+        (card.matches("section,aside") || card.closest("aside") || card.querySelector("iframe,img,object,embed"))) return card;
+    const headingLength = title.length;
     const cardTextLength = String(card.textContent || "").replace(/\s+/g, " ").trim().length;
     if (!headingLength || headingLength > 40 || cardTextLength > 220) return null;
     if (card.querySelector("p,ul,ol,dl,table,form,pre,code,audio,video")) return null;
@@ -392,6 +418,15 @@
     return null;
   }
 
+  function isLiveSidebarCard(node, boundary = node?.parentElement) {
+    if (!node || node.matches("hr,[hidden],[aria-hidden=true]")) return false;
+    for (let parent = node; parent && parent !== boundary; parent = parent.parentElement) {
+      if (parent.hidden || getComputedStyle(parent).display === "none") return false;
+    }
+    return Boolean(node.textContent.trim() || node.matches("a[href],button,form,img,iframe") ||
+      node.querySelector("img,iframe,form,button"));
+  }
+
   function removeHeadingAdCards(root) {
     const element = asElement(root) || document;
     const headings = [];
@@ -401,9 +436,11 @@
     for (const card of cards) {
       if (!document.contains(card)) continue;
       const separator = precedingCardSeparator(card);
+      const next = card.nextElementSibling;
       const parent = card.parentElement;
       card.remove();
       if (separator && document.contains(separator)) separator.remove();
+      if (next?.matches("hr") && !isLiveSidebarCard(next.previousElementSibling)) next.remove();
       if (parent && parent !== document.body && !parent.textContent.trim() && !parent.querySelector(":scope > :not(hr)")) parent.remove();
       stats.adsRemoved += 1;
       log("info", text("logs.adCardRemoved"), { tag: card.tagName, media: card.querySelectorAll("iframe,img,picture,object,embed").length });
@@ -582,7 +619,9 @@
     const entry = link.closest("dd,li");
     if (entry?.tagName === "DD") {
       for (let sibling = entry.previousElementSibling; sibling; sibling = sibling.previousElementSibling) {
-        if (sibling.tagName === "DT") return linkLabel(sibling);
+        if (sibling.tagName === "DT") {
+          return linkLabel(sibling.querySelector(":scope > span:not([data-soft98-pro-download-actions])") || sibling);
+        }
       }
     }
     const group = link.closest("section,article");
@@ -807,7 +846,17 @@
           applyInteractiveSurfaceHeuristics();
           applyProLayoutHeuristics();
         }
-        if (settings.pro) applyPagePreferences();
+        if (settings.pro) {
+          applyPagePreferences();
+          applySiteChrome();
+        } else {
+          document.documentElement.removeAttribute("data-soft98-pro-chrome");
+          restoreUtilityPlacement();
+          for (const [footer, previous] of stockFooters) {
+            if (footer.isConnected) footer.style.setProperty("display", ...previous);
+            stockFooters.delete(footer);
+          }
+        }
         for (const link of trackedLinks) {
           if (document.contains(link)) restoreLink(link);
           else trackedLinks.delete(link);
@@ -898,6 +947,9 @@
       .download-list-item-buysellads,[class*="buysellads"],#footer-bitcoin,iframe[src*="kaprila.com"],
       .tbd_ibd,.tbdc,.trk_irk,.alert-warning,[role="alert"],
       #soft98-ad-blocker-taunt,#soft98-extension-recommendation{display:none!important}
+      :root[data-soft98-pro-chrome] [data-soft98-pro-stock-footer]{display:none!important}
+      :root:not([data-soft98-pro-chrome]) [data-soft98-pro-footer]{display:none!important}
+      :root[data-soft98-pro-chrome]:not(.soft98-pro-theme) [data-soft98-pro-footer]{display:flex;flex-wrap:wrap;gap:14px;margin:24px auto;padding:16px;max-width:1280px}
       :root[data-soft98-runtime-ready] #soft98-ad-blocker-taunt[data-soft98-pro-notice],
       :root[data-soft98-runtime-ready] #soft98-extension-recommendation{display:grid!important}
       #soft98-ad-blocker-taunt[data-soft98-pro-notice]{--taunt-bg:#f7fafc;--taunt-border:#b6cec3;--taunt-text:#21332d;position:fixed;bottom:64px;inset-inline-start:12px;z-index:2147483646;box-sizing:border-box;width:max-content;max-width:min(320px,calc(100vw - 24px));padding:10px 14px;border:1px solid var(--taunt-border)!important;border-radius:8px;background:var(--taunt-bg)!important;color:var(--taunt-text)!important;box-shadow:0 10px 26px #0004!important;font:inherit;text-align:start;pointer-events:none}
@@ -908,7 +960,7 @@
       :root:not(.soft98-pro-theme) [data-soft98-pro-page-icon]{display:none!important}
       :root:not(.soft98-pro-theme) [data-soft98-pro-password-actions]{display:none!important}
       :root:not(.soft98-pro-theme) [data-soft98-pro-password-shell]{display:contents}
-      :root:not(.soft98-pro-theme) [data-soft98-pro-password-status]{display:none!important}
+      :root:not(.soft98-pro-theme) :is([data-soft98-pro-download-actions],[data-soft98-pro-copy-toast]){display:none!important}
       :root:not(.soft98-pro-theme) [data-soft98-pro-download-meta]{display:none!important}
       a[${DATA_HREF}]{pointer-events:auto}
       a[data-soft98-brand-compact]{min-height:36px!important;min-width:86px;background-size:86px auto!important;background-repeat:no-repeat!important;background-position:center!important}
@@ -982,12 +1034,27 @@
       .soft98-pro-theme [data-soft98-pro-download-group] a[data-soft98-pro-icon-host]:is(:hover,:focus-visible){color:var(--s98p-link)!important}
       .soft98-pro-theme [data-soft98-pro-download-group] a[data-soft98-pro-icon-host=download]{color:var(--s98p-accent)!important;font-weight:700}
       .soft98-pro-theme [data-soft98-pro-download-group] a[data-soft98-pro-icon-host=download]:is(:hover,:focus-visible){background:color-mix(in srgb,var(--s98p-accent) 10%,var(--s98p-bg-2))!important;color:#b2ffe1!important}
-      :root.soft98-pro-theme [data-soft98-pro-download-group] > dd:has([data-soft98-pro-download-row]){height:auto!important;max-height:none!important;overflow:visible!important}
-      :root.soft98-pro-theme [data-soft98-pro-download-group] [data-soft98-pro-download-row]{display:grid!important;grid-template-columns:28px minmax(0,1fr);align-items:center;gap:2px 9px;height:auto!important;min-height:40px;max-height:none!important;box-sizing:border-box;padding:7px 14px!important;white-space:normal!important;line-height:1.5!important;overflow:visible!important}
-      .soft98-pro-theme [data-soft98-pro-download-row] > [data-soft98-pro-page-icon]{grid-column:1;grid-row:1/3;margin:0}
-      .soft98-pro-theme [data-soft98-pro-download-title]{grid-column:2;grid-row:1;min-width:0;color:inherit}
-      .soft98-pro-theme [data-soft98-pro-download-meta]{grid-column:2;grid-row:2;min-width:0;color:var(--s98p-muted)!important;font-size:.82em;font-weight:400}
+      :root.soft98-pro-theme article [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]{height:auto!important;max-height:none!important;padding:0!important;overflow:visible!important}
+      :root.soft98-pro-theme article [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]::before,
+      :root.soft98-pro-theme article [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]::after{content:none!important;display:none!important;animation:none!important;transition:none!important}
+      :root.soft98-pro-theme article [data-soft98-pro-download-group] > dd[data-soft98-pro-download-collapsed]{display:none!important}
+      :root.soft98-pro-theme article [data-soft98-pro-download-group] [data-soft98-pro-download-row]{display:grid!important;grid-template-columns:28px minmax(0,1fr);align-items:center;gap:9px;width:100%!important;height:auto!important;min-height:42px;max-height:none!important;margin:0!important;padding:7px 14px!important;box-sizing:border-box;white-space:normal!important;line-height:1.5!important;overflow:visible!important;background-image:none!important;transition:background-color .16s,color .16s}
+      :root.soft98-pro-theme article [data-soft98-pro-download-group] [data-soft98-pro-download-row]:is(:hover,:focus-visible){background-color:var(--s98p-soft)!important}
+      :root.soft98-pro-theme article [data-soft98-pro-download-group] [data-soft98-pro-download-row]:active{background-color:color-mix(in srgb,var(--s98p-accent) 16%,var(--s98p-surface))!important}
+      .soft98-pro-theme [data-soft98-pro-download-row] > *{pointer-events:none}
+      .soft98-pro-theme [data-soft98-pro-download-row] > [data-soft98-pro-page-icon]{grid-column:1;grid-row:1;margin:0}
+      .soft98-pro-theme [data-soft98-pro-download-copy]{display:grid;gap:2px;min-width:0;overflow-wrap:anywhere}
+      .soft98-pro-theme [data-soft98-pro-download-title]{min-width:0;color:inherit}
+      .soft98-pro-theme [data-soft98-pro-download-meta]{min-width:0;color:var(--s98p-muted)!important;font-size:.82em;font-weight:400}
       .soft98-pro-theme [data-soft98-pro-download-meta]:empty{display:none}
+      .soft98-pro-theme [data-soft98-pro-download-heading]{display:flex!important;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 8px;padding:6px 8px!important}
+      .soft98-pro-theme [data-soft98-pro-download-actions]{display:inline-flex;align-items:center;gap:4px;margin-inline-start:auto}
+      .soft98-pro-theme [data-soft98-pro-download-actions] > button{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:32px;min-width:32px;padding:4px 7px;border:1px solid var(--s98p-border);border-radius:6px;background:var(--s98p-control-bg,var(--s98p-surface-2));color:var(--s98p-text);font:inherit;line-height:1.25;cursor:pointer}
+      .soft98-pro-theme [data-soft98-pro-download-actions] > button[hidden]{display:none!important}
+      .soft98-pro-theme [data-soft98-pro-download-actions] > button:is(:hover,:focus-visible){background:var(--s98p-control-hover,var(--s98p-soft));border-color:var(--s98p-faint)}
+      .soft98-pro-theme [data-soft98-pro-download-actions] > button svg{width:16px;height:16px;flex:none;pointer-events:none}
+      .soft98-pro-theme [data-soft98-pro-download-actions] [aria-expanded] svg{transform:rotate(-90deg);transition:transform .16s ease}
+      .soft98-pro-theme [data-soft98-pro-download-actions] [aria-expanded="false"] svg{transform:none}
       .soft98-pro-theme [data-soft98-pro-password-shell]{display:grid;grid-template-columns:auto minmax(max-content,1fr) auto;align-items:center;gap:6px;padding:8px;background:var(--s98p-surface-2)!important;border:1px solid var(--s98p-border);border-radius:8px}
       :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-password-shell]>[data-soft98-pro-password]{display:contents!important;color:var(--s98p-text)!important;text-shadow:none!important}
       .soft98-pro-theme [data-soft98-pro-password] span:not([aria-hidden=true]){color:inherit!important}
@@ -1002,8 +1069,11 @@
       :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-password] > input[readonly]{grid-row:2}
       .soft98-pro-theme [data-soft98-pro-password-actions] button{display:grid!important;place-items:center;width:34px;height:34px;flex:none;padding:0!important;cursor:pointer}
       .soft98-pro-theme [data-soft98-pro-password-actions] svg{width:17px;height:17px;pointer-events:none}
-      .soft98-pro-theme [data-soft98-pro-password-status]{grid-column:1/-1;color:var(--s98p-muted)!important;font-size:.85em}
-      .soft98-pro-theme [data-soft98-pro-password-status]:empty{display:none}
+      .soft98-pro-theme [data-soft98-pro-copy-toast]{position:fixed;z-index:2147483000;inset:auto auto 16px 50%;translate:-50% 0;max-width:min(440px,calc(100vw - 32px));box-sizing:border-box;padding:9px 14px;border:1px solid var(--s98p-border);border-inline-start:3px solid var(--s98p-accent);border-radius:8px;background:var(--s98p-elevated);color:var(--s98p-text);box-shadow:0 6px 24px #0005;opacity:0;transform:translateY(6px);transition:opacity .16s ease,transform .16s ease;pointer-events:none}
+      .soft98-pro-theme [data-soft98-pro-copy-toast][data-visible]{opacity:1;transform:none}
+      .soft98-pro-theme [data-soft98-pro-copy-toast][data-error]{border-inline-start-color:var(--s98p-danger)}
+      @starting-style{.soft98-pro-theme [data-soft98-pro-copy-toast][data-visible]{opacity:0;transform:translateY(6px)}}
+      @media (prefers-reduced-motion:reduce){.soft98-pro-theme :is([data-soft98-pro-download-row],[data-soft98-pro-download-actions] [aria-expanded] svg,[data-soft98-pro-copy-toast]){transition:none!important}}
       .soft98-pro-theme [data-soft98-pro-faq] > summary{display:flex!important;align-items:center;gap:9px;list-style:none!important;padding-inline-start:0!important;color:var(--s98p-text)!important}
       .soft98-pro-theme [data-soft98-pro-faq] > summary::-webkit-details-marker{display:none}
       .soft98-pro-theme [data-soft98-pro-faq] [data-soft98-pro-page-icon]{margin-inline-end:0}
@@ -1014,17 +1084,6 @@
       .soft98-pro-theme [data-soft98-pro-latest] li a:not([role=tab]):is(:hover,:focus-visible){color:var(--s98p-link)!important}
       :root.soft98-pro-theme [data-soft98-pro-latest] li a[data-soft98-pro-news-link]::before{color:var(--s98p-faint)!important;text-shadow:none!important}
       :root.soft98-pro-theme [data-soft98-pro-latest] li a[data-soft98-pro-news-link]:not(:hover,:focus-visible){color:var(--s98p-muted)!important}
-      :root.soft98-pro-theme [data-soft98-pro-latest] li a[data-soft98-pro-news-link] [data-soft98-pro-view-count],
-      :root.soft98-pro-theme [data-soft98-pro-latest] li a[data-soft98-pro-news-link] [data-soft98-pro-view-count]::before{color:var(--s98p-faint)!important}
-      .soft98-pro-theme [data-soft98-pro-latest] li [data-soft98-pro-view-count],
-      .soft98-pro-theme [data-soft98-pro-latest] li [data-soft98-pro-view-count]::before{color:var(--s98p-faint)!important;text-shadow:none!important}
-      .soft98-pro-theme [data-soft98-pro-view-count],.soft98-pro-theme [data-soft98-pro-view-count]::before{color:var(--s98p-faint)!important;text-shadow:none!important}
-      :root.soft98-pro-theme [data-soft98-pro-latest] li a [data-soft98-pro-view-count]{color:#8494a8!important}
-      :root.soft98-pro-theme [data-soft98-pro-latest] li a [data-soft98-pro-view-count]::before,
-      :root.soft98-pro-theme [data-soft98-pro-latest] li a [data-soft98-pro-view-count]::after{display:none!important;content:none!important}
-      :root.soft98-pro-theme [data-soft98-pro-view-count] > [data-soft98-pro-page-icon=eye]{display:inline-grid!important;width:12px;height:12px;margin-inline:3px;background:transparent!important;color:#8494a8!important}
-      :root.soft98-pro-theme [data-soft98-pro-view-count] svg{width:12px;height:12px}
-      :root.soft98-pro-theme [data-soft98-pro-news-counter]{color:#8494a8!important;opacity:.75!important;text-shadow:none!important}
       [data-soft98-pro-bidi]{direction:ltr!important;unicode-bidi:isolate!important}
       .soft98-pro-theme a{color:var(--s98p-link)!important;text-decoration-color:color-mix(in srgb,var(--s98p-link) 42%,transparent);transition:color .16s ease,text-decoration-color .16s ease,background-color .16s ease,border-color .16s ease,transform .16s ease,box-shadow .2s ease}
       .soft98-pro-theme a:hover{color:#d4efff!important;text-decoration-color:var(--s98p-accent)}
@@ -1065,13 +1124,31 @@
       .soft98-pro-theme ::selection{background:rgba(116,224,176,.32);color:#fff}
       .soft98-pro-link-badge{margin-inline-start:.45em;padding:.12em .45em;border:1px solid rgba(112,225,178,.42);border-radius:999px;color:#baffd8;background:rgba(112,225,178,.12);font-size:.78em;vertical-align:middle}
       .soft98-pro-compact [data-soft98-pro-layout=content-grid]{display:grid!important;grid-template-columns:minmax(0,2fr) minmax(270px,1fr)!important;align-items:start!important;gap:18px!important}
+      @media(min-width:821px){
+        .soft98-pro-compact [data-soft98-pro-layout=content-grid]>[data-soft98-pro-column]{grid-row:1!important}
+        .soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-reading=rtl]{grid-template-columns:minmax(270px,1fr) minmax(0,2fr)!important}
+        .soft98-pro-compact [data-soft98-pro-reading=rtl]>[data-soft98-pro-column=primary]{grid-column:2!important}
+        .soft98-pro-compact [data-soft98-pro-reading=rtl]>[data-soft98-pro-column=secondary]{grid-column:1!important}
+      }
       .soft98-pro-compact [data-soft98-pro-column]{width:100%!important;min-width:0!important;max-width:none!important;box-sizing:border-box}
       .soft98-pro-compact [data-soft98-pro-column=primary]{grid-column:1!important}
       .soft98-pro-compact [data-soft98-pro-column=secondary]{grid-column:2!important}
-      .soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-reading=rtl]{grid-template-columns:minmax(270px,1fr) minmax(0,2fr)!important}
-      .soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-reading=rtl]>[data-soft98-pro-column=primary]{grid-column:2!important}
-      .soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-reading=rtl]>[data-soft98-pro-column=secondary]{grid-column:1!important}
-      @media(min-width:821px){.soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-main-wide]>[data-soft98-pro-column]{grid-row:1!important}.soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-main-wide]>[data-soft98-pro-column=primary]{grid-column:1/-1!important;justify-self:start;width:calc(100% - var(--s98p-sidebar-space) + var(--s98p-scroll-width))!important}.soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-main-wide]>[data-soft98-pro-column=secondary]{pointer-events:none;overflow-anchor:none}}
+      .soft98-pro-compact [data-soft98-pro-content-frame],.soft98-pro-theme [data-soft98-pro-wide-nav]{max-width:var(--s98p-page-width,1280px)!important}
+      .soft98-pro-theme :is([data-soft98-pro-latest-frame],[data-soft98-pro-between-frames]){max-width:var(--s98p-page-width,1280px)!important}
+      :root.soft98-pro-theme [data-soft98-pro-empty-band]{display:none!important;block-size:0!important;min-block-size:0!important;padding:0!important;margin-block:0!important;border:0!important;overflow:hidden!important;visibility:hidden!important;box-shadow:none!important}
+      @media(min-width:1600px){
+        :root.soft98-pro-theme{--s98p-page-width:min(2200px,calc(100vw - 96px))}
+        .soft98-pro-compact [data-soft98-pro-layout=content-grid]{grid-template-columns:minmax(0,1fr) minmax(300px,clamp(320px,25vw,470px))!important}
+        .soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-reading=rtl]{grid-template-columns:minmax(300px,clamp(320px,25vw,470px)) minmax(0,1fr)!important}
+      }
+      .soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-sidebar-empty][data-soft98-pro-reading]{grid-template-columns:minmax(0,1fr)!important}
+      .soft98-pro-compact [data-soft98-pro-sidebar-empty][data-soft98-pro-reading]>[data-soft98-pro-column=primary]{grid-column:1!important}
+      .soft98-pro-compact [data-soft98-pro-sidebar-empty]>[data-soft98-pro-column=secondary]{display:none!important}
+      @media(min-width:821px){
+        .soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-main-wide]>[data-soft98-pro-column=primary]{grid-column:1/-1!important;justify-self:start;width:calc(100% - var(--s98p-sidebar-space) + var(--s98p-scroll-width))!important}
+        .soft98-pro-compact [data-soft98-pro-reading=rtl][data-soft98-pro-main-wide]>[data-soft98-pro-column=primary]{justify-self:end}
+        .soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-main-wide]>[data-soft98-pro-column=secondary]{pointer-events:none;overflow-anchor:none}
+      }
       .soft98-pro-compact [data-soft98-pro-reading=rtl]{direction:rtl!important}
       .soft98-pro-compact [data-soft98-pro-reading=ltr]{direction:ltr!important}
       .soft98-pro-compact article,.soft98-pro-compact aside{border-radius:var(--s98p-radius)!important}
@@ -1126,6 +1203,65 @@
       :root.soft98-pro-theme [data-soft98-pro-article-meta] [data-soft98-pro-page-icon]{width:16px;height:16px;margin-inline:0 3px;background:transparent!important;--icon-color:var(--s98p-faint)}
       :root.soft98-pro-theme [data-soft98-pro-article-meta] svg{width:15px;height:15px}
       :root.soft98-pro-theme [data-soft98-pro-article-meta] a:not(:hover,:focus-visible){color:var(--s98p-link)!important}
+      :root.soft98-pro-theme article:has(>[data-soft98-pro-article-header]){--s98p-article-band:linear-gradient(90deg,var(--s98p-elevated),var(--s98p-surface))}
+      :root.soft98-pro-theme article > :is([data-soft98-pro-article-header],[data-soft98-pro-article-meta]){background:var(--s98p-article-band)!important}
+      :root.soft98-pro-theme [data-soft98-pro-nav-chrome]{background:linear-gradient(165deg,color-mix(in srgb,var(--s98p-elevated) 92%,transparent),color-mix(in srgb,var(--s98p-nav) 85%,transparent))!important;box-shadow:0 1px #ffffff17 inset,0 10px 28px #0006!important;backdrop-filter:blur(18px) saturate(135%)}
+      :root.soft98-pro-theme [data-soft98-pro-nav-item]{transition:background .16s ease,box-shadow .16s ease,color .16s ease!important}
+      :root.soft98-pro-theme [data-soft98-pro-nav-item]:is(:hover,:focus-visible,[aria-expanded=true]){box-shadow:0 1px #ffffff24 inset,0 -2px color-mix(in srgb,var(--s98p-accent) 64%,transparent) inset!important}
+      :root.soft98-pro-theme [data-soft98-pro-header-icon] > :not([data-soft98-pro-page-icon]):not([data-soft98-pro-nav-indicator]){display:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-header-icon]::before{content:none!important;display:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-header-icon] > [data-soft98-pro-page-icon]{background:transparent!important;margin:0!important;--icon-color:var(--s98p-text);pointer-events:none}
+      :root.soft98-pro-theme [data-soft98-pro-header-icon] svg{width:21px;height:21px}
+      :root.soft98-pro-theme [data-soft98-pro-surface=megamenu]{max-inline-size:calc(100vw - 28px);max-block-size:calc(100dvh - 80px);overflow:auto;border-radius:8px!important;background:linear-gradient(155deg,color-mix(in srgb,var(--s98p-elevated) 95%,transparent),color-mix(in srgb,var(--s98p-bg-2) 93%,transparent))!important;box-shadow:0 1px #ffffff20 inset,0 24px 70px #000a,0 0 0 1px #0004!important;backdrop-filter:blur(22px) saturate(140%)}
+      :root.soft98-pro-rgb [data-soft98-pro-surface=megamenu]{background:#080a0b!important;background-image:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-surface=megamenu] a:is(:hover,:focus-visible){padding-inline:6px;border-radius:4px;color:#fff!important;outline-offset:-2px!important;background:color-mix(in srgb,var(--s98p-accent) 16%,var(--s98p-elevated))!important;box-shadow:0 1px #ffffff20 inset,0 3px 6px #0005}
+      :root.soft98-pro-theme [data-soft98-pro-surface=megamenu] a{box-sizing:border-box;padding-inline:6px;transition:background .14s ease,color .14s ease}
+      :root.soft98-pro-theme [data-soft98-pro-utility-card] [data-soft98-pro-list-row]{border:1px solid transparent!important;border-radius:6px;background:transparent!important;box-shadow:none!important;transform:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-utility-card] [data-soft98-pro-list-row]:is(:hover,:focus-visible){background:var(--s98p-elevated)!important;border-color:var(--s98p-border)!important;color:var(--s98p-text)!important}
+      :root.soft98-pro-theme [data-soft98-pro-utility-card] [data-soft98-pro-list-row]:is(.active,[aria-current],[aria-selected=true],:active){background:color-mix(in srgb,var(--s98p-accent) 14%,var(--s98p-surface-2))!important;color:var(--s98p-text)!important;border-color:color-mix(in srgb,var(--s98p-accent) 36%,var(--s98p-border))!important}
+      :root.soft98-pro-theme [data-soft98-pro-utility-card]>footer,:root.soft98-pro-theme [data-soft98-pro-utility-card]>footer *{transform:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-utility-card]>footer{box-sizing:border-box;border-block-start:1px solid var(--s98p-border)!important;min-block-size:48px}
+      :root.soft98-pro-theme [data-soft98-pro-latest] li a[data-soft98-pro-news-link] [data-soft98-pro-news-counter]{color:#758497!important;font-size:.83em!important;text-shadow:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-latest] [data-soft98-pro-news-counter]::before,
+      :root.soft98-pro-theme [data-soft98-pro-latest] [data-soft98-pro-news-counter]::after{display:none!important;content:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-latest] [data-soft98-pro-news-counter]>[data-soft98-pro-page-icon=eye]{display:inline-grid!important;width:12px;height:12px;margin-inline:3px;background:transparent!important;color:inherit!important;opacity:.7}
+      :root.soft98-pro-theme [data-soft98-pro-news-counter] svg{width:12px;height:12px;color:inherit!important}
+      :root.soft98-pro-theme details[data-soft98-pro-faq] > summary{transition:color .18s ease,background .18s ease;border-radius:6px}
+      :root.soft98-pro-theme details[data-soft98-pro-faq] > summary:is(:hover,:focus-visible){background:var(--s98p-surface-2)!important}
+      :root.soft98-pro-theme details[data-soft98-pro-faq] > summary svg{transition:transform .22s cubic-bezier(.2,.8,.2,1)}
+      :root.soft98-pro-theme [data-soft98-pro-read-more]{display:inline-flex!important;gap:8px;align-items:center;padding:6px 12px!important;border:1px solid var(--s98p-border)!important;border-radius:6px;background:var(--s98p-control-bg)!important;color:var(--s98p-text)!important;text-decoration:none!important;min-height:36px}
+      :root.soft98-pro-theme [data-soft98-pro-read-more]:is(:hover,:focus-visible){background:var(--s98p-control-hover)!important;border-color:var(--s98p-accent)!important}
+      :root.soft98-pro-theme [data-soft98-pro-search]{max-inline-size:min(720px,calc(100vw - 20px))!important;max-block-size:calc(100dvh - 66px);overflow:auto!important}
+      :root.soft98-pro-theme [data-soft98-pro-search] :is(form,input,div){box-sizing:border-box;max-inline-size:100%}
+      :root.soft98-pro-theme [data-soft98-pro-search] img{background:var(--s98p-surface-2)!important;border-radius:5px;mix-blend-mode:normal}
+      :root.soft98-pro-theme [data-soft98-pro-search] img[data-soft98-pro-search-art]{object-fit:contain;padding:2px}
+      :root.soft98-pro-theme [data-soft98-pro-dialog]{background:rgba(4,8,12,.34)!important;backdrop-filter:blur(7px);overscroll-behavior:contain}
+      :root.soft98-pro-theme [data-soft98-pro-dialog-panel]{background:color-mix(in srgb,var(--s98p-surface) 96%,transparent)!important;border:1px solid var(--s98p-border)!important;border-radius:8px!important;box-shadow:0 16px 55px #0008,0 1px #ffffff15 inset!important;max-block-size:calc(100dvh - 32px);max-inline-size:calc(100vw - 26px);overflow:auto}
+      :root.soft98-pro-theme [data-soft98-pro-dialog-header]{position:sticky;inset-block-start:0;z-index:1;background:var(--s98p-elevated)!important;color:var(--s98p-text)!important;border-block-end:1px solid var(--s98p-border)!important;padding:12px 16px}
+      :root.soft98-pro-theme [data-soft98-pro-dialog="notice"] :is([role=document],[data-soft98-pro-dialog-panel]){transition:opacity .16s ease!important;transform:none!important;animation:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-dialog]:not([open])[data-soft98-pro-native-dialog]{display:none!important}
+      :root.soft98-pro-theme dialog[data-soft98-pro-native-dialog]::backdrop{background:#060a105e;backdrop-filter:blur(7px)}
+      :root.soft98-pro-theme dialog[data-soft98-pro-native-dialog]{margin:auto;padding:0;color:var(--s98p-text);direction:inherit;inset:auto 0;max-inline-size:min(680px,calc(100vw - 24px))}
+      :root.soft98-pro-theme dialog[data-soft98-pro-native-dialog] > :not(header){padding:14px 16px}
+      :root.soft98-pro-theme [data-soft98-pro-footer]{max-width:var(--s98p-page-width,1280px);margin:28px auto 0;padding:16px;display:grid;grid-template-columns:minmax(0,2fr) repeat(2,minmax(0,1fr));gap:12px;background:transparent!important;color:var(--s98p-text);position:relative;overflow:visible}
+      :root.soft98-pro-theme [data-soft98-pro-footer] > section{display:grid;align-content:start;gap:6px;padding:14px;background:var(--s98p-surface-2)!important;border:1px solid var(--s98p-border-soft);border-radius:8px}
+      :root.soft98-pro-theme [data-soft98-pro-footer] :is(p,strong){margin:0;color:inherit}
+      :root.soft98-pro-theme [data-soft98-pro-footer] button{justify-self:start;padding:5px 10px}
+      :root.soft98-pro-theme [data-soft98-pro-forum]{background:var(--s98p-surface)!important;border:1px solid var(--s98p-border-soft);border-radius:8px;padding:12px}
+      :root.soft98-pro-theme [data-soft98-pro-forum] :is(textarea,input){border-radius:6px;padding:8px}
+      :root.soft98-pro-theme [data-soft98-pro-forum] form{display:grid;gap:9px;padding:12px;background:var(--s98p-surface-2);border-radius:7px}
+      :root.soft98-pro-theme [data-soft98-pro-forum] li{margin-block:7px;border-inline-start:2px solid var(--s98p-border);padding-inline-start:9px}
+      :root.soft98-pro-theme [data-soft98-pro-forum] ol{padding-inline-start:min(12px,3vw)}
+      :root.soft98-pro-theme [data-soft98-pro-legacy-accent~="color"]{color:var(--s98p-accent)!important}
+      :root.soft98-pro-theme [data-soft98-pro-legacy-accent~="background-color"]{background-color:color-mix(in srgb,var(--s98p-accent) 23%,var(--s98p-surface))!important}
+      :root.soft98-pro-theme [data-soft98-pro-legacy-accent~="border-block-start-color"]{border-block-start-color:var(--s98p-accent)!important}
+      :root.soft98-pro-theme [data-soft98-pro-legacy-accent~="border-inline-start-color"]{border-inline-start-color:var(--s98p-accent)!important}
+      :root.soft98-pro-theme [data-soft98-pro-read-preview]{position:relative;display:inline-block;margin-inline-start:6px}
+      :root.soft98-pro-theme [data-soft98-pro-read-preview] > button{min-height:36px;padding-inline:9px}
+      :root.soft98-pro-theme [data-soft98-pro-preview-panel]{position:absolute;inset-inline-start:0;inset-block-end:100%;z-index:8;min-width:min(250px,75vw);max-width:min(340px,85vw);display:grid;gap:5px;padding:12px;border:1px solid var(--s98p-border);border-radius:7px;background:var(--s98p-elevated);box-shadow:0 8px 25px #0008}
+      :root.soft98-pro-theme [data-soft98-pro-preview-panel][hidden],:root:not(.soft98-pro-theme) [data-soft98-pro-read-preview]{display:none!important}
+      @media(max-width:640px){:root.soft98-pro-theme [data-soft98-pro-footer]{grid-template-columns:minmax(0,1fr)}}
+      @media(prefers-reduced-motion:reduce){:root.soft98-pro-theme details[data-soft98-pro-faq] > summary svg{transition:none}}
       :root.soft98-pro-theme [data-soft98-pro-heading-divider]{border-inline-start:0!important;padding-inline-start:14px!important;position:relative!important}
       :root.soft98-pro-theme [data-soft98-pro-heading-divider]::before{content:""!important;position:absolute!important;inset-inline-start:0!important;inset-block-start:50%!important;transform:translateY(-50%)!important;width:4px!important;height:1.15em!important;border:0!important;border-radius:3px!important;background:linear-gradient(180deg,var(--s98p-link),color-mix(in srgb,var(--s98p-link) 40%,var(--s98p-border)))!important;box-shadow:0 0 8px color-mix(in srgb,var(--s98p-link) 15%,transparent)!important;pointer-events:none!important}
       @media(max-width:560px){:root.soft98-pro-theme [data-soft98-pro-nav-item=icon]{width:clamp(32px,9vw,40px);margin-inline:1px}}
@@ -1185,11 +1321,11 @@
       if (!shell || shell === document.body) continue;
       const box = visibleBox(shell);
       const style = getComputedStyle(shell);
-      if (box.width >= window.innerWidth * 0.72 && box.height > 30 && box.height < 120 && /fixed|sticky/.test(style.position)) {
+      if (box.width >= Math.min(1200, window.innerWidth * 0.72) && box.height > 30 && box.height < 120 && /fixed|sticky/.test(style.position)) {
         shell.setAttribute("data-soft98-pro-surface", "nav-shell");
       }
       const navigationBox = visibleBox(navigation);
-      if (navigationBox.width >= window.innerWidth * 0.72 && navigationBox.height <= 120) {
+      if (navigationBox.width >= Math.min(1200, window.innerWidth * 0.72) && navigationBox.height <= 120) {
         for (const item of navigation.querySelectorAll("li > :is(a[href],button), :scope > button")) {
           if (item.closest("[data-soft98-pro-menu]") || item.closest("li")?.parentElement.closest("li")) continue;
           const bounds = visibleBox(item);
@@ -1307,25 +1443,11 @@
         heading.setAttribute("data-soft98-pro-heading-divider", "");
       }
     }
-    for (const list of document.querySelectorAll("article [role=tabpanel] dl")) {
-      if (!list.querySelector("dt") || !list.querySelector("dd a[href]")) continue;
-      list.setAttribute("data-soft98-pro-download-group", "");
-      for (const label of list.querySelectorAll("dt > span,dd > a[href]")) {
-        const icon = downloadIcon(label);
-        if (icon) decorateIcon(label, icon);
-        if (label.matches("a[href]")) prepareDownloadRow(label, icon);
-      }
-      const pane = list.closest("[role=tabpanel]");
-      for (const label of pane.querySelectorAll("[data-toggle=copy], :is(div,button):has(> input[readonly])")) {
-        if (!/^(?:پسوردفایل|رمزفایل|filepassword)/i.test(normalizedPersian(label.textContent || ""))) continue;
-        label.setAttribute("data-soft98-pro-password", "");
-        decorateIcon(label, "lock");
-        enhancePassword(label);
-      }
-    }
+    enhanceDownloadSections();
     for (const details of document.querySelectorAll("article details:has(> summary)")) {
       details.setAttribute("data-soft98-pro-faq", "");
       decorateIcon(details.querySelector(":scope > summary"), "chevron");
+      bindFaqMotion(details);
     }
     if (!settings.compactLayout) return;
     for (const main of document.querySelectorAll("main")) {
@@ -1343,6 +1465,10 @@
         const direction = document.documentElement.dir || getComputedStyle(container).direction;
         container.setAttribute("data-soft98-pro-layout", "content-grid");
         container.setAttribute("data-soft98-pro-reading", direction === "rtl" ? "rtl" : "ltr");
+        for (let wrapper = container.parentElement, depth = 0; wrapper && wrapper !== document.body && depth < 3; wrapper = wrapper.parentElement, depth += 1) {
+          const max = Number.parseFloat(getComputedStyle(wrapper).maxWidth);
+          if (max >= 1100 && max <= 2200) wrapper.setAttribute("data-soft98-pro-content-frame", "");
+        }
         primary.setAttribute("data-soft98-pro-column", "primary");
         secondary.setAttribute("data-soft98-pro-column", "secondary");
         contentGrids.set(container, secondary);
@@ -1365,6 +1491,12 @@
           continue;
         }
         const box = sidebar.getBoundingClientRect();
+        const empty = ![...sidebar.querySelectorAll("header,a[href],button,form,img,iframe")].some((node) => isLiveSidebarCard(node, sidebar));
+        if (grid.hasAttribute("data-soft98-pro-sidebar-empty") !== empty) grid.toggleAttribute("data-soft98-pro-sidebar-empty", empty);
+        if (empty) {
+          grid.removeAttribute("data-soft98-pro-main-wide");
+          continue;
+        }
         const space = box.width + (Number.parseFloat(getComputedStyle(grid).columnGap) || 0);
         const progress = enabled && !sidebar.contains(document.activeElement) && (box.height > 0 || grid.getBoundingClientRect().top < 0)
           ? Math.min(space, Math.max(0, -box.bottom)) : 0;
@@ -1385,59 +1517,676 @@
     });
   }
 
-  function downloadDestination(link) {
+  function bindFaqMotion(details) {
+    if (faqAnimations.has(details)) return;
+    faqAnimations.set(details, null);
+    const summary = details.querySelector(":scope > summary");
+    summary.addEventListener("click", (event) => {
+      if (!document.documentElement.classList.contains("soft98-pro-theme") || !details.animate ||
+          matchMedia("(prefers-reduced-motion: reduce)").matches || event.target.closest("a,button,input")) return;
+      event.preventDefault();
+      const from = details.getBoundingClientRect().height;
+      faqAnimations.get(details)?.cancel();
+      const opening = !details.open || details.hasAttribute("data-soft98-pro-closing");
+      details.toggleAttribute("data-soft98-pro-closing", !opening);
+      if (opening) details.open = true;
+      const to = opening ? details.getBoundingClientRect().height : summary.getBoundingClientRect().height;
+      const animation = details.animate([{ height: from + "px", overflow: "hidden" }, { height: to + "px", overflow: "hidden" }],
+        { duration: 230, easing: "cubic-bezier(.24,.76,.25,1)" });
+      faqAnimations.set(details, animation);
+      animation.onfinish = () => {
+        details.open = opening;
+        details.removeAttribute("data-soft98-pro-closing");
+        faqAnimations.set(details, null);
+      };
+    });
+  }
+
+  function syncNativeNightMode() {
+    if (!settings.pro || !siteThemeReady || !document.body || updatingSiteTheme || nativeThemeChangePending) return;
+    const trigger = document.querySelector('nav [data-toggle="night-mode"]');
+    if (!trigger) return;
+    const desired = Boolean(settings.darkDesign || settings.rgbMode);
+    trigger.setAttribute("aria-pressed", String(desired));
+    if (document.body.classList.contains("night-mode") === desired) return;
+    updatingSiteTheme = true;
     try {
-      const url = new URL(savedHref.get(link) || link.href, location.href);
-      if (url.protocol !== "https:" || url.username || url.password || url.port ||
-          !/\.(?:zip|rar|7z|exe|msi|dmg|apk|iso|deb|rpm|tar|gz|xz|bz2|bin|img|pkg|001)$/i.test(url.pathname)) return null;
-      if (/^\?\d+$/.test(url.search) && (url.hostname === "soft98.ir" || url.hostname.endsWith(".soft98.ir"))) {
-        url.search = "";
-        link.setAttribute("href", url.href);
-        if (savedHref.has(link)) {
-          savedHref.set(link, url.href);
-          link.setAttribute(DATA_HREF, url.href);
-        }
+      trigger.click();
+      if (document.body.classList.contains("night-mode") !== desired) {
+        document.body.classList.toggle("night-mode", desired);
       }
+    } finally { updatingSiteTheme = false; }
+  }
+
+  function applySiteChrome() {
+    const nav = document.querySelector('nav:has([data-toggle="night-mode"]),header nav');
+    if (nav) {
+      nav.setAttribute("data-soft98-pro-nav-chrome", "");
+      nav.setAttribute("data-soft98-pro-wide-nav", "");
+      for (const button of nav.querySelectorAll("button")) {
+        const target = (button.getAttribute("data-target") || "").slice(1);
+        const targetNode = target ? document.getElementById(target) : null;
+        const toggle = button.getAttribute("data-toggle");
+        const label = normalizedPersian(button.getAttribute("title") || "");
+        const kind = toggle === "night-mode" ? (settings.darkDesign || settings.rgbMode ? "sun" : "moon") :
+          toggle === "search" ? "search" : targetNode?.querySelector("input[type=password]") ? "author" :
+          button.hasAttribute("data-soft98-pro-download-notice") || (label.includes("اطلاعیه") && label.includes("دانلود")) ? "bell" :
+          toggle === "dropdown" && button.closest("li")?.querySelector('a[href*="feedback"]') ? "mail" :
+          button.parentElement === nav && button.hasAttribute("aria-controls") ? "menu" : null;
+        if (!kind) continue;
+        decorateIcon(button, kind);
+        button.setAttribute("data-soft98-pro-header-icon", "");
+        if (!button.hasAttribute("aria-label")) button.setAttribute("aria-label", text("navLabels." + (kind === "sun" ? "moon" : kind)));
+        if (kind === "bell") {
+          button.setAttribute("data-soft98-pro-download-notice", "");
+          button.removeAttribute("title");
+          button.removeAttribute("data-html");
+          button.removeAttribute("data-placement");
+        }
+        if (kind === "search" && targetNode) targetNode.setAttribute("data-soft98-pro-search", "");
+      }
+      for (const link of nav.querySelectorAll('a[href]')) {
+        if (normalizedPersian(link.textContent || "") === "تبلیغات") link.remove();
+      }
+    }
+    if (location.pathname === "/feedback.html") {
+      for (const image of document.querySelectorAll("img[src]")) {
+        const url = new URL(image.src, location.href);
+        if (url.origin === location.origin && url.pathname === "/support.png") (image.closest("a") || image).remove();
+      }
+    }
+    for (const item of document.querySelectorAll("main article a[href],main article button")) {
+      const label = normalizedPersian((item.textContent || "") + " " + (item.getAttribute("aria-label") || item.title || ""));
+      if (label.includes("ادامهمطلب")) {
+        item.setAttribute("data-soft98-pro-read-more", "");
+        decorateIcon(item, "arrow");
+        bindArticlePreview(item);
+      }
+    }
+    for (const list of document.querySelectorAll("aside, [data-soft98-pro-column=secondary]")) {
+      for (const card of list.querySelectorAll(":scope > section:has(> header)")) {
+        const content = [...card.children].filter((node) => !node.matches("header,hr,script,style"));
+        if (content.length && content.every((node) => !isLiveSidebarCard(node))) card.remove();
+      }
+      for (const rule of list.querySelectorAll(":scope > hr")) {
+        if (!isLiveSidebarCard(rule.previousElementSibling) || !isLiveSidebarCard(rule.nextElementSibling)) rule.remove();
+      }
+    }
+    for (const input of document.querySelectorAll("article textarea[name=comments]")) {
+      const pane = input.closest("[role=tabpanel]") || input.parentElement.closest("section");
+      if (pane) pane.setAttribute("data-soft98-pro-forum", "");
+    }
+    for (const image of document.querySelectorAll("[data-soft98-pro-search] img")) {
+      const label = ((image.alt || "") + " " + (image.closest("a")?.pathname || "") + " " + image.src).toLowerCase();
+      const kind = /firefox/.test(label) ? "firefox" : /google[- ]?chrome/.test(label) ? "chrome" :
+        /microsoft[- ]?edge/.test(label) ? "edge" : /winrar/.test(label) ? "winrar" :
+        /revo[- ]?uninstaller/.test(label) ? "revo" : /free[- ]?download[- ]?manager/.test(label) ? "freedownloadmanager" : "";
+      if (kind && !image.hasAttribute("data-soft98-pro-search-art")) {
+        const template = document.createElement("template");
+        template.innerHTML = PAGE_ICONS[kind];
+        image.src = template.content.firstElementChild.src;
+        image.removeAttribute("srcset");
+        image.setAttribute("data-soft98-pro-search-art", "");
+      }
+    }
+    for (const node of document.querySelectorAll("nav a, nav button, nav i, aside a, main :is(a,button,[role=button],mark)")) {
+      if (node.hasAttribute("data-soft98-pro-legacy-accent") || isOwnedInterface(node)) continue;
+      const style = getComputedStyle(node);
+      const roles = legacyToneKinds.filter((kind) => style.getPropertyValue(kind) === "rgb(123, 173, 73)");
+      if (roles.length) node.setAttribute("data-soft98-pro-legacy-accent", roles.join(" "));
+    }
+    styleSiteDialogs();
+    syncUtilityPlacement(nav);
+    renderSiteFooter();
+    document.documentElement.setAttribute("data-soft98-pro-chrome", "");
+    if (nav?.querySelector('[data-toggle="night-mode"]')) {
+      siteThemeReady = true;
+      syncNativeNightMode();
+    }
+  }
+
+  function inspectedRoles() {
+    const roles = ["layout", "column", "surface", "article-header", "article-meta", "search", "download-row", "utility-card", "dialog", "footer"];
+    const stable = {};
+    for (const role of roles) {
+      const attr = "data-soft98-pro-" + role;
+      stable[role] = [...document.querySelectorAll("[" + attr + "]")].slice(0, 25).map((node) => ({
+        tag: node.localName, role: node.getAttribute(attr) || role, upstreamClasses: [...node.classList].slice(0, 8)
+      }));
+    }
+    return stable;
+  }
+
+  function bindArticlePreview(trigger) {
+    if (trigger.nextElementSibling?.matches("[data-soft98-pro-read-preview]") ||
+        !document.documentElement.classList.contains("soft98-pro-theme")) return;
+    const article = trigger.closest("article");
+    const headline = article?.querySelector("header :is(h1,h2,h3) a[href]");
+    const candidate = [trigger, headline].find((link) => link?.href && link.origin === location.origin &&
+      /\/\d+[^/]*\.html$/i.test(link.pathname) && link.pathname !== location.pathname);
+    const destination = candidate?.href;
+    const wrap = document.createElement("span");
+    const button = document.createElement("button");
+    const panel = document.createElement("span");
+    button.type = "button";
+    button.textContent = text("articlePreview");
+    button.setAttribute("aria-expanded", "false");
+    panel.hidden = true;
+    wrap.setAttribute("data-soft98-pro-read-preview", "");
+    panel.setAttribute("data-soft98-pro-preview-panel", "");
+    panel.setAttribute("role", "region");
+    wrap.append(button, panel);
+    trigger.after(wrap);
+    let hover;
+    const dismiss = () => {
+      clearTimeout(hover);
+      button.setAttribute("aria-expanded", "false");
+      panel.hidden = true;
+    };
+    const open = async () => {
+      button.setAttribute("aria-expanded", "true");
+      panel.hidden = false;
+      panel.textContent = text("previewLoading");
+      const links = destination ? await readArticleLinks(destination) : [];
+      if (panel.hidden) return;
+      panel.replaceChildren();
+      const makeLink = (label, href) => {
+        const item = document.createElement("a");
+        item.textContent = label;
+        item.href = href;
+        return item;
+      };
+      if (!links.length && !destination) {
+        const original = document.createElement("button");
+        original.type = "button";
+        original.textContent = text("previewOpenArticle");
+        original.addEventListener("click", () => trigger.click());
+        panel.append(original);
+      } else if (!links.length) panel.append(makeLink(text("previewOpenArticle"), destination));
+      else if (links.length === 1) panel.append(makeLink(links[0].label, links[0].href));
+      else {
+        const disclosure = document.createElement("details");
+        const summary = document.createElement("summary");
+        summary.textContent = text("articlePreview");
+        disclosure.open = true;
+        disclosure.append(summary, ...links.map((link) => makeLink(link.label, link.href)));
+        panel.append(disclosure);
+      }
+    };
+    wrap.addEventListener("pointerenter", () => { hover = setTimeout(open, 320); });
+    wrap.addEventListener("pointerleave", () => { if (!wrap.contains(document.activeElement)) dismiss(); });
+    wrap.addEventListener("focusout", (event) => { if (!wrap.contains(event.relatedTarget)) dismiss(); });
+    wrap.addEventListener("keydown", (event) => { if (event.key === "Escape") { dismiss(); button.focus(); } });
+    button.addEventListener("click", () => { if (panel.hidden) open(); else dismiss(); });
+  }
+
+  function readArticleLinks(destination) {
+    if (!nativeFetch) return Promise.resolve([]);
+    const existing = articlePreviewCache.get(destination);
+    if (existing && Date.now() - existing.time < 300000) return existing.result;
+    const result = nativeFetch(destination, { credentials: "omit", redirect: "error", signal: AbortSignal.timeout(3500) })
+      .then(async (response) => {
+        if (!response.ok || !response.headers.get("content-type")?.includes("text/html") || !response.body) return [];
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let html = "";
+        let bytes = 0;
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          bytes += value.byteLength;
+          if (bytes > 650000) { await reader.cancel(); return []; }
+          html += decoder.decode(value, { stream: true });
+        }
+        const doc = new DOMParser().parseFromString(html + decoder.decode(), "text/html");
+        const seen = new Set();
+        return [...doc.querySelectorAll("article [role=tabpanel] dl dd a[href]")].flatMap((link) => {
+          const url = URL.parse(link.getAttribute("href"), destination);
+          if (!url || url.protocol !== "https:" || url.username || url.password ||
+              !/\.(?:zip|rar|7z|exe|msi|dmg|apk|iso|deb|rpm|tar|gz|xz|bz2|bin|img|pkg)$/i.test(url.pathname) || seen.has(url.href)) return [];
+          seen.add(url.href);
+          return [{ href: url.href, label: link.textContent.trim().slice(0, 140) || url.pathname.split("/").at(-1) }];
+        }).slice(0, 12);
+      }).catch(() => []);
+    if (articlePreviewCache.size >= 24) articlePreviewCache.delete(articlePreviewCache.keys().next().value);
+    articlePreviewCache.set(destination, { time: Date.now(), result });
+    return result;
+  }
+
+  function bindSiteChromeEvents() {
+    document.addEventListener("click", (event) => {
+      const trigger = event.target.closest?.('nav [data-toggle="night-mode"]');
+      if (!trigger || !settings.pro || updatingSiteTheme) return;
+      const before = document.body.classList.contains("night-mode");
+      nativeThemeChangePending = true;
+      setTimeout(() => {
+        const native = document.body.classList.contains("night-mode");
+        const next = native === before ? !(settings.darkDesign || settings.rgbMode) : native;
+        nativeThemeChangePending = false;
+        writeSettings({ ...settings, darkDesign: next, rgbMode: next && settings.rgbMode });
+      }, 0);
+    }, true);
+    document.addEventListener("click", (event) => {
+      if (event.target.closest?.("[data-soft98-pro-download-notice]")) dialogRequested = true;
+    }, true);
+    document.addEventListener("keydown", (event) => {
+      if (!settings.pro || event.key !== "F2" || event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey ||
+          event.target.closest?.("input,textarea,select,[contenteditable=true]")) return;
+      const trigger = document.querySelector('nav [data-toggle="search"]');
+      if (!trigger) return;
+      event.preventDefault();
+      const target = trigger.getAttribute("data-target") || "";
+      const panel = target.startsWith("#") ? document.getElementById(target.slice(1)) : null;
+      const input = panel?.querySelector('input[type="search"]');
+      if (input === document.activeElement) return;
+      trigger.click();
+      if (!input) return;
+      const deadline = performance.now() + 350;
+      const focusedBeforeOpen = document.activeElement;
+      const focusSearch = () => {
+        if (document.activeElement !== focusedBeforeOpen || !input.isConnected) return;
+        if (input.getClientRects().length) input.focus({ preventScroll:true });
+        if (document.activeElement !== input && performance.now() < deadline) requestAnimationFrame(focusSearch);
+      };
+      requestAnimationFrame(focusSearch);
+    });
+    window.addEventListener("popstate", setDialogFromHash);
+    window.addEventListener("hashchange", setDialogFromHash);
+    window.addEventListener("load", () => {
+      siteThemeReady = true;
+      syncNativeNightMode();
+      schedule(document);
+    }, {once:true});
+    if (document.readyState === "complete") {
+      siteThemeReady = true;
+      syncNativeNightMode();
+    }
+    document.addEventListener("click", (event) => {
+      if (!event.isTrusted || !settings.pro || !settings.soundFeedback || !event.target.closest?.(
+        "#soft98-pro-control button,#soft98-pro-control label,[data-soft98-pro-nav-item],[data-soft98-pro-read-preview] button")) return;
+      playInterfaceCue();
+    }, true);
+  }
+
+  function playInterfaceCue() {
+    if (!window.AudioContext || document.hidden || performance.now() - audioAt < 160) return;
+    audioAt = performance.now();
+    try {
+      audioContext ||= new AudioContext();
+      const context = audioContext;
+      const play = () => {
+        if (!settings.soundFeedback || document.hidden) return;
+        const start = context.currentTime;
+        const tone = context.createOscillator();
+        const gain = context.createGain();
+        tone.type = "sine";
+        tone.frequency.setValueAtTime(610, start);
+        tone.frequency.exponentialRampToValueAtTime(460, start + .075);
+        gain.gain.setValueAtTime(.0001, start);
+        gain.gain.exponentialRampToValueAtTime(.045, start + .008);
+        gain.gain.exponentialRampToValueAtTime(.0001, start + .09);
+        tone.connect(gain).connect(context.destination);
+        tone.start();
+        tone.stop(start + .1);
+        tone.onended = () => { tone.disconnect(); gain.disconnect(); };
+      };
+      if (context.state === "running") play();
+      else context.resume().then(play).catch(() => {});
+    } catch (_error) {}
+  }
+
+  function restoreUtilityPlacement() {
+    for (const [card, position] of restoredUtilityCards) {
+      if (position.dialog.open) position.dialog.close();
+      if (position.marker.isConnected) position.marker.replaceWith(card);
+      position.dialog.remove();
+      position.button.parentElement?.remove();
+      proDialogs.delete("utility");
+      restoredUtilityCards.delete(card);
+    }
+  }
+
+  function syncUtilityPlacement(nav) {
+    if (!settings.utilityInHeader || !nav || !document.documentElement.classList.contains("soft98-pro-theme")) {
+      restoreUtilityPlacement();
+      return;
+    }
+    for (const [card, position] of restoredUtilityCards) {
+      if (!card.isConnected || !position.marker.isConnected) {
+        position.dialog.remove();
+        position.button.parentElement?.remove();
+        restoredUtilityCards.delete(card);
+        proDialogs.delete("utility");
+      } else return;
+    }
+    const card = document.querySelector("[data-soft98-pro-utility-card]");
+    const action = nav.querySelector('[data-toggle="search"]');
+    const list = action?.closest("li")?.parentElement;
+    if (!card || !list || typeof window.HTMLDialogElement?.prototype.showModal !== "function") return;
+    const marker = document.createComment("Soft98 Pro utility sidebar position");
+    const dialog = document.createElement("dialog");
+    dialog.setAttribute("data-soft98-pro-native-dialog", "");
+    dialog.setAttribute("data-soft98-pro-dialog-panel", "");
+    dialog.setAttribute("aria-labelledby", "soft98-pro-utility-title");
+    const header = document.createElement("header");
+    header.setAttribute("data-soft98-pro-dialog-header", "");
+    const heading = document.createElement("strong");
+    heading.id = "soft98-pro-utility-title";
+    heading.textContent = text("utilityTitle");
+    const close = document.createElement("button");
+    close.type = "button";
+    close.textContent = text("close");
+    close.addEventListener("click", () => dialog.close());
+    header.append(heading, close);
+    const item = document.createElement("li");
+    const button = document.createElement("button");
+    button.type = "button";
+    button.setAttribute("data-soft98-pro-nav-item", "icon");
+    button.setAttribute("data-soft98-pro-header-icon", "");
+    button.setAttribute("aria-haspopup", "dialog");
+    button.setAttribute("aria-label", text("utilityTitle"));
+    button.title = text("utilityTitle");
+    decorateIcon(button, "grid");
+    item.append(button);
+    list.append(item);
+    card.before(marker);
+    dialog.append(header, card);
+    document.body.append(dialog);
+    proDialogs.set("utility", dialog);
+    button.addEventListener("click", () => {
+      if (!dialog.open) dialog.showModal();
+      styleSiteDialogs();
+    });
+    dialog.addEventListener("click", (event) => {
+      const box = dialog.getBoundingClientRect();
+      if (event.target === dialog && (event.clientX < box.left || event.clientX > box.right ||
+          event.clientY < box.top || event.clientY > box.bottom)) dialog.close();
+    });
+    restoredUtilityCards.set(card, { marker, dialog, button });
+  }
+
+  function renderSiteFooter() {
+    const footer = [...document.querySelectorAll("footer")].find((node) =>
+      !node.closest("article,aside,dialog,#soft98-pro-control") && /(?:کپیبرداری|ترافیکداخلی)/u.test(normalizedPersian(node.textContent || "")));
+    if (!footer) return;
+    if (!stockFooters.has(footer)) stockFooters.set(footer, [footer.style.getPropertyValue("display"), footer.style.getPropertyPriority("display")]);
+    if (footer.style.display !== "none") footer.style.setProperty("display", "none", "important");
+    footer.setAttribute("data-soft98-pro-stock-footer", "");
+    if (footer.nextElementSibling?.matches("[data-soft98-pro-footer]")) return;
+    const replacement = document.createElement("footer");
+    replacement.setAttribute("data-soft98-pro-footer", "");
+    localizeElement(replacement);
+    for (const [key, destination] of [["footerAbout", ""], ["footerProject", EXTENSION_REPO], ["footerFeedback", EXTENSION_REPO + "/issues"]]) {
+      const card = document.createElement("section");
+      const heading = document.createElement(destination ? "a" : "strong");
+      if (destination) {
+        heading.href = destination;
+        heading.target = "_blank";
+        heading.rel = "noopener noreferrer";
+      }
+      heading.textContent = text(key + ".title");
+      const description = document.createElement("p");
+      description.textContent = text(key + ".detail");
+      card.append(heading, description);
+      replacement.append(card);
+    }
+    footer.after(replacement);
+  }
+
+  function dialogVisible(node) {
+    return Boolean(node?.isConnected && (node.matches("dialog") ? node.open :
+      getComputedStyle(node).display !== "none" && node.getAttribute("aria-hidden") !== "true" && node.getClientRects().length));
+  }
+
+  function styleSiteDialogs() {
+    const active = new Map(proDialogs);
+    siteReadOnlyDialogs.clear();
+    const triggers = document.querySelectorAll('[data-target^="#"][data-toggle]:not([data-toggle="search"],[data-toggle="tab"],[data-toggle="collapse"])');
+    for (const trigger of triggers) {
+      const id = trigger.getAttribute("data-target").slice(1);
+      const target = document.getElementById(id);
+      const frame = target?.querySelector('[role="document"]');
+      const panel = frame?.firstElementChild;
+      if (!panel) continue;
+      target.setAttribute("data-soft98-pro-dialog", "");
+      panel.setAttribute("data-soft98-pro-dialog-panel", "");
+      const heading = panel.querySelector("h1,h2,h3,h4,h5,h6");
+      if (heading && heading.parentElement !== panel) heading.parentElement.setAttribute("data-soft98-pro-dialog-header", "");
+      if (trigger.querySelector('[data-soft98-pro-page-icon="bell"]')) {
+        target.setAttribute("data-soft98-pro-dialog", "notice");
+        active.set("download-notice", target);
+      } else if (/^[a-z][a-z\d-]{1,46}$/i.test(id) && !panel.querySelector("form,input,textarea,select") && panel.querySelector("[data-dismiss]")) {
+        const key = "help-" + id.toLowerCase();
+        active.set(key, target);
+        siteReadOnlyDialogs.set(key, { trigger, target });
+      }
+    }
+    for (const panel of document.querySelectorAll('[role="document"]')) {
+      const target = panel.parentElement;
+      if (!target?.querySelector("[data-dismiss]") || !target.id) continue;
+      const content = panel.firstElementChild;
+      const heading = content?.querySelector("h1,h2,h3,h4,h5,h6");
+      if (!heading) continue;
+      if (!target.hasAttribute("data-soft98-pro-dialog")) target.setAttribute("data-soft98-pro-dialog", "");
+      content.setAttribute("data-soft98-pro-dialog-panel", "");
+      if (heading.parentElement !== content) heading.parentElement.setAttribute("data-soft98-pro-dialog-header", "");
+    }
+    const hash = /^#s98p-dialog=(utility|download-notice|help-[a-z\d-]{2,47})$/.exec(location.hash)?.[1] || "";
+    const open = [...active].find(([key, node]) => (key !== "download-notice" || dialogRequested || hash) && dialogVisible(node))?.[0] || "";
+    if (hash && !open && !currentDialogKey && !dialogHistoryBound) {
+      const target = active.get(hash);
+      if (target) setDialogFromHash();
+    } else if (open !== currentDialogKey) {
+      if (open && hash !== open) {
+        history.pushState({ ...history.state, soft98ProDialog: open, soft98ProReturn: hash ? "" : location.hash }, "", "#s98p-dialog=" + open);
+      } else if (!open && hash === currentDialogKey && hash) {
+        const {soft98ProDialog: _dialog, soft98ProReturn: returnHash, ...state} = history.state || {};
+        history.replaceState(state, "", location.pathname + location.search + (returnHash || ""));
+      }
+      currentDialogKey = open;
+    }
+    if (active.size) dialogHistoryBound = true;
+    for (const node of active.values()) {
+      if (dialogState.has(node)) continue;
+      dialogState.set(node, true);
+      node.addEventListener("close", () => schedule(document));
+      node.addEventListener("toggle", () => schedule(document));
+    }
+  }
+
+  function setDialogFromHash() {
+    if (!settings.pro) return;
+    const key = /^#s98p-dialog=(utility|download-notice|help-[a-z\d-]{2,47})$/.exec(location.hash)?.[1] || "";
+    const bell = document.querySelector('nav [data-soft98-pro-header-icon]:has([data-soft98-pro-page-icon=bell])');
+    const notice = bell && document.getElementById((bell.getAttribute("data-target") || "").slice(1));
+    const utility = proDialogs.get("utility");
+    if (key !== "utility" && utility?.open) utility.close();
+    if (key !== "download-notice" && dialogVisible(notice)) notice.querySelector("[data-dismiss]")?.click();
+    for (const [name, {target}] of siteReadOnlyDialogs) {
+      if (name !== key && dialogVisible(target)) target.querySelector("[data-dismiss]")?.click();
+    }
+    currentDialogKey = key;
+    if (key === "utility" && utility && !utility.open) utility.showModal();
+    if (key === "download-notice" && bell && !dialogVisible(notice)) bell.click();
+    const help = siteReadOnlyDialogs.get(key);
+    if (help && !dialogVisible(help.target)) help.trigger.click();
+  }
+
+  function directDownloadUrl(value) {
+    try {
+      if (!value || isBadHref(value)) return null;
+      const url = new URL(value, location.href);
+      if (url.protocol !== "https:" || url.username || url.password || url.port ||
+          !/\.(?:zip|rar|7z|exe|msi|msix|appx|dmg|apk|iso|deb|rpm|tar|gz|xz|bz2|bin|img|pkg|001)$/i.test(url.pathname)) return null;
+      if (/^\?\d+$/.test(url.search) && (url.hostname === "soft98.ir" || url.hostname.endsWith(".soft98.ir"))) url.search = "";
       return url;
     } catch (_error) {
       return null;
     }
   }
 
-  function prepareDownloadRow(link, icon) {
-    const url = downloadDestination(link);
-    if (!url && !/^(?:دانلود|download)/i.test(normalizedPersian(link.textContent || ""))) return;
+  function downloadDestination(link, normalize = false) {
+    const href = link.getAttribute("href");
+    const current = directDownloadUrl(href);
+    if (normalize && current && /^\?\d+$/.test(new URL(href, location.href).search) && !current.search) {
+      link.setAttribute("href", current.href);
+      if (savedHref.has(link)) {
+        savedHref.set(link, current.href);
+        link.setAttribute(DATA_HREF, current.href);
+      }
+    }
+    return current || directDownloadUrl(savedHref.get(link));
+  }
+
+  function enhanceDownloadSections() {
+    const panes = new Set();
+    for (const list of document.querySelectorAll("article [role=tabpanel] dl:has(> dt):has(> dd > a[href])")) {
+      if (!list.hasAttribute("data-soft98-pro-download-group") &&
+          ![...list.querySelectorAll(":scope > dd > a[href]")].some((link) => directDownloadUrl(link.getAttribute("href")) ||
+            /^(?:دانلود|download)/i.test(normalizedPersian(link.textContent || "")))) continue;
+      list.setAttribute("data-soft98-pro-download-group", "");
+      panes.add(list.closest("[role=tabpanel]"));
+      let heading;
+      let entries = [];
+      const finish = () => { if (heading && entries.length) enhanceDownloadHeading(heading, entries); };
+      for (const item of list.children) {
+        if (item.tagName === "DT") {
+          finish();
+          heading = item;
+          entries = [];
+          const label = item.querySelector(":scope > span:not([data-soft98-pro-download-actions])");
+          const icon = label && downloadIcon(label);
+          if (icon) decorateIcon(label, icon);
+        } else if (item.tagName === "DD") {
+          entries.push(item);
+          const links = item.querySelectorAll(":scope > a[href]");
+          if (links.length !== 1) continue;
+          const [link] = links;
+          item.setAttribute("data-soft98-pro-download-entry", "");
+          prepareDownloadRow(link, downloadIcon(link) || "link", downloadDestination(link, true));
+        }
+      }
+      finish();
+    }
+    for (const pane of panes) {
+      for (const label of pane.querySelectorAll("[data-toggle=copy], :is(div,button):has(> input[readonly])")) {
+        if (!/^(?:پسوردفایل|رمزفایل|filepassword)/i.test(normalizedPersian(label.textContent || ""))) continue;
+        label.setAttribute("data-soft98-pro-password", "");
+        decorateIcon(label, "lock");
+        enhancePassword(label);
+      }
+    }
+  }
+
+  function directSectionLinks(entries) {
+    const urls = new Set();
+    for (const item of entries) {
+      if (item.hidden || item.style.display === "none") continue;
+      for (const link of item.querySelectorAll(":scope > a[href]:not([hidden])")) {
+        const url = downloadDestination(link);
+        if (url) urls.add(url.href);
+      }
+    }
+    return [...urls];
+  }
+
+  function enhanceDownloadHeading(heading, entries) {
+    let state = downloadHeadings.get(heading);
+    if (!state?.controls.isConnected) {
+      heading.querySelectorAll(":scope > [data-soft98-pro-download-actions]").forEach((node) => node.remove());
+      const controls = localizeElement(document.createElement("span"));
+      controls.setAttribute("data-soft98-pro-download-actions", "");
+      const toggle = downloadButton("chevron");
+      const copy = downloadButton("copy");
+      copy.append(text("downloadCopyAll"));
+      controls.append(copy, toggle);
+      heading.setAttribute("data-soft98-pro-download-heading", "");
+      heading.append(controls);
+      state = { controls, toggle, copy, entries: [], collapsed: false };
+      downloadHeadings.set(heading, state);
+      toggle.addEventListener("click", (event) => {
+        event.stopPropagation();
+        state.collapsed = !state.collapsed;
+        syncDownloadCollapse(state);
+      });
+      copy.addEventListener("click", async (event) => {
+        event.stopPropagation();
+        const links = directSectionLinks(state.entries);
+        if (!links.length) return showDownloadToast("downloadNoDirectLinks", true);
+        try {
+          await navigator.clipboard.writeText(links.join("\n"));
+          showDownloadToast("downloadLinksCopied");
+        } catch (_error) {
+          showDownloadToast("downloadCopyFailed", true);
+        }
+      });
+    }
+    state.entries = entries;
+    const ids = entries.map((row) => {
+      if (!row.id) {
+        let id;
+        do { id = `soft98-pro-download-row-${++downloadRowId}`; } while (document.getElementById(id));
+        row.id = id;
+      }
+      return row.id;
+    }).join(" ");
+    if (state.toggle.getAttribute("aria-controls") !== ids) state.toggle.setAttribute("aria-controls", ids);
+    const noLinks = !directSectionLinks(entries).length;
+    if (state.copy.hidden !== noLinks) state.copy.hidden = noLinks;
+    syncDownloadCollapse(state);
+  }
+
+  function syncDownloadCollapse(state) {
+    for (const row of state.entries) row.toggleAttribute("data-soft98-pro-download-collapsed", state.collapsed);
+    const expanded = String(!state.collapsed);
+    if (state.toggle.getAttribute("aria-expanded") === expanded) return;
+    const label = text(state.collapsed ? "downloadExpandGroup" : "downloadCollapseGroup");
+    state.toggle.setAttribute("aria-expanded", expanded);
+    state.toggle.setAttribute("aria-label", label);
+    state.toggle.title = label;
+  }
+
+  function downloadButton(icon) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.innerHTML = PAGE_ICONS[icon];
+    button.firstElementChild.setAttribute("aria-hidden", "true");
+    return button;
+  }
+
+  function prepareDownloadRow(link, icon, url) {
     const previous = downloadRows.get(link);
-    if (previous?.title.parentNode === link && previous.url === url?.href) return;
+    const direct = url || /^(?:دانلود|download)/i.test(normalizedPersian(link.textContent || ""));
+    decorateIcon(link, direct && icon === "link" ? "download" : icon);
+    if (previous?.copy.parentNode === link && previous.title.parentNode === previous.copy && previous.url === url?.href) return;
     const originalSize = link.getAttribute("data-soft98-pro-inline-size");
     if (previous) {
       previous.meta.remove();
-      if (previous.title.parentNode === link) previous.title.replaceWith(...previous.title.childNodes);
+      if (link.contains(previous.title)) previous.title.replaceWith(...previous.title.childNodes);
+      if (link.contains(previous.copy)) previous.copy.replaceWith(...previous.copy.childNodes);
     }
+    for (const existing of link.querySelectorAll(":scope > [data-soft98-pro-download-copy]")) existing.replaceWith(...existing.childNodes);
     for (const existing of link.querySelectorAll(":scope > [data-soft98-pro-download-meta]")) existing.remove();
     for (const existing of link.querySelectorAll(":scope > [data-soft98-pro-download-title]")) existing.replaceWith(...existing.childNodes);
     const title = document.createElement("span");
     const meta = document.createElement("span");
+    const copy = document.createElement("span");
     title.setAttribute("data-soft98-pro-download-title", "");
     meta.setAttribute("data-soft98-pro-download-meta", "");
-    const inlineSize = (link.textContent || "").match(/\p{Nd}+(?:[,.٫٬]\p{Nd}+)*\s*(?:کیلوبایت|مگابایت|گیگابایت|ترابایت|[KMGT]i?B)(?!\p{L})/iu)?.[0] || previous?.inlineSize || originalSize;
+    copy.setAttribute("data-soft98-pro-download-copy", "");
+    for (const child of [...link.childNodes]) {
+      if (child.matches?.("[data-soft98-pro-page-icon]")) continue;
+      title.append(child);
+    }
+    const inlineSize = extractInlineDownloadSize(title) || previous?.inlineSize || originalSize;
     if (inlineSize) {
       meta.textContent = inlineSize;
       link.setAttribute("data-soft98-pro-inline-size", inlineSize);
     }
-    for (const child of [...link.childNodes]) {
-      if (child.matches?.("[data-soft98-pro-page-icon],[data-soft98-pro-download-meta]")) continue;
-      if (inlineSize && child.nodeType === Node.TEXT_NODE) {
-        const raw = child.nodeValue || "";
-        const shorter = raw.replace(/(?:^|\s)(?:با\s+حجم|size\s*:?)\s+.+?(?=\s*\(|$)/iu, " ").trim().replace(/ {2,}/g, " ");
-        child.nodeValue = shorter;
-      }
-      title.append(child);
-    }
-    if (!icon) decorateIcon(link, "download");
     link.setAttribute("data-soft98-pro-download-row", "");
-    link.append(title, meta);
-    downloadRows.set(link, { title, meta, url: url?.href, inlineSize });
+    copy.append(title, meta);
+    link.append(copy);
+    downloadRows.set(link, { copy, title, meta, url: url?.href, inlineSize });
     if (url && !url.search && (url.origin === location.origin || url.hostname.endsWith(".soft98.ir")) && "IntersectionObserver" in window) {
       downloadObserver ||= new IntersectionObserver((entries) => {
         for (const entry of entries) {
@@ -1448,6 +2197,25 @@
       }, { rootMargin: "160px" });
       downloadObserver.observe(link);
     }
+  }
+
+  function extractInlineDownloadSize(title) {
+    const label = title.textContent;
+    const match = label.match(/(^|[\s،,؛;]+)(?:(?:با\s+)?حجم\s*[:：]?\s*|size\s*[:：]?\s*)?(\p{Nd}+(?:[,.٫٬]\p{Nd}+)*\s*(?:کیلوبایت|مگابایت|گیگابایت|ترابایت|[KMGT]i?B))(?!\p{L})/iu);
+    if (!match || !label.slice(0, match.index).trim()) return null;
+    const start = match.index;
+    const end = start + match[0].length;
+    // Remove just the size run, including when the site wraps parts of it in inline markup.
+    const walker = document.createTreeWalker(title, NodeFilter.SHOW_TEXT);
+    let offset = 0;
+    for (let node = walker.nextNode(); node && offset < end; node = walker.nextNode()) {
+      const value = node.data;
+      const from = Math.max(0, start - offset);
+      const to = Math.min(value.length, end - offset);
+      if (to > from) node.deleteData(from, to - from);
+      offset += value.length;
+    }
+    return match[2];
   }
 
   function loadDownloadMetadata(link) {
@@ -1537,6 +2305,27 @@
         }
       }
     }
+    if (latestCards.size > 1) {
+      const cards = [...latestCards];
+      for (let frame = cards[0].parentElement, depth = 0; frame && frame !== document.body && depth < 4; frame = frame.parentElement, depth += 1) {
+        if (cards.every((card) => frame.contains(card)) && !frame.querySelector("main")) {
+          frame.setAttribute("data-soft98-pro-latest-frame", "");
+          for (let outer = frame.parentElement, level = 0; outer && outer !== document.body && level < 2 && !outer.querySelector("main"); outer = outer.parentElement, level += 1) {
+            outer.setAttribute("data-soft98-pro-latest-frame", "");
+          }
+          break;
+        }
+      }
+    }
+    for (const grid of document.querySelectorAll("[data-soft98-pro-layout=content-grid]")) {
+      const frame = grid.parentElement?.closest("[data-soft98-pro-content-frame]");
+      const band = frame?.previousElementSibling;
+      if (!band?.matches("div[data-soft98-pro-surface=raised]") ||
+          !band.previousElementSibling?.hasAttribute("data-soft98-pro-latest-frame")) continue;
+      if (!band.hasAttribute("data-soft98-pro-between-frames")) band.setAttribute("data-soft98-pro-between-frames", "");
+      const empty = !band.textContent.trim() && !band.querySelector("a,button,form,img,iframe,video,canvas,svg,[role]");
+      if (band.hasAttribute("data-soft98-pro-empty-band") !== empty) band.toggleAttribute("data-soft98-pro-empty-band", empty);
+    }
     for (const node of document.querySelectorAll("[data-soft98-pro-utility-card] > footer, article [role=tabpanel] a[href]")) {
       const label = normalizedPersian(node.textContent || "");
       if (node.matches("footer") || /نرمافزاررابرای(?:من|م)نصبکن/.test(label)) {
@@ -1595,67 +2384,72 @@
 
   function enhancePassword(container) {
     const input = container.querySelector("input[readonly]");
-    if (!input || passwordActions.get(container)?.isConnected) return;
+    const previous = passwordActions.get(container);
+    if (!input || (previous?.input === input && previous.controls.isConnected)) return;
+    previous?.listeners.abort();
+    const listeners = new AbortController();
     const existing = container.parentElement?.matches("[data-soft98-pro-password-shell]") ? container.parentElement : null;
     const shell = existing || document.createElement("div");
     const controls = document.createElement("span");
-    const status = document.createElement("span");
     shell.setAttribute("data-soft98-pro-password-shell", "");
     controls.setAttribute("data-soft98-pro-password-actions", "");
-    status.setAttribute("data-soft98-pro-password-status", "");
-    status.setAttribute("role", "status");
     const select = () => {
       input.focus({ preventScroll: true });
       input.select();
     };
-    for (const [icon, key] of [["select", "passwordSelect"], ["copy", "passwordCopy"]]) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.setAttribute("data-action", icon);
-      button.setAttribute("aria-label", text(key));
-      button.title = text(key);
-      button.innerHTML = PAGE_ICONS[icon];
-      button.firstElementChild.setAttribute("aria-hidden", "true");
-      button.addEventListener("click", async (event) => {
-        event.stopPropagation();
-        if (icon === "select") {
-          status.textContent = "";
-          select();
-          return;
-        }
-        status.textContent = "";
-        select();
-        // Keep the explicit click's user activation for browsers that gate clipboard writes.
-        try {
-          if (document.execCommand("copy")) {
-            status.textContent = text("passwordCopied");
-            return;
-          }
-        } catch (_error) {}
-        status.textContent = text("passwordCopyFallback");
-        try {
-          let deadline;
-          try {
-            await Promise.race([navigator.clipboard.writeText(input.value),
-              new Promise((_, reject) => { deadline = setTimeout(reject, 1500); })]);
-          } finally {
-            clearTimeout(deadline);
-          }
-          status.textContent = text("passwordCopied");
-        } catch (_error) {
-          // The password is already selected for manual copying.
-        }
-      });
-      controls.append(button);
-    }
+    container.addEventListener("click", (event) => {
+      if (!document.documentElement.classList.contains("soft98-pro-theme")) return;
+      // The native delegated click copies the password, then blurs the input on a timer.
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      select();
+    }, { capture: true, signal: listeners.signal });
+    const button = downloadButton("copy");
+    button.setAttribute("data-action", "copy");
+    button.setAttribute("aria-label", text("passwordCopy"));
+    button.title = text("passwordCopy");
+    button.addEventListener("mousedown", (event) => {
+      if (document.activeElement === input) event.preventDefault();
+    });
+    button.addEventListener("click", async (event) => {
+      event.stopPropagation();
+      select();
+      try {
+        if (document.execCommand("copy")) return showDownloadToast("passwordCopied");
+      } catch (_error) {}
+      try {
+        await navigator.clipboard.writeText(input.value);
+        showDownloadToast("passwordCopied");
+      } catch (_error) {
+        showDownloadToast("passwordCopyFallback", true);
+      }
+    });
+    controls.append(button);
     if (!existing) {
       container.before(shell);
       shell.append(container);
-    } else {
-      shell.querySelectorAll(":scope > [data-soft98-pro-password-actions], :scope > [data-soft98-pro-password-status]").forEach((node) => node.remove());
+    } else shell.querySelectorAll(":scope > [data-soft98-pro-password-actions]").forEach((node) => node.remove());
+    shell.append(controls);
+    passwordActions.set(container, { input, controls, listeners });
+  }
+
+  function showDownloadToast(key, failed = false) {
+    let toast = document.querySelector("[data-soft98-pro-copy-toast]");
+    if (!toast) {
+      toast = localizeElement(document.createElement("div"));
+      toast.setAttribute("data-soft98-pro-copy-toast", "");
+      toast.setAttribute("role", "status");
+      toast.setAttribute("aria-atomic", "true");
+      document.body.append(toast);
     }
-    shell.append(controls, status);
-    passwordActions.set(container, controls);
+    clearTimeout(downloadToastTimer);
+    toast.toggleAttribute("data-error", failed);
+    toast.textContent = text(key);
+    toast.setAttribute("data-visible", "");
+    downloadToastTimer = setTimeout(() => {
+      toast.removeAttribute("data-visible");
+      toast.textContent = "";
+    }, 2600);
   }
 
   function normalizeLabel(node, rtl) {
@@ -1712,7 +2506,7 @@
   }
 
   function applyUtilityListHeuristics() {
-    const scopes = [...document.querySelectorAll("aside,[data-soft98-pro-column=secondary]")];
+    const scopes = [...document.querySelectorAll("aside,[data-soft98-pro-column=secondary],[data-soft98-pro-utility-card]")];
     for (const scope of scopes) {
       for (const list of scope.querySelectorAll("ul,ol")) {
         const items = [...list.children].filter((node) => node.matches("li"));
@@ -1737,6 +2531,8 @@
         if (utilityCard) {
           card.setAttribute("data-soft98-pro-utility-card", "");
           heading.closest("header").setAttribute("data-soft98-pro-utility-header", "");
+          const clean = (heading.textContent || "").normalize("NFKC").replace(/\u0640/g, "").replace(/\s+/gu, " ").trim();
+          if (clean !== heading.textContent) heading.textContent = clean;
         }
         for (const row of rows) {
           row.link.setAttribute("data-soft98-pro-list-row", "true");
@@ -1759,6 +2555,10 @@
       /firefox/.test(label) ? "firefox" :
       /google-?chrome/.test(label) ? "chrome" :
       /microsoft-?edge/.test(label) ? "edge" :
+      /kaspersky/.test(label) ? "kaspersky" :
+      /\.netframework|dotnet/.test(label) ? "dotnet" :
+      /javase|openjdk|sun-java/.test(label) ? "java" :
+      /rustdesk/.test(label) ? "rustdesk" :
       /7-zip|archive/.test(label) ? "archive" :
       /browser|opera|مرورگر/.test(label) ? "web" :
       /uninstaller|حذفنرمافزار/.test(label) ? "remove" :
@@ -2023,7 +2823,13 @@
     try {
       const stored = JSON.parse(localStorage.getItem(CONTROL_POSITION_KEY) || "null");
       if (!stored || !Number.isFinite(stored.x) || !Number.isFinite(stored.y)) return null;
-      return { x: stored.x, y: stored.y };
+      return {
+        x: stored.x, y: stored.y,
+        inlineEdge: ["left", "right"].includes(stored.inlineEdge) ? stored.inlineEdge : null,
+        blockEdge: ["top", "bottom"].includes(stored.blockEdge) ? stored.blockEdge : null,
+        tucked: stored.tucked === true,
+        legacy: !Object.hasOwn(stored, "inlineEdge"),
+      };
     } catch (_error) {
       return null;
     }
@@ -2037,28 +2843,63 @@
     }
   }
 
-  function clampControlPosition(position) {
-    const size = 42;
-    return {
-      x: Math.min(Math.max(CONTROL_MARGIN, Math.round(position.x)), Math.max(CONTROL_MARGIN, window.innerWidth - size - CONTROL_MARGIN)),
-      y: Math.min(Math.max(CONTROL_MARGIN, Math.round(position.y)), Math.max(CONTROL_MARGIN, window.innerHeight - size - CONTROL_MARGIN)),
-    };
+  function controlViewport() {
+    const viewport = window.visualViewport;
+    const layoutWidth = document.documentElement.clientWidth || window.innerWidth;
+    const layoutHeight = document.documentElement.clientHeight || window.innerHeight;
+    const width = Math.min(viewport?.width || layoutWidth, layoutWidth);
+    const height = Math.min(viewport?.height || layoutHeight, layoutHeight);
+    const left = viewport?.offsetLeft || 0;
+    const top = viewport?.offsetTop || 0;
+    return { left, top, width, height, right: left + width, bottom: top + height };
   }
 
   function defaultControlPosition() {
-    return clampControlPosition({ x: 16, y: window.innerHeight - 58 });
+    return { x: 12, y: 0, inlineEdge: "left", blockEdge: "bottom", tucked: false };
   }
 
-  function placeControl(wrap, requested, persist) {
-    const position = clampControlPosition(requested);
-    wrap.style.left = `${position.x}px`;
-    wrap.style.top = `${position.y}px`;
-    wrap.style.right = "auto";
-    wrap.style.bottom = "auto";
-    wrap.setAttribute("data-horizontal", position.x + 21 > window.innerWidth / 2 ? "right" : "left");
-    wrap.setAttribute("data-vertical", position.y + 21 > window.innerHeight / 2 ? "up" : "down");
-    if (persist) saveControlPosition(position);
-    return position;
+  function controlBounds(viewport) {
+    const margin = Math.max(0, Math.min(CONTROL_MARGIN, (viewport.width - 42) / 2, (viewport.height - 42) / 2));
+    return { left: viewport.left + margin, top: viewport.top + margin, right: viewport.right - margin - 42, bottom: viewport.bottom - margin - 42, margin };
+  }
+
+  function placeControl(wrap, requested, viewport) {
+    const bounds = controlBounds(viewport);
+    const { inlineEdge, blockEdge } = requested;
+    const x = inlineEdge ? bounds[inlineEdge] : Math.max(bounds.left, Math.min(bounds.right, requested.x));
+    const y = blockEdge ? bounds[blockEdge] : Math.max(bounds.top, Math.min(bounds.bottom, requested.y));
+    wrap.style.left = `${x}px`;
+    wrap.style.top = `${y}px`;
+    wrap.setAttribute("data-inline-edge", inlineEdge || "");
+    return { x, y };
+  }
+
+  function snapControlPosition(point, viewport, tucked) {
+    const bounds = controlBounds(viewport);
+    const snap = 26;
+    const edge = (value, start, end, a, b) => Math.min(value - start, end - value) > snap ? null : value - start < end - value ? a : b;
+    const inlineEdge = edge(point.x, bounds.left, bounds.right, "left", "right");
+    const blockEdge = edge(point.y, bounds.top, bounds.bottom, "top", "bottom");
+    return { ...point, inlineEdge, blockEdge, tucked: Boolean(tucked && inlineEdge) };
+  }
+
+  function placeControlSurface(surface, point, viewport, width, maxHeight, gap = 9) {
+    const margin = controlBounds(viewport).margin;
+    const above = point.y - viewport.top - margin - gap;
+    const below = viewport.bottom - point.y - 42 - margin - gap;
+    const up = above > below;
+    const alignRight = point.x + 21 > viewport.left + viewport.width / 2;
+    const usableWidth = Math.min(width, Math.max(0, viewport.width - 2 * margin));
+    const usableHeight = Math.min(maxHeight, Math.max(0, up ? above : below));
+    const left = Math.max(viewport.left + margin, Math.min(viewport.right - margin - usableWidth, alignRight ? point.x + 42 - usableWidth : point.x));
+    surface.style.width = `${usableWidth}px`;
+    surface.style.maxHeight = `${usableHeight}px`;
+    surface.style.left = `${left - point.x}px`;
+    surface.style.top = up ? "auto" : `${42 + gap}px`;
+    surface.style.bottom = up ? `${42 + gap}px` : "auto";
+    surface.dataset.short = String(usableHeight < 375);
+    surface.dataset.opens = up ? "up" : "down";
+    surface.dataset.align = alignRight ? "right" : "left";
   }
 
   function controlPatchCount() {
@@ -2103,8 +2944,11 @@
   }
 
   function controlOptionMarkup(key) {
+    const preview = ["blockAds", "patchScripts", "hideAnnoyances"].includes(key) ? "protection" :
+      ["pro", "darkDesign", "rgbMode", "pirateLogo"].includes(key) ? "appearance" :
+      ["compactLayout", "expandMain", "utilityInHeader", "showLatest"].includes(key) ? "layout" : "";
     return `
-      <label class="s98p-option">
+      <label class="s98p-option"${preview ? ` data-s98p-preview="${preview}"` : ""}>
         <span class="s98p-option-copy">
           <strong>${escapeHtml(text(`controlOptions.${key}.title`))}</strong>
           <small>${escapeHtml(text(`controlOptions.${key}.detail`))}</small>
@@ -2113,29 +2957,66 @@
           <input type="checkbox" role="switch" name="${key}" ${settings[key] ? "checked" : ""}>
           <span aria-hidden="true"></span>
         </span>
+        ${preview ? `<span class="s98p-option-preview" aria-hidden="true"><span>${escapeHtml(text("previewBefore"))}</span><span>${escapeHtml(text("previewAfter"))}</span><img alt="" data-preview-src="${escapeHtml(OPTION_PREVIEWS[preview])}" width="360" height="92"></span>` : ""}
       </label>`;
   }
 
+  function syncControlSettings(wrap) {
+    wrap.dataset.theme = settings.rgbMode && settings.pro ? "rgb" : settings.darkDesign && settings.pro ? "dark" : "light";
+    for (const input of wrap.querySelectorAll(".s98p-switch input")) input.checked = Boolean(settings[input.name]);
+    refreshControlTelemetry();
+  }
+
+  function fillControlReport(panel) {
+    const summary = [
+      [text("product"), VERSION],
+      [text("controlProtection"), settings.blockAds && settings.patchScripts ? text("controlProtectionActive") : text("controlProtectionPaused")],
+      [text("controlAdvanced"), [controlCompatibilityLabel(), compatibilityState?.sha256].filter(Boolean).join(" · ")],
+      [text("controlAdsRemoved"), stats.adsRemoved],
+      [text("controlLinksSecured"), stats.linksPreserved + stats.linksRestored],
+      [text("controlCodePatches"), controlPatchCount()],
+    ];
+    const list = document.createElement("dl");
+    for (const [label, value] of summary) {
+      const name = document.createElement("dt");
+      const detail = document.createElement("dd");
+      name.textContent = label;
+      detail.dir = "auto";
+      detail.textContent = String(value);
+      list.append(name, detail);
+    }
+    const entries = document.createElement("ul");
+    for (const event of eventLog.slice(-20).reverse()) {
+      const entry = document.createElement("li");
+      entry.dir = "auto";
+      entry.textContent = event.message;
+      entries.appendChild(entry);
+    }
+    panel.replaceChildren(list, entries);
+  }
+
   function renderControlPanel() {
-    if (controlAbortController) controlAbortController.abort();
-    controlAbortController = new AbortController();
-    const signal = controlAbortController.signal;
+    if (!document.body) return;
+    if (controlPanel?.wrap.isConnected && controlPanel.wrap.contains(controlPanel.form)) {
+      syncControlSettings(controlPanel.wrap);
+      return controlPanel;
+    }
+    controlPanel?.abort.abort();
+    const abort = new AbortController();
+    const { signal } = abort;
     const old = document.getElementById("soft98-pro-control");
     const wasOpen = old && old.getAttribute("data-open") === "true";
-    const focusedName = old && old.contains(document.activeElement) ? document.activeElement.getAttribute("name") : "";
     if (old) old.remove();
-    if (!document.body) return;
     const wrap = document.createElement("div");
     wrap.id = "soft98-pro-control";
     wrap.dir = "ltr";
     wrap.lang = LOCALE;
     wrap.style.setProperty("unicode-bidi", "isolate");
-    wrap.setAttribute("data-open", wasOpen ? "true" : "false");
-    wrap.setAttribute("data-theme", settings.rgbMode && settings.pro ? "rgb" : settings.darkDesign && settings.pro ? "dark" : "light");
+    wrap.dataset.open = "false";
     const groups = {
       protection: ["blockAds", "patchScripts"],
-      experience: ["pro", "darkDesign", "rgbMode", "compactLayout", "expandMain", "showLatest", "hideAnnoyances", "linkBadges", "pirateLogo"],
-      advanced: ["taunt", "diagnostics", "recommendExtension"],
+      experience: ["pro", "darkDesign", "rgbMode", "compactLayout", "expandMain", "showLatest", "hideAnnoyances", "utilityInHeader", "linkBadges", "pirateLogo"],
+      advanced: ["taunt", "soundFeedback", "diagnostics", "recommendExtension"],
     };
     const groupLabels = {
       protection: text("controlProtection"),
@@ -2144,10 +3025,11 @@
     };
     if (!groups[controlSection]) controlSection = "protection";
     wrap.innerHTML = `
-      <button type="button" data-role="toggle" aria-controls="soft98-pro-console" aria-expanded="${wasOpen ? "true" : "false"}" aria-label="${escapeHtml(text("product"))}: ${escapeHtml(text("moveControl"))}" title="${escapeHtml(text("moveControl"))}">
+      <button type="button" data-role="toggle" aria-controls="soft98-pro-console" aria-expanded="false" aria-label="${escapeHtml(text("controlTitle"))}" aria-description="${escapeHtml(text("moveControl"))}" title="${escapeHtml(text("moveControl"))}">
         <img src="${escapeHtml(BRAND_ASSETS.pirateDark || BRAND_ASSETS.light || "")}" alt="">
       </button>
-      <form id="soft98-pro-console" role="dialog" aria-modal="false" aria-labelledby="soft98-pro-console-title" aria-hidden="${wasOpen ? "false" : "true"}" dir="${RTL ? "rtl" : "ltr"}" lang="${LOCALE}">
+      <button type="button" data-role="restore" aria-label="${escapeHtml(text("controlRestore"))}" title="${escapeHtml(text("controlRestore"))}" hidden><span aria-hidden="true"></span></button>
+      <form id="soft98-pro-console" role="dialog" aria-modal="false" aria-labelledby="soft98-pro-console-title" aria-hidden="true" hidden inert dir="${RTL ? "rtl" : "ltr"}" lang="${LOCALE}">
         <header class="s98p-console-header">
           <span class="s98p-brand-mark" aria-hidden="true"><img src="${escapeHtml(BRAND_ASSETS.pirateDark || BRAND_ASSETS.light || "")}" alt=""></span>
           <span class="s98p-console-heading">
@@ -2156,6 +3038,7 @@
             <small>${escapeHtml(text("controlSubtitle"))}</small>
           </span>
           <span class="s98p-version" dir="ltr">${escapeHtml(VERSION)}</span>
+          <button type="button" data-role="options" aria-haspopup="menu" aria-expanded="false" aria-controls="soft98-pro-launcher-menu" aria-label="${escapeHtml(text("controlLauncherMenu"))}" title="${escapeHtml(text("controlLauncherMenu"))}"><span aria-hidden="true"></span></button>
           <button type="button" data-role="close" aria-label="${escapeHtml(text("close"))}" title="${escapeHtml(text("close"))}"><span aria-hidden="true"></span></button>
         </header>
         <section class="s98p-status" aria-live="polite">
@@ -2190,34 +3073,43 @@
               ${keys.map(controlOptionMarkup).join("")}
             </section>`)
             .join("")}
+          <section id="soft98-pro-report" class="s98p-report" aria-labelledby="soft98-pro-report-title" hidden>
+            <h2 id="soft98-pro-report-title" tabindex="-1">${escapeHtml(text("logs.diagnostics"))}</h2>
+            <div data-role="report-content"></div>
+          </section>
         </div>
         <footer>
-          <button type="button" data-role="diagnostics"><span class="s98p-command-icon s98p-command-diagnostics" aria-hidden="true"></span>${escapeHtml(text("controlDiagnostics"))}</button>
+          <button type="button" data-role="diagnostics" aria-expanded="false" aria-controls="soft98-pro-report"><span class="s98p-command-icon s98p-command-diagnostics" aria-hidden="true"></span>${escapeHtml(text("controlDiagnostics"))}</button>
           <button type="button" data-role="scan"><span class="s98p-command-icon s98p-command-scan" aria-hidden="true"></span>${escapeHtml(text("scanNow"))}</button>
         </footer>
       </form>
+      <div id="soft98-pro-launcher-menu" class="s98p-launcher-menu" role="menu" aria-label="${escapeHtml(text("controlLauncherMenu"))}" dir="${RTL ? "rtl" : "ltr"}" hidden>
+        <button type="button" role="menuitem" data-command="panel" tabindex="-1"><span aria-hidden="true">&#9638;</span>${escapeHtml(text("controlTitle"))}</button>
+        <button type="button" role="menuitem" data-command="reset" tabindex="-1"><span aria-hidden="true">&#8634;</span>${escapeHtml(text("controlResetPosition"))}</button>
+        <button type="button" role="menuitem" data-command="tuck" tabindex="-1"><span aria-hidden="true">&#8644;</span><span data-role="tuck-label">${escapeHtml(text("controlTuck"))}</span></button>
+      </div>
     `;
     const style = document.createElement("style");
     style.textContent = `
       #soft98-pro-control{--c-bg:rgba(246,250,251,.985);--c-bg-soft:#e7f0f2;--c-bg-raised:#fff;--c-border:#9ebac2;--c-border-soft:#ccdde1;--c-text:#11232a;--c-muted:#526b74;--c-accent:#087a63;--c-accent-2:#a56b13;--c-accent-soft:rgba(8,122,99,.11);--c-danger:#b84152;position:fixed;z-index:2147483647;width:42px;height:42px;direction:ltr;font-family:inherit!important;font-size:13px;line-height:1.6;font-weight:400;color:var(--c-text);letter-spacing:0;isolation:isolate}
       #soft98-pro-control[data-theme=dark],#soft98-pro-control[data-theme=rgb]{--c-bg:rgba(5,10,14,.985);--c-bg-soft:#0d1a21;--c-bg-raised:#14252d;--c-border:#41616c;--c-border-soft:#203943;--c-text:#f3f8f9;--c-muted:#a6bbc1;--c-accent:#70e1b2;--c-accent-2:#e0bd70;--c-accent-soft:rgba(112,225,178,.12);--c-danger:#ff8796}
-      #soft98-pro-control[data-theme=rgb]{--control-neon-hue:155deg;--c-bg:rgba(2,3,4,.99);--c-bg-soft:#07090a;--c-bg-raised:#0c0f10;--c-border:hsl(var(--control-neon-hue) 88% 58%);--c-border-soft:#24292c;--c-text:#d9dee0;--c-muted:#838a8f;--c-accent:hsl(var(--control-neon-hue) 94% 66%);--c-accent-2:color-mix(in srgb,var(--c-accent) 68%,#dce1e3);--c-accent-soft:hsl(var(--control-neon-hue) 90% 58% / .14);animation:soft98-control-neon 16s linear infinite}
+      #soft98-pro-control[data-theme=rgb]{--c-bg:rgba(2,3,4,.99);--c-bg-soft:#07090a;--c-bg-raised:#0c0f10;--c-border:color-mix(in srgb,var(--c-accent) 75%,#24292c);--c-border-soft:#24292c;--c-text:#d9dee0;--c-muted:#a1aab0;--c-accent:var(--s98p-neon,#70e1b2);--c-accent-2:color-mix(in srgb,var(--c-accent) 68%,#dce1e3);--c-accent-soft:color-mix(in srgb,var(--c-accent) 17%,transparent)}
       #soft98-pro-control :is(form,button,input,label,strong,small,dt,dd){font-family:inherit!important;letter-spacing:0!important}
       #soft98-pro-control>[data-role=toggle]{position:absolute;inset:0;display:grid;place-items:center;width:42px;height:42px;margin:0;padding:0;float:none;border:1px solid var(--c-border)!important;border-radius:50%;background:var(--c-bg-soft)!important;background-image:none!important;color:var(--c-accent)!important;line-height:1;box-shadow:0 10px 30px rgba(0,0,0,.3);cursor:grab;touch-action:none;user-select:none;transition:transform .18s ease,background-color .18s ease,border-color .18s ease,box-shadow .18s ease}
       #soft98-pro-control>[data-role=toggle] img{display:block;width:30px;height:30px;object-fit:contain;filter:none!important;pointer-events:none}
       #soft98-pro-control[data-dragging=true]>[data-role=toggle]{cursor:grabbing;transform:scale(1.04)}
       #soft98-pro-control>[data-role=toggle]:hover,#soft98-pro-control[data-open=true]>[data-role=toggle]{transform:translateY(-1px) scale(1.04);border-color:var(--c-accent)!important;background:var(--c-bg-raised)!important;box-shadow:0 14px 36px rgba(0,0,0,.38),0 0 0 4px var(--c-accent-soft)}
       #soft98-pro-control[data-theme=rgb]>[data-role=toggle]{box-shadow:0 14px 38px rgba(0,0,0,.55),0 0 0 1px var(--c-accent-soft),0 0 26px var(--c-accent-soft)}
-      #soft98-pro-control form{position:absolute;left:0;bottom:52px;display:grid;grid-template-rows:auto auto auto auto minmax(0,1fr) auto;width:min(448px,calc(100vw - 24px));max-height:min(720px,calc(100vh - 76px));overflow:hidden;margin:0;padding:0;border:1px solid color-mix(in srgb,var(--c-accent) 42%,var(--c-border))!important;border-radius:8px;background:var(--c-bg)!important;background-image:linear-gradient(135deg,color-mix(in srgb,var(--c-accent) 4%,transparent),transparent 36%,color-mix(in srgb,var(--c-accent-2) 3%,transparent))!important;color:var(--c-text)!important;box-shadow:0 0 0 1px rgba(255,255,255,.045) inset,0 0 0 4px rgba(7,13,17,.55),0 30px 90px rgba(0,0,0,.58),0 0 36px color-mix(in srgb,var(--c-accent) 9%,transparent)!important;backdrop-filter:blur(28px) saturate(145%);transform-origin:left bottom;transform:translateY(10px) scale(.96);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s ease,transform .22s cubic-bezier(.2,.8,.2,1),visibility 0s linear .22s}
+      #soft98-pro-control form{position:absolute;box-sizing:border-box;display:grid;grid-template-rows:auto auto auto auto minmax(0,1fr) auto;overflow:hidden;margin:0;padding:0;border:1px solid color-mix(in srgb,var(--c-accent) 42%,var(--c-border))!important;border-radius:8px;background:var(--c-bg)!important;background-image:linear-gradient(135deg,color-mix(in srgb,var(--c-accent) 4%,transparent),transparent 36%,color-mix(in srgb,var(--c-accent-2) 3%,transparent))!important;color:var(--c-text)!important;box-shadow:0 0 0 1px rgba(255,255,255,.045) inset,0 0 0 4px rgba(7,13,17,.55),0 30px 90px rgba(0,0,0,.58),0 0 36px color-mix(in srgb,var(--c-accent) 9%,transparent)!important;backdrop-filter:blur(28px) saturate(145%);transform-origin:left bottom;transform:translateY(7px) scale(.98);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s ease,transform .22s cubic-bezier(.2,.8,.2,1),visibility 0s linear .22s}
       #soft98-pro-control form:before{content:"";position:absolute;z-index:4;inset:0 0 auto;height:3px;background:linear-gradient(90deg,var(--c-accent),var(--c-accent-2),var(--c-accent));pointer-events:none}
       #soft98-pro-control form[dir=rtl]{text-align:right}
       #soft98-pro-control form[dir=ltr]{text-align:left}
-      #soft98-pro-control[data-horizontal=right] form{right:0;left:auto;transform-origin:right bottom}
-      #soft98-pro-control[data-vertical=down] form{top:52px;bottom:auto;transform:translateY(-10px) scale(.96);transform-origin:left top}
-      #soft98-pro-control[data-horizontal=right][data-vertical=down] form{transform-origin:right top}
+      #soft98-pro-control form[data-align=right]{transform-origin:right bottom}
+      #soft98-pro-control form[data-opens=down]{transform:translateY(-7px) scale(.98);transform-origin:left top}
+      #soft98-pro-control form[data-align=right][data-opens=down]{transform-origin:right top}
       #soft98-pro-control[data-open=true] form{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0) scale(1);transition:opacity .18s ease,transform .22s cubic-bezier(.2,.8,.2,1),visibility 0s}
       #soft98-pro-control[data-theme=rgb] form{border-color:var(--c-accent)!important;background:#030405!important;background-image:none!important;box-shadow:0 0 0 1px rgba(255,255,255,.035) inset,0 0 0 4px rgba(0,0,0,.72),0 32px 94px rgba(0,0,0,.72),0 0 32px var(--c-accent-soft)!important}
-      #soft98-pro-control .s98p-console-header{position:relative;display:grid;grid-template-columns:46px minmax(0,1fr) auto 30px;align-items:center;gap:11px;padding:17px 15px 14px;border-bottom:1px solid var(--c-border-soft);background:linear-gradient(180deg,color-mix(in srgb,var(--c-bg-raised) 88%,transparent),color-mix(in srgb,var(--c-bg) 92%,transparent));color:var(--c-text)}
+      #soft98-pro-control .s98p-console-header{position:relative;display:grid;grid-template-columns:46px minmax(0,1fr) auto 30px 30px;align-items:center;gap:8px;padding:17px 15px 14px;border-bottom:1px solid var(--c-border-soft);background:linear-gradient(180deg,color-mix(in srgb,var(--c-bg-raised) 88%,transparent),color-mix(in srgb,var(--c-bg) 92%,transparent));color:var(--c-text)}
       #soft98-pro-control .s98p-brand-mark{display:grid;place-items:center;width:44px;height:44px;border:1px solid color-mix(in srgb,var(--c-accent) 45%,var(--c-border));border-radius:8px;background:var(--c-bg-soft);box-shadow:0 0 0 3px var(--c-accent-soft),0 8px 22px rgba(0,0,0,.22)}
       #soft98-pro-control .s98p-brand-mark img{display:block;width:38px;height:38px;object-fit:contain;filter:none!important}
       #soft98-pro-control .s98p-console-heading{display:grid;min-width:0;gap:1px;direction:inherit;unicode-bidi:plaintext;text-align:start}
@@ -2228,8 +3120,9 @@
       #soft98-pro-control .s98p-console-heading>strong{overflow:hidden;color:var(--c-text)!important;font-size:15px;line-height:1.45;text-overflow:ellipsis;white-space:nowrap}
       #soft98-pro-control .s98p-console-heading>small{overflow:hidden;color:var(--c-muted)!important;font-size:11px;line-height:1.55;text-overflow:ellipsis;white-space:nowrap}
       #soft98-pro-control .s98p-version{padding:3px 7px;border:1px solid var(--c-border-soft);border-radius:999px;background:var(--c-bg-soft);color:var(--c-muted);font:600 10px/1.2 ui-monospace,monospace}
-      #soft98-pro-control [data-role=close]{position:relative;width:30px;height:30px;margin:0;padding:0;border:0!important;border-radius:50%;background:transparent!important;background-image:none!important;color:var(--c-muted)!important;cursor:pointer}
-      #soft98-pro-control [data-role=close]:hover{background:var(--c-accent-soft)!important;color:var(--c-text)!important;transform:none!important}
+      #soft98-pro-control :is([data-role=close],[data-role=options]){position:relative;display:grid;place-items:center;width:30px;height:30px;margin:0;padding:0;border:0!important;border-radius:6px;background:transparent!important;background-image:none!important;color:var(--c-muted)!important;cursor:pointer}
+      #soft98-pro-control :is([data-role=close],[data-role=options]):hover,#soft98-pro-control [data-role=options][aria-expanded=true]{background:var(--c-accent-soft)!important;color:var(--c-text)!important;transform:none!important}
+      #soft98-pro-control [data-role=options] span{width:3px;height:3px;border-radius:50%;background:currentColor;box-shadow:-5px 0 currentColor,5px 0 currentColor}
       #soft98-pro-control [data-role=close] span:before,#soft98-pro-control [data-role=close] span:after{content:"";position:absolute;top:14px;left:8px;width:14px;height:1.5px;border-radius:2px;background:currentColor}
       #soft98-pro-control [data-role=close] span:before{transform:rotate(45deg)}
       #soft98-pro-control [data-role=close] span:after{transform:rotate(-45deg)}
@@ -2248,7 +3141,7 @@
       #soft98-pro-control .s98p-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;margin:11px 14px 0;padding:3px;border:1px solid var(--c-border-soft);border-radius:7px;background:var(--c-bg-soft)}
       #soft98-pro-control .s98p-tabs button{position:relative;min-width:0;margin:0;padding:8px 5px;border:0;border-radius:5px;background:transparent!important;color:var(--c-muted)!important;font-size:11px;font-weight:650;line-height:1.4;cursor:pointer;transition:color .16s ease,box-shadow .16s ease}
       #soft98-pro-control .s98p-tabs button:hover{color:var(--c-text)!important}
-      #soft98-pro-control .s98p-tabs button[aria-selected=true]{background:var(--c-bg-raised)!important;color:var(--c-accent)!important;box-shadow:0 1px 7px rgba(0,0,0,.22)}
+      #soft98-pro-control .s98p-tabs button[aria-selected=true]{background:var(--c-bg-raised)!important;color:var(--c-accent)!important;border-color:var(--c-accent)!important;box-shadow:0 1px 7px rgba(0,0,0,.22)!important}
       #soft98-pro-control .s98p-tabs button[aria-selected=true]:after{content:"";position:absolute;inset:auto 18% 1px;height:2px;border-radius:2px;background:var(--c-accent)}
       #soft98-pro-control .s98p-panels{min-height:0;overflow:auto;padding:10px 14px 12px;scrollbar-color:var(--c-border) transparent;overscroll-behavior:contain}
       #soft98-pro-control .s98p-panels [role=tabpanel]{display:grid;gap:7px}
@@ -2270,6 +3163,9 @@
       #soft98-pro-control .s98p-switch input:checked+span{border-color:var(--c-accent);background:var(--c-accent-soft)}
       #soft98-pro-control .s98p-switch input:checked+span:after{background:var(--c-accent);transform:translateX(16px)}
       #soft98-pro-control .s98p-switch input:focus-visible+span{outline:2px solid var(--c-accent);outline-offset:3px}
+      #soft98-pro-control .s98p-option-preview{display:none;grid-column:1/-1;grid-template-columns:1fr 1fr;gap:3px;text-align:center;font-size:10px;color:var(--c-muted)!important}
+      #soft98-pro-control .s98p-option-preview img{grid-column:1/-1;width:100%;height:auto;display:block}
+      #soft98-pro-control [data-s98p-preview]:is(:hover,:focus-within)>.s98p-option-preview{display:grid}
       #soft98-pro-control footer{display:grid;grid-template-columns:1fr auto;gap:8px;padding:11px 14px;border-top:1px solid var(--c-border-soft);background:color-mix(in srgb,var(--c-bg-soft) 88%,var(--c-bg))}
       #soft98-pro-control footer button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;margin:0;padding:7px 12px;border:1px solid var(--c-border);border-radius:7px;background:var(--c-bg-raised)!important;color:var(--c-text)!important;font-size:11px;font-weight:650;line-height:1.4;cursor:pointer;transition:border-color .16s ease,background-color .16s ease,transform .16s ease}
       #soft98-pro-control footer button:hover{border-color:var(--c-accent);color:var(--c-accent)!important;transform:translateY(-1px)}
@@ -2279,33 +3175,139 @@
       #soft98-pro-control .s98p-command-diagnostics:before{content:"";position:absolute;inset:2px 1px 1px;border:1.5px solid currentColor;border-radius:3px}
       #soft98-pro-control .s98p-command-diagnostics:after{content:"";position:absolute;left:4px;right:4px;top:6px;height:1.5px;background:currentColor;box-shadow:0 4px 0 currentColor}
       #soft98-pro-control button:focus-visible{outline:2px solid var(--c-accent)!important;outline-offset:2px!important}
-      @keyframes soft98-control-neon{to{--control-neon-hue:515deg}}
-      @media(max-width:520px){#soft98-pro-control form{width:min(400px,calc(100vw - 16px));max-height:calc(100vh - 66px)}#soft98-pro-control .s98p-console-header{grid-template-columns:42px minmax(0,1fr) 30px}#soft98-pro-control .s98p-version{display:none}#soft98-pro-control .s98p-option-copy small,#soft98-pro-control .s98p-panel-intro small{font-size:10px}}
+      #soft98-pro-control [hidden]{display:none!important}
+      #soft98-pro-control form[data-short=true]{display:block;overflow:auto;overscroll-behavior:contain;scrollbar-color:var(--c-border) transparent}
+      #soft98-pro-control .s98p-report{margin-block-start:10px;padding:10px;border:1px solid var(--c-border-soft);border-radius:7px;background:var(--c-bg-soft);text-align:start;overflow-wrap:anywhere}
+      #soft98-pro-control .s98p-report h2{margin:0 0 8px;padding:0;font-size:13px;color:var(--c-text)!important}
+      #soft98-pro-control .s98p-report dl{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:4px 8px;margin:0}
+      #soft98-pro-control .s98p-report :is(dt,dd){margin:0;color:var(--c-text)!important}
+      #soft98-pro-control .s98p-report dt,#soft98-pro-control .s98p-report li{color:var(--c-muted)!important}
+      #soft98-pro-control .s98p-report ul{margin:10px 0 0;padding-inline-start:18px}
+      #soft98-pro-control .s98p-report ul:empty{display:none}
+      #soft98-pro-control .s98p-launcher-menu{position:absolute;z-index:1;box-sizing:border-box;display:grid;gap:3px;overflow:auto;overscroll-behavior:contain;padding:5px;border:1px solid var(--c-border)!important;border-radius:8px;background:var(--c-bg)!important;backdrop-filter:blur(16px);box-shadow:0 12px 35px #0006!important}
+      #soft98-pro-control .s98p-launcher-menu button{display:grid;grid-template-columns:16px minmax(0,1fr);align-items:center;gap:8px;min-height:36px;margin:0;padding:6px 8px;border:1px solid transparent!important;border-radius:5px;background:transparent!important;color:var(--c-text)!important;text-align:start;white-space:normal;cursor:pointer}
+      #soft98-pro-control .s98p-launcher-menu button:is(:hover,:focus-visible){background:var(--c-accent-soft)!important;border-color:var(--c-border)!important;outline:none!important;box-shadow:none!important}
+      #soft98-pro-control .s98p-launcher-menu button>span:first-child{color:var(--c-accent);text-align:center}
+      #soft98-pro-control [data-role=restore]{position:absolute;inset:0 auto 0 0;display:grid;place-items:center;width:27px;height:42px;margin:0;padding:0;border:1px solid var(--c-border)!important;border-radius:7px;background:var(--c-bg-raised)!important;color:var(--c-accent)!important;cursor:pointer;box-shadow:0 5px 15px #0004}
+      #soft98-pro-control[data-inline-edge=right] [data-role=restore]{right:0;left:auto}
+      #soft98-pro-control [data-role=restore] span{width:8px;height:8px;border:solid currentColor;border-width:1.5px 1.5px 0 0;transform:rotate(45deg)}
+      #soft98-pro-control[data-inline-edge=right] [data-role=restore] span{transform:rotate(-135deg)}
+      #soft98-pro-control[data-tuck-preview=true]>[data-role=toggle]{border-color:var(--c-accent)!important;opacity:.6}
+      @media(max-width:520px){#soft98-pro-control .s98p-console-header{grid-template-columns:42px minmax(0,1fr) 30px 30px}#soft98-pro-control .s98p-version{display:none}#soft98-pro-control .s98p-option-copy small,#soft98-pro-control .s98p-panel-intro small{font-size:10px}}
       @media(prefers-reduced-motion:reduce){#soft98-pro-control{animation:none!important}#soft98-pro-control *,#soft98-pro-control *:before,#soft98-pro-control *:after{transition:none!important}}
     `;
     setPersistentStyle("soft98-pro-control-style", style.textContent);
     const toggle = wrap.querySelector("[data-role='toggle']");
+    const restore = wrap.querySelector("[data-role='restore']");
+    const options = wrap.querySelector("[data-role='options']");
     const form = wrap.querySelector("form");
-    form.hidden = !wasOpen;
-    if (!wasOpen) form.style.setProperty("display", "none", "important");
-    let position = placeControl(wrap, readControlPosition() || defaultControlPosition(), false);
+    const scroller = form.querySelector(".s98p-panels");
+    for (const option of form.querySelectorAll("[data-s98p-preview]")) {
+      const loadPreview = () => {
+        const image = option.querySelector("img[data-preview-src]");
+        if (!image || image.hasAttribute("src")) return;
+        image.src = image.dataset.previewSrc;
+      };
+      option.addEventListener("pointerenter", loadPreview, { signal });
+      option.addEventListener("focusin", loadPreview, { signal });
+    }
+    const diagnostics = wrap.querySelector("[data-role='diagnostics']");
+    const report = form.querySelector("#soft98-pro-report");
+    const reportTitle = report.querySelector("h2");
+    const menu = wrap.querySelector("[role='menu']");
+    const menuItems = [...menu.querySelectorAll("[role='menuitem']")];
+    const sectionScroll = new Map();
+    let viewport = controlViewport();
+    const stored = readControlPosition();
+    let requested = stored?.legacy ? snapControlPosition({ x: stored.x, y: stored.y }, viewport, false) : stored || defaultControlPosition();
+    let position;
     let drag = null;
     let suppressClick = false;
-    const setOpen = (open, moveFocus) => {
-      wrap.setAttribute("data-open", open ? "true" : "false");
-      toggle.setAttribute("aria-expanded", open ? "true" : "false");
-      form.setAttribute("aria-hidden", open ? "false" : "true");
-      form.hidden = !open;
-      if (open) form.style.removeProperty("display");
-      else form.style.setProperty("display", "none", "important");
-      if (moveFocus) {
-        const target = open ? form.querySelector('[role="tab"][aria-selected="true"]') : toggle;
-        if (target) target.focus({ preventScroll: true });
+    let menuTrigger = null;
+    let closeTimer = 0;
+    const finishClose = () => {
+      clearTimeout(closeTimer);
+      closeTimer = 0;
+      if (wrap.dataset.open !== "true") form.hidden = true;
+    };
+    form.addEventListener("transitionend", (event) => {
+      if (event.target === form && event.propertyName === "visibility") finishClose();
+    }, { signal });
+    signal.addEventListener("abort", () => clearTimeout(closeTimer), { once: true });
+    const layout = () => {
+      position = placeControl(wrap, drag?.moved ? drag.point : requested, viewport);
+      placeControlSurface(form, position, viewport, 448, 720);
+      if (!menu.hidden) placeControlSurface(menu, position, viewport, 246, 220);
+    };
+    const updateLauncher = () => {
+      toggle.hidden = requested.tucked;
+      restore.hidden = !requested.tucked;
+      wrap.querySelector("[data-role='tuck-label']").textContent = text(requested.tucked ? "controlRestore" : "controlTuck");
+    };
+    const closeMenu = (focus = false) => {
+      if (menu.hidden) return;
+      menu.hidden = true;
+      options.setAttribute("aria-expanded", "false");
+      if (focus && menuTrigger && !menuTrigger.hidden) menuTrigger.focus({ preventScroll: true });
+      menuTrigger = null;
+    };
+    const setOpen = (open, moveFocus = false) => {
+      closeMenu();
+      const changing = open !== (wrap.dataset.open === "true");
+      if (open && requested.tucked) {
+        requested = { ...requested, tucked: false };
+        saveControlPosition(requested);
+        updateLauncher();
       }
-      if (open) refreshControlTelemetry();
+      if (!open && (moveFocus || form.contains(document.activeElement))) (requested.tucked ? restore : toggle).focus({ preventScroll: true });
+      if (open) {
+        clearTimeout(closeTimer);
+        closeTimer = 0;
+        layout();
+        if (form.hidden) {
+          form.hidden = false;
+          // Establish the closed style before entering from display:none.
+          form.getBoundingClientRect();
+        }
+      }
+      wrap.dataset.open = String(open);
+      toggle.setAttribute("aria-expanded", String(open));
+      form.setAttribute("aria-hidden", String(!open));
+      form.inert = !open;
+      if (open) {
+        if (moveFocus) form.querySelector('[role="tab"][aria-selected="true"]').focus({ preventScroll: true });
+        refreshControlTelemetry();
+      } else if (changing) {
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) finishClose();
+        else closeTimer = window.setTimeout(finishClose, 250);
+      }
+    };
+    const openMenu = (trigger, last = false) => {
+      menuTrigger = trigger;
+      options.setAttribute("aria-expanded", "true");
+      menu.hidden = false;
+      layout();
+      menuItems[last ? menuItems.length - 1 : 0].focus();
+    };
+    const storePosition = (next, focus = false) => {
+      requested = next;
+      saveControlPosition(requested);
+      updateLauncher();
+      layout();
+      if (requested.tucked) setOpen(false, focus);
+      else if (focus) toggle.focus({ preventScroll: true });
+    };
+    const setReport = (open) => {
+      if (open) fillControlReport(report.querySelector("[data-role='report-content']"));
+      diagnostics.setAttribute("aria-expanded", String(open));
+      report.hidden = !open;
+      if (open) reportTitle.focus();
     };
     const selectSection = (section, focus) => {
       if (!groups[section]) return;
+      if (!report.hidden) setReport(false);
+      if (section !== controlSection) sectionScroll.set(controlSection, scroller.scrollTop);
+      const changed = section !== controlSection;
       controlSection = section;
       for (const tab of form.querySelectorAll('[role="tab"]')) {
         const selected = tab.getAttribute("data-section") === section;
@@ -2314,34 +3316,42 @@
         if (selected && focus) tab.focus({ preventScroll: true });
       }
       for (const panel of form.querySelectorAll('[role="tabpanel"]')) panel.hidden = panel.getAttribute("data-panel") !== section;
+      if (changed) scroller.scrollTop = sectionScroll.get(section) || 0;
     };
     form.addEventListener("submit", (event) => event.preventDefault(), { signal });
     toggle.addEventListener("pointerdown", (event) => {
-      if (event.button !== 0) return;
-      drag = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, originX: position.x, originY: position.y, moved: false };
-      wrap.setAttribute("data-dragging", "true");
-      event.preventDefault();
+      if (event.button !== 0 || !event.isPrimary || drag) return;
+      suppressClick = false;
+      drag = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, origin: position, point: position, moved: false, tuck: false };
+      if (event.isTrusted) toggle.setPointerCapture(event.pointerId);
     }, { signal });
     window.addEventListener("pointermove", (event) => {
       if (!drag || drag.pointerId !== event.pointerId) return;
       const dx = event.clientX - drag.startX;
       const dy = event.clientY - drag.startY;
-      if (!drag.moved && Math.hypot(dx, dy) < 4) return;
+      if (!drag.moved && Math.hypot(dx, dy) < 6) return;
+      if (!drag.moved) closeMenu();
       drag.moved = true;
-      event.preventDefault();
-      position = placeControl(wrap, { x: drag.originX + dx, y: drag.originY + dy }, false);
+      drag.point = { x: drag.origin.x + dx, y: drag.origin.y + dy };
+      drag.tuck = event.clientX <= viewport.left + 8 || event.clientX >= viewport.right - 8;
+      wrap.dataset.dragging = "true";
+      wrap.dataset.tuckPreview = String(drag.tuck);
+      layout();
     }, { signal });
-    const finishDrag = (event) => {
+    const finishDrag = (event, cancelled = false) => {
       if (!drag || drag.pointerId !== event.pointerId) return;
-      if (drag.moved) {
-        suppressClick = true;
-        position = placeControl(wrap, position, true);
-      }
-      wrap.setAttribute("data-dragging", "false");
+      const current = drag;
       drag = null;
+      delete wrap.dataset.dragging;
+      delete wrap.dataset.tuckPreview;
+      if (current.moved && !cancelled) {
+        suppressClick = true;
+        storePosition(snapControlPosition(position, viewport, current.tuck), current.tuck);
+      } else layout();
     };
-    window.addEventListener("pointerup", finishDrag, { signal });
-    window.addEventListener("pointercancel", finishDrag, { signal });
+    window.addEventListener("pointerup", (event) => finishDrag(event), { signal });
+    window.addEventListener("pointercancel", (event) => finishDrag(event, true), { signal });
+    toggle.addEventListener("lostpointercapture", (event) => finishDrag(event, true), { signal });
     toggle.addEventListener("keydown", (event) => {
       if (!event.altKey || !/^Arrow(?:Left|Right|Up|Down)$/.test(event.key)) return;
       event.preventDefault();
@@ -2352,10 +3362,17 @@
         ArrowUp: { x: 0, y: -step },
         ArrowDown: { x: 0, y: step },
       }[event.key];
-      position = placeControl(wrap, { x: position.x + delta.x, y: position.y + delta.y }, true);
+      const point = { x: position.x + delta.x, y: position.y + delta.y };
+      const bounds = controlBounds(viewport);
+      const next = {
+        ...point, tucked: false,
+        inlineEdge: !delta.x ? requested.inlineEdge : point.x <= bounds.left ? "left" : point.x >= bounds.right ? "right" : null,
+        blockEdge: !delta.y ? requested.blockEdge : point.y <= bounds.top ? "top" : point.y >= bounds.bottom ? "bottom" : null,
+      };
+      storePosition(next);
     }, { signal });
     toggle.addEventListener("click", (event) => {
-      if (suppressClick) {
+      if (suppressClick && event.detail !== 0) {
         suppressClick = false;
         event.preventDefault();
         return;
@@ -2363,12 +3380,52 @@
       const open = wrap.getAttribute("data-open") !== "true";
       setOpen(open, open);
     }, { signal });
+    restore.addEventListener("click", () => storePosition({ ...requested, tucked: false }, true), { signal });
+    for (const button of [toggle, restore, options]) {
+      button.addEventListener("contextmenu", (event) => {
+        event.preventDefault();
+        openMenu(button);
+      }, { signal });
+      button.addEventListener("keydown", (event) => {
+        if (event.key !== "ContextMenu" && !(event.shiftKey && event.key === "F10") &&
+            !(button === options && (event.key === "ArrowDown" || event.key === "ArrowUp"))) return;
+        event.preventDefault();
+        openMenu(button, event.key === "ArrowUp");
+      }, { signal });
+    }
+    options.addEventListener("click", () => menu.hidden ? openMenu(options) : closeMenu(true), { signal });
+    menu.addEventListener("keydown", (event) => {
+      const current = menuItems.indexOf(event.target);
+      let next;
+      if (event.key === "ArrowDown") next = (current + 1) % menuItems.length;
+      else if (event.key === "ArrowUp") next = (current - 1 + menuItems.length) % menuItems.length;
+      else if (event.key === "Home") next = 0;
+      else if (event.key === "End") next = menuItems.length - 1;
+      else if (event.key === "Tab") {
+        closeMenu(true);
+        return;
+      } else return;
+      event.preventDefault();
+      menuItems[next].focus();
+    }, { signal });
+    menu.addEventListener("click", (event) => {
+      const item = event.target.closest("[data-command]");
+      if (!item) return;
+      closeMenu(true);
+      if (item.dataset.command === "panel") setOpen(true, true);
+      else if (item.dataset.command === "reset") storePosition(defaultControlPosition(), true);
+      else if (requested.tucked) storePosition({ ...requested, tucked: false }, true);
+      else {
+        const inlineEdge = position.x + 21 > viewport.left + viewport.width / 2 ? "right" : "left";
+        storePosition({ ...requested, ...position, inlineEdge, tucked: true }, true);
+      }
+    }, { signal });
     wrap.querySelector("[data-role='close']").addEventListener("click", () => setOpen(false, true), { signal });
     wrap.querySelector("[data-role='scan']").addEventListener("click", () => {
       schedule(document);
       enqueueMicrotask(refreshControlTelemetry);
     }, { signal });
-    wrap.querySelector("[data-role='diagnostics']").addEventListener("click", () => diagnosticReport(), { signal });
+    diagnostics.addEventListener("click", () => setReport(report.hidden), { signal });
     form.querySelector("[role='tablist']").addEventListener("click", (event) => {
       const tab = event.target.closest('[role="tab"]');
       if (tab) selectSection(tab.getAttribute("data-section"), true);
@@ -2389,28 +3446,35 @@
     }, { signal });
     wrap.addEventListener("change", (event) => {
       const input = event.target;
-      if (!input || input.tagName !== "INPUT") return;
+      if (!input?.matches(".s98p-switch input")) return;
       writeSettings({ ...settings, [input.name]: input.checked });
     }, { signal });
     document.addEventListener("pointerdown", (event) => {
+      if (!menu.contains(event.target) && event.target !== options && !options.contains(event.target)) closeMenu();
       if (wrap.getAttribute("data-open") === "true" && !wrap.contains(event.target)) setOpen(false, false);
     }, { capture: true, signal });
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && wrap.getAttribute("data-open") === "true") {
-        event.preventDefault();
-        setOpen(false, true);
-      }
+      if (event.key !== "Escape" || event.defaultPrevented || !wrap.contains(document.activeElement)) return;
+      if (!menu.hidden) closeMenu(true);
+      else if (wrap.dataset.open === "true") setOpen(false, true);
+      else return;
+      event.preventDefault();
     }, { signal });
-    window.addEventListener("resize", () => {
-      position = placeControl(wrap, position, true);
-    }, { signal });
+    const refreshViewport = () => {
+      viewport = controlViewport();
+      layout();
+    };
+    window.addEventListener("resize", refreshViewport, { signal });
+    window.visualViewport?.addEventListener("resize", refreshViewport, { signal });
+    window.visualViewport?.addEventListener("scroll", { handleEvent: refreshViewport }, { signal });
     document.body.appendChild(wrap);
+    controlPanel = { wrap, form, abort, open: () => setOpen(true) };
+    updateLauncher();
+    layout();
+    if (wasOpen) setOpen(true);
     syncSuccessEnhancements();
-    refreshControlTelemetry();
-    if (focusedName) {
-      const focused = wrap.querySelector(`input[name="${focusedName}"]`);
-      if (focused) focused.focus({ preventScroll: true });
-    }
+    syncControlSettings(wrap);
+    return controlPanel;
   }
 
   function announceSuccess() {
@@ -3050,24 +4114,12 @@
       return compatibilityState ? { ...compatibilityState } : null;
     },
     configure: (next) => writeSettings({ ...settings, ...next }),
-    openPanel: () => {
-      renderControlPanel();
-      const wrap = document.querySelector("#soft98-pro-control");
-      const form = document.querySelector("#soft98-pro-control form");
-      if (wrap && form) {
-        form.hidden = false;
-        form.style.removeProperty("display");
-        wrap.setAttribute("data-open", "true");
-        form.setAttribute("aria-hidden", "false");
-        const toggle = wrap.querySelector("[data-role='toggle']");
-        if (toggle) toggle.setAttribute("aria-expanded", "true");
-        refreshControlTelemetry();
-      }
-    },
+    openPanel: () => renderControlPanel()?.open(),
     patchSoft98Code,
     unpackDeanEdwards,
     diagnostics: diagnosticReport,
     report: diagnosticReport,
+    inspectedRoles,
     trapCheck,
     resetHandles: resetDocumentHandles,
     scan: () => schedule(document),
@@ -3096,6 +4148,7 @@
 
   exposePublicApi();
   init();
+  bindSiteChromeEvents();
   document.addEventListener("scroll", scheduleContentGridUpdate, { passive: true });
   window.addEventListener("resize", scheduleContentGridUpdate, { passive: true });
   document.addEventListener("focusin", scheduleContentGridUpdate);

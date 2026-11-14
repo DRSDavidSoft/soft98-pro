@@ -5,3 +5,5 @@
 - `../vlc.png`: official VideoLAN artwork used under the [VideoLAN logo terms](https://www.videolan.org/goodies.html).
 
 Product names and marks identify the links on Soft98. No endorsement or affiliation is implied.
+
+The expanded list also uses product marks from [Simple Icons](https://simpleicons.org/) (CC0 artwork). Generic category links and products without a verified replacement use descriptive icons, not an unrelated product logo.

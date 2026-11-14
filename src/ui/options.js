@@ -16,6 +16,8 @@
     darkDesign: true,
     compactLayout: true,
     expandMain: true,
+    utilityInHeader: false,
+    soundFeedback: false,
     linkBadges: true,
     pirateLogo: true,
     taunt: false,
@@ -28,7 +30,7 @@
   const LOCALE = preferredLocale();
   const RTL = LOCALE === "fa";
   const STRINGS = CATALOG.locales;
-  const OPTIONS = ["blockAds", "patchScripts", "pro", "darkDesign", "rgbMode", "compactLayout", "expandMain", "showLatest", "hideAnnoyances", "linkBadges", "pirateLogo", "taunt", "diagnostics"];
+  const OPTIONS = ["blockAds", "patchScripts", "pro", "darkDesign", "rgbMode", "compactLayout", "expandMain", "utilityInHeader", "showLatest", "hideAnnoyances", "linkBadges", "pirateLogo", "taunt", "diagnostics", "soundFeedback"];
 
   const root = document.querySelector("[data-app]");
   let settings = { ...DEFAULT_SETTINGS };
