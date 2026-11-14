@@ -54,6 +54,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Aligned the latest-content tabs with the technology news header and refreshed the news rows, shortcuts, and view counts.
 - Kept Pro tools available when switching between light and dark modes.
 - Kept the news panel and article surround in the Pro palette when Soft98's own night mode loads first, and removed the empty strip between them.
 - Kept settings rows and scroll position stable when a preview opens.

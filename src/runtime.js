@@ -2370,6 +2370,9 @@
       if (!tab) continue;
       const card = list.closest("section,article,[data-soft98-pro-surface=tab-card]") || list.parentElement?.parentElement;
       if (!card || card.closest("main,aside,#soft98-pro-control")) continue;
+      const header = list.parentElement?.matches("[data-soft98-pro-tab-header]") ? list.parentElement : list;
+      header.setAttribute("data-soft98-pro-latest-header", "tabs");
+      list.setAttribute("data-soft98-pro-latest-tabs", "");
       latestCards.add(card);
     }
     for (const heading of document.querySelectorAll("h2,h3,h4,h5,h6")) {
@@ -2383,6 +2386,20 @@
           [...parent.querySelectorAll("li a[href]")].filter((link) => !card.contains(link)).length >= 3;
         const panel = hasNewsOutsideHeading ? parent : card;
         panel.setAttribute("data-soft98-pro-page-surface", "");
+        panel.setAttribute("data-soft98-pro-tech-news", "");
+        heading.setAttribute("data-soft98-pro-news-title", "");
+        decorateIcon(heading, "news");
+        let header = heading;
+        while (header.parentElement && header.parentElement !== panel) header = header.parentElement;
+        if (header.parentElement === panel) {
+          header.setAttribute("data-soft98-pro-latest-header", "news");
+          header.querySelector("ul,ol")?.setAttribute("data-soft98-pro-news-actions", "");
+          for (const section of panel.children) {
+            if (section !== header && section.querySelectorAll("li a[href]").length >= 3) {
+              section.setAttribute("data-soft98-pro-news-body", "");
+            }
+          }
+        }
         latestCards.add(panel);
         break;
       }
@@ -2398,6 +2415,15 @@
             count.setAttribute("data-soft98-pro-view-count", "");
             count.setAttribute("data-soft98-pro-news-counter", "");
             decorateIcon(count, "eye");
+            if (card.hasAttribute("data-soft98-pro-tech-news") && count.parentElement === row) {
+              row.setAttribute("data-soft98-pro-news-story", "");
+              if (!row.querySelector(":scope > [data-soft98-pro-news-label]")) {
+                const title = document.createElement("span");
+                title.setAttribute("data-soft98-pro-news-label", "");
+                for (const child of [...row.childNodes]) if (child !== count) title.append(child);
+                row.append(title);
+              }
+            }
           }
         }
       }

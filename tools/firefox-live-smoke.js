@@ -214,6 +214,57 @@ async function main() {
       throw new Error("Live Firefox page failed the Soft98 Pro smoke checks");
     }
     if (process.env.SOFT98_LIVE_SCREENSHOT) await screenshot(session, process.env.SOFT98_LIVE_SCREENSHOT);
+    if (addon && process.env.SOFT98_LATEST_HEADER_CHECK === "1") {
+      const headers = await post("/execute/async", { args: [], script: `
+        const done = arguments[arguments.length - 1];
+        const frame = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        (async () => {
+          const tabHeader = document.querySelector('[data-soft98-pro-latest-header=tabs]');
+          const newsHeader = document.querySelector('[data-soft98-pro-latest-header=news]');
+          const tabs = [...tabHeader?.querySelectorAll('[role=tab]') || []];
+          if (!newsHeader || tabs.length !== 3) return done({found:false});
+          const measure = () => {
+            const a = tabHeader.getBoundingClientRect(), b = newsHeader.getBoundingClientRect();
+            const boxes = tabs.map(tab => tab.getBoundingClientRect());
+            const sharedRow = b.width > 0 && Math.abs(a.top - b.top) <= 1;
+            return {sharedRow, sameDivider:!sharedRow || Math.abs(a.bottom-b.bottom) <= 1,
+              tabsFit:boxes.every(box => box.width > 0 && box.left >= a.left-1 && box.right <= a.right+1 && box.bottom <= a.bottom+1),
+              pixels:[a.height,b.height]};
+          };
+          const start = measure();
+          const tabStates = [];
+          for (const tab of [...tabs.slice(1),tabs[0]]) {
+            tab.click(); await new Promise(resolve => setTimeout(resolve, 400));
+            const pane = document.getElementById(tab.getAttribute('aria-controls'));
+            const style = pane && getComputedStyle(pane);
+            tabStates.push({selected:tab.getAttribute('aria-selected') === 'true',
+              visible:!!pane?.getClientRects().length && style.visibility !== 'hidden', aligned:measure().sameDivider,
+              pane:tab.getAttribute('aria-controls'), display:style?.display});
+          }
+          Soft98Pro.configure({darkDesign:false}); await new Promise(resolve => setTimeout(resolve, 300));
+          const light = measure();
+          if (!${Boolean(process.env.SOFT98_LATEST_HEADER_SCREENSHOT)}) Soft98Pro.configure({darkDesign:true});
+          const stories = [...document.querySelectorAll('[data-soft98-pro-news-story]')];
+          const newsStyled = stories.length > 0 && stories.every(story => getComputedStyle(story).display === 'flex' &&
+            !!story.querySelector('[data-soft98-pro-news-label]') && story.hasAttribute('href'));
+          const storyStyle = stories[0] && getComputedStyle(stories[0]);
+          const stripe = storyStyle?.backgroundColor;
+          const newsContrast = light.pixels[1] === 0 || (stripe === 'rgb(240, 245, 255)' && storyStyle?.color === 'rgb(20, 40, 74)');
+          done({found:true,start,light,tabStates,newsStyled,newsContrast,stripe,newsInk:storyStyle?.color});
+        })().catch(error => done({error:String(error)}));
+      ` });
+      if (!headers.found || !headers.start.sameDivider || !headers.light.sameDivider || !headers.start.tabsFit ||
+          !headers.light.tabsFit || !headers.newsStyled || !headers.newsContrast ||
+          !headers.tabStates.every(state => state.selected && state.visible && state.aligned) ||
+          (width >= 1000 && !headers.start.sharedRow)) {
+        throw new Error("Latest header alignment failed: " + JSON.stringify(headers));
+      }
+      console.log(JSON.stringify({latestHeaders: headers}));
+      if (process.env.SOFT98_LATEST_HEADER_SCREENSHOT) {
+        await screenshot(session, process.env.SOFT98_LATEST_HEADER_SCREENSHOT);
+        await evaluate("Soft98Pro.configure({darkDesign:true})");
+      }
+    }
     if (addon && process.env.SOFT98_CHROME_PREVIEW_DIR) {
       const out = path.resolve(process.env.SOFT98_CHROME_PREVIEW_DIR);
       await fs.mkdir(out, { recursive: true });
