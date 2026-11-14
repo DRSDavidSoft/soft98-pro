@@ -82,7 +82,10 @@
           '<dd><a data-key="test-key" href="/100-preview.html">Keyed file</a></dd>' +
           '<dd><a href="https://href.li/?https://dl2.soft98.ir/files/preview.zip?12345">Direct file</a></dd></dl></div></article>', {
           headers: { "Content-Type": "text/html; charset=utf-8" }
-        })) : String(input) === "https://dl2.soft98.ir/files/metadata.zip" && init?.method === "HEAD" ?
+        })) : String(input) === location.origin + "/101-keyed.html" ?
+        Promise.resolve(new Response('<article><div role="tabpanel"><dl><dd><a data-key="example" href="/101-keyed.html">Keyed file</a></dd>' +
+          '<dd><a href="/support.html">Not a file</a></dd></dl></div></article>', { headers: { "Content-Type": "text/html" } })) :
+        String(input) === "https://dl2.soft98.ir/files/metadata.zip" && init?.method === "HEAD" ?
         Promise.resolve(new Response(null, { headers: {
           "Content-Type": "application/zip", "Content-Length": "8200000", "Last-Modified": "Fri, 13 Nov 2026 12:00:00 GMT"
         } })) : originalFetch(input, init);
@@ -219,7 +222,8 @@
           document.body.appendChild(techNews);
 
           var listingPreview = document.createElement("main");
-          listingPreview.innerHTML = '<article><a data-test="article-preview-trigger" href="/100-preview.html">ادامه مطلب</a></article>';
+          listingPreview.innerHTML = '<article><a data-test="article-preview-trigger" href="/100-preview.html">ادامه مطلب</a></article>' +
+            '<article><a data-test="keyed-preview-trigger" href="/101-keyed.html">ادامه مطلب</a></article>';
           document.body.appendChild(listingPreview);
 
           var downloadArticle = document.createElement("article");

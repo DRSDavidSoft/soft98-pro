@@ -71,6 +71,7 @@
   const siteReadOnlyDialogs = new Map();
   const dialogState = new WeakMap();
   const articlePreviewCache = new Map();
+  const articlePreviewTriggers = new WeakSet();
   const contentTabs = new Map();
   let audioContext;
   let audioAt = 0;
@@ -1910,13 +1911,28 @@
   }
 
   function bindArticlePreview(trigger) {
-    if (trigger.nextElementSibling?.matches("[data-soft98-pro-read-preview]") ||
-        !document.documentElement.classList.contains("soft98-pro-theme")) return;
+    if (articlePreviewTriggers.has(trigger) || !nativeFetch) return;
     const article = trigger.closest("article");
     const headline = article?.querySelector("header :is(h1,h2,h3) a[href]");
     const candidate = [trigger, headline].find((link) => link?.href && link.origin === location.origin &&
       /\/\d+[^/]*\.html$/i.test(link.pathname) && link.pathname !== location.pathname);
-    const destination = candidate?.href;
+    if (!candidate) return;
+    const destination = new URL(candidate.href);
+    destination.hash = "";
+    let started = false;
+    const discover = async () => {
+      if (started || !settings.pro) return;
+      started = true;
+      const links = await readArticleLinks(destination.href);
+      if (links === null) started = false;
+      if (links?.length && trigger.isConnected) renderArticlePreview(trigger, links);
+    };
+    articlePreviewTriggers.add(trigger);
+    trigger.addEventListener("pointerenter", discover);
+    trigger.addEventListener("focus", discover);
+  }
+
+  function renderArticlePreview(trigger, links) {
     const wrap = document.createElement("span");
     const button = document.createElement("button");
     const panel = document.createElement("span");
@@ -1927,6 +1943,14 @@
     wrap.setAttribute("data-soft98-pro-read-preview", "");
     panel.setAttribute("data-soft98-pro-preview-panel", "");
     panel.setAttribute("role", "region");
+    panel.setAttribute("aria-label", text("articlePreview"));
+    for (const { label, href, hideReferrer } of links) {
+      const link = document.createElement("a");
+      link.textContent = label;
+      link.href = href;
+      if (hideReferrer) link.rel = "noreferrer";
+      panel.append(link);
+    }
     wrap.append(button, panel);
     trigger.after(wrap);
     let hover;
@@ -1935,38 +1959,9 @@
       button.setAttribute("aria-expanded", "false");
       panel.hidden = true;
     };
-    const open = async () => {
+    const open = () => {
       button.setAttribute("aria-expanded", "true");
       panel.hidden = false;
-      panel.textContent = text("previewLoading");
-      const { links, downloadPane } = destination ? await readArticleLinks(destination) : { links: [] };
-      if (panel.hidden) return;
-      panel.replaceChildren();
-      const makeLink = (label, href, hideReferrer = false) => {
-        const item = document.createElement("a");
-        item.textContent = label;
-        item.href = href;
-        if (hideReferrer) item.rel = "noreferrer";
-        return item;
-      };
-      const openArticle = downloadPane || destination;
-      if (!links.length && !openArticle) {
-        const original = document.createElement("button");
-        original.type = "button";
-        original.textContent = text("previewOpenArticle");
-        original.addEventListener("click", () => trigger.click());
-        panel.append(original);
-      } else if (!links.length) panel.append(makeLink(text("previewOpenArticle"), openArticle));
-      else if (links.length === 1) panel.append(makeLink(links[0].label, links[0].href, links[0].hideReferrer));
-      else {
-        const disclosure = document.createElement("details");
-        const summary = document.createElement("summary");
-        summary.textContent = text("articlePreview");
-        disclosure.open = true;
-        disclosure.append(summary, ...links.map((link) => makeLink(link.label, link.href, link.hideReferrer)));
-        panel.append(disclosure);
-      }
-      if (links.length && openArticle) panel.append(makeLink(text("previewOpenArticle"), openArticle));
     };
     wrap.addEventListener("pointerenter", () => { hover = setTimeout(open, 320); });
     wrap.addEventListener("pointerleave", () => { if (!wrap.contains(document.activeElement)) dismiss(); });
@@ -1976,13 +1971,11 @@
   }
 
   function readArticleLinks(destination) {
-    const empty = { links: [], downloadPane: "" };
-    if (!nativeFetch) return Promise.resolve(empty);
     const existing = articlePreviewCache.get(destination);
     if (existing && Date.now() - existing.time < 300000) return existing.result;
-    const result = nativeFetch(destination, { credentials: "omit", redirect: "error", signal: AbortSignal.timeout(3500) })
+    const result = nativeFetch(destination, { credentials: "same-origin", redirect: "error", signal: AbortSignal.timeout(5000) })
       .then(async (response) => {
-        if (!response.ok || !response.headers.get("content-type")?.includes("text/html") || !response.body) return empty;
+        if (!response.ok || !response.headers.get("content-type")?.includes("text/html") || !response.body) return null;
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let html = "";
@@ -1991,27 +1984,26 @@
           const { value, done } = await reader.read();
           if (done) break;
           bytes += value.byteLength;
-          if (bytes > 650000) { await reader.cancel(); return empty; }
+          if (bytes > 650000) { await reader.cancel(); return null; }
           html += decoder.decode(value, { stream: true });
         }
         const doc = new DOMParser().parseFromString(html + decoder.decode(), "text/html");
         const seen = new Set();
-        const panes = [...doc.querySelectorAll("article [role=tabpanel]")];
-        const keyedPane = panes.find(pane => pane.querySelector("dl dd a[data-key]"));
-        const fragment = keyedPane?.id && /^[A-Za-z][\w:.-]*$/.test(keyedPane.id) ? keyedPane.id : "";
-        const links = panes.flatMap(pane => [...pane.querySelectorAll("dl dd a[href]")]).flatMap((link) => {
+        const article = doc.querySelector("main article, article");
+        if (!article) return null;
+        return [...article.querySelectorAll("[role=tabpanel] dl > dd a[href], a[download][href]")].flatMap((link) => {
           const url = directDownloadUrl(link.getAttribute("href"), destination);
           if (!url || seen.has(url.href)) return [];
           seen.add(url.href);
           return [{ href: url.href, hideReferrer: new URL(link.getAttribute("href"), destination).hostname === "href.li",
             label: link.textContent.trim().slice(0, 140) || url.pathname.split("/").at(-1) }];
         }).slice(0, 12);
-        const article = new URL(destination);
-        article.hash = fragment;
-        return { links, downloadPane: keyedPane ? article.href : "" };
-      }).catch(() => empty);
+      }).catch(() => null);
     if (articlePreviewCache.size >= 24) articlePreviewCache.delete(articlePreviewCache.keys().next().value);
     articlePreviewCache.set(destination, { time: Date.now(), result });
+    result.then(links => {
+      if (links === null && articlePreviewCache.get(destination)?.result === result) articlePreviewCache.delete(destination);
+    });
     return result;
   }
 

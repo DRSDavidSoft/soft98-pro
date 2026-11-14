@@ -63,7 +63,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Reduced stutter while scrolling, dragging the control center, and expanding FAQ answers. Recognized scroll detectors are stopped before registration instead of adding more work to each scroll event.
 - Kept the article tabs in normal flow and stabilized scrolling from related posts through the footer.
 - Stopped the site's repeating style edits and injected download checks from shifting the page, without removing its download link handler.
-- Made listing previews open the original article's download tab when some files are only available through the site's download controls.
+- Made listing previews show actual file links only. Articles with no direct file links no longer show a download preview.
 - Made F2 refocus an already open search and kept the discussion styling on read-only threads.
 - Clarified that the download group copy action copies direct links only.
 - Restored the Pro palette on the related-posts card, replacing the stock gray background.
@@ -102,7 +102,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Corrected theme contrast, icon rendering, tab styling, logo transparency, dialog transitions, and RTL/LTR presentation.
 - Repaired repeated icon-and-copy utility lists, including the useful-software sidebar, without relying on changing classes or headings.
 
-Soft98 currently serves some download buttons as placeholders and fills in their destinations through its own click handler. This release preserves those controls, restores a hidden download list, and routes listing previews to the article when no public file URL is available. See the [visual change log](docs/changes/v1.2.0.md) for before-and-after captures and verification notes.
+Soft98 currently serves some download buttons as placeholders and fills in their destinations through its own click handler. This release preserves those controls and restores a hidden download list. Listing previews only show direct file links found in the article. See the [visual change log](docs/changes/v1.2.0.md) for before-and-after captures and verification notes.
 
 ## [1.1.1] - 2026-07-11
 

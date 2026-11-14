@@ -425,17 +425,25 @@ async function main() {
         assertEqual("news", "shortcut SVG centers", latest.centered, true);
         const previewLinks = await evaluate(client, `
           (async () => {
-            const preview = document.querySelector('[data-test=article-preview-trigger]').nextElementSibling;
-            preview.querySelector('button').click();
-            for (let i = 0; i < 10 && !preview.querySelector('[data-soft98-pro-preview-panel] a'); i++)
+            const trigger = document.querySelector('[data-test=article-preview-trigger]');
+            const keyed = document.querySelector('[data-test=keyed-preview-trigger]');
+            const noUnverifiedControls = !trigger.nextElementSibling && !keyed.nextElementSibling;
+            trigger.dispatchEvent(new PointerEvent('pointerenter'));
+            keyed.focus({ preventScroll:true });
+            for (let i = 0; i < 10 && !trigger.nextElementSibling; i++)
               await new Promise(resolve => setTimeout(resolve, 35));
-            return [...preview.querySelectorAll('[data-soft98-pro-preview-panel] a')].map(link => link.getAttribute('href'));
+            const preview = trigger.nextElementSibling;
+            preview.querySelector('button').click();
+            keyed.blur();
+            return { noUnverifiedControls, noKeyedPreview: !keyed.nextElementSibling,
+              links: [...preview.querySelectorAll('[data-soft98-pro-preview-panel] a')].map(link => link.getAttribute('href')) };
           })()
         `);
-        assertEqual("listing preview", "direct file", previewLinks[0], "https://dl2.soft98.ir/files/preview.zip");
+        assertEqual("listing preview", "direct file only", previewLinks.links.join(","), "https://dl2.soft98.ir/files/preview.zip");
+        assertEqual("listing preview", "no controls before verification", previewLinks.noUnverifiedControls, true);
+        assertEqual("listing preview", "no placeholder for keyed controls", previewLinks.noKeyedPreview, true);
         assertEqual("listing preview", "referrer stays private", await evaluate(client,
           "document.querySelector('[data-soft98-pro-preview-panel] a').relList.contains('noreferrer')"), true);
-        assertEqual("listing preview", "visit keyed download tab", previewLinks[1], `http://127.0.0.1:${PORT}/100-preview.html#test-file-panel`);
         const wrappers = await evaluate(client, `(async () => {
           const samples = [
             ['https://href.li/?https://example.org/a%2Fb?q=a+b&token=%2F%3F#install', 'https://example.org/a%2Fb?q=a+b&token=%2F%3F#install'],
