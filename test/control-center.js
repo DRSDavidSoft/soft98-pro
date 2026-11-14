@@ -18,7 +18,8 @@ const substitutions = {
   MESSAGES: source("src/messages.json"),
   COMPATIBILITY: source("src/compatibility/soft98-scripts.json"),
   PAGE_ICONS: "{}",
-  OPTION_PREVIEWS: "{}",
+  OPTION_PREVIEWS: JSON.stringify({ rgbMode: ["dark-on.webp", "rgb.webp", "rgb-still.webp"].map((file) =>
+    "data:image/webp;base64," + fs.readFileSync(path.join(root, "docs", "assets", "settings", file)).toString("base64")) }),
 };
 const runtime = source("src/patch-engine.js") + "\n" + source("src/runtime.js").replace(/__SOFT98_([A-Z_]+)__/g,
   (token, name) => Object.hasOwn(substitutions, name) ? substitutions[name] : token);
@@ -59,6 +60,19 @@ async function verify() {
   appearance.click();
   const panels = get(".s98p-panels");
   const setting = get('#soft98-pro-control input[name="rgbMode"]');
+  const option = setting.closest("label");
+  const preview = get(".s98p-option-preview");
+  option.scrollIntoView({ block: "nearest" });
+  await wait(100);
+  const bounds = () => [option.getBoundingClientRect().height, form.getBoundingClientRect().height, panels.scrollHeight, panels.scrollTop];
+  const before = bounds();
+  option.dispatchEvent(new win.PointerEvent("pointerenter", { pointerType: "mouse" }));
+  await wait(300);
+  check(!preview.hidden && fits(preview) && preview.querySelectorAll('img[src^="data:image/webp"]').length === 2,
+    "Real before/after preview is missing or outside the viewport");
+  check(JSON.stringify(bounds()) === JSON.stringify(before), "Preview changed the row height, panel height, or scroll position");
+  option.dispatchEvent(new win.PointerEvent("pointerleave", { pointerType: "mouse" }));
+  check(preview.hidden, "Preview stayed open after leaving the row");
   setting.focus();
   panels.scrollTop = 120;
   const scroll = panels.scrollTop;

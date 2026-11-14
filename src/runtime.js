@@ -1135,6 +1135,7 @@
       .soft98-pro-compact [data-soft98-pro-column=secondary]{grid-column:2!important}
       .soft98-pro-compact [data-soft98-pro-content-frame],.soft98-pro-theme [data-soft98-pro-wide-nav]{max-width:var(--s98p-page-width,1280px)!important}
       .soft98-pro-theme :is([data-soft98-pro-latest-frame],[data-soft98-pro-between-frames]){max-width:var(--s98p-page-width,1280px)!important}
+      :root.soft98-pro-theme [data-soft98-pro-page-surface]{background:var(--s98p-surface)!important;border-color:var(--s98p-border-soft)!important}
       :root.soft98-pro-theme [data-soft98-pro-empty-band]{display:none!important;block-size:0!important;min-block-size:0!important;padding:0!important;margin-block:0!important;border:0!important;overflow:hidden!important;visibility:hidden!important;box-shadow:none!important}
       @media(min-width:1600px){
         :root.soft98-pro-theme{--s98p-page-width:min(2200px,calc(100vw - 96px))}
@@ -1465,6 +1466,7 @@
         const direction = document.documentElement.dir || getComputedStyle(container).direction;
         container.setAttribute("data-soft98-pro-layout", "content-grid");
         container.setAttribute("data-soft98-pro-reading", direction === "rtl" ? "rtl" : "ltr");
+        if (container.parentElement?.matches("div")) container.parentElement.setAttribute("data-soft98-pro-page-surface", "");
         for (let wrapper = container.parentElement, depth = 0; wrapper && wrapper !== document.body && depth < 3; wrapper = wrapper.parentElement, depth += 1) {
           const max = Number.parseFloat(getComputedStyle(wrapper).maxWidth);
           if (max >= 1100 && max <= 2200) wrapper.setAttribute("data-soft98-pro-content-frame", "");
@@ -2286,7 +2288,12 @@
       for (let card = heading.parentElement, depth = 0; card && depth < 4; card = card.parentElement, depth += 1) {
         if (card.querySelector("main,article,[role=tablist]")) break;
         if (card.querySelectorAll("li a[href]").length < 3) continue;
-        latestCards.add(card);
+        const parent = card.parentElement;
+        const hasNewsOutsideHeading = parent && !parent.querySelector("main,article,[role=tablist]") &&
+          [...parent.querySelectorAll("li a[href]")].filter((link) => !card.contains(link)).length >= 3;
+        const panel = hasNewsOutsideHeading ? parent : card;
+        panel.setAttribute("data-soft98-pro-page-surface", "");
+        latestCards.add(panel);
         break;
       }
     }
@@ -2310,6 +2317,9 @@
       for (let frame = cards[0].parentElement, depth = 0; frame && frame !== document.body && depth < 4; frame = frame.parentElement, depth += 1) {
         if (cards.every((card) => frame.contains(card)) && !frame.querySelector("main")) {
           frame.setAttribute("data-soft98-pro-latest-frame", "");
+          if (frame.parentElement?.children.length === 1 && frame.parentElement.matches("div")) {
+            frame.parentElement.setAttribute("data-soft98-pro-page-surface", "");
+          }
           for (let outer = frame.parentElement, level = 0; outer && outer !== document.body && level < 2 && !outer.querySelector("main"); outer = outer.parentElement, level += 1) {
             outer.setAttribute("data-soft98-pro-latest-frame", "");
           }
@@ -2320,7 +2330,7 @@
     for (const grid of document.querySelectorAll("[data-soft98-pro-layout=content-grid]")) {
       const frame = grid.parentElement?.closest("[data-soft98-pro-content-frame]");
       const band = frame?.previousElementSibling;
-      if (!band?.matches("div[data-soft98-pro-surface=raised]") ||
+      if (!band?.matches("div") || band.childElementCount !== 1 ||
           !band.previousElementSibling?.hasAttribute("data-soft98-pro-latest-frame")) continue;
       if (!band.hasAttribute("data-soft98-pro-between-frames")) band.setAttribute("data-soft98-pro-between-frames", "");
       const empty = !band.textContent.trim() && !band.querySelector("a,button,form,img,iframe,video,canvas,svg,[role]");
@@ -2944,9 +2954,7 @@
   }
 
   function controlOptionMarkup(key) {
-    const preview = ["blockAds", "patchScripts", "hideAnnoyances"].includes(key) ? "protection" :
-      ["pro", "darkDesign", "rgbMode", "pirateLogo"].includes(key) ? "appearance" :
-      ["compactLayout", "expandMain", "utilityInHeader", "showLatest"].includes(key) ? "layout" : "";
+    const preview = Object.hasOwn(OPTION_PREVIEWS, key) ? key : "";
     return `
       <label class="s98p-option"${preview ? ` data-s98p-preview="${preview}"` : ""}>
         <span class="s98p-option-copy">
@@ -2957,7 +2965,6 @@
           <input type="checkbox" role="switch" name="${key}" ${settings[key] ? "checked" : ""}>
           <span aria-hidden="true"></span>
         </span>
-        ${preview ? `<span class="s98p-option-preview" aria-hidden="true"><span>${escapeHtml(text("previewBefore"))}</span><span>${escapeHtml(text("previewAfter"))}</span><img alt="" data-preview-src="${escapeHtml(OPTION_PREVIEWS[preview])}" width="360" height="92"></span>` : ""}
       </label>`;
   }
 
@@ -3088,6 +3095,10 @@
         <button type="button" role="menuitem" data-command="reset" tabindex="-1"><span aria-hidden="true">&#8634;</span>${escapeHtml(text("controlResetPosition"))}</button>
         <button type="button" role="menuitem" data-command="tuck" tabindex="-1"><span aria-hidden="true">&#8644;</span><span data-role="tuck-label">${escapeHtml(text("controlTuck"))}</span></button>
       </div>
+      <div class="s98p-option-preview" aria-hidden="true" dir="${RTL ? "rtl" : "ltr"}" hidden>
+        <span>${escapeHtml(text("previewBefore"))}<img alt="" draggable="false"></span>
+        <span>${escapeHtml(text("previewAfter"))}<img alt="" draggable="false"></span>
+      </div>
     `;
     const style = document.createElement("style");
     style.textContent = `
@@ -3163,9 +3174,9 @@
       #soft98-pro-control .s98p-switch input:checked+span{border-color:var(--c-accent);background:var(--c-accent-soft)}
       #soft98-pro-control .s98p-switch input:checked+span:after{background:var(--c-accent);transform:translateX(16px)}
       #soft98-pro-control .s98p-switch input:focus-visible+span{outline:2px solid var(--c-accent);outline-offset:3px}
-      #soft98-pro-control .s98p-option-preview{display:none;grid-column:1/-1;grid-template-columns:1fr 1fr;gap:3px;text-align:center;font-size:10px;color:var(--c-muted)!important}
-      #soft98-pro-control .s98p-option-preview img{grid-column:1/-1;width:100%;height:auto;display:block}
-      #soft98-pro-control [data-s98p-preview]:is(:hover,:focus-within)>.s98p-option-preview{display:grid}
+      #soft98-pro-control .s98p-option-preview{position:fixed;pointer-events:none;z-index:5;box-sizing:border-box;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:8px;border:1px solid var(--c-border);border-radius:8px;background:var(--c-bg);box-shadow:0 12px 35px #0007;text-align:center;font-size:11px;color:var(--c-text)!important}
+      #soft98-pro-control .s98p-option-preview[hidden]{display:none!important}
+      #soft98-pro-control .s98p-option-preview img{display:block;width:100%;aspect-ratio:16/9;max-height:var(--c-preview-height);box-sizing:border-box;object-fit:contain;margin-top:5px;border:1px solid var(--c-border-soft);border-radius:4px;background:var(--c-bg-soft);filter:none!important}
       #soft98-pro-control footer{display:grid;grid-template-columns:1fr auto;gap:8px;padding:11px 14px;border-top:1px solid var(--c-border-soft);background:color-mix(in srgb,var(--c-bg-soft) 88%,var(--c-bg))}
       #soft98-pro-control footer button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;margin:0;padding:7px 12px;border:1px solid var(--c-border);border-radius:7px;background:var(--c-bg-raised)!important;color:var(--c-text)!important;font-size:11px;font-weight:650;line-height:1.4;cursor:pointer;transition:border-color .16s ease,background-color .16s ease,transform .16s ease}
       #soft98-pro-control footer button:hover{border-color:var(--c-accent);color:var(--c-accent)!important;transform:translateY(-1px)}
@@ -3202,15 +3213,63 @@
     const options = wrap.querySelector("[data-role='options']");
     const form = wrap.querySelector("form");
     const scroller = form.querySelector(".s98p-panels");
+    const preview = wrap.querySelector(".s98p-option-preview");
+    const previewImages = [...preview.querySelectorAll("img")];
+    const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
+    let previewTimer = 0;
+    let previewOption = null;
+    const hidePreview = () => {
+      clearTimeout(previewTimer);
+      previewOption = null;
+      preview.hidden = true;
+      for (const image of previewImages) image.removeAttribute("src");
+    };
+    const showPreview = (option, delay) => {
+      hidePreview();
+      previewOption = option;
+      previewTimer = setTimeout(() => {
+        if (previewOption !== option || form.inert || !option.getClientRects().length) return;
+        const [before, after, still] = OPTION_PREVIEWS[option.dataset.s98pPreview];
+        previewImages[0].src = before;
+        previewImages[1].src = reduceMotion.matches && still ? still : after;
+        const viewport = controlViewport();
+        const anchor = option.getBoundingClientRect();
+        const panel = form.getBoundingClientRect();
+        const width = Math.min(462, viewport.width - 16);
+        if (width < 140 || viewport.height < 155) return hidePreview();
+        preview.style.width = width + "px";
+        preview.style.setProperty("--c-preview-height", Math.max(72, viewport.height - 56) + "px");
+        preview.hidden = false;
+        const height = preview.getBoundingClientRect().height;
+        const right = panel.right + 12;
+        const left = panel.left - width - 12;
+        const x = right + width <= viewport.left + viewport.width - 8 ? right :
+          left >= viewport.left + 8 ? left :
+            Math.max(viewport.left + 8, Math.min(anchor.left, viewport.left + viewport.width - width - 8));
+        const beside = x === left || x === right;
+        const y = beside ? anchor.top : anchor.bottom + height + 8 > viewport.top + viewport.height ? anchor.top - height - 8 : anchor.bottom + 8;
+        preview.style.left = x + "px";
+        preview.style.top = Math.max(viewport.top + 8, Math.min(y, viewport.top + viewport.height - height - 8)) + "px";
+      }, delay);
+    };
     for (const option of form.querySelectorAll("[data-s98p-preview]")) {
-      const loadPreview = () => {
-        const image = option.querySelector("img[data-preview-src]");
-        if (!image || image.hasAttribute("src")) return;
-        image.src = image.dataset.previewSrc;
-      };
-      option.addEventListener("pointerenter", loadPreview, { signal });
-      option.addEventListener("focusin", loadPreview, { signal });
+      option.addEventListener("pointerenter", (event) => { if (event.pointerType !== "touch") showPreview(option, 220); }, { signal });
+      option.addEventListener("focusin", (event) => { if (event.target.matches(":focus-visible")) showPreview(option, 0); }, { signal });
+      for (const event of ["pointerleave", "focusout", "change"]) option.addEventListener(event, () => {
+        if (previewOption === option) hidePreview();
+      }, { signal });
     }
+    scroller.addEventListener("scroll", hidePreview, { passive: true, signal });
+    window.addEventListener("resize", hidePreview, { signal });
+    window.visualViewport?.addEventListener("resize", hidePreview, { signal });
+    window.visualViewport?.addEventListener("scroll", hidePreview, { signal });
+    form.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && previewOption) {
+        event.preventDefault();
+        hidePreview();
+      }
+    }, { signal });
+    signal.addEventListener("abort", hidePreview, { once: true });
     const diagnostics = wrap.querySelector("[data-role='diagnostics']");
     const report = form.querySelector("#soft98-pro-report");
     const reportTitle = report.querySelector("h2");
@@ -3252,6 +3311,7 @@
       menuTrigger = null;
     };
     const setOpen = (open, moveFocus = false) => {
+      if (!open) hidePreview();
       closeMenu();
       const changing = open !== (wrap.dataset.open === "true");
       if (open && requested.tucked) {

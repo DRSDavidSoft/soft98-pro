@@ -93,10 +93,20 @@ async function main() {
           narrowBand: (() => {
             const frame = document.querySelector('[data-soft98-pro-layout=content-grid]')?.parentElement;
             const band = frame?.previousElementSibling;
-            if (!band?.matches('div[data-soft98-pro-surface=raised]') ||
+            if (!band?.matches('div') || band.childElementCount !== 1 ||
                 !band.previousElementSibling?.hasAttribute('data-soft98-pro-latest-frame')) return false;
             const box = band.getBoundingClientRect();
             return box.height > 1 && (band.hasAttribute('data-soft98-pro-empty-band') || box.width + 2 < frame.getBoundingClientRect().width);
+          })(),
+          pagePalette: (() => {
+            const frame = document.querySelector('[data-soft98-pro-layout=content-grid]')?.parentElement;
+            const news = document.querySelector('[data-soft98-pro-latest]:has([data-soft98-pro-news-counter])');
+            const surface = getComputedStyle(document.documentElement).getPropertyValue('--s98p-surface').trim();
+            const probe = document.createElement('span');
+            probe.style.color = surface;
+            const expected = probe.style.color;
+            const background = node => node && getComputedStyle(node).backgroundColor;
+            return { expected, article:background(frame), news:background(news) };
           })(),
           columnsAligned: (() => {
             const primary = document.querySelector('[data-soft98-pro-column=primary]');
@@ -177,6 +187,7 @@ async function main() {
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
     console.log(JSON.stringify({ addon, browser: capabilities.browserVersion, ...result }, null, 2));
+    const { expected, article, news } = result.pagePalette;
     if (addon && (!result.theme || result.control?.width !== 42 || result.control.height !== 42 || result.control.position !== "fixed" ||
         result.control.panelVisible || !(result.preservedLinks || result.downloadControls) || result.promotions ||
         !result.compactBrand || result.brand.length < 2 || result.brand.some(({ variant, bundled }) => variant !== "pirateDark" || !bundled) ||
@@ -192,11 +203,64 @@ async function main() {
         result.downloadPresentation.navButtons < 3 || !result.downloadPresentation.navGroups ||
         !result.downloadPresentation.navIndicators || result.downloadPresentation.articleMetadata < 3 ||
         !result.utility.transparentIcons || result.utility.productIcons < 5 || result.utility.downloadIconShadow !== "none" ||
-        (width > 820 && result.sidebarWidth && result.sidebarWidth < 250) ||
+        (width > 820 && (!expected || article !== expected || news !== expected || (result.sidebarWidth && result.sidebarWidth < 250))) ||
         (width >= 2000 && (result.articleFrame < 1750 || result.narrowBand)) || (width > 820 && !result.columnsAligned))) {
       throw new Error("Live Firefox page failed the Soft98 Pro smoke checks");
     }
     if (process.env.SOFT98_LIVE_SCREENSHOT) await screenshot(session, process.env.SOFT98_LIVE_SCREENSHOT);
+    if (addon && process.env.SOFT98_CONTROL_PREVIEW_SCREENSHOT) {
+      await evaluate(`
+        const control = document.querySelector('#soft98-pro-control');
+        control.querySelector('[data-role=toggle]').click();
+        control.querySelector('[data-section=experience]').click();
+        const option = control.querySelector('[data-s98p-preview=rgbMode]');
+        option.scrollIntoView({block:'nearest'});
+      `);
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      await evaluate("document.querySelector('[data-s98p-preview=rgbMode]').dispatchEvent(new PointerEvent('pointerenter',{pointerType:'mouse'}))");
+      await new Promise((resolve) => setTimeout(resolve, 450));
+      const preview = await evaluate(`
+        const preview = document.querySelector('.s98p-option-preview');
+        const box = preview.getBoundingClientRect();
+        return !preview.hidden && box.right <= innerWidth && box.bottom <= innerHeight &&
+          [...preview.querySelectorAll('img')].every(image => image.complete && image.naturalWidth > 0);
+      `);
+      if (!preview) throw new Error("Packaged control center did not show its bundled screenshots");
+      await screenshot(session, process.env.SOFT98_CONTROL_PREVIEW_SCREENSHOT);
+      await evaluate("document.querySelector('#soft98-pro-control [data-role=close]').click(); scrollTo(0,0)");
+    }
+    if (addon && process.env.SOFT98_CONTROL_PREVIEWS) {
+      const out = path.resolve(process.env.SOFT98_CONTROL_PREVIEWS);
+      await fs.mkdir(out, { recursive: true });
+      const capture = async (name, script) => {
+        if (script) await evaluate(script);
+        await new Promise((resolve) => setTimeout(resolve, 350));
+        await screenshot(session, path.join(out, name + ".png"));
+      };
+      await capture("dark-on");
+      await capture("dark-off", "Soft98Pro.configure({darkDesign:false})");
+      await capture("pirate-off", "Soft98Pro.configure({darkDesign:true,pirateLogo:false})");
+      await capture("pirate-on", "Soft98Pro.configure({pirateLogo:true})");
+      await capture("latest-on");
+      await capture("latest-off", "Soft98Pro.configure({showLatest:false})");
+      await evaluate("Soft98Pro.configure({showLatest:true,rgbMode:true})");
+      for (let i = 0; i < 12; i++) {
+        await capture("rgb-" + String(i).padStart(2, "0"), `
+          const animation = document.documentElement.getAnimations().find(anim => anim.animationName === 'soft98-pro-neon');
+          if (!animation) throw new Error('RGB animation unavailable');
+          animation.pause();
+          animation.currentTime = ${Math.round(i * 16000 / 12)};
+        `);
+      }
+      await evaluate("Soft98Pro.configure({rgbMode:false})");
+      const scrollPastSidebar = `
+        const side = document.querySelector('[data-soft98-pro-column=secondary]').getBoundingClientRect();
+        scrollBy(0, side.bottom + side.width + 65);
+      `;
+      await capture("expand-on", scrollPastSidebar);
+      await capture("expand-off", "Soft98Pro.configure({expandMain:false})");
+      await evaluate("Soft98Pro.configure({expandMain:true}); scrollTo(0,0)");
+    }
     if (process.env.SOFT98_UTILITY_SCREENSHOT) {
       await evaluate(`const heading = document.querySelector('[data-soft98-pro-utility-header]') ||
         [...document.querySelectorAll('aside h1,aside h2,aside h3,aside h4')].find(node =>

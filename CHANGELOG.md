@@ -12,7 +12,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - Added a browser download queue with parallel transfers, progress, pause and resume where supported, and the browser's Save As options.
 - Added article download previews for public direct links, an optional top-bar shortcut to useful software, and optional interface sounds.
-- Added control-center previews, a technical report, a keyboard-friendly context menu, and a launcher that remembers its docked corner.
+- Added control-center previews from live screenshots, including an animated RGB comparison, plus a technical report, a keyboard-friendly context menu, and a launcher that remembers its docked corner.
 - Added an optional animated RGB Pro mode with a subdued night palette, animated neon borders and active states, responsive interactions, keyboard focus treatments, and reduced-motion support.
 - Added responsive semantic layout refinement that organizes primary content and supporting panels without relying on generated Soft98 identifiers.
 - Added a reviewed compatibility catalog covering 65 archived Soft98 packed-script hashes.
@@ -49,6 +49,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Kept the news panel and article surround in the Pro palette when Soft98's own night mode loads first, and removed the empty strip between them.
+- Kept settings rows and scroll position stable when a preview opens.
 - Kept the sidebar on the same side while the article widens and reclaimed its space when no sidebar content remains.
 - Repaired leftover ad cards, orphaned dividers, and the floating feedback banner.
 - Aligned multi-line download rows, removed the stock hover ring, added copy and collapse controls where direct links are available, and kept archive passwords selected while showing copy feedback.

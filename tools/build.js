@@ -102,12 +102,20 @@ function dataUrl(file) {
 }
 
 function sourceReplacements(target) {
-  const previews = Object.fromEntries(["protection", "appearance", "layout"].map((name) => {
-    const file = name + "-preview.svg";
-    const source = target === "extension" ?
-      "data:image/svg+xml;base64," + fs.readFileSync(path.join(ROOT, "docs", "assets", file)).toString("base64") :
-      "https://raw.githubusercontent.com/DRSDavidSoft/soft98-pro/develop/docs/assets/" + file;
-    return [name, source];
+  const previewFiles = {
+    darkDesign: ["dark-off.webp", "dark-on.webp"],
+    rgbMode: ["dark-on.webp", "rgb.webp", "rgb-still.webp"],
+    pirateLogo: ["pirate-off.webp", "pirate-on.webp"],
+    showLatest: ["latest-off.webp", "latest-on.webp"],
+    expandMain: ["expand-off.webp", "expand-on.webp"],
+  };
+  const inlined = {};
+  const previews = Object.fromEntries(Object.entries(previewFiles).map(([key, files]) => {
+    const resolve = (file) => {
+      if (target !== "extension") return "https://raw.githubusercontent.com/DRSDavidSoft/soft98-pro/develop/docs/assets/settings/" + file;
+      return inlined[file] ||= "data:image/webp;base64," + fs.readFileSync(path.join(ROOT, "docs", "assets", "settings", file)).toString("base64");
+    };
+    return [key, files.map(resolve)];
   }));
   return {
     __SOFT98_BUILD_TARGET__: target,
