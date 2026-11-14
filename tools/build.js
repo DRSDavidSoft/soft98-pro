@@ -53,7 +53,8 @@ const PAGE_ICONS = Object.fromEntries(Object.entries({
   folder: "outline/folder", author: "outline/user", date: "outline/calendar",
   menu: "outline/menu-2", moon: "outline/moon", sun: "outline/sun",
   bell: "outline/bell", mail: "outline/mail", search: "outline/search",
-  grid: "outline/layout-grid", arrow: "outline/arrow-left",
+  grid: "outline/layout-grid", arrow: "outline/arrow-left", github: "outline/brand-github",
+  settings: "outline/settings", history: "outline/history", external: "outline/external-link",
   ...UTILITY_CATALOG.genericIcons,
 }).map(([key, name]) => [key, fs.readFileSync(path.join(TABLER_ROOT, "icons", name + ".svg"), "utf8")
   .replace(/\s+class="[^"]*"/, "").replace(/>\s+</g, "><").replace(/\s+/g, " ").trim()]));
@@ -149,6 +150,7 @@ function sourceReplacements(target) {
     __SOFT98_OPTION_PREVIEWS__: JSON.stringify(previews),
     __SOFT98_LISTING_NAVIGATION_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "listing-navigation.css"), "utf8")),
     __SOFT98_COMMENTS_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "comments.css"), "utf8")),
+    __SOFT98_CHROME_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "chrome.css"), "utf8")),
     __SOFT98_NAME__: MESSAGES.locales.en.manifest.name,
     __SOFT98_DESCRIPTION__: MESSAGES.locales.en.manifest.description,
   };

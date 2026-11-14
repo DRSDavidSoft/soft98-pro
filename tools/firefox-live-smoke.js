@@ -214,6 +214,61 @@ async function main() {
       throw new Error("Live Firefox page failed the Soft98 Pro smoke checks");
     }
     if (process.env.SOFT98_LIVE_SCREENSHOT) await screenshot(session, process.env.SOFT98_LIVE_SCREENSHOT);
+    if (addon && process.env.SOFT98_CHROME_PREVIEW_DIR) {
+      const out = path.resolve(process.env.SOFT98_CHROME_PREVIEW_DIR);
+      await fs.mkdir(out, { recursive: true });
+      await evaluate("Soft98Pro.configure({darkDesign:false,rgbMode:false}); scrollTo(0,0)");
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      await screenshot(session, path.join(out, "light-page.png"));
+      await evaluate("document.querySelector('#soft98-pro-control [data-role=toggle]').click()");
+      await new Promise((resolve) => setTimeout(resolve, 360));
+      await screenshot(session, path.join(out, "light-control.png"));
+      await evaluate("document.querySelector('#soft98-pro-control [data-role=close]').click()");
+      const mega = await post("/execute/async", { args: [], script: `
+        const done = arguments[arguments.length - 1];
+        const nav = document.querySelector('nav[data-soft98-pro-nav-chrome]');
+        const menu = [...nav.querySelectorAll('[data-soft98-pro-mega-frame]')].find(node => node.querySelectorAll('[data-soft98-pro-mega-group]').length >= 4);
+        const trigger = menu?.parentElement.querySelector(':scope > [data-toggle=dropdown]');
+        if (!trigger) return done({missing:true});
+        trigger.click();
+        setTimeout(() => {
+          const style = getComputedStyle(trigger), box = menu.getBoundingClientRect(), m = getComputedStyle(menu);
+          const triggerBox = trigger.getBoundingClientRect();
+          const hit = document.elementFromPoint(triggerBox.left + triggerBox.width / 2, triggerBox.top + triggerBox.height / 2);
+          done({color:style.color, fill:style.webkitTextFillColor, background:style.backgroundImage,
+            visibleTrigger:[hit?.closest('a,button')?.textContent.trim(),hit ? getComputedStyle(hit).color : ''],
+            opened:trigger.getAttribute('aria-expanded'), triggerFill:style.backgroundColor, menu:m.visibility, opacity:m.opacity,
+            menuBounds:[box.left,box.right,innerWidth], groups:menu.querySelectorAll('[data-soft98-pro-mega-group]').length});
+        }, 350);
+      ` });
+      if (mega.missing || mega.opened !== "true" || mega.menu === "hidden" || Number(mega.opacity) < .9 ||
+          mega.color !== "rgb(18, 63, 146)" || mega.triggerFill !== "rgb(214, 231, 255)" ||
+          mega.menuBounds[0] < -1 || mega.menuBounds[1] > mega.menuBounds[2] + 1) {
+        throw new Error("Opened light megamenu failed: " + JSON.stringify(mega));
+      }
+      console.log(JSON.stringify({lightMegamenu:mega}));
+      await screenshot(session, path.join(out, "light-megamenu.png"));
+      await evaluate("document.body.click(); window.scrollTo(0,document.documentElement.scrollHeight)");
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      const footer = await evaluate(`
+        const root = document.querySelector('[data-soft98-pro-footer]');
+        const rect = root.getBoundingClientRect();
+        return {hrefs:[...root.querySelectorAll('a')].map(n => n.href), buttons:root.querySelectorAll('button').length,
+          readable:[...root.querySelectorAll('.s98p-footer-links :is(a,button) > span:last-child')]
+            .every(n => getComputedStyle(n).color === 'rgb(255, 255, 255)'),
+          width:rect.width, fits:root.scrollWidth <= root.clientWidth, closes:!root.textContent.includes('افزونه‌ای مستقل')};
+      `);
+      if (footer.hrefs.length !== 3 || footer.buttons !== 1 || !footer.fits || !footer.closes || !footer.readable) {
+        throw new Error("New footer failed: " + JSON.stringify(footer));
+      }
+      await screenshot(session, path.join(out, "light-footer.png"));
+      await evaluate("document.querySelector('[data-soft98-pro-footer] button').click()");
+      if (!await evaluate("return document.querySelector('#soft98-pro-control').dataset.open === 'true'")) {
+        throw new Error("Footer settings did not open the control center");
+      }
+      await evaluate("document.querySelector('#soft98-pro-control [data-role=close]').click()");
+      await evaluate("Soft98Pro.configure({darkDesign:true}); scrollTo(0,0)");
+    }
     if (addon && process.env.SOFT98_CONTROL_PREVIEW_SCREENSHOT) {
       await evaluate(`
         const control = document.querySelector('#soft98-pro-control');
@@ -501,7 +556,7 @@ async function main() {
           !chromeBehavior.lightFeatures.pro || !chromeBehavior.lightFeatures.utility || !chromeBehavior.lightFeatures.utilityOpened ||
           !chromeBehavior.lightFeatures.downloads ||
           chromeBehavior.lightFeatures.palette !== "light" ||
-          chromeBehavior.lightFeatures.panel.join("|") !== "light|rgb(246, 250, 251)|rgb(25, 52, 64)") {
+          chromeBehavior.lightFeatures.panel.join("|") !== "light|rgb(245, 249, 255)|rgb(20, 40, 74)") {
         throw new Error(`Theme, search, or dialog behavior failed: ${JSON.stringify(chromeBehavior)}`);
       }
       console.log(JSON.stringify({chromeBehavior}));

@@ -28,6 +28,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Redesigned Pro light mode, including a higher-contrast open header, a grouped megamenu, and a footer with direct project and settings links.
 - Redesigned the article discussion and comment form for light and dark modes while keeping the site's posting and reply controls.
 - Added licensed Java Duke and LeoMoon ParsiNegar artwork, plus distinct tiles for other named software and clearer icons for categories.
 - Reworked the sticky header, megamenus, article cards, and footer with clearer focus states, readable surfaces, and room for ultrawide displays.

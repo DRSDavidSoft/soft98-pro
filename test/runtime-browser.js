@@ -210,8 +210,8 @@ function assertCase(name, results, expected) {
     assertEqual(name, "light tab card", results.tabTheme.cardBackground, "rgb(255, 255, 255)");
     assertEqual(name, "light tab structure", results.tabTheme.cardSurface, "tab-card");
     assertEqual(name, "light color scheme", results.colorScheme, "light");
-    assertEqual(name, "light control panel", results.controlBackground, "rgb(246, 250, 251)");
-    assertEqual(name, "light control text", results.controlForeground, "rgb(25, 52, 64)");
+    assertEqual(name, "light control panel", results.controlBackground, "rgb(245, 249, 255)");
+    assertEqual(name, "light control text", results.controlForeground, "rgb(20, 40, 74)");
   }
 }
 

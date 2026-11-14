@@ -29,6 +29,7 @@
   const OPTION_PREVIEWS = __SOFT98_OPTION_PREVIEWS__;
   const LISTING_NAVIGATION_CSS = __SOFT98_LISTING_NAVIGATION_CSS__;
   const COMMENTS_CSS = __SOFT98_COMMENTS_CSS__;
+  const CHROME_CSS = __SOFT98_CHROME_CSS__;
   const comments = Soft98Comments.create(document);
   const SUCCESS_NOTICE_MS = 6000;
   const PatchEngine = globalThis.__Soft98PatchEngine;
@@ -1304,6 +1305,7 @@
       @keyframes soft98-pro-neon{to{--s98p-neon-hue:515deg}}
       @media(max-width:820px){.soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-reading]{grid-template-columns:minmax(0,1fr)!important}.soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-reading]>[data-soft98-pro-column]{grid-column:1!important}.soft98-pro-compact [data-soft98-pro-column=primary]{order:1}.soft98-pro-compact [data-soft98-pro-column=secondary]{order:2}}
       @media(prefers-reduced-motion:reduce){.soft98-pro-theme *{scroll-behavior:auto!important}.soft98-pro-rgb{animation:none!important}.soft98-pro-theme a,.soft98-pro-theme button,.soft98-pro-theme input,.soft98-pro-theme select,.soft98-pro-theme textarea{transition:none!important}}
+      ${CHROME_CSS}
     `);
     updateFavicon();
   }
@@ -1405,11 +1407,36 @@
       const kind = width >= Math.min(620, window.innerWidth * 0.55) || interactive >= 14 ? "megamenu" : "menu";
       candidate.setAttribute("data-soft98-pro-surface", kind);
       candidate.setAttribute("data-soft98-pro-menu", "true");
+      if (kind === "megamenu") organizeMegamenu(candidate);
       for (const column of candidate.querySelectorAll(":scope>div,:scope>ul,:scope>ol,:scope>section")) {
         if (column.querySelectorAll("a[href],button,[role=menuitem]").length >= 2) column.setAttribute("data-soft98-pro-menu-column", "true");
       }
     }
     applyTabSurfaceHeuristics();
+  }
+
+  function organizeMegamenu(menu) {
+    const owner = menu.closest("li");
+    const trigger = owner?.querySelector(":scope > [data-toggle=dropdown]");
+    if (trigger && !trigger.hasAttribute("data-soft98-pro-mega-trigger")) trigger.setAttribute("data-soft98-pro-mega-trigger", "");
+    const grids = new Map();
+    for (const heading of menu.querySelectorAll("h2,h3,h4,h5,h6,[role=heading]")) {
+      const group = heading.parentElement;
+      if (group === menu || group.querySelectorAll("a[href]").length < 2) continue;
+      if (group.querySelectorAll(":scope > :is(h2,h3,h4,h5,h6,[role=heading])").length !== 1) continue;
+      const siblings = grids.get(group.parentElement) || [];
+      siblings.push({ group, heading });
+      grids.set(group.parentElement, siblings);
+    }
+    for (const [grid, groups] of grids) {
+      if (groups.length < 2) continue;
+      if (!menu.hasAttribute("data-soft98-pro-mega-frame")) menu.setAttribute("data-soft98-pro-mega-frame", "");
+      if (!grid.hasAttribute("data-soft98-pro-mega-grid")) grid.setAttribute("data-soft98-pro-mega-grid", "");
+      for (const { group, heading } of groups) {
+        if (!group.hasAttribute("data-soft98-pro-mega-group")) group.setAttribute("data-soft98-pro-mega-group", "");
+        if (!heading.hasAttribute("data-soft98-pro-mega-heading")) heading.setAttribute("data-soft98-pro-mega-heading", "");
+      }
+    }
   }
 
   function tabTarget(trigger) {
@@ -1956,20 +1983,46 @@
     const replacement = document.createElement("footer");
     replacement.setAttribute("data-soft98-pro-footer", "");
     localizeElement(replacement);
-    for (const [key, destination] of [["footerAbout", ""], ["footerProject", EXTENSION_REPO], ["footerFeedback", EXTENSION_REPO + "/issues"]]) {
-      const card = document.createElement("section");
-      const heading = document.createElement(destination ? "a" : "strong");
+    const node = (tag, className, key) => {
+      const element = document.createElement(tag);
+      if (className) element.className = className;
+      if (key) element.textContent = text("footer." + key);
+      return element;
+    };
+    const action = (key, icon, destination) => {
+      const element = node(destination ? "a" : "button");
+      const glyph = node("span");
+      glyph.innerHTML = PAGE_ICONS[icon] || "";
+      glyph.setAttribute("aria-hidden", "true");
+      element.append(glyph, node("span", "", key));
       if (destination) {
-        heading.href = destination;
-        heading.target = "_blank";
-        heading.rel = "noopener noreferrer";
+        element.href = destination;
+        element.target = "_blank";
+        element.rel = "noopener noreferrer";
+      } else {
+        element.type = "button";
+        element.addEventListener("click", () => renderControlPanel()?.open());
       }
-      heading.textContent = text(key + ".title");
-      const description = document.createElement("p");
-      description.textContent = text(key + ".detail");
-      card.append(heading, description);
-      replacement.append(card);
-    }
+      return element;
+    };
+    const frame = node("div", "s98p-footer-frame");
+    const main = node("div", "s98p-footer-main");
+    const brand = node("div", "s98p-footer-brand");
+    brand.append(node("strong", "", "brand"), node("span", "", "tagline"));
+    const resources = node("div", "s98p-footer-links");
+    resources.append(node("strong", "", "resources"), action("source", "github", EXTENSION_REPO),
+      action("releases", "history", EXTENSION_REPO + "/releases"));
+    const support = node("div", "s98p-footer-links");
+    support.append(node("strong", "", "support"), action("settings", "settings"),
+      action("report", "external", EXTENSION_REPO + "/issues"));
+    main.append(brand, resources, support);
+    const end = node("div", "s98p-footer-end");
+    const version = node("bdi", "s98p-footer-version");
+    version.textContent = "v" + VERSION;
+    version.dir = "ltr";
+    end.append(node("span", "", "independent"), version);
+    frame.append(main, end);
+    replacement.append(frame);
     footer.after(replacement);
   }
 
@@ -3130,7 +3183,7 @@
       #soft98-pro-control{--c-bg:rgba(246,250,251,.985);--c-bg-soft:#e7f0f2;--c-bg-raised:#fff;--c-border:#9ebac2;--c-border-soft:#ccdde1;--c-text:#11232a;--c-muted:#526b74;--c-accent:#087a63;--c-accent-2:#a56b13;--c-accent-soft:rgba(8,122,99,.11);--c-danger:#b84152;position:fixed;z-index:2147483647;width:42px;height:42px;direction:ltr;font-family:inherit!important;font-size:13px;line-height:1.6;font-weight:400;color:var(--c-text);letter-spacing:0;isolation:isolate}
       #soft98-pro-control[data-theme=dark],#soft98-pro-control[data-theme=rgb]{--c-bg:rgba(5,10,14,.985);--c-bg-soft:#0d1a21;--c-bg-raised:#14252d;--c-border:#41616c;--c-border-soft:#203943;--c-text:#f3f8f9;--c-muted:#a6bbc1;--c-accent:#70e1b2;--c-accent-2:#e0bd70;--c-accent-soft:rgba(112,225,178,.12);--c-danger:#ff8796}
       #soft98-pro-control[data-theme=rgb]{--c-bg:rgba(2,3,4,.99);--c-bg-soft:#07090a;--c-bg-raised:#0c0f10;--c-border:color-mix(in srgb,var(--c-accent) 75%,#24292c);--c-border-soft:#24292c;--c-text:#d9dee0;--c-muted:#a1aab0;--c-accent:var(--s98p-neon,#70e1b2);--c-accent-2:color-mix(in srgb,var(--c-accent) 68%,#dce1e3);--c-accent-soft:color-mix(in srgb,var(--c-accent) 17%,transparent)}
-      #soft98-pro-control[data-theme=light]{color-scheme:light;--c-bg:#f6fafb;--c-bg-soft:#e9f2f4;--c-bg-raised:#fff;--c-border:#91b0ba;--c-border-soft:#cddde2;--c-text:#193440;--c-muted:#44616e;--c-accent:#087468;--c-accent-2:#87561d;--c-accent-soft:#e3f3ed;--c-danger:#a6294b}
+      #soft98-pro-control[data-theme=light]{color-scheme:light;--c-bg:#f5f9ff;--c-bg-soft:#e7efff;--c-bg-raised:#fff;--c-border:#9fb9eb;--c-border-soft:#d4e2f7;--c-text:#14284a;--c-muted:#3f587d;--c-accent:#165bd3;--c-accent-2:#087752;--c-accent-soft:#dceaff;--c-danger:#a6294b}
       #soft98-pro-control:is([data-theme=dark],[data-theme=rgb]){color-scheme:dark}
       #soft98-pro-control[data-theme=light] form{box-shadow:0 0 0 1px #fff inset,0 0 0 4px #f8fcfbbf,0 18px 60px #15364740!important}
       #soft98-pro-control[data-theme=light] :is(.s98p-brand-mark,[data-role=toggle],.s98p-option-preview){box-shadow:0 5px 18px #15364722}
