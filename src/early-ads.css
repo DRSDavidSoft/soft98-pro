@@ -1,0 +1,17 @@
+/* Match banner markup before images or the site script can make it visible. */
+:root:not([data-soft98-pro-ads-off]) :is(
+  [id*="kaprila" i], iframe[src*="//beta.kaprila.com/" i],
+  dd:has(> a[href*="utm_medium=referral-kaprila" i]),
+  a:is([href],[data-href]):has(> img[data-backup]):is(
+    [href*="utm_medium=banner" i], [data-href*="utm_medium=banner" i],
+    [href*="//ircd.me/" i], [data-href*="//ircd.me/" i],
+    [href*="//iranicard.ir/" i], [data-href*="//iranicard.ir/" i],
+    [href*="//cdn.hostdl.co/goto/" i], [data-href*="//cdn.hostdl.co/goto/" i],
+    [href*="//www.xchief.com" i], [data-href*="//www.xchief.com" i],
+    [href$="/adv.html" i], [data-href$="/adv.html" i]
+  ),
+  a:has(> img[data-backup][alt="kaprila" i]),
+  section:has(> header):has(a > img[data-backup][alt="kaprila" i]):not(:has(article,form,dl,table))
+) {
+  display: none !important;
+}

@@ -54,6 +54,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Hid promotional banners before the Photoshop article and similar pages finish loading.
 - Replaced the stock green pagination highlight with the Pro accent in all themes.
 - Kept megamenu headings and their indicators from shifting on hover or keyboard focus.
 - Kept platform links together in the megamenu so labels with Windows and Mac links no longer split into separate lines.

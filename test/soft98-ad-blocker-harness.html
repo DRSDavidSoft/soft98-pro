@@ -475,6 +475,31 @@
     </script>
   </head>
   <body>
+    <a data-test="startup-banner" data-href="https://example.org/?utm_medium=banner" style="display:block">
+      <img data-backup="https://example.org/banner.gif" width="728" height="90" alt="">
+    </a>
+    <section data-test="startup-ad-card">
+      <header><h4>ﺗﺒﻠﻴـﻐﺎﺕ</h4></header>
+      <a href="https://example.org/"><img data-backup="https://example.org/banner.gif" alt="kaprila"></a>
+    </section>
+    <a data-test="startup-editorial" href="https://example.org/gallery">
+      <img data-backup="https://example.org/photo.png" width="160" height="90" alt="Photo">
+    </a>
+    <script>
+      const earlyBanner = document.querySelector('[data-test="startup-banner"]');
+      const earlyCard = document.querySelector('[data-test="startup-ad-card"]');
+      const editorial = document.querySelector('[data-test="startup-editorial"]');
+      const display = (node) => getComputedStyle(node).display;
+      const firstPaintCheck = {
+        loading: document.readyState === "loading",
+        bannerHidden: display(earlyBanner) === "none",
+        cardHidden: display(earlyCard) === "none",
+        editorialVisible: display(editorial) !== "none",
+      };
+      Soft98Pro.configure({blockAds:false});
+      firstPaintCheck.settingRespected = display(earlyBanner) !== "none";
+      Soft98Pro.configure({blockAds:true});
+    </script>
     <main>
       <h1>Soft98 Pro Proof Harness</h1>
       <a href="/"><img data-test="site-logo" alt="Soft98 logo" width="220" height="80" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" srcset="data:image/gif;base64,R0lGODlhAQABAAAAACw= 1x" sizes="220px" /></a>

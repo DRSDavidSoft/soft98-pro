@@ -287,6 +287,12 @@ async function main() {
       const results = await waitForResults(client);
       assertCase(name, results, expected);
       if (name === "default-dark") {
+        const earlyCheck = await evaluate(client, "firstPaintCheck");
+        for (const key of ["loading", "bannerHidden", "cardHidden", "editorialVisible", "settingRespected"]) {
+          assertEqual("ad styles before DOMContentLoaded", key, earlyCheck[key], true);
+        }
+      }
+      if (name === "default-dark") {
         const scrollWork = await evaluate(client, `
           (() => {
             let calls = 0, scans = 0, detectorRan = false;

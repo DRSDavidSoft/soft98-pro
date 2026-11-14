@@ -16,6 +16,7 @@ const required = [
   "chromium/assets/background.js",
   "chromium/assets/release-client.js",
   "chromium/assets/user-origin.css",
+  "chromium/assets/early-ads.css",
   "chromium/popup.html",
   "firefox/manifest.json",
   "firefox/assets/runtime.page.js",
@@ -23,6 +24,7 @@ const required = [
   "firefox/assets/background.js",
   "firefox/assets/release-client.js",
   "firefox/assets/user-origin.css",
+  "firefox/assets/early-ads.css",
   "firefox/assets/firefox-injector.js",
   "firefox/options.html",
   "userscript/soft98-pro.user.js",
@@ -42,6 +44,11 @@ const chromium = JSON.parse(fs.readFileSync(path.join(DIST, "chromium", "manifes
 const firefox = JSON.parse(fs.readFileSync(path.join(DIST, "firefox", "manifest.json"), "utf8"));
 if (chromium.manifest_version !== 3) throw new Error("Chromium manifest must be MV3");
 if (firefox.manifest_version !== 2) throw new Error("Firefox manifest must be MV2");
+for (const manifest of [chromium, firefox]) {
+  if (!manifest.content_scripts.some(entry => entry.run_at === "document_start" && entry.css?.includes("assets/early-ads.css"))) {
+    throw new Error("The ad stylesheet must be injected before the page runtime");
+  }
+}
 if (!chromium.content_scripts.some((entry) => entry.world === "MAIN")) {
   throw new Error("Chromium build must run the page runtime in MAIN world");
 }

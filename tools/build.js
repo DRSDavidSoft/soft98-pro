@@ -153,6 +153,7 @@ function sourceReplacements(target) {
     __SOFT98_LISTING_NAVIGATION_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "listing-navigation.css"), "utf8")),
     __SOFT98_COMMENTS_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "comments.css"), "utf8")),
     __SOFT98_CHROME_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "chrome.css"), "utf8")),
+    __SOFT98_EARLY_ADS_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "early-ads.css"), "utf8")),
     __SOFT98_NAME__: MESSAGES.locales.en.manifest.name,
     __SOFT98_DESCRIPTION__: MESSAGES.locales.en.manifest.description,
   };
@@ -241,6 +242,7 @@ function chromiumManifest() {
     content_scripts: [
       {
         matches: ["*://*.soft98.ir/*"],
+        css: ["assets/early-ads.css"],
         js: ["assets/bridge.js"],
         run_at: "document_start",
       },
@@ -284,6 +286,7 @@ function firefoxManifest() {
     content_scripts: [
       {
         matches: ["*://*.soft98.ir/*"],
+        css: ["assets/early-ads.css"],
         js: ["assets/bridge.js", "assets/firefox-injector.js"],
         run_at: "document_start",
       },
@@ -367,7 +370,9 @@ async function buildTarget(name, manifest) {
   for (const notice of UTILITY_NOTICES) copyFile(path.join(UTILITY_ASSETS, notice), path.join(target, notice));
   writeJson(path.join(target, "manifest.json"), manifest);
   copyUi(target);
-  copyFile(path.join(SRC, "user-origin.css"), path.join(target, "assets", "user-origin.css"));
+  fs.writeFileSync(path.join(target, "assets", "user-origin.css"),
+    ["user-origin.css", "early-ads.css"].map(file => fs.readFileSync(path.join(SRC, file), "utf8")).join("\n"));
+  copyFile(path.join(SRC, "early-ads.css"), path.join(target, "assets", "early-ads.css"));
   await minifyFile(path.join(SRC, "release-client.js"), path.join(target, "assets", "release-client.js"));
   await minifySource(runtimeSource("extension"), path.join(target, "assets", "runtime.page.js"));
   const backgroundPrefix = name === "chromium" ? 'importScripts("release-client.js");\n' : "";

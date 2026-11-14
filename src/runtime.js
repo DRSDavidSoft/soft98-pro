@@ -30,6 +30,7 @@
   const LISTING_NAVIGATION_CSS = __SOFT98_LISTING_NAVIGATION_CSS__;
   const COMMENTS_CSS = __SOFT98_COMMENTS_CSS__;
   const CHROME_CSS = __SOFT98_CHROME_CSS__;
+  const EARLY_ADS_CSS = __SOFT98_EARLY_ADS_CSS__;
   const comments = Soft98Comments.create(document);
   const SUCCESS_NOTICE_MS = 6000;
   const FAVICON_PULSE_MS = 600;
@@ -220,6 +221,7 @@
 
   function writeSettings(next) {
     settings = { ...DEFAULT_SETTINGS, ...next };
+    document.documentElement.toggleAttribute("data-soft98-pro-ads-off", !settings.blockAds);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
     } catch (error) {
@@ -4753,6 +4755,8 @@
   }
 
   function init() {
+    document.documentElement.toggleAttribute("data-soft98-pro-ads-off", !settings.blockAds);
+    if (EARLY_ADS_CSS) setPersistentStyle("soft98-pro-early-ads", EARLY_ADS_CSS);
     document.addEventListener("soft98-pro:site-toast", receiveSiteToast);
     document.addEventListener("visibilitychange", updateFavicon);
     window.addEventListener("hashchange", restorePageIdentity);

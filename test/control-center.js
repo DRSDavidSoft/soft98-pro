@@ -22,6 +22,7 @@ const substitutions = {
   LISTING_NAVIGATION_CSS: '""',
   COMMENTS_CSS: '""',
   CHROME_CSS: '""',
+  EARLY_ADS_CSS: '""',
   OPTION_PREVIEWS: JSON.stringify({ rgbMode: ["dark-on.webp", "rgb.webp", "rgb-still.webp"].map((file) =>
     "data:image/webp;base64," + fs.readFileSync(path.join(root, "docs", "assets", "settings", file)).toString("base64")) }),
 };

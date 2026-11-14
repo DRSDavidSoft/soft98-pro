@@ -28,6 +28,10 @@
   const pendingPayloads = new Set();
   const deliveredPayloads = new Set();
   const PAYLOAD_MARKER = "data-soft98-pro-upstream-payload";
+  try {
+    const cached = JSON.parse(localStorage.getItem(PAGE_STORAGE_KEY) || "{}");
+    document.documentElement.toggleAttribute("data-soft98-pro-ads-off", cached?.blockAds === false);
+  } catch (_error) {}
 
   function inject(code) {
     const script = document.createElement("script");
@@ -38,6 +42,7 @@
 
   function applySettings(settings) {
     const merged = { ...DEFAULT_SETTINGS, ...(settings || {}) };
+    document.documentElement.toggleAttribute("data-soft98-pro-ads-off", !merged.blockAds);
     sendRuntime({ type: "soft98:set-interception", enabled: merged.patchScripts });
     inject(`
       try {

@@ -41,14 +41,70 @@ async function screenshot(session, destination) {
   await fs.writeFile(destination, PNG.sync.write(await screenshotPixels(session)));
 }
 
+async function watchAdFrames(webSocketUrl) {
+  const socketUrl = new URL(webSocketUrl);
+  if (socketUrl.protocol !== "ws:" || socketUrl.hostname !== "127.0.0.1") {
+    throw new Error("The ad-frame check requires a local Firefox BiDi session");
+  }
+  const socket = new WebSocket(socketUrl);
+  try {
+    await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error("Firefox BiDi preload timed out")), 5000);
+      socket.addEventListener("error", () => { clearTimeout(timeout); reject(new Error("Firefox BiDi connection failed")); }, { once: true });
+      socket.addEventListener("message", (event) => {
+        const message = JSON.parse(event.data);
+        if (message.id !== 1) return;
+        clearTimeout(timeout);
+        if (message.type === "error") reject(new Error(message.message));
+        else resolve();
+      });
+      socket.addEventListener("open", () => socket.send(JSON.stringify({
+        id: 1,
+        method: "script.addPreloadScript",
+        params: { functionDeclaration: `() => {
+          if (window !== window.top) return;
+          const trace = window.__soft98AdFrames = { loadingFrames:0, frames:0, seen:0, visible:0, article:false };
+          const selector = 'a:has(> img[data-backup]):is([data-href*=ircd],[data-href*=hostdl],[data-href*=xchief],[data-href*=utm_medium],[href*=ircd],[href*=hostdl],[href*=xchief],[href*=utm_medium]), section:has(> header):has(img[alt=kaprila])';
+          const sample = () => {
+            const ads = [...document.querySelectorAll(selector)];
+            const visible = node => node.getClientRects().length && getComputedStyle(node).visibility !== 'hidden';
+            trace.frames++;
+            if (document.readyState === 'loading') trace.loadingFrames++;
+            trace.seen = Math.max(trace.seen, ads.length);
+            const exposed = ads.filter(visible);
+            if (exposed.length) {
+              trace.visible++;
+              trace.example ||= exposed.slice(0, 8).map(node => ({
+                tag:node.tagName, href:node.getAttribute('data-href') || node.getAttribute('href'),
+                raw:node.getAttribute('href'), image:node.querySelector('img')?.outerHTML.slice(0,360),
+                state:document.readyState, adsOff: document.documentElement.hasAttribute('data-soft98-pro-ads-off'),
+                inline: node.getAttribute('style'), runtime:document.documentElement.hasAttribute('data-soft98-runtime-ready')
+              }));
+            }
+            trace.article ||= Boolean(document.querySelector('article h1') && visible(document.querySelector('article h1')));
+            if (performance.now() < 5000) requestAnimationFrame(sample);
+          };
+          requestAnimationFrame(sample);
+        }` },
+      })), { once: true });
+    });
+    return socket;
+  } catch (error) {
+    socket.close();
+    throw error;
+  }
+}
+
 async function main() {
   const downloadDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "soft98-firefox-downloads-"));
   let session;
+  let frameSocket;
   try {
     const { sessionId, capabilities } = await request("POST", "/session", {
       capabilities: {
         alwaysMatch: {
           browserName: "firefox",
+          ...(process.env.SOFT98_AD_FRAME_CHECK === "1" ? { webSocketUrl: true } : {}),
           pageLoadStrategy: "eager",
           "moz:firefoxOptions": { args: ["-headless"], prefs: {
             "network.proxy.type": 0,
@@ -71,7 +127,17 @@ async function main() {
       path: path.resolve(__dirname, "..", "dist", "packages", `soft98-pro-firefox-${require("../package.json").version}.zip`),
       temporary: true,
     });
+    if (process.env.SOFT98_AD_FRAME_CHECK === "1") frameSocket = await watchAdFrames(capabilities.webSocketUrl);
     await post("/url", { url });
+    if (frameSocket) {
+      await new Promise(resolve => setTimeout(resolve, 3600));
+      const frames = await evaluate("return window.__soft98AdFrames");
+      console.log(JSON.stringify({ adFrames: frames }));
+      if (!frames?.article || !frames.frames || !frames.seen || (!addon && !frames.visible) || (addon && frames.visible)) {
+        throw new Error("The Photoshop article did not meet the first-paint ad check");
+      }
+      return;
+    }
     let result;
     for (let attempt = 0; attempt < 12; attempt++) {
       result = await evaluate(`
@@ -1244,6 +1310,7 @@ async function main() {
     }
   } finally {
     try {
+      frameSocket?.close();
       if (session) await request("DELETE", session);
     } finally {
       for (const file of await fs.readdir(downloadDirectory)) await fs.unlink(path.join(downloadDirectory, file));
