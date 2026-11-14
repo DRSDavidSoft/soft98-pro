@@ -429,12 +429,15 @@ async function main() {
       const footer = await evaluate(`
         const root = document.querySelector('[data-soft98-pro-footer]');
         const rect = root.getBoundingClientRect();
+        const frame = root.querySelector('.s98p-footer-frame');
         return {hrefs:[...root.querySelectorAll('a')].map(n => n.href), buttons:root.querySelectorAll('button').length,
+          fill:getComputedStyle(frame).backgroundColor, gradient:getComputedStyle(frame).backgroundImage,
           readable:[...root.querySelectorAll('.s98p-footer-links :is(a,button) > span:last-child')]
-            .every(n => getComputedStyle(n).color === 'rgb(255, 255, 255)'),
+            .every(n => getComputedStyle(n).color === getComputedStyle(n.parentElement).color),
           width:rect.width, fits:root.scrollWidth <= root.clientWidth, closes:!root.textContent.includes('افزونه‌ای مستقل')};
       `);
-      if (footer.hrefs.length !== 3 || footer.buttons !== 1 || !footer.fits || !footer.closes || !footer.readable) {
+      if (footer.hrefs.length !== 3 || footer.buttons !== 2 || !footer.fits || !footer.closes || !footer.readable ||
+          footer.fill !== "rgb(255, 255, 255)" || footer.gradient !== "none") {
         throw new Error("New footer failed: " + JSON.stringify(footer));
       }
       await screenshot(session, path.join(out, "light-footer.png"));
@@ -658,7 +661,8 @@ async function main() {
             window.Soft98Pro.configure({ expandMain:true }); await frame();
             for (const pixels of [80, 160, 80]) {
               scrollTo(0, start + pixels); await frame();
-              samples.push({ added: size() - before, scrolled: scrollY - start });
+              samples.push({ added: size() - before, scrolled: scrollY - start,
+                sidebarMoved: Math.abs(sidebar.getBoundingClientRect().left - sidebarLeft) > 1 });
             }
             scrollTo(0, start + sidebar.getBoundingClientRect().width + 80); await frame();
             const expanded = size();
@@ -672,7 +676,8 @@ async function main() {
           })();
         ` });
         if (widths.expanded < widths.before + 200 || widths.before !== widths.disabled || widths.before !== widths.restored ||
-            !widths.defaultStable || !widths.sidebarStable || widths.samples.some(({ added, scrolled }) => Math.abs(added - scrolled) > 2)) {
+            !widths.defaultStable || !widths.sidebarStable || widths.samples.some(({ added, scrolled, sidebarMoved }) =>
+              sidebarMoved || Math.abs(added - scrolled) > 2)) {
           throw new Error(`Article width did not round-trip: ${JSON.stringify(widths)}`);
         }
         console.log(JSON.stringify({ articleWidths: widths }));
@@ -803,7 +808,14 @@ async function main() {
           const hotkey = new KeyboardEvent('keydown',{key:'F2',bubbles:true,cancelable:true});
           document.body.dispatchEvent(hotkey);
           await settle();
-          const search = document.activeElement?.type === 'search';
+          const field = document.activeElement;
+          const search = field?.type === 'search';
+          if (search) {
+            field.blur();
+            document.body.dispatchEvent(new KeyboardEvent('keydown',{key:'F2',bubbles:true,cancelable:true}));
+            await settle();
+          }
+          const refocused = search && document.activeElement === field;
           const searchState = search ? null : [...document.querySelectorAll('nav [data-toggle=search],[data-soft98-pro-search],input[type=search]')].map(n => {
             const box = n.getBoundingClientRect();
             const css = getComputedStyle(n);
@@ -816,11 +828,18 @@ async function main() {
           if (opened) history.back();
           await settle();
           const closed = !location.hash && !document.querySelector('dialog[open]');
-          done({start,light,dark,lightFeatures,search,searchState,handled:hotkey.defaultPrevented,opened,closed});
+          if (closed && opened) history.forward();
+          await settle();
+          const reopened = location.hash === '#s98p-dialog=utility' && Boolean(utilityDialog()?.open);
+          if (reopened) utilityDialog().close();
+          await settle();
+          done({start,light,dark,lightFeatures,search,refocused,searchState,handled:hotkey.defaultPrevented,opened,closed,reopened,
+            cleared: !location.hash});
         })();
       ` });
       if (!chromeBehavior.start.every(Boolean) || chromeBehavior.light.some(Boolean) || !chromeBehavior.dark.every(Boolean) ||
-          !chromeBehavior.search || !chromeBehavior.opened || !chromeBehavior.closed ||
+          !chromeBehavior.search || !chromeBehavior.refocused || !chromeBehavior.opened || !chromeBehavior.closed ||
+          !chromeBehavior.reopened || !chromeBehavior.cleared ||
           !chromeBehavior.lightFeatures.pro || !chromeBehavior.lightFeatures.utility || !chromeBehavior.lightFeatures.utilityOpened ||
           !chromeBehavior.lightFeatures.downloads ||
           chromeBehavior.lightFeatures.palette !== "light" ||

@@ -323,6 +323,17 @@ async function main() {
         assertEqual("latest-tabs", "keyboard focus", latest.focused, true);
         assertEqual("news", "shortcut count", latest.shortcuts, 5);
         assertEqual("news", "shortcut SVG centers", latest.centered, true);
+        const previewLinks = await evaluate(client, `
+          (async () => {
+            const preview = document.querySelector('[data-test=article-preview-trigger]').nextElementSibling;
+            preview.querySelector('button').click();
+            for (let i = 0; i < 10 && !preview.querySelector('[data-soft98-pro-preview-panel] a'); i++)
+              await new Promise(resolve => setTimeout(resolve, 35));
+            return [...preview.querySelectorAll('[data-soft98-pro-preview-panel] a')].map(link => link.getAttribute('href'));
+          })()
+        `);
+        assertEqual("listing preview", "direct file", previewLinks[0], "https://dl2.soft98.ir/files/preview.zip");
+        assertEqual("listing preview", "visit keyed download tab", previewLinks[1], `http://127.0.0.1:${PORT}/100-preview.html#test-file-panel`);
         const downloadTab = await evaluate(client, `
           (async () => {
             const article = document.querySelector('[data-test=keyed-article]');

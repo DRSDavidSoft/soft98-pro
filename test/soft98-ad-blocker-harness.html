@@ -70,7 +70,12 @@
       );
       window.__soft98HarnessConsoleInfo = console.info;
       const originalFetch = window.fetch.bind(window);
-      window.fetch = (input, init) => String(input) === "https://dl2.soft98.ir/files/metadata.zip" && init?.method === "HEAD" ?
+      window.fetch = (input, init) => String(input) === location.origin + "/100-preview.html" ?
+        Promise.resolve(new Response('<article><div role="tabpanel" id="test-file-panel"><dl><dt>Files</dt>' +
+          '<dd><a data-key="test-key" href="/100-preview.html">Keyed file</a></dd>' +
+          '<dd><a href="https://dl2.soft98.ir/files/preview.zip?12345">Direct file</a></dd></dl></div></article>', {
+          headers: { "Content-Type": "text/html; charset=utf-8" }
+        })) : String(input) === "https://dl2.soft98.ir/files/metadata.zip" && init?.method === "HEAD" ?
         Promise.resolve(new Response(null, { headers: {
           "Content-Type": "application/zip", "Content-Length": "8200000", "Last-Modified": "Fri, 13 Nov 2026 12:00:00 GMT"
         } })) : originalFetch(input, init);
@@ -203,6 +208,10 @@
             '</ul></header><div><ul>' + [1, 2, 3].map(i => '<li><a href="/news/' + i + '"><span>55</span>News ' + i + '</a></li>').join("") +
             '</ul></div>';
           document.body.appendChild(techNews);
+
+          var listingPreview = document.createElement("main");
+          listingPreview.innerHTML = '<article><a data-test="article-preview-trigger" href="/100-preview.html">ادامه مطلب</a></article>';
+          document.body.appendChild(listingPreview);
 
           var downloadArticle = document.createElement("article");
           downloadArticle.setAttribute("data-test", "download-article");

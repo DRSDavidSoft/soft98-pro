@@ -1780,7 +1780,7 @@
       button.setAttribute("aria-expanded", "true");
       panel.hidden = false;
       panel.textContent = text("previewLoading");
-      const links = destination ? await readArticleLinks(destination) : [];
+      const { links, downloadPane } = destination ? await readArticleLinks(destination) : { links: [] };
       if (panel.hidden) return;
       panel.replaceChildren();
       const makeLink = (label, href) => {
@@ -1789,13 +1789,14 @@
         item.href = href;
         return item;
       };
-      if (!links.length && !destination) {
+      const openArticle = downloadPane || destination;
+      if (!links.length && !openArticle) {
         const original = document.createElement("button");
         original.type = "button";
         original.textContent = text("previewOpenArticle");
         original.addEventListener("click", () => trigger.click());
         panel.append(original);
-      } else if (!links.length) panel.append(makeLink(text("previewOpenArticle"), destination));
+      } else if (!links.length) panel.append(makeLink(text("previewOpenArticle"), openArticle));
       else if (links.length === 1) panel.append(makeLink(links[0].label, links[0].href));
       else {
         const disclosure = document.createElement("details");
@@ -1805,6 +1806,7 @@
         disclosure.append(summary, ...links.map((link) => makeLink(link.label, link.href)));
         panel.append(disclosure);
       }
+      if (links.length && openArticle) panel.append(makeLink(text("previewOpenArticle"), openArticle));
     };
     wrap.addEventListener("pointerenter", () => { hover = setTimeout(open, 320); });
     wrap.addEventListener("pointerleave", () => { if (!wrap.contains(document.activeElement)) dismiss(); });
@@ -1814,12 +1816,13 @@
   }
 
   function readArticleLinks(destination) {
-    if (!nativeFetch) return Promise.resolve([]);
+    const empty = { links: [], downloadPane: "" };
+    if (!nativeFetch) return Promise.resolve(empty);
     const existing = articlePreviewCache.get(destination);
     if (existing && Date.now() - existing.time < 300000) return existing.result;
     const result = nativeFetch(destination, { credentials: "omit", redirect: "error", signal: AbortSignal.timeout(3500) })
       .then(async (response) => {
-        if (!response.ok || !response.headers.get("content-type")?.includes("text/html") || !response.body) return [];
+        if (!response.ok || !response.headers.get("content-type")?.includes("text/html") || !response.body) return empty;
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let html = "";
@@ -1828,19 +1831,24 @@
           const { value, done } = await reader.read();
           if (done) break;
           bytes += value.byteLength;
-          if (bytes > 650000) { await reader.cancel(); return []; }
+          if (bytes > 650000) { await reader.cancel(); return empty; }
           html += decoder.decode(value, { stream: true });
         }
         const doc = new DOMParser().parseFromString(html + decoder.decode(), "text/html");
         const seen = new Set();
-        return [...doc.querySelectorAll("article [role=tabpanel] dl dd a[href]")].flatMap((link) => {
-          const url = URL.parse(link.getAttribute("href"), destination);
-          if (!url || url.protocol !== "https:" || url.username || url.password ||
-              !/\.(?:zip|rar|7z|exe|msi|dmg|apk|iso|deb|rpm|tar|gz|xz|bz2|bin|img|pkg)$/i.test(url.pathname) || seen.has(url.href)) return [];
+        const panes = [...doc.querySelectorAll("article [role=tabpanel]")];
+        const keyedPane = panes.find(pane => pane.querySelector("dl dd a[data-key]"));
+        const fragment = keyedPane?.id && /^[A-Za-z][\w:.-]*$/.test(keyedPane.id) ? keyedPane.id : "";
+        const links = panes.flatMap(pane => [...pane.querySelectorAll("dl dd a[href]")]).flatMap((link) => {
+          const url = directDownloadUrl(link.getAttribute("href"), destination);
+          if (!url || seen.has(url.href)) return [];
           seen.add(url.href);
           return [{ href: url.href, label: link.textContent.trim().slice(0, 140) || url.pathname.split("/").at(-1) }];
         }).slice(0, 12);
-      }).catch(() => []);
+        const article = new URL(destination);
+        article.hash = fragment;
+        return { links, downloadPane: keyedPane ? article.href : "" };
+      }).catch(() => empty);
     if (articlePreviewCache.size >= 24) articlePreviewCache.delete(articlePreviewCache.keys().next().value);
     articlePreviewCache.set(destination, { time: Date.now(), result });
     return result;
@@ -1872,6 +1880,12 @@
       const panel = target.startsWith("#") ? document.getElementById(target.slice(1)) : null;
       const input = panel?.querySelector('input[type="search"]');
       if (input === document.activeElement) return;
+      const style = input && getComputedStyle(input);
+      if (input?.getClientRects().length && style.visibility === "visible" &&
+          !panel.closest('[hidden],[aria-hidden="true"]')) {
+        input.focus({ preventScroll: true });
+        if (document.activeElement === input) return;
+      }
       trigger.click();
       if (!input) return;
       const deadline = performance.now() + 350;
@@ -2139,10 +2153,10 @@
     if (help && !dialogVisible(help.target)) help.trigger.click();
   }
 
-  function directDownloadUrl(value) {
+  function directDownloadUrl(value, base = location.href) {
     try {
       if (!value || isBadHref(value)) return null;
-      const url = new URL(value, location.href);
+      const url = new URL(value, base);
       if (url.protocol !== "https:" || url.username || url.password || url.port ||
           !/\.(?:zip|rar|7z|exe|msi|msix|appx|dmg|apk|iso|deb|rpm|tar|gz|xz|bz2|bin|img|pkg|001)$/i.test(url.pathname)) return null;
       if (/^\?\d+$/.test(url.search) && (url.hostname === "soft98.ir" || url.hostname.endsWith(".soft98.ir"))) url.search = "";

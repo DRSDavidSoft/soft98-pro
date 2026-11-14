@@ -12,6 +12,9 @@ const release = validate(markdown, version);
 const notes = releaseNotes(markdown, version);
 if (release.bullets.length < 3) throw new Error("Current release needs a useful set of user-facing changes");
 if (!notes.includes(`Soft98 Pro ${version}`) || !notes.includes("## Downloads")) throw new Error("Generated release notes are incomplete");
+if (release.section.includes("docs/changes/") && !notes.includes(`/blob/v${version}/docs/changes/`)) {
+  throw new Error("GitHub release notes must link to versioned visual evidence");
+}
 
 let rejected = false;
 try {

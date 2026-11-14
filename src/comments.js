@@ -16,31 +16,33 @@ const Soft98Comments = (() => {
     const mark = (node, part) => {
       if (node) nodes.set(node, part);
     };
-    for (const alert of form.querySelectorAll('[role="alert"]')) {
-      if (alert.hasAttribute("data-toggle") || alert.querySelector('[data-toggle="collapse"], [data-toggle="mbd"], a[href]')) {
-        mark(alert, "notice");
-        const group = directChild(form, alert);
-        if (group !== alert && !group?.contains(editor)) mark(group, "notices");
-      }
-    }
-
-    const submit = form.querySelector('[data-toggle="comment-add-save"], [type="submit"]');
-    let fields = editor.parentElement;
-    while (fields !== form && !fields.contains(submit)) fields = fields.parentElement;
-    if (fields !== form) {
-      mark(fields, "fields");
-      const shell = fields.parentElement;
-      if (shell !== form) {
-        const heading = [...shell.children].find((child) =>
-          child !== fields && (child.matches("h2,h3,h4,h5,h6") || child.querySelector("h2,h3,h4,h5,h6")));
-        if (heading) {
-          mark(shell, "composer");
-          mark(heading, "composerHeading");
+    if (form && editor) {
+      for (const alert of form.querySelectorAll('[role="alert"]')) {
+        if (alert.hasAttribute("data-toggle") || alert.querySelector('[data-toggle="collapse"], [data-toggle="mbd"], a[href]')) {
+          mark(alert, "notice");
+          const group = directChild(form, alert);
+          if (group !== alert && !group?.contains(editor)) mark(group, "notices");
         }
       }
-      for (const input of form.querySelectorAll('input:is([name="name"], [name="mail"])')) {
-        mark(directChild(fields, input), "identity");
-      }
+
+      const submit = form.querySelector('[data-toggle="comment-add-save"], [type="submit"]');
+      let fields = editor.parentElement;
+      while (fields !== form && !fields.contains(submit)) fields = fields.parentElement;
+      if (fields !== form) {
+        mark(fields, "fields");
+        const shell = fields.parentElement;
+        if (shell !== form) {
+          const heading = [...shell.children].find((child) =>
+            child !== fields && (child.matches("h2,h3,h4,h5,h6") || child.querySelector("h2,h3,h4,h5,h6")));
+          if (heading) {
+            mark(shell, "composer");
+            mark(heading, "composerHeading");
+          }
+        }
+        for (const input of form.querySelectorAll('input:is([name="name"], [name="mail"])')) {
+          mark(directChild(fields, input), "identity");
+        }
+    }
     }
 
     for (const listHost of pane.querySelectorAll("#dle-comments-list, #dle-ajax-comments")) {
@@ -110,22 +112,24 @@ const Soft98Comments = (() => {
     function sync({ enabled = true, text = () => "" } = {}) {
       const active = new Set();
       if (enabled) {
-        for (const form of document.querySelectorAll('article form[name="comment-add-form"]')) {
-          const pane = form.closest('[role="tabpanel"]');
-          const editor = form.querySelector('textarea[name="comments"]');
-          if (!pane || !pane.closest("article") || editor?.form !== form || active.has(pane)) continue;
+        for (const pane of document.querySelectorAll('article [role="tabpanel"]')) {
+          const form = pane.querySelector('form[name="comment-add-form"]');
+          const editor = form?.querySelector('textarea[name="comments"]');
+          const hasComposer = Boolean(form && editor?.form === form);
+          const hasThread = Boolean(pane.querySelector(':is(#dle-comments-list,#dle-ajax-comments) [data-comment_id] [id^="comm-id-"]'));
+          if (!hasComposer && !hasThread) continue;
           active.add(pane);
 
           const record = panes.get(pane) || { pane };
           panes.set(pane, record);
           if (!pane.hasAttribute(PANE)) pane.setAttribute(PANE, "");
-          updateStructure(record, findStructure(pane, form, editor));
+          updateStructure(record, findStructure(pane, hasComposer ? form : null, editor));
           syncPart(record, "title", pane, "h2", text("comments.title"), "prepend");
           syncPart(record, "empty", pane, "p", text("comments.empty"), "append");
 
-          const named = editor.hasAttribute("aria-label") || editor.hasAttribute("aria-labelledby") ||
-            [...editor.labels].some((label) => label.getAttribute(PART) !== "editorLabel");
-          const canLabel = !named && editor.id && document.getElementById(editor.id) === editor;
+          const named = editor && (editor.hasAttribute("aria-label") || editor.hasAttribute("aria-labelledby") ||
+            [...editor.labels].some((label) => label.getAttribute(PART) !== "editorLabel"));
+          const canLabel = hasComposer && !named && editor.id && document.getElementById(editor.id) === editor;
           const label = syncPart(record, "editorLabel", canLabel ? editor.parentElement : null, "label",
             canLabel ? text("comments.editorLabel") : "", "append");
           if (label && label.htmlFor !== editor.id) label.htmlFor = editor.id;

@@ -54,6 +54,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Made listing previews open the original article's download tab when some files are only available through the site's download controls.
+- Made F2 refocus an already open search and kept the discussion styling on read-only threads.
+- Clarified that the download group copy action copies direct links only.
 - Restored the Pro palette on the related-posts card, replacing the stock gray background.
 - Made the control center pull toward nearby edges while dragging and show where it will dock.
 - Rebuilt the footer with solid theme colors, clearer project and support links, and quick access to settings and the top of the page.
@@ -71,7 +74,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Synced the site night-mode toggle with Soft98 Pro and added F2 for search.
 - Fixed control-center scrolling, animated accents, and menu placement after settings and viewport changes.
 
-See the [visual change log](docs/changes/v1.2.0.md) for before-and-after captures and verification notes.
 - Restored right-to-left layout for Persian content and isolated mixed-direction titles and platform names.
 - Corrected spacing, capitalization, and mixed-direction punctuation in visible download labels without changing their destinations.
 - Matched the utility card, icon tiles, dividers, and download icons to the dark theme.
@@ -89,6 +91,8 @@ See the [visual change log](docs/changes/v1.2.0.md) for before-and-after capture
 - Neutralized PersianBlocker warning overlays at browser USER style origin.
 - Corrected theme contrast, icon rendering, tab styling, logo transparency, dialog transitions, and RTL/LTR presentation.
 - Repaired repeated icon-and-copy utility lists, including the useful-software sidebar, without relying on changing classes or headings.
+
+Soft98 currently serves some download buttons as placeholders and fills in their destinations through its own click handler. This release preserves those controls, restores a hidden download list, and routes listing previews to the article when no public file URL is available. See the [visual change log](docs/changes/v1.2.0.md) for before-and-after captures and verification notes.
 
 ## [1.1.1] - 2026-07-11
 

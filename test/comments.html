@@ -173,6 +173,11 @@
     controller.sync({ enabled: false, text });
     assert(!ownPart("title") && !structure("comment") && !pane.hasAttribute("data-soft98-pro-comments"), "cleanup incomplete");
     assert(editor.value === "متن آزمایشی" && form.elements.comments === editor && form.contains(native), "cleanup altered form");
+    form.remove();
+    sync();
+    assert(pane.hasAttribute("data-soft98-pro-comments") && structure("comment") === $('[data-comment_id="9"]'),
+      "read-only thread was not styled");
+    assert(!ownPart("editorLabel") && !structure("fields"), "read-only thread acquired a composer");
     $("#result").textContent = "comments-pass";
     $("#result").dataset.pass = "true";
   } catch (error) {

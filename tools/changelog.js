@@ -37,12 +37,14 @@ function validate(markdown, version = VERSION) {
 
 function releaseNotes(markdown, version = VERSION) {
   const release = validate(markdown, version);
+  const publishedSection = release.section.replace(/\]\((docs\/[\w./-]+\.md)\)/g,
+    (_match, file) => `](https://github.com/DRSDavidSoft/soft98-pro/blob/v${version}/${file})`);
   return [
     `# Soft98 Pro ${version}`,
     "",
     "Soft98 Pro is available as a Chromium/Edge extension, Firefox extension, and single-file userscript.",
     "",
-    release.section,
+    publishedSection,
     "",
     "## Downloads",
     "",
