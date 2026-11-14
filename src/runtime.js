@@ -13,6 +13,7 @@
   const INTERNAL_MUTATION_ATTRIBUTES = new Set(["class", "style", "aria-expanded", "aria-selected"]);
   const COMPATIBILITY_DISMISS_KEY = "soft98-pro.compatibility-dismissed";
   const CONTROL_MARGIN = 12;
+  const CONTROL_GRAVITY = 76;
   const enqueueMicrotask = window.queueMicrotask ? window.queueMicrotask.bind(window) : (callback) => Promise.resolve().then(callback);
   const nativeEval = typeof window.eval === "function" ? window.eval : null;
   const nativeFetch = window.fetch ? window.fetch.bind(window) : null;
@@ -1279,10 +1280,6 @@
       :root.soft98-pro-theme dialog[aria-labelledby=soft98-pro-utility-title] > [data-soft98-pro-utility-card]{position:relative;z-index:0}
       :root.soft98-pro-theme dialog[aria-labelledby=soft98-pro-utility-title][open] [data-soft98-pro-utility-header]{display:none!important}
       :root.soft98-pro-theme dialog[data-soft98-pro-native-dialog] > :not(header){padding:14px 16px}
-      :root.soft98-pro-theme [data-soft98-pro-footer]{max-width:var(--s98p-page-width,1280px);margin:28px auto 0;padding:16px;display:grid;grid-template-columns:minmax(0,2fr) repeat(2,minmax(0,1fr));gap:12px;background:transparent!important;color:var(--s98p-text);position:relative;overflow:visible}
-      :root.soft98-pro-theme [data-soft98-pro-footer] > section{display:grid;align-content:start;gap:6px;padding:14px;background:var(--s98p-surface-2)!important;border:1px solid var(--s98p-border-soft);border-radius:8px}
-      :root.soft98-pro-theme [data-soft98-pro-footer] :is(p,strong){margin:0;color:inherit}
-      :root.soft98-pro-theme [data-soft98-pro-footer] button{justify-self:start;padding:5px 10px}
       :root.soft98-pro-theme [data-soft98-pro-legacy-accent~="color"]{color:var(--s98p-accent)!important}
       :root.soft98-pro-theme [data-soft98-pro-legacy-accent~="background-color"]{background-color:color-mix(in srgb,var(--s98p-accent) 23%,var(--s98p-surface))!important}
       :root.soft98-pro-theme [data-soft98-pro-legacy-accent~="border-block-start-color"]{border-block-start-color:var(--s98p-accent)!important}
@@ -1291,7 +1288,6 @@
       :root.soft98-pro-theme [data-soft98-pro-read-preview] > button{min-height:36px;padding-inline:9px}
       :root.soft98-pro-theme [data-soft98-pro-preview-panel]{position:absolute;inset-inline-start:0;inset-block-end:100%;z-index:8;min-width:min(250px,75vw);max-width:min(340px,85vw);display:grid;gap:5px;padding:12px;border:1px solid var(--s98p-border);border-radius:7px;background:var(--s98p-elevated);box-shadow:0 8px 25px #0008}
       :root.soft98-pro-theme [data-soft98-pro-preview-panel][hidden],:root:not(.soft98-pro-theme) [data-soft98-pro-read-preview]{display:none!important}
-      @media(max-width:640px){:root.soft98-pro-theme [data-soft98-pro-footer]{grid-template-columns:minmax(0,1fr)}}
       @media(prefers-reduced-motion:reduce){:root.soft98-pro-theme details[data-soft98-pro-faq] > summary svg{transition:none}}
       :root.soft98-pro-theme [data-soft98-pro-heading-divider]{border-inline-start:0!important;padding-inline-start:14px!important;position:relative!important}
       :root.soft98-pro-theme [data-soft98-pro-heading-divider]::before{content:""!important;position:absolute!important;inset-inline-start:0!important;inset-block-start:50%!important;transform:translateY(-50%)!important;width:4px!important;height:1.15em!important;border:0!important;border-radius:3px!important;background:linear-gradient(180deg,var(--s98p-link),color-mix(in srgb,var(--s98p-link) 40%,var(--s98p-border)))!important;box-shadow:0 0 8px color-mix(in srgb,var(--s98p-link) 15%,transparent)!important;pointer-events:none!important}
@@ -1308,8 +1304,8 @@
       :root.soft98-pro-light [data-soft98-pro-nav-chrome]{box-shadow:0 1px #fffb inset,0 6px 22px #18343e18!important}
       :root.soft98-pro-light :is([data-soft98-pro-surface=menu],[data-soft98-pro-surface=megamenu]){background:linear-gradient(145deg,#fffffff5,#e9f3f3f2)!important;border-color:var(--s98p-border-soft)!important;box-shadow:0 16px 38px #16334229,0 1px #fff inset!important}
       :root.soft98-pro-light :is([data-soft98-pro-surface=menu],[data-soft98-pro-surface=megamenu]) :is(a,button):is(:hover,:focus-visible){background:var(--s98p-soft)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border-soft)!important}
-      :root.soft98-pro-light :is(button,[role=button],input[type=button],input[type=submit]):not(#soft98-pro-control *){background:var(--s98p-control-bg)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border)!important}
-      :root.soft98-pro-light :is(button,[role=button]):not(#soft98-pro-control *):is(:hover,:focus-visible){background:var(--s98p-control-hover)!important;color:var(--s98p-text)!important;border-color:var(--s98p-control-edge)!important}
+      :root.soft98-pro-light :is(button,[role=button],input[type=button],input[type=submit]):not(#soft98-pro-control *,[data-soft98-pro-footer] *){background:var(--s98p-control-bg)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border)!important}
+      :root.soft98-pro-light :is(button,[role=button]):not(#soft98-pro-control *,[data-soft98-pro-footer] *):is(:hover,:focus-visible){background:var(--s98p-control-hover)!important;color:var(--s98p-text)!important;border-color:var(--s98p-control-edge)!important}
       :root.soft98-pro-light :is(dt,dd){background:var(--s98p-bg-2)!important;border-color:var(--s98p-border-soft)!important}
       :root.soft98-pro-light dd:nth-child(odd){background:var(--s98p-surface-2)!important}
       :root.soft98-pro-light [data-soft98-pro-download-group] a[data-soft98-pro-icon-host=download]:is(:hover,:focus-visible){color:#06554e!important}
@@ -1322,7 +1318,6 @@
       :root.soft98-pro-light .soft98-pro-link-badge{background:#e1f5ef;color:#0d574f;border-color:#9acabd}
       :root.soft98-pro-light [data-soft98-pro-dialog],:root.soft98-pro-light [data-soft98-pro-native-dialog]::backdrop{background:#223c5147!important}
       :root.soft98-pro-light [data-soft98-pro-dialog-panel]{box-shadow:0 20px 60px #16283936,0 1px #fff inset!important}
-      :root.soft98-pro-light [data-soft98-pro-footer] > section{background:var(--s98p-surface)!important;box-shadow:var(--s98p-light-shadow)}
       @media(max-width:560px){:root.soft98-pro-theme [data-soft98-pro-nav-item=icon]{width:clamp(32px,9vw,40px);margin-inline:1px}}
       @media(max-width:560px){:root.soft98-pro-theme [data-soft98-pro-surface=tab-list]{gap:2px 4px;padding-inline:6px!important}:root.soft98-pro-theme [data-soft98-pro-surface=tab-list]>:is(li,div){flex:1 1 calc(50% - 4px)!important}:root.soft98-pro-theme [data-soft98-pro-surface=tab-list] :is([role=tab],[data-toggle=tab]){width:100%!important;padding-inline:7px!important}}
       @keyframes soft98-pro-neon{to{--s98p-neon-hue:515deg}}
@@ -1656,6 +1651,11 @@
   }
 
   function applySiteChrome() {
+    for (const heading of document.querySelectorAll("section > header > :is(h2,h3,h4,h5,h6)")) {
+      if (normalizedPersian(heading.textContent || "") !== "مطالبمشابه") continue;
+      const card = heading.parentElement.parentElement;
+      if (card.querySelector(":scope > :is(ul,ol) > li > a[href]")) card.setAttribute("data-soft98-pro-related", "");
+    }
     const nav = document.querySelector('nav:has([data-toggle="night-mode"]),header nav');
     if (nav) {
       nav.setAttribute("data-soft98-pro-nav-chrome", "");
@@ -2027,26 +2027,34 @@
         element.rel = "noopener noreferrer";
       } else {
         element.type = "button";
-        element.addEventListener("click", () => renderControlPanel()?.open());
+        element.addEventListener("click", key === "top" ? () => {
+          window.scrollTo({ top: 0, behavior: "instant" });
+        } : () => renderControlPanel()?.open());
       }
       return element;
     };
     const frame = node("div", "s98p-footer-frame");
     const main = node("div", "s98p-footer-main");
     const brand = node("div", "s98p-footer-brand");
-    brand.append(node("strong", "", "brand"), node("span", "", "tagline"));
+    const mark = node("span", "s98p-footer-mark");
+    mark.innerHTML = PAGE_ICONS.anchor;
+    mark.setAttribute("aria-hidden", "true");
+    const identity = node("div", "s98p-footer-identity");
+    identity.append(node("strong", "", "brand"), node("span", "", "tagline"));
+    brand.append(mark, identity, action("settings", "settings"));
     const resources = node("div", "s98p-footer-links");
     resources.append(node("strong", "", "resources"), action("source", "github", EXTENSION_REPO),
       action("releases", "history", EXTENSION_REPO + "/releases"));
     const support = node("div", "s98p-footer-links");
-    support.append(node("strong", "", "support"), action("settings", "settings"),
-      action("report", "external", EXTENSION_REPO + "/issues"));
+    support.append(node("strong", "", "support"), action("report", "external", EXTENSION_REPO + "/issues"));
     main.append(brand, resources, support);
     const end = node("div", "s98p-footer-end");
     const version = node("bdi", "s98p-footer-version");
     version.textContent = "v" + VERSION;
     version.dir = "ltr";
-    end.append(node("span", "", "independent"), version);
+    const imprint = node("span", "s98p-footer-imprint");
+    imprint.append(version, node("span", "", "independent"));
+    end.append(imprint, action("top", "up"));
     frame.append(main, end);
     replacement.append(frame);
     footer.after(replacement);
@@ -3165,13 +3173,24 @@
     return { x, y };
   }
 
-  function snapControlPosition(point, viewport, tucked) {
+  function snapControlPosition(point, viewport, tucked, snap = 26) {
     const bounds = controlBounds(viewport);
-    const snap = 26;
     const edge = (value, start, end, a, b) => Math.min(value - start, end - value) > snap ? null : value - start < end - value ? a : b;
     const inlineEdge = edge(point.x, bounds.left, bounds.right, "left", "right");
     const blockEdge = edge(point.y, bounds.top, bounds.bottom, "top", "bottom");
     return { ...point, inlineEdge, blockEdge, tucked: Boolean(tucked && inlineEdge) };
+  }
+
+  function controlGravity(point, viewport) {
+    const bounds = controlBounds(viewport);
+    const target = snapControlPosition(point, viewport, false, CONTROL_GRAVITY);
+    const pull = (value, edge) => {
+      if (!edge) return value;
+      const distance = Math.abs(value - bounds[edge]);
+      const strength = Math.max(0, 1 - distance / CONTROL_GRAVITY);
+      return value + (bounds[edge] - value) * .8 * strength;
+    };
+    return { target, point: { x: pull(point.x, target.inlineEdge), y: pull(point.y, target.blockEdge) } };
   }
 
   function placeControlSurface(surface, point, viewport, width, maxHeight, gap = 9) {
@@ -3322,6 +3341,7 @@
       <button type="button" data-role="toggle" aria-controls="soft98-pro-console" aria-expanded="false" aria-label="${escapeHtml(text("controlTitle"))}" aria-description="${escapeHtml(text("moveControl"))}" title="${escapeHtml(text("moveControl"))}">
         <img src="${escapeHtml(BRAND_ASSETS.pirateDark || BRAND_ASSETS.light || "")}" alt="">
       </button>
+      <span class="s98p-dock-target" aria-hidden="true" hidden></span>
       <button type="button" data-role="restore" aria-label="${escapeHtml(text("controlRestore"))}" title="${escapeHtml(text("controlRestore"))}" hidden><span aria-hidden="true"></span></button>
       <form id="soft98-pro-console" role="dialog" aria-modal="false" aria-labelledby="soft98-pro-console-title" aria-hidden="true" hidden inert dir="${RTL ? "rtl" : "ltr"}" lang="${LOCALE}">
         <header class="s98p-console-header">
@@ -3403,6 +3423,8 @@
       #soft98-pro-control[data-dragging=true]>[data-role=toggle]{cursor:grabbing;transform:scale(1.04)}
       #soft98-pro-control>[data-role=toggle]:hover,#soft98-pro-control[data-open=true]>[data-role=toggle]{transform:translateY(-1px) scale(1.04);border-color:var(--c-accent)!important;background:var(--c-bg-raised)!important;box-shadow:0 14px 36px rgba(0,0,0,.38),0 0 0 4px var(--c-accent-soft)}
       #soft98-pro-control[data-theme=rgb]>[data-role=toggle]{border-color:transparent!important;background:linear-gradient(150deg,var(--c-bg-raised),var(--c-bg-soft)) padding-box,var(--s98p-neon-edge) border-box!important;box-shadow:0 14px 38px rgba(0,0,0,.55),0 0 26px var(--c-accent-soft)}
+      #soft98-pro-control .s98p-dock-target{position:absolute;inset:0;translate:var(--dock-x,0px) var(--dock-y,0px);box-sizing:border-box;border:2px dashed var(--c-accent);border-radius:50%;outline:4px solid var(--c-accent-soft);background:var(--c-accent-soft);pointer-events:none;z-index:-1}
+      #soft98-pro-control[data-gravity=true]>[data-role=toggle]{transform:none;scale:.9;border-color:var(--c-accent)!important;box-shadow:0 0 0 4px var(--c-accent-soft),0 4px 18px var(--c-accent-soft)!important}
       #soft98-pro-control form{position:absolute;box-sizing:border-box;display:grid;grid-template-rows:auto auto auto auto minmax(0,1fr) auto;overflow:hidden;margin:0;padding:0;border:1px solid color-mix(in srgb,var(--c-accent) 42%,var(--c-border))!important;border-radius:8px;background:var(--c-bg)!important;background-image:linear-gradient(135deg,color-mix(in srgb,var(--c-accent) 4%,transparent),transparent 36%,color-mix(in srgb,var(--c-accent-2) 3%,transparent))!important;color:var(--c-text)!important;box-shadow:0 0 0 1px rgba(255,255,255,.045) inset,0 0 0 4px rgba(7,13,17,.55),0 30px 90px rgba(0,0,0,.58),0 0 36px color-mix(in srgb,var(--c-accent) 9%,transparent)!important;backdrop-filter:blur(28px) saturate(145%);transform-origin:left bottom;transform:translateY(7px) scale(.98);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s ease,transform .22s cubic-bezier(.2,.8,.2,1),visibility 0s linear .22s}
       #soft98-pro-control form:before{content:"";position:absolute;z-index:4;inset:0 0 auto;height:3px;background:linear-gradient(90deg,var(--c-accent),var(--c-accent-2),var(--c-accent));pointer-events:none}
       #soft98-pro-control form[dir=rtl]{text-align:right}
@@ -3577,6 +3599,8 @@
     let requested = stored?.legacy ? snapControlPosition({ x: stored.x, y: stored.y }, viewport, false) : stored || defaultControlPosition();
     let position;
     let drag = null;
+    const dockTarget = wrap.querySelector(".s98p-dock-target");
+    let dockAnimation = null;
     let suppressClick = false;
     let menuTrigger = null;
     let closeTimer = 0;
@@ -3588,9 +3612,22 @@
     form.addEventListener("transitionend", (event) => {
       if (event.target === form && event.propertyName === "visibility") finishClose();
     }, { signal });
-    signal.addEventListener("abort", () => clearTimeout(closeTimer), { once: true });
+    signal.addEventListener("abort", () => {
+      clearTimeout(closeTimer);
+      dockAnimation?.cancel();
+    }, { once: true });
     const layout = () => {
-      position = placeControl(wrap, drag?.moved ? drag.point : requested, viewport);
+      const gravity = drag?.moved && !drag.tuck ? controlGravity(drag.point, viewport) : null;
+      position = placeControl(wrap, drag?.moved ? gravity?.point || drag.point : requested, viewport);
+      const { inlineEdge, blockEdge } = gravity?.target || {};
+      const candidate = Boolean(inlineEdge || blockEdge);
+      if (dockTarget.hidden === candidate) dockTarget.hidden = !candidate;
+      if (candidate) {
+        const bounds = controlBounds(viewport);
+        dockTarget.style.setProperty("--dock-x", `${inlineEdge ? bounds[inlineEdge] - position.x : 0}px`);
+        dockTarget.style.setProperty("--dock-y", `${blockEdge ? bounds[blockEdge] - position.y : 0}px`);
+        wrap.dataset.gravity = "true";
+      } else delete wrap.dataset.gravity;
       placeControlSurface(form, position, viewport, 448, 720);
       if (!menu.hidden) placeControlSurface(menu, position, viewport, 246, 220);
     };
@@ -3678,6 +3715,7 @@
     toggle.addEventListener("pointerdown", (event) => {
       if (event.button !== 0 || !event.isPrimary || drag) return;
       suppressClick = false;
+      dockAnimation?.cancel();
       drag = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, origin: position, point: position, moved: false, tuck: false };
       if (event.isTrusted) toggle.setPointerCapture(event.pointerId);
     }, { signal });
@@ -3702,7 +3740,17 @@
       delete wrap.dataset.tuckPreview;
       if (current.moved && !cancelled) {
         suppressClick = true;
-        storePosition(snapControlPosition(position, viewport, current.tuck), current.tuck);
+        const from = position;
+        const next = snapControlPosition(current.point, viewport, current.tuck, CONTROL_GRAVITY);
+        storePosition(next, current.tuck);
+        if (!next.tucked && (next.inlineEdge || next.blockEdge) && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          const dx = from.x - position.x, dy = from.y - position.y;
+          dockAnimation = toggle.animate([
+            { translate: `${dx}px ${dy}px`, scale: ".9" },
+            { translate: "0 0", scale: ".86", offset: .63 },
+            { translate: "0 0", scale: "1" },
+          ], { duration: 235, easing: "cubic-bezier(.22,.8,.24,1)" });
+        }
       } else layout();
     };
     window.addEventListener("pointerup", (event) => finishDrag(event), { signal });

@@ -54,6 +54,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Restored the Pro palette on the related-posts card, replacing the stock gray background.
+- Made the control center pull toward nearby edges while dragging and show where it will dock.
+- Rebuilt the footer with solid theme colors, clearer project and support links, and quick access to settings and the top of the page.
 - Preserved dark surface gradients in RGB mode and added animated multicolor accents to the control center frame, launcher, tabs, navigation, and card headings.
 - Kept the article download tab usable when the site's tab handler fails, and restored the download list when its own wrapper was left hidden.
 - Centered the technology news shortcuts and kept the latest-content tabs working even when the site's tab script is unavailable.

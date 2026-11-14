@@ -548,7 +548,70 @@ async function main() {
         throw new Error(`The closed console became visible at the footer: ${JSON.stringify(closed)}`);
       }
       if (process.env.SOFT98_FOOTER_SCREENSHOT) {
+        const footerLook = async () => evaluate(`
+          const footer = document.querySelector('[data-soft98-pro-footer]');
+          const frame = footer.querySelector('.s98p-footer-frame');
+          const card = document.querySelector('[data-soft98-pro-related]');
+          const list = card?.querySelector(':scope > :is(ol,ul)');
+          const background = node => node && getComputedStyle(node).backgroundColor;
+          const probe = document.createElement('span');
+          probe.style.color = getComputedStyle(document.documentElement).getPropertyValue('--s98p-surface').trim();
+          const box = frame.getBoundingClientRect();
+          return {
+            frame: background(frame), primary: background(footer.querySelector('.s98p-footer-brand button')),
+            related: background(card), list: background(list), expected: probe.style.color,
+            gradient: getComputedStyle(frame).backgroundImage, direction: getComputedStyle(footer).direction,
+            links: footer.querySelectorAll('a[href]').length,
+            fits: box.left >= 0 && box.right <= innerWidth && [...footer.querySelectorAll('a,button')].every(node => {
+              const rect = node.getBoundingClientRect();
+              return rect.width > 0 && rect.left >= box.left && rect.right <= box.right;
+            }),
+          };
+        `);
+        const validateFooter = (theme, look) => {
+          if (look.frame !== look.expected || look.related !== look.expected || look.list !== look.expected ||
+              look.gradient !== 'none' || !look.fits || look.links !== 3 ||
+              look.primary !== (theme === "Light" ? "rgb(28, 87, 191)" : "rgb(141, 221, 187)")) {
+            throw new Error(theme + ' footer or related card: ' + JSON.stringify(look));
+          }
+        };
+        const darkFooter = await footerLook();
+        validateFooter("Dark", darkFooter);
         await screenshot(session, process.env.SOFT98_FOOTER_SCREENSHOT);
+        if (process.env.SOFT98_LIGHT_FOOTER_SCREENSHOT) {
+          await evaluate("Soft98Pro.configure({darkDesign:false}); document.querySelector('[data-soft98-pro-footer]').scrollIntoView({ block:'end', behavior:'instant' })");
+          await new Promise(resolve => setTimeout(resolve, 320));
+          validateFooter("Light", await footerLook());
+          await screenshot(session, process.env.SOFT98_LIGHT_FOOTER_SCREENSHOT);
+          await evaluate("Soft98Pro.configure({darkDesign:true})");
+        }
+        await evaluate("document.querySelector('.s98p-footer-brand button').click()");
+        if (!await evaluate("return document.querySelector('#soft98-pro-control').dataset.open === 'true'")) throw new Error("Footer settings button did not open the control center");
+        await evaluate("document.querySelector('#soft98-pro-control [data-role=close]').click()");
+        await evaluate("document.querySelector('.s98p-footer-end button').click()");
+        const afterTop = await evaluate("return scrollY");
+        if (afterTop > 1) throw new Error("Footer Back to top button did not return to the top: " + afterTop);
+        const gravity = await evaluate(`
+          const wrap = document.querySelector('#soft98-pro-control');
+          const toggle = wrap.querySelector('[data-role=toggle]');
+          const marker = wrap.querySelector('.s98p-dock-target');
+          const box = toggle.getBoundingClientRect();
+          const x = document.documentElement.clientWidth - 75;
+          const send = (node,type,clientX,clientY) => node.dispatchEvent(new PointerEvent(type,{
+            clientX,clientY,button:0,isPrimary:true,pointerId:5,bubbles:true,
+          }));
+          send(toggle,'pointerdown',box.x + box.width/2,box.y + box.height/2);
+          send(window,'pointermove',x,42);
+          const pull = wrap.getBoundingClientRect().left - (x - 21);
+          const guide = !marker.hidden && !!marker.getClientRects().length;
+          send(window,'pointercancel',x,42);
+          return { pull, guide, cancelled: marker.hidden && Math.abs(wrap.getBoundingClientRect().left - 12) < 1 };
+        `);
+        if (gravity.pull < 8 || !gravity.guide || !gravity.cancelled) {
+          throw new Error("Launcher gravity failed: " + JSON.stringify(gravity));
+        }
+        console.log(JSON.stringify({ footer: darkFooter }));
+        console.log(JSON.stringify({ gravity }));
       }
       await evaluate("document.querySelector('#soft98-pro-control > form').remove()");
       if (await evaluate("return Boolean(document.querySelector('#soft98-pro-control > form'))") !== true) {

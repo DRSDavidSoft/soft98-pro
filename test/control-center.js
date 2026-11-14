@@ -47,13 +47,14 @@ async function verify() {
     return rect.width > 0 && rect.height > 0 && rect.left >= -1 && rect.top >= -1 &&
       rect.right <= doc.documentElement.clientWidth + 1 && rect.bottom <= doc.documentElement.clientHeight + 1;
   };
-  const drag = (x, y, complete = true) => {
+  const drag = (x, y, complete = true, during = () => {}) => {
     const rect = toggle.getBoundingClientRect();
     const pointer = (target, type, clientX, clientY) => target.dispatchEvent(new win.PointerEvent(type, {
       clientX, clientY, button: 0, isPrimary: true, pointerId: 2, bubbles: true,
     }));
     pointer(toggle, "pointerdown", rect.left + 21, rect.top + 21);
     pointer(win, "pointermove", x, y);
+    during();
     pointer(win, complete ? "pointerup" : "pointercancel", x, y);
   };
 
@@ -131,8 +132,15 @@ async function verify() {
   check(menu.hidden && doc.activeElement === toggle, "Escape did not return focus to launcher");
   drag(win.innerWidth - 24, 30, false);
   check(wrap.dataset.inlineEdge === "left" && !toggle.hidden, "Cancelled drag moved the launcher");
-  drag(win.innerWidth - 24, 30);
+  const nearEdge = doc.documentElement.clientWidth - 75;
+  drag(nearEdge, 42, true, () => {
+    const target = get(".s98p-dock-target");
+    check(!target.hidden && wrap.dataset.gravity === "true", "Dock target is not visible while entering the gravity zone");
+    check(wrap.getBoundingClientRect().left > nearEdge - 21 + 8, "Gravity did not pull the launcher ahead of the pointer");
+  });
   check(wrap.dataset.inlineEdge === "right" && !toggle.hidden, "Drag did not snap to the top-right corner");
+  check(get(".s98p-dock-target").hidden && toggle.getAnimations().some(animation => animation.effect.getTiming().duration === 235),
+    "Docking did not settle with a visible snap");
 
   frame.style.width = "330px";
   frame.style.height = "240px";

@@ -55,7 +55,7 @@ const PAGE_ICONS = Object.fromEntries(Object.entries({
   bell: "outline/bell", mail: "outline/mail", search: "outline/search",
   grid: "outline/layout-grid", arrow: "outline/arrow-left", github: "outline/brand-github",
   settings: "outline/settings", history: "outline/history", external: "outline/external-link",
-  news: "outline/news", rss: "outline/rss", twitter: "filled/brand-twitter",
+  news: "outline/news", rss: "outline/rss", twitter: "filled/brand-twitter", anchor: "outline/anchor", up: "outline/arrow-up",
   facebook: "filled/brand-facebook", instagram: "outline/brand-instagram",
   ...UTILITY_CATALOG.genericIcons,
 }).map(([key, name]) => [key, fs.readFileSync(path.join(TABLER_ROOT, "icons", name + ".svg"), "utf8")

@@ -517,114 +517,231 @@
   box-shadow: 0 1px #ffffff21 inset;
 }
 
-:root.soft98-pro-theme [data-soft98-pro-footer] {
-  --foot-bg: #142438;
-  --foot-ink: #f2f6ff;
-  --foot-muted: #b2c5df;
-  --foot-edge: #45607e;
-  --foot-blue: #92b7ff;
-  --foot-mint: #7ae0b7;
+:root.soft98-pro-theme [data-soft98-pro-related] {
+  background: var(--s98p-surface) !important;
+  border: 1px solid var(--s98p-border-soft) !important;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-related] > header {
+  background: var(--s98p-surface-2) !important;
+  border-block-end: 1px solid var(--s98p-border-soft) !important;
+  color: var(--s98p-text) !important;
+  padding: 12px 16px !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-related] > header :is(h2,h3,h4,h5,h6) {
+  background: transparent !important;
+  color: var(--s98p-text) !important;
+  margin: 0;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-related] > :is(ul,ol) {
+  margin: 0;
+  padding: 5px 12px 8px;
+  background: var(--s98p-surface) !important;
+  list-style: none;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-related] li {
+  background: transparent !important;
+  border-block-end: 1px solid var(--s98p-border-soft);
+}
+
+:root.soft98-pro-theme [data-soft98-pro-related] li:last-child {
+  border-block-end: 0;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-related] li > a {
   display: block;
-  padding: 0 clamp(16px,3vw,32px);
-  margin: 42px auto 24px;
+  padding: 7px 6px;
+  background: none !important;
+  color: var(--s98p-muted) !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-related] li > a::before {
+  color: var(--s98p-faint) !important;
+  text-shadow: none !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-related] li > a:is(:hover,:focus-visible) {
+  background: var(--s98p-soft) !important;
+  color: var(--s98p-link) !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-footer] {
+  --foot-action: #8dddbb;
+  --foot-action-ink: #102b25;
+  --foot-crest: #1d362f;
+  --foot-crest-ink: #a3ebcf;
+  display: block;
+  box-sizing: border-box;
+  max-inline-size: var(--s98p-page-width,1280px);
+  margin: 46px auto 22px;
+  padding: 0 clamp(10px,2vw,24px);
+  background: transparent !important;
 }
 
 :root.soft98-pro-light [data-soft98-pro-footer] {
-  --foot-bg: #123270;
-  --foot-ink: #fff;
-  --foot-muted: #d9e7ff;
-  --foot-edge: #ffffff47;
-  --foot-blue: #b0d1ff;
-  --foot-mint: #8df2c4;
+  --foot-action: #1c57bf;
+  --foot-action-ink: #fff;
+  --foot-crest: #e0ecff;
+  --foot-crest-ink: #194d9d;
+}
+
+:root.soft98-pro-rgb [data-soft98-pro-footer] {
+  --foot-action: var(--s98p-surface-2);
+  --foot-action-ink: var(--s98p-accent);
+  --foot-crest: var(--s98p-surface-2);
+  --foot-crest-ink: var(--s98p-accent);
 }
 
 :root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-frame {
-  background: linear-gradient(115deg,var(--foot-bg),color-mix(in srgb,var(--foot-bg) 83%,#11725d)) !important;
-  border: 1px solid var(--foot-edge);
-  border-block-start: 3px solid var(--foot-blue);
+  background: var(--s98p-surface) !important;
+  border: 1px solid var(--s98p-border-soft);
+  border-block-start: 2px solid var(--foot-crest-ink);
   border-radius: 8px;
+  color: var(--s98p-text);
+  box-shadow: 0 12px 36px #081d351a;
   overflow: hidden;
-  color: var(--foot-ink);
-  box-shadow: 0 12px 32px #0b204b30;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-main {
   display: grid;
-  grid-template-columns: minmax(160px,1.3fr) repeat(2,minmax(120px,1fr));
-  gap: 20px 28px;
+  grid-template-columns: minmax(210px,1.4fr) repeat(2,minmax(120px,1fr));
   align-items: start;
-  padding: 24px clamp(16px,4vw,34px);
+  padding: 25px 0 23px;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-footer] :is(.s98p-footer-brand,.s98p-footer-links) {
   min-inline-size: 0;
   display: grid;
-  gap: 7px;
+  gap: 6px;
+  padding-inline: clamp(12px,3vw,30px);
 }
 
-:root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-brand > strong {
-  color: var(--foot-ink) !important;
-  font-size: 21px;
-  justify-self: start;
+:root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-brand {
+  grid-template-columns: 46px minmax(0,1fr);
+  align-items: center;
+  gap: 12px;
 }
 
-:root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-brand > span,
-:root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-end {
-  color: var(--foot-muted) !important;
+:root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-mark {
+  display: grid;
+  place-items: center;
+  inline-size: 46px;
+  block-size: 46px;
+  background: var(--foot-crest) !important;
+  color: var(--foot-crest-ink) !important;
+  border: 1px solid color-mix(in srgb,var(--foot-crest-ink) 23%,transparent);
+  border-radius: 8px;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-identity {
+  display: grid;
+  align-content: center;
+  gap: 1px;
+  line-height: 1.4;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-identity strong {
+  color: var(--s98p-text) !important;
+  font-size: 22px;
+  font-weight: 780;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-identity > span,
+:root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-imprint {
+  color: var(--s98p-muted) !important;
+  font-size: 12px;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-links {
+  border-inline-start: 1px solid var(--s98p-border-soft);
+  align-content: start;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-links > strong {
-  color: var(--foot-mint) !important;
-  margin-bottom: 2px;
+  color: var(--s98p-text) !important;
+  padding: 2px 8px;
+  font-size: 13px;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-footer] :is(a,button) {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   width: fit-content;
   max-inline-size: 100%;
-  min-height: 33px;
-  padding: 5px 7px;
+  min-height: 34px;
+  margin: 0;
+  padding: 5px 8px;
   border: 1px solid transparent !important;
-  border-radius: 5px;
+  border-radius: 6px;
   background: transparent !important;
-  color: var(--foot-ink) !important;
+  color: var(--s98p-muted) !important;
   text-align: start;
   text-decoration: none;
   overflow-wrap: anywhere;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
   cursor: pointer;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-footer] :is(a,button):is(:hover,:focus-visible) {
-  border-color: var(--foot-edge) !important;
-  background: #ffffff17 !important;
-  color: var(--foot-mint) !important;
+  border-color: var(--s98p-border-soft) !important;
+  background: var(--s98p-soft) !important;
+  color: var(--s98p-link) !important;
   transform: none;
 }
 
-:root.soft98-pro-light [data-soft98-pro-footer] :is(a,button):not(#soft98-pro-control *) {
-  background: #ffffff0c !important;
-  color: var(--foot-ink) !important;
-  border-color: transparent !important;
+:root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-brand > button {
+  grid-column: 1 / -1;
+  padding-inline: 11px;
+  background: var(--foot-action) !important;
+  color: var(--foot-action-ink) !important;
 }
 
-:root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-links :is(a,button) :is(span,svg),
-:root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-end > span {
+:root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-brand > button:is(:hover,:focus-visible) {
+  background: color-mix(in srgb,var(--foot-action) 86%,var(--s98p-text)) !important;
+}
+
+:root.soft98-pro-theme.soft98-pro-light [data-soft98-pro-footer] .s98p-footer-brand > button {
+  background: var(--foot-action) !important;
+  border-color: var(--foot-action) !important;
+  color: var(--foot-action-ink) !important;
+}
+
+:root.soft98-pro-theme.soft98-pro-light [data-soft98-pro-footer] .s98p-footer-brand > button:is(:hover,:focus-visible) {
+  background: #16489e !important;
+}
+
+:root.soft98-pro-rgb [data-soft98-pro-footer] .s98p-footer-brand > button {
+  background: linear-gradient(var(--s98p-surface-2),var(--s98p-surface)) padding-box,var(--s98p-neon-edge) border-box !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-footer] :is(a,button) > span {
   color: inherit !important;
-  -webkit-text-fill-color: currentColor !important;
 }
 
-:root.soft98-pro-light [data-soft98-pro-footer] :is(a,button):not(#soft98-pro-control *):is(:hover,:focus-visible) {
-  background: #ffffff20 !important;
-  color: var(--foot-mint) !important;
-  border-color: var(--foot-edge) !important;
+:root.soft98-pro-theme [data-soft98-pro-footer] :is(a,button) > span:first-child {
+  display: grid;
+  place-items: center;
+  flex: none;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-footer] svg {
   width: 17px;
   height: 17px;
-  flex: none;
+  color: inherit !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-mark svg {
+  width: 25px;
+  height: 25px;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-end {
@@ -632,24 +749,40 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 8px 18px;
-  padding: 9px clamp(16px,4vw,34px);
-  background: #0a23403d;
-  border-block-start: 1px solid var(--foot-edge);
+  gap: 4px 12px;
+  padding: 4px clamp(12px,3vw,30px);
+  background: var(--s98p-bg-2) !important;
+  border-block-start: 1px solid var(--s98p-border-soft);
+}
+
+:root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-imprint {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-version {
-  inline-size: max-content;
-  color: var(--foot-muted) !important;
-  font: 600 .85em/1.5 ui-monospace, monospace;
-  unicode-bidi: isolate;
+  padding-inline-end: 8px;
+  border-inline-end: 1px solid var(--s98p-border-soft);
+  font: 600 11px/1.5 ui-monospace, monospace;
 }
 
-@media (max-width:670px) {
+@media (max-width: 650px) {
   :root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-main {
     grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 15px 0;
+    padding-block: 17px 12px;
   }
   :root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-brand {
     grid-column: 1 / -1;
+    padding-block-end: 14px;
+    border-block-end: 1px solid var(--s98p-border-soft);
+  }
+  :root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-links:nth-child(2) {
+    border-inline-start: 0;
+  }
+  :root.soft98-pro-theme [data-soft98-pro-footer] .s98p-footer-end {
+    padding-inline: 48px;
   }
 }
