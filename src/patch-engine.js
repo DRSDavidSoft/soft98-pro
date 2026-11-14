@@ -41,6 +41,26 @@
       pattern: /\.setAttribute\(\s*["']href["']\s*,\s*[^;]*(?:location\.href|["']location\.href["'])[^;]*\)/g,
       replacement: "void 0",
     },
+    {
+      name: "anti-adblock-style-rewrite-timer",
+      pattern: /(\b([\w$]+)\s*\(\s*([\w$]+)\s*\)\s*,\s*)[\w$]+\s*\(\s*function\s*\(\s*\)\s*\{\s*([\w$]+)\s*\(\s*\3\s*\)\s*;?\s*\}\s*,\s*100\s*\)(?=\s*\)\s*;\s*function\b)/g,
+      replacement: (match, setup, _initialize, _rules, rewrite, offset, source) => {
+        const body = source.lastIndexOf("function " + rewrite + "(", offset);
+        const code = body < 0 ? "" : source.slice(body, offset);
+        return /\[\s*["']clip-path["']\s*,\s*["']display["']\s*\]/.test(code) &&
+          /\.setAttribute\(\s*["']style["']\s*,/.test(code) ? setup + "0" : match;
+      },
+    },
+    {
+      name: "anti-adblock-download-probe",
+      pattern: /\bfunction\s+[\w$]+\s*\(\s*\)\s*\{(?=\s*[\w$]+\(\s*["']\/\/style\[contains\(\.,\s*['"]important['"]\)\]["'][\s\S]{0,180}?\.parentNode\.removeChild\([\s\S]{0,700}?\b[\w$]+\.appendChild\(\s*([\w$]+)\s*\)\s*,\s*[\w$]+\(\s*function\s*\(\s*\)\s*\{\s*\1\.remove\(\s*\)\s*;?\s*\}\s*,\s*100\s*\))/g,
+      replacement: "$&return;",
+    },
+    {
+      name: "anti-adblock-page-reset",
+      pattern: /\bfunction\s+([\w$]+)\s*\(\s*\)\s*\{(?=\s*function\s+[\w$]+\s*\(\s*\)\s*\{\s*document\.title\s*\|\|[\s\S]{0,320}?\.reload\s*\(\s*\)[\s\S]{0,330}?["']#[\w-]+(?:\s*,\s*#[\w-]+){2}["'][\s\S]{0,200}?\.innerHTML\s*=\s*["']["'])/g,
+      replacement: "$&return;",
+    },
   ];
 
   function matchingParen(source, openIndex) {

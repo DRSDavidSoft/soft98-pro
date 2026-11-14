@@ -22,7 +22,10 @@
       ],
       "captures": 1,
       "patches": [
-        "anti-adblock-warning-throws"
+        "anti-adblock-warning-throws",
+        "anti-adblock-style-rewrite-timer",
+        "anti-adblock-download-probe",
+        "anti-adblock-page-reset"
       ],
       "review": {
         "sourceCommit": "96ef83409482",

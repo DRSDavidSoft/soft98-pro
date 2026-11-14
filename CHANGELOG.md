@@ -54,6 +54,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Reduced stutter while scrolling, dragging the control center, and expanding FAQ answers. Recognized scroll detectors are stopped before registration instead of adding more work to each scroll event.
+- Kept the article tabs in normal flow and stabilized scrolling from related posts through the footer.
+- Stopped the site's repeating style edits and injected download checks from shifting the page, without removing its download link handler.
 - Made listing previews open the original article's download tab when some files are only available through the site's download controls.
 - Made F2 refocus an already open search and kept the discussion styling on read-only threads.
 - Clarified that the download group copy action copies direct links only.

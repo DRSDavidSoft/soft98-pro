@@ -220,6 +220,75 @@ async function main() {
       throw new Error("Live Firefox page failed the Soft98 Pro smoke checks");
     }
     if (process.env.SOFT98_LIVE_SCREENSHOT) await screenshot(session, process.env.SOFT98_LIVE_SCREENSHOT);
+    if (addon && process.env.SOFT98_INTERACTION_CHECK === "1") {
+      const timings = await post("/execute/async", { args: [], script: `
+        const done = arguments[0];
+        const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+        (async () => {
+          const originalQuery = Document.prototype.querySelectorAll;
+          let queries = 0, warningSweeps = 0;
+          Document.prototype.querySelectorAll = function (...args) {
+            queries++;
+            if (args[0] === 'div,section,aside,header,footer,a,p,span') warningSweeps++;
+            return originalQuery.apply(this,args);
+          };
+          const start = performance.now();
+          try {
+            for (let i = 0; i < 25; i++) {
+              document.dispatchEvent(new Event('scroll'));
+              window.dispatchEvent(new Event('scroll'));
+            }
+          } finally { Document.prototype.querySelectorAll = originalQuery; }
+          const scrollMs = performance.now() - start;
+          const faq = document.querySelector('article details[data-soft98-pro-faq]');
+          const summary = faq?.querySelector('summary');
+          if (!summary) return done({ queries, scrollMs, faq:false });
+          const closed = faq.getBoundingClientRect().height;
+          summary.click();
+          const anim = faq.getAnimations()[0];
+          if (anim) {
+            anim.pause();
+            anim.currentTime = 100;
+          }
+          const middle = faq.getBoundingClientRect().height;
+          summary.click();
+          faq.getAnimations()[0]?.finish();
+          await wait(240);
+          const returned = faq.getBoundingClientRect().height;
+          const related = document.querySelector('[data-soft98-pro-related]');
+          const footer = document.querySelector('[data-soft98-pro-footer]');
+          const header = document.querySelector('article [data-soft98-pro-tab-header]');
+          const absoluteY = node => node.getBoundingClientRect().top + scrollY;
+          const targets = [related, footer];
+          const before = targets.map(absoluteY);
+          const clampY = y => Math.min(Math.max(0, document.documentElement.scrollHeight - innerHeight), Math.max(0,y));
+          const trace = [];
+          const warm = clampY(before[0] - innerHeight / 2);
+          window.scrollTo({top:warm,behavior:'instant'});
+          await wait(220);
+          const settled = targets.map(absoluteY);
+          let shift = Math.max(...settled.map((position, i) => Math.abs(position-before[i])));
+          let scrollError = Math.abs(scrollY-warm);
+          for (const offset of [-200, -100, 0, 50, 120, -45]) {
+            const y = clampY(warm + offset);
+            window.scrollTo({top:y,behavior:'instant'});
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            shift = Math.max(shift, ...targets.map((node, i) => Math.abs(absoluteY(node)-settled[i])));
+            scrollError = Math.max(scrollError, Math.abs(scrollY-y));
+            trace.push({ y, actual:scrollY, positions:targets.map(absoluteY), height:document.documentElement.scrollHeight });
+          }
+          window.scrollTo({top:0,behavior:'instant'});
+          done({ queries, warningSweeps, scrollMs, faq:true, midExpansion: middle > closed,
+            reversed: !faq.open && Math.abs(closed-returned) < 1, shift, scrollError,
+            sticky: getComputedStyle(header).position, ...(shift > 1 || scrollError > 1 ? { before, settled, trace } : {}) });
+        })().catch(error => done({ error:String(error) }));
+      ` });
+      console.log(JSON.stringify({ interactions: timings }));
+      if (timings.warningSweeps !== 0 || !timings.faq || !timings.midExpansion || !timings.reversed ||
+          timings.shift > 1 || timings.scrollError > 1 || timings.sticky !== "static") {
+        throw new Error("Interaction performance regression: " + JSON.stringify(timings));
+      }
+    }
     if (addon && process.env.SOFT98_RGB_CHECK === "1") {
       await evaluate(`
         Soft98Pro.configure({ darkDesign:true, rgbMode:true });
@@ -594,7 +663,8 @@ async function main() {
         await evaluate("document.querySelector('.s98p-footer-end button').click()");
         const afterTop = await evaluate("return scrollY");
         if (afterTop > 1) throw new Error("Footer Back to top button did not return to the top: " + afterTop);
-        const gravity = await evaluate(`
+        const gravity = await post("/execute/async", { args: [], script: `
+          const done = arguments[0];
           const wrap = document.querySelector('#soft98-pro-control');
           const toggle = wrap.querySelector('[data-role=toggle]');
           const marker = wrap.querySelector('.s98p-dock-target');
@@ -605,11 +675,13 @@ async function main() {
           }));
           send(toggle,'pointerdown',box.x + box.width/2,box.y + box.height/2);
           send(window,'pointermove',x,42);
-          const pull = wrap.getBoundingClientRect().left - (x - 21);
-          const guide = !marker.hidden && !!marker.getClientRects().length;
-          send(window,'pointercancel',x,42);
-          return { pull, guide, cancelled: marker.hidden && Math.abs(wrap.getBoundingClientRect().left - 12) < 1 };
-        `);
+          requestAnimationFrame(() => {
+            const pull = wrap.getBoundingClientRect().left - (x - 21);
+            const guide = !marker.hidden && !!marker.getClientRects().length;
+            send(window,'pointercancel',x,42);
+            done({ pull, guide, cancelled: marker.hidden && Math.abs(wrap.getBoundingClientRect().left - 12) < 1 });
+          });
+        ` });
         if (gravity.pull < 8 || !gravity.guide || !gravity.cancelled) {
           throw new Error("Launcher gravity failed: " + JSON.stringify(gravity));
         }

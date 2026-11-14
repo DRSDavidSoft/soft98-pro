@@ -522,6 +522,7 @@
   border: 1px solid var(--s98p-border-soft) !important;
   border-radius: 8px;
   overflow: hidden;
+  backdrop-filter: none !important;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-related] > header {
@@ -558,6 +559,7 @@
   padding: 7px 6px;
   background: none !important;
   color: var(--s98p-muted) !important;
+  transition: background-color .14s ease,color .14s ease;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-related] li > a::before {

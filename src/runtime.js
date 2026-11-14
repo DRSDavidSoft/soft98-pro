@@ -10,7 +10,6 @@
   const FAVICON_ID = "soft98-pro-favicon";
   const CONTROL_POSITION_KEY = "soft98-ad-blocker.control-position";
   const DOWNLOAD_METADATA_KEY = "soft98-pro.download-metadata";
-  const INTERNAL_MUTATION_ATTRIBUTES = new Set(["class", "style", "aria-expanded", "aria-selected"]);
   const COMPATIBILITY_DISMISS_KEY = "soft98-pro.compatibility-dismissed";
   const CONTROL_MARGIN = 12;
   const CONTROL_GRAVITY = 76;
@@ -104,7 +103,7 @@
   const eventLog = [];
   const persistentStyles = new Map();
   const executedUpstreamScripts = new Set();
-  let scheduled = false;
+  let scanFrame = 0;
   let recoveryStarted = false;
   let originalTitle = document.title || "";
   let successAnnounced = false;
@@ -117,8 +116,9 @@
   let controlSection = "protection";
   let settings = readSettings();
   let compatibilityState = null;
-  let processingDom = false;
   let gridFrame = 0;
+  let sidebarContentsDirty = true;
+  const gridStyles = new WeakMap();
   let integrityScheduled = false;
   let useConstructableStyles = true;
 
@@ -294,7 +294,7 @@
 
   function isOwnedInterface(node) {
     const element = asElement(node);
-    return Boolean(element && element.closest("#soft98-pro-control,#soft98-pro-compatibility,#soft98-extension-recommendation,#soft98-ad-blocker-taunt"));
+    return Boolean(element && element.closest("#soft98-pro-control,#soft98-pro-compatibility,#soft98-extension-recommendation,#soft98-ad-blocker-taunt,[data-soft98-pro-download-actions],[data-soft98-pro-password-actions],[data-soft98-pro-copy-toast],[data-soft98-pro-footer]"));
   }
 
   function localizeElement(element) {
@@ -713,10 +713,10 @@
   function isExternalBlockerNotice(node) {
     const element = asElement(node);
     if (!element || element === document.documentElement || element === document.body || isOwnedInterface(element)) return false;
-    if (isProtectedContentContainer(element)) return false;
     const text = (element.textContent || "").replace(/\s+/g, " ").trim();
     const inline = [element.id, element.className, element.getAttribute("style"), element.getAttribute("href")].join(" ");
     if (!PERSIAN_BLOCKER_NOTICE.test(`${text} ${inline}`)) return false;
+    if (isProtectedContentContainer(element)) return false;
     const box = visibleBox(element);
     const fixed = /(?:^|;)\s*position\s*:\s*(?:fixed|sticky)/i.test(element.getAttribute("style") || "") || getComputedStyle(element).position === "fixed";
     const intrusive = fixed || box.height >= 40 || box.width >= Math.min(320, Math.round(window.innerWidth * 0.45));
@@ -803,13 +803,11 @@
     if (element.querySelectorAll) {
       element.querySelectorAll("div,section,aside,header,footer,a,p,span").forEach((candidate) => candidates.add(candidate));
     }
-    const ordered = [...candidates].sort((left, right) => {
-      const leftText = (left.textContent || "").length;
-      const rightText = (right.textContent || "").length;
-      if (leftText !== rightText) return leftText - rightText;
-      return domDepth(right) - domDepth(left);
-    });
-    for (const candidate of ordered) {
+    const ordered = [...candidates]
+      .filter(node => isWarningNode(node) || isExternalBlockerNotice(node))
+      .map(node => ({ node, length: (node.textContent || "").length, depth: domDepth(node) }))
+      .sort((left, right) => left.length - right.length || right.depth - left.depth);
+    for (const { node: candidate } of ordered) {
       if (!document.contains(candidate)) continue;
       if (isWarningNode(candidate)) {
         candidate.remove();
@@ -821,6 +819,10 @@
         log("warn", text("logs.blockerNoticeRemoved"), { id: candidate.id || "", className: candidate.className || "" });
       }
     }
+    restorePageIdentity();
+  }
+
+  function restorePageIdentity() {
     const hash = safeDecode(location.hash || "");
     if (hash && WARNING_TITLE.test(hash)) history.replaceState(null, document.title, `${location.pathname}${location.search}`);
     if (!originalTitle && document.title && !WARNING_TITLE.test(document.title)) originalTitle = document.title;
@@ -850,43 +852,43 @@
   }
 
   function schedule(root) {
-    if (root) pendingRoots.add(root);
-    if (scheduled) return;
-    scheduled = true;
-    enqueueMicrotask(() => {
-      scheduled = false;
-      const roots = pendingRoots.size ? [...pendingRoots] : [document];
+    if (!root || root === document || pendingRoots.size >= 32) {
       pendingRoots.clear();
-      processingDom = true;
-      try {
-        ensureStyleIntegrity();
-        for (const item of roots) processRoot(item);
-        comments.sync({ enabled: settings.pro, text });
-        if (settings.pro) {
-          applyInteractiveSurfaceHeuristics();
-          applyProLayoutHeuristics();
-        }
-        if (settings.pro) {
-          applyPagePreferences();
-          applySiteChrome();
-        } else {
-          document.documentElement.removeAttribute("data-soft98-pro-chrome");
-          restoreUtilityPlacement();
-          for (const [footer, previous] of stockFooters) {
-            if (footer.isConnected) footer.style.setProperty("display", ...previous);
-            stockFooters.delete(footer);
-          }
-        }
-        for (const link of trackedLinks) {
-          if (document.contains(link)) restoreLink(link);
-          else trackedLinks.delete(link);
-        }
-        applyLinkBadges();
-        announceSuccess();
-        refreshControlTelemetry();
-      } finally {
-        processingDom = false;
+      pendingRoots.add(document);
+    } else if (!pendingRoots.has(document)) pendingRoots.add(root);
+    if (scanFrame) return;
+    scanFrame = requestAnimationFrame(() => {
+      scanFrame = 0;
+      const roots = [...pendingRoots].filter((node) => node.isConnected);
+      pendingRoots.clear();
+      if (!roots.length) return;
+      const unique = roots.filter((node) => !roots.some((parent) => parent !== node && parent.contains(node)));
+      sidebarContentsDirty = true;
+      ensureStyleIntegrity();
+      for (const item of unique) processRoot(item);
+      comments.sync({ enabled: settings.pro, text });
+      if (settings.pro) {
+        applyInteractiveSurfaceHeuristics();
+        applyProLayoutHeuristics();
       }
+      if (settings.pro) {
+        applyPagePreferences();
+        applySiteChrome();
+      } else {
+        document.documentElement.removeAttribute("data-soft98-pro-chrome");
+        restoreUtilityPlacement();
+        for (const [footer, previous] of stockFooters) {
+          if (footer.isConnected) footer.style.setProperty("display", ...previous);
+          stockFooters.delete(footer);
+        }
+      }
+      for (const link of trackedLinks) {
+        if (document.contains(link)) restoreLink(link);
+        else trackedLinks.delete(link);
+      }
+      applyLinkBadges();
+      announceSuccess();
+      refreshControlTelemetry();
     });
   }
 
@@ -998,6 +1000,7 @@
     document.documentElement.classList.toggle("soft98-pro-light", active && !settings.darkDesign && !settings.rgbMode);
     document.documentElement.classList.toggle("soft98-pro-rgb", active && settings.rgbMode);
     document.documentElement.classList.toggle("soft98-pro-compact", active && settings.compactLayout);
+    document.documentElement.classList.toggle("soft98-pro-scroll-width", active && settings.compactLayout && settings.expandMain);
     scheduleContentGridUpdate();
     syncPageVisibility();
     const ambient = document.getElementById("soft98-pro-ambient");
@@ -1097,6 +1100,7 @@
       @media (prefers-reduced-motion:reduce){.soft98-pro-theme :is([data-soft98-pro-download-row],[data-soft98-pro-download-actions] [aria-expanded] svg,[data-soft98-pro-copy-toast]){transition:none!important}}
       .soft98-pro-theme [data-soft98-pro-faq] > summary{display:flex!important;align-items:center;gap:9px;list-style:none!important;padding-inline-start:0!important;color:var(--s98p-text)!important}
       .soft98-pro-theme [data-soft98-pro-faq] > summary::-webkit-details-marker{display:none}
+      .soft98-pro-theme [data-soft98-pro-faq-motion]{box-sizing:border-box;overflow:clip;overflow-anchor:none}
       .soft98-pro-theme [data-soft98-pro-faq] [data-soft98-pro-page-icon]{margin-inline-end:0}
       .soft98-pro-theme [data-soft98-pro-faq] summary:is(:hover,:focus-visible) [data-soft98-pro-page-icon],.soft98-pro-theme [data-soft98-pro-faq][open] [data-soft98-pro-page-icon]{--icon-color:var(--s98p-accent)}
       .soft98-pro-theme [data-soft98-pro-faq]:dir(ltr) svg{transform:scaleX(-1)}
@@ -1201,8 +1205,10 @@
       .soft98-pro-rgb a:hover img:not([data-soft98-brand-kind]){filter:saturate(.38) brightness(.82) contrast(1.08)!important}
       .soft98-pro-rgb .soft98-pro-link-badge{border-color:var(--s98p-neon);background:#0c0f10;box-shadow:0 0 16px var(--s98p-neon-soft)}
       :root.soft98-pro-theme{--s98p-control-bg:linear-gradient(180deg,#253341,#1a2430);--s98p-control-hover:linear-gradient(180deg,#344757,#233342);--s98p-control-edge:#415265;--s98p-control-shadow:0 1px 0 #ffffff12 inset,0 2px 4px #0004}
+      @media(min-width:821px){:root.soft98-pro-scroll-width{overflow-anchor:none}}
       :root.soft98-pro-rgb{--s98p-control-bg:linear-gradient(180deg,#191d20,#0b0d0e);--s98p-control-hover:linear-gradient(180deg,#21262a,#15191b);--s98p-control-edge:#343c41}
       :root.soft98-pro-theme [data-soft98-pro-tab-header]{padding-block:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+      :root.soft98-pro-theme article [data-soft98-pro-tab-header]{position:static!important;transition:none!important}
       :root.soft98-pro-theme [data-soft98-pro-surface=tab-list]{display:flex!important;flex-wrap:wrap!important;align-items:stretch;gap:5px;margin:0!important;padding:5px!important;background:var(--s98p-bg-2)!important;border:1px solid var(--s98p-border-soft)!important;border-radius:8px!important;box-shadow:0 1px 3px #0006 inset!important}
       :root.soft98-pro-theme [data-soft98-pro-surface=tab-list]>:is(li,div){display:flex!important;flex:1 1 auto!important;min-width:0;margin:0!important;padding:0!important;border:0!important;box-shadow:none!important}
       :root.soft98-pro-theme [data-soft98-pro-surface=tab-list] :is([role=tab],[data-toggle=tab]){display:inline-flex!important;align-items:center;justify-content:center;gap:7px;min-height:42px;max-width:100%;margin:0!important;padding:7px 10px!important;color:var(--s98p-muted)!important;white-space:normal!important;text-align:center;text-decoration:none!important;transform:none!important}
@@ -1576,20 +1582,23 @@
     gridFrame = requestAnimationFrame(() => {
       gridFrame = 0;
       const enabled = settings.pro && settings.compactLayout && settings.expandMain && innerWidth > 820;
+      const checkContents = sidebarContentsDirty;
+      sidebarContentsDirty = false;
       for (const [grid, sidebar] of contentGrids) {
         if (!grid.isConnected || sidebar.parentElement !== grid) {
           contentGrids.delete(grid);
           grid.removeAttribute("data-soft98-pro-main-wide");
           continue;
         }
-        const box = sidebar.getBoundingClientRect();
-        const empty = !hasSidebarContent(sidebar);
-        if (grid.hasAttribute("data-soft98-pro-sidebar-empty") !== empty) grid.toggleAttribute("data-soft98-pro-sidebar-empty", empty);
+        if (checkContents) grid.toggleAttribute("data-soft98-pro-sidebar-empty", !hasSidebarContent(sidebar));
+        const empty = grid.hasAttribute("data-soft98-pro-sidebar-empty");
         if (empty) {
           grid.removeAttribute("data-soft98-pro-main-wide");
           continue;
         }
-        const space = box.width + (Number.parseFloat(getComputedStyle(grid).columnGap) || 0);
+        if (!enabled && !grid.hasAttribute("data-soft98-pro-main-wide")) continue;
+        const box = enabled ? sidebar.getBoundingClientRect() : null;
+        const space = enabled ? box.width + (Number.parseFloat(getComputedStyle(grid).columnGap) || 0) : 0;
         const progress = enabled && !sidebar.contains(document.activeElement) && (box.height > 0 || grid.getBoundingClientRect().top < 0)
           ? Math.min(space, Math.max(0, -box.bottom)) : 0;
         if (progress > 0) {
@@ -1599,11 +1608,13 @@
           };
           apply("--s98p-sidebar-space", space);
           apply("--s98p-scroll-width", progress);
+          gridStyles.set(grid, grid.getAttribute("style"));
           grid.toggleAttribute("data-soft98-pro-main-wide", true);
         } else if (grid.hasAttribute("data-soft98-pro-main-wide")) {
           grid.removeAttribute("data-soft98-pro-main-wide");
           grid.style.removeProperty("--s98p-sidebar-space");
           grid.style.removeProperty("--s98p-scroll-width");
+          gridStyles.set(grid, grid.getAttribute("style"));
         }
       }
     });
@@ -1619,17 +1630,23 @@
       event.preventDefault();
       const from = details.getBoundingClientRect().height;
       faqAnimations.get(details)?.cancel();
+      details.setAttribute("data-soft98-pro-faq-motion", "");
       const opening = !details.open || details.hasAttribute("data-soft98-pro-closing");
       details.toggleAttribute("data-soft98-pro-closing", !opening);
       if (opening) details.open = true;
-      const to = opening ? details.getBoundingClientRect().height : summary.getBoundingClientRect().height;
-      const animation = details.animate([{ height: from + "px", overflow: "hidden" }, { height: to + "px", overflow: "hidden" }],
-        { duration: 230, easing: "cubic-bezier(.24,.76,.25,1)" });
+      const bounds = details.getBoundingClientRect();
+      const style = getComputedStyle(details);
+      const to = opening ? bounds.height : summary.getBoundingClientRect().bottom - bounds.top +
+        parseFloat(style.paddingBottom) + parseFloat(style.borderBottomWidth);
+      const animation = details.animate([{ maxHeight: from + "px" }, { maxHeight: to + "px" }],
+        { duration: 190, easing: "cubic-bezier(.24,.76,.25,1)", fill: "forwards" });
       faqAnimations.set(details, animation);
       animation.onfinish = () => {
         details.open = opening;
         details.removeAttribute("data-soft98-pro-closing");
+        details.removeAttribute("data-soft98-pro-faq-motion");
         faqAnimations.set(details, null);
+        animation.cancel();
       };
     });
   }
@@ -3177,13 +3194,18 @@
   }
 
   function placeControl(wrap, requested, viewport) {
+    const point = controlPoint(requested, viewport);
+    wrap.style.left = `${point.x}px`;
+    wrap.style.top = `${point.y}px`;
+    wrap.setAttribute("data-inline-edge", requested.inlineEdge || "");
+    return point;
+  }
+
+  function controlPoint(requested, viewport) {
     const bounds = controlBounds(viewport);
     const { inlineEdge, blockEdge } = requested;
     const x = inlineEdge ? bounds[inlineEdge] : Math.max(bounds.left, Math.min(bounds.right, requested.x));
     const y = blockEdge ? bounds[blockEdge] : Math.max(bounds.top, Math.min(bounds.bottom, requested.y));
-    wrap.style.left = `${x}px`;
-    wrap.style.top = `${y}px`;
-    wrap.setAttribute("data-inline-edge", inlineEdge || "");
     return { x, y };
   }
 
@@ -3434,7 +3456,8 @@
       #soft98-pro-control :is(form,button,input,label,strong,small,dt,dd){font-family:inherit!important;letter-spacing:0!important}
       #soft98-pro-control>[data-role=toggle]{position:absolute;inset:0;display:grid;place-items:center;width:42px;height:42px;margin:0;padding:0;float:none;border:1px solid var(--c-border)!important;border-radius:50%;background:var(--c-bg-soft)!important;background-image:none!important;color:var(--c-accent)!important;line-height:1;box-shadow:0 10px 30px rgba(0,0,0,.3);cursor:grab;touch-action:none;user-select:none;transition:transform .18s ease,background-color .18s ease,border-color .18s ease,box-shadow .18s ease}
       #soft98-pro-control>[data-role=toggle] img{display:block;width:30px;height:30px;object-fit:contain;filter:none!important;pointer-events:none}
-      #soft98-pro-control[data-dragging=true]>[data-role=toggle]{cursor:grabbing;transform:scale(1.04)}
+      #soft98-pro-control[data-dragging=true]{will-change:translate}
+      #soft98-pro-control[data-dragging=true]>[data-role=toggle]{cursor:grabbing;transform:scale(1.04);transition:none;box-shadow:0 4px 12px #0004!important}
       #soft98-pro-control>[data-role=toggle]:hover,#soft98-pro-control[data-open=true]>[data-role=toggle]{transform:translateY(-1px) scale(1.04);border-color:var(--c-accent)!important;background:var(--c-bg-raised)!important;box-shadow:0 14px 36px rgba(0,0,0,.38),0 0 0 4px var(--c-accent-soft)}
       #soft98-pro-control[data-theme=rgb]>[data-role=toggle]{border-color:transparent!important;background:linear-gradient(150deg,var(--c-bg-raised),var(--c-bg-soft)) padding-box,var(--s98p-neon-edge) border-box!important;box-shadow:0 14px 38px rgba(0,0,0,.55),0 0 26px var(--c-accent-soft)}
       #soft98-pro-control .s98p-dock-target{position:absolute;inset:0;translate:var(--dock-x,0px) var(--dock-y,0px);box-sizing:border-box;border:2px dashed var(--c-accent);border-radius:50%;outline:4px solid var(--c-accent-soft);background:var(--c-accent-soft);pointer-events:none;z-index:-1}
@@ -3615,6 +3638,7 @@
     let drag = null;
     const dockTarget = wrap.querySelector(".s98p-dock-target");
     let dockAnimation = null;
+    let dragFrame = 0;
     let suppressClick = false;
     let menuTrigger = null;
     let closeTimer = 0;
@@ -3629,20 +3653,17 @@
     signal.addEventListener("abort", () => {
       clearTimeout(closeTimer);
       dockAnimation?.cancel();
+      cancelAnimationFrame(dragFrame);
     }, { once: true });
     const layout = () => {
-      const gravity = drag?.moved && !drag.tuck ? controlGravity(drag.point, viewport) : null;
-      position = placeControl(wrap, drag?.moved ? gravity?.point || drag.point : requested, viewport);
-      const { inlineEdge, blockEdge } = gravity?.target || {};
-      const candidate = Boolean(inlineEdge || blockEdge);
-      if (dockTarget.hidden === candidate) dockTarget.hidden = !candidate;
-      if (candidate) {
-        const bounds = controlBounds(viewport);
-        dockTarget.style.setProperty("--dock-x", `${inlineEdge ? bounds[inlineEdge] - position.x : 0}px`);
-        dockTarget.style.setProperty("--dock-y", `${blockEdge ? bounds[blockEdge] - position.y : 0}px`);
-        wrap.dataset.gravity = "true";
-      } else delete wrap.dataset.gravity;
-      placeControlSurface(form, position, viewport, 448, 720);
+      position = placeControl(wrap, requested, viewport);
+      if (drag?.moved) renderDrag();
+      else {
+        wrap.style.removeProperty("translate");
+        dockTarget.hidden = true;
+        delete wrap.dataset.gravity;
+      }
+      if (!form.hidden) placeControlSurface(form, position, viewport, 448, 720);
       if (!menu.hidden) placeControlSurface(menu, position, viewport, 246, 220);
     };
     const updateLauncher = () => {
@@ -3670,12 +3691,12 @@
       if (open) {
         clearTimeout(closeTimer);
         closeTimer = 0;
-        layout();
         if (form.hidden) {
           form.hidden = false;
+          layout();
           // Establish the closed style before entering from display:none.
           form.getBoundingClientRect();
-        }
+        } else layout();
       }
       wrap.dataset.open = String(open);
       toggle.setAttribute("aria-expanded", String(open));
@@ -3738,16 +3759,42 @@
       const dx = event.clientX - drag.startX;
       const dy = event.clientY - drag.startY;
       if (!drag.moved && Math.hypot(dx, dy) < 6) return;
-      if (!drag.moved) closeMenu();
+      if (!drag.moved) {
+        setOpen(false);
+        finishClose();
+      }
       drag.moved = true;
       drag.point = { x: drag.origin.x + dx, y: drag.origin.y + dy };
       drag.tuck = event.clientX <= viewport.left + 8 || event.clientX >= viewport.right - 8;
       wrap.dataset.dragging = "true";
       wrap.dataset.tuckPreview = String(drag.tuck);
-      layout();
+      if (!dragFrame) dragFrame = requestAnimationFrame(() => {
+        dragFrame = 0;
+        if (drag?.moved) renderDrag();
+      });
     }, { signal });
+    const renderDrag = () => {
+      const gravity = drag.tuck ? null : controlGravity(drag.point, viewport);
+      const anchor = controlPoint(requested, viewport);
+      position = controlPoint(gravity?.point || drag.point, viewport);
+      wrap.style.translate = `${position.x - anchor.x}px ${position.y - anchor.y}px`;
+      const { inlineEdge, blockEdge } = gravity?.target || {};
+      dockTarget.hidden = !(inlineEdge || blockEdge);
+      if (dockTarget.hidden) delete wrap.dataset.gravity;
+      else wrap.dataset.gravity = "true";
+      if (!dockTarget.hidden) {
+        const bounds = controlBounds(viewport);
+        dockTarget.style.setProperty("--dock-x", `${inlineEdge ? bounds[inlineEdge] - position.x : 0}px`);
+        dockTarget.style.setProperty("--dock-y", `${blockEdge ? bounds[blockEdge] - position.y : 0}px`);
+      }
+    };
     const finishDrag = (event, cancelled = false) => {
       if (!drag || drag.pointerId !== event.pointerId) return;
+      if (dragFrame) {
+        cancelAnimationFrame(dragFrame);
+        dragFrame = 0;
+        if (!cancelled) renderDrag();
+      }
       const current = drag;
       drag = null;
       delete wrap.dataset.dragging;
@@ -4306,7 +4353,7 @@
 
   function isSuspiciousDetector(callback) {
     try {
-      const source = Function.prototype.toString.call(callback || "");
+      const source = Function.prototype.toString.call(typeof callback === "function" ? callback : callback?.handleEvent);
       return SOFT98_CODE_MARKERS.test(source) || WARNING_TEXT.test(source) || WARNING_TITLE.test(source);
     } catch (_error) {
       return false;
@@ -4317,36 +4364,13 @@
     if (window.__soft98ScrollDetectorFirewall) return;
     window.__soft98ScrollDetectorFirewall = true;
     const originalAdd = EventTarget.prototype.addEventListener;
-    const originalRemove = EventTarget.prototype.removeEventListener;
-    const wrapped = new WeakMap();
-
     EventTarget.prototype.addEventListener = function patchedAddEventListener(type, callback, options) {
-      if (typeof callback !== "function" || !SCROLL_EVENTS.test(String(type || ""))) {
-        return originalAdd.call(this, type, callback, options);
-      }
-      if (isSuspiciousDetector(callback)) {
+      if (settings.patchScripts && SCROLL_EVENTS.test(String(type || "")) && callback && isSuspiciousDetector(callback)) {
         stats.scrollDetectorsBlocked += 1;
         log("warn", text("logs.scrollDetectorBlocked"), { type: String(type) });
-        return originalAdd.call(this, type, function noopSoft98ScrollDetector() {
-          removeWarnings(document);
-        }, options);
+        return;
       }
-      let replacement = wrapped.get(callback);
-      if (!replacement) {
-        replacement = function guardedScrollListener(event) {
-          try {
-            return callback.call(this, event);
-          } finally {
-            removeWarnings(document);
-          }
-        };
-        wrapped.set(callback, replacement);
-      }
-      return originalAdd.call(this, type, replacement, options);
-    };
-
-    EventTarget.prototype.removeEventListener = function patchedRemoveEventListener(type, callback, options) {
-      return originalRemove.call(this, type, wrapped.get(callback) || callback, options);
+      return originalAdd.call(this, type, callback, options);
     };
 
     for (const target of [window, document]) {
@@ -4358,34 +4382,23 @@
 
   function installScrollPropertyFirewall(target, property) {
     try {
-      let current = null;
+      let native;
+      for (let node = target; node && !native; node = Object.getPrototypeOf(node)) {
+        native = Object.getOwnPropertyDescriptor(node, property);
+      }
+      if (!native?.get || !native.set) return;
       Object.defineProperty(target, property, {
         configurable: true,
         enumerable: true,
         get() {
-          return current;
+          return native.get.call(this);
         },
         set(callback) {
-          if (current) target.removeEventListener(property.slice(2), current);
-          if (typeof callback !== "function") {
-            current = callback || null;
-            return;
-          }
-          if (isSuspiciousDetector(callback)) {
+          if (settings.patchScripts && typeof callback === "function" && isSuspiciousDetector(callback)) {
             stats.scrollDetectorsBlocked += 1;
-            current = function noopSoft98ScrollPropertyDetector() {
-              removeWarnings(document);
-            };
-          } else {
-            current = function guardedScrollPropertyListener(event) {
-              try {
-                return callback.call(this, event);
-              } finally {
-                removeWarnings(document);
-              }
-            };
+            return native.set.call(this, null);
           }
-          target.addEventListener(property.slice(2), current);
+          return native.set.call(this, callback);
         },
       });
     } catch (error) {
@@ -4410,7 +4423,9 @@
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         if (mutation.type === "attributes") {
-          if (processingDom && INTERNAL_MUTATION_ATTRIBUTES.has(mutation.attributeName)) continue;
+          if (mutation.attributeName === "style" && gridStyles.has(mutation.target) &&
+              gridStyles.get(mutation.target) === mutation.target.getAttribute("style")) continue;
+          if (mutation.attributeName === "style") gridStyles.delete(mutation.target);
           if (!isOwnedInterface(mutation.target)) schedule(mutation.target);
           continue;
         }
@@ -4418,6 +4433,10 @@
           neutralizeScript(node);
           const target = asElement(node) || node.parentElement;
           if (target && !isOwnedInterface(target)) schedule(target);
+        }
+        if (mutation.removedNodes.length && mutation.target.closest?.("[data-soft98-pro-column=secondary]")) {
+          sidebarContentsDirty = true;
+          scheduleContentGridUpdate();
         }
         for (const node of mutation.removedNodes) {
           const element = asElement(node);
@@ -4498,6 +4517,7 @@
 
   function init() {
     document.addEventListener("visibilitychange", updateFavicon);
+    window.addEventListener("hashchange", restorePageIdentity);
     window.addEventListener("soft98-pro:compatibility", receiveExtensionCompatibility);
     window.addEventListener("soft98-pro:upstream-payload", receiveExtensionPatchedScript);
     if (IS_EXTENSION) {
@@ -4586,7 +4606,10 @@
   init();
   bindSiteChromeEvents();
   document.addEventListener("scroll", scheduleContentGridUpdate, { passive: true });
-  window.addEventListener("resize", scheduleContentGridUpdate, { passive: true });
+  window.addEventListener("resize", () => {
+    sidebarContentsDirty = true;
+    scheduleContentGridUpdate();
+  }, { passive: true });
   document.addEventListener("focusin", scheduleContentGridUpdate);
   window.setTimeout(exposePublicApi, 0);
   window.setTimeout(exposePublicApi, 1000);

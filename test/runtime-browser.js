@@ -287,6 +287,51 @@ async function main() {
       const results = await waitForResults(client);
       assertCase(name, results, expected);
       if (name === "default-dark") {
+        const scrollWork = await evaluate(client, `
+          (() => {
+            let calls = 0, scans = 0, detectorRan = false;
+            const query = Document.prototype.querySelectorAll;
+            Document.prototype.querySelectorAll = function (...args) { scans++; return query.apply(this, args); };
+            const listener = () => calls++;
+            const detector = { handleEvent() { detectorRan = /adblock/.test('adblock'); } };
+            window.addEventListener('scroll', listener);
+            window.addEventListener('scroll', detector);
+            try {
+              for (let i = 0; i < 25; i++) window.dispatchEvent(new Event('scroll'));
+              window.removeEventListener('scroll', listener);
+              window.dispatchEvent(new Event('scroll'));
+              return {calls, scans, detectorRan};
+            } finally {
+              Document.prototype.querySelectorAll = query;
+              window.removeEventListener('scroll', detector);
+            }
+          })()
+        `);
+        assertEqual("scroll performance", "native callback count", scrollWork.calls, 25);
+        assertEqual("scroll performance", "synchronous whole-document queries", scrollWork.scans, 0);
+        assertEqual("scroll performance", "detector was not registered", scrollWork.detectorRan, false);
+        const faqMotion = await evaluate(client, `
+          (async () => {
+            const details = document.querySelector('[data-test=download-article] details');
+            const summary = details.querySelector('summary');
+            const height = () => details.getBoundingClientRect().height;
+            const closed = height();
+            summary.click();
+            let animation = details.getAnimations()[0];
+            if (!animation) return { animated:false };
+            animation.pause();
+            animation.currentTime = 70;
+            const middle = height();
+            summary.click();
+            animation = details.getAnimations()[0];
+            const reversible = Math.abs(parseFloat(animation.effect.getKeyframes()[0].maxHeight) - middle) < .1;
+            animation.finish();
+            await new Promise(resolve => setTimeout(resolve, 70));
+            return { animated:true, reversible, moved:middle > closed, restored:Math.abs(height() - closed) < 1 &&
+              !details.open && !details.hasAttribute('data-soft98-pro-faq-motion') };
+          })()
+        `);
+        for (const key of ["animated", "reversible", "moved", "restored"]) assertEqual("FAQ motion", key, faqMotion[key], true);
         idleDark = await faviconPixel(client);
         if (idleDark.split(",").some(value => Number(value) > 40)) throw new Error("The idle favicon has a bright badge");
         const latest = await evaluate(client, `
