@@ -58,6 +58,8 @@ async function verify() {
   toggle.click();
   const appearance = get('#soft98-pro-control [data-section="experience"]');
   appearance.click();
+  check(!get('input[name="expandMain"]').checked && get('input[name="utilityInHeader"]').checked,
+    "A new installation must prefer the top-bar utility list over scroll widening");
   const panels = get(".s98p-panels");
   const setting = get('#soft98-pro-control input[name="rgbMode"]');
   const option = setting.closest("label");

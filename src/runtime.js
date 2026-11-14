@@ -37,8 +37,8 @@
     pro: true,
     darkDesign: true,
     compactLayout: true,
-    expandMain: true,
-    utilityInHeader: false,
+    expandMain: false,
+    utilityInHeader: true,
     soundFeedback: false,
     linkBadges: true,
     pirateLogo: true,
@@ -1144,7 +1144,7 @@
       }
       .soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-sidebar-empty][data-soft98-pro-reading]{grid-template-columns:minmax(0,1fr)!important}
       .soft98-pro-compact [data-soft98-pro-sidebar-empty][data-soft98-pro-reading]>[data-soft98-pro-column=primary]{grid-column:1!important}
-      .soft98-pro-compact [data-soft98-pro-sidebar-empty]>[data-soft98-pro-column=secondary]{display:none!important}
+      .soft98-pro-compact [data-soft98-pro-sidebar-empty]>[data-soft98-pro-column=secondary]{position:absolute!important;inline-size:0!important;block-size:0!important;min-block-size:0!important;padding:0!important;margin:0!important;border:0!important;overflow:hidden!important;visibility:hidden!important}
       @media(min-width:821px){
         .soft98-pro-compact [data-soft98-pro-layout=content-grid][data-soft98-pro-main-wide]>[data-soft98-pro-column=primary]{grid-column:1/-1!important;justify-self:start;width:calc(100% - var(--s98p-sidebar-space) + var(--s98p-scroll-width))!important}
         .soft98-pro-compact [data-soft98-pro-reading=rtl][data-soft98-pro-main-wide]>[data-soft98-pro-column=primary]{justify-self:end}
@@ -1462,14 +1462,17 @@
         const box = visibleBox(container);
         const primaryBox = visibleBox(primary);
         const secondaryBox = visibleBox(secondary);
-        if (box.width < 620 || primaryBox.width < 300 || secondaryBox.width < 180 || primaryBox.height < 160) continue;
+        const empty = secondaryBox.width < 180 && !hasSidebarContent(secondary);
+        if (box.width < 620 || primaryBox.width < 300 || (!empty && secondaryBox.width < 180) || primaryBox.height < 160) continue;
         const direction = document.documentElement.dir || getComputedStyle(container).direction;
         container.setAttribute("data-soft98-pro-layout", "content-grid");
         container.setAttribute("data-soft98-pro-reading", direction === "rtl" ? "rtl" : "ltr");
         if (container.parentElement?.matches("div")) container.parentElement.setAttribute("data-soft98-pro-page-surface", "");
         for (let wrapper = container.parentElement, depth = 0; wrapper && wrapper !== document.body && depth < 3; wrapper = wrapper.parentElement, depth += 1) {
           const max = Number.parseFloat(getComputedStyle(wrapper).maxWidth);
-          if (max >= 1100 && max <= 2200) wrapper.setAttribute("data-soft98-pro-content-frame", "");
+          if (wrapper === container.parentElement || (max >= 1100 && max <= 2200)) {
+            wrapper.setAttribute("data-soft98-pro-content-frame", "");
+          }
         }
         primary.setAttribute("data-soft98-pro-column", "primary");
         secondary.setAttribute("data-soft98-pro-column", "secondary");
@@ -1478,6 +1481,10 @@
       }
     }
     scheduleContentGridUpdate();
+  }
+
+  function hasSidebarContent(sidebar) {
+    return [...sidebar.querySelectorAll("header,a[href],button,form,img,iframe")].some((node) => isLiveSidebarCard(node, sidebar));
   }
 
   function scheduleContentGridUpdate() {
@@ -1493,7 +1500,7 @@
           continue;
         }
         const box = sidebar.getBoundingClientRect();
-        const empty = ![...sidebar.querySelectorAll("header,a[href],button,form,img,iframe")].some((node) => isLiveSidebarCard(node, sidebar));
+        const empty = !hasSidebarContent(sidebar);
         if (grid.hasAttribute("data-soft98-pro-sidebar-empty") !== empty) grid.toggleAttribute("data-soft98-pro-sidebar-empty", empty);
         if (empty) {
           grid.removeAttribute("data-soft98-pro-main-wide");

@@ -11,7 +11,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Added
 
 - Added a browser download queue with parallel transfers, progress, pause and resume where supported, and the browser's Save As options.
-- Added article download previews for public direct links, an optional top-bar shortcut to useful software, and optional interface sounds.
+- Added article download previews for public direct links, a top-bar shortcut to useful software that is enabled by default, and optional interface sounds.
 - Added control-center previews from live screenshots, including an animated RGB comparison, plus a technical report, a keyboard-friendly context menu, and a launcher that remembers its docked corner.
 - Added an optional animated RGB Pro mode with a subdued night palette, animated neon borders and active states, responsive interactions, keyboard focus treatments, and reduced-motion support.
 - Added responsive semantic layout refinement that organizes primary content and supporting panels without relying on generated Soft98 identifiers.
@@ -37,7 +37,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Added password copy and select-all controls, plus a clearer password field.
 - Replaced the Linux and Android icons with simpler, more readable artwork and unified the platform icon colors.
 - Replaced the old double bars in card headings with a consistent rounded accent.
-- Made article width follow scrolling once the sidebar is out of view, with an option to keep the two-column layout.
+- Added optional article widening when scrolling past the sidebar. By default, scrolling does not resize the article.
 - Added a separate size and date line to download links. Direct Soft98 file links can show cached file details, with Solar Hijri dates in Persian.
 - Replaced legacy utility sprites with transparent artwork and reduced the visual weight of news view counts.
 - Grouped the sticky navigation controls and moved dropdown markers inside the buttons.

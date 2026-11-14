@@ -114,6 +114,7 @@ async function main() {
             if (!primary || !sidebar) return true;
             const main = primary.getBoundingClientRect();
             const side = sidebar.getBoundingClientRect();
+            if (!side.width) return primary.parentElement.hasAttribute('data-soft98-pro-sidebar-empty');
             return Math.abs(main.top - side.top) < 50 &&
               (getComputedStyle(primary.parentElement).direction === 'rtl' ? main.right <= side.left : side.left >= main.right);
           })(),
@@ -172,6 +173,10 @@ async function main() {
             const icon = document.querySelector('[data-soft98-pro-utility-icon]');
             const download = document.querySelector('[data-soft98-pro-download-group] dd a');
             return {
+              defaultWidening: window.Soft98Pro?.settings.expandMain,
+              defaultHeader: window.Soft98Pro?.settings.utilityInHeader,
+              inHeader: Boolean(document.querySelector('nav button[aria-haspopup=dialog]:has([data-soft98-pro-page-icon=grid])') &&
+                document.querySelector('dialog[aria-labelledby=soft98-pro-utility-title] [data-soft98-pro-utility-header]')),
               header: Boolean(header),
               dividerColor: heading && getComputedStyle(heading, '::before').color,
               headerBackground: heading && getComputedStyle(heading).backgroundImage,
@@ -203,6 +208,7 @@ async function main() {
         result.downloadPresentation.navButtons < 3 || !result.downloadPresentation.navGroups ||
         !result.downloadPresentation.navIndicators || result.downloadPresentation.articleMetadata < 3 ||
         !result.utility.transparentIcons || result.utility.productIcons < 5 || result.utility.downloadIconShadow !== "none" ||
+        result.utility.defaultWidening !== false || result.utility.defaultHeader !== true || !result.utility.inHeader ||
         (width > 820 && (!expected || article !== expected || news !== expected || (result.sidebarWidth && result.sidebarWidth < 250))) ||
         (width >= 2000 && (result.articleFrame < 1750 || result.narrowBand)) || (width > 820 && !result.columnsAligned))) {
       throw new Error("Live Firefox page failed the Soft98 Pro smoke checks");
@@ -257,16 +263,19 @@ async function main() {
         const side = document.querySelector('[data-soft98-pro-column=secondary]').getBoundingClientRect();
         scrollBy(0, side.bottom + side.width + 65);
       `;
+      await evaluate("Soft98Pro.configure({utilityInHeader:false,expandMain:true})");
       await capture("expand-on", scrollPastSidebar);
       await capture("expand-off", "Soft98Pro.configure({expandMain:false})");
-      await evaluate("Soft98Pro.configure({expandMain:true}); scrollTo(0,0)");
+      await evaluate("Soft98Pro.configure({utilityInHeader:true}); scrollTo(0,0)");
     }
     if (process.env.SOFT98_UTILITY_SCREENSHOT) {
+      await evaluate("Soft98Pro.configure({utilityInHeader:false})");
       await evaluate(`const heading = document.querySelector('[data-soft98-pro-utility-header]') ||
         [...document.querySelectorAll('aside h1,aside h2,aside h3,aside h4')].find(node =>
           node.textContent.normalize('NFKC').replace(/[\\s\\u0640\\u200c\\u200d]+/gu, '') === 'لیستنرمافزارهایکاربردی');
         heading.scrollIntoView({block:'center',behavior:'instant'});`);
       await screenshot(session, process.env.SOFT98_UTILITY_SCREENSHOT);
+      await evaluate("Soft98Pro.configure({utilityInHeader:true})");
     }
     if (addon) {
       const button = await post("/element", { using: "css selector", value: "#soft98-pro-control [data-role=toggle]" });
@@ -318,22 +327,28 @@ async function main() {
         done({ latest: latest.length, initial, hidden, restored: targets.map(visible) });
         })();
       ` });
-      if (toggles.latest < 2 || toggles.initial.length < 3 || !toggles.initial.every(Boolean) || toggles.hidden.some(Boolean) || !toggles.restored.every(Boolean)) {
+      if (toggles.latest < 2 || toggles.initial.length < 2 || !toggles.initial.every(Boolean) || toggles.hidden.some(Boolean) || !toggles.restored.every(Boolean)) {
         throw new Error(`Latest and extra-prompt controls did not round-trip: ${JSON.stringify(toggles)}`);
       }
       if (width > 820) {
         const widths = await post("/execute/async", { args: [], script: `
           const done = arguments[arguments.length - 1];
-          const primary = document.querySelector('[data-soft98-pro-column=primary]');
-          const sidebar = document.querySelector('[data-soft98-pro-column=secondary]');
           const frame = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-          const size = () => Math.round(primary.getBoundingClientRect().width);
           (async () => {
+            scrollTo(0,0); await frame();
+            const primary = document.querySelector('[data-soft98-pro-column=primary]');
+            const size = () => Math.round(primary.getBoundingClientRect().width);
+            const defaultWidth = size();
+            scrollTo(0,700); await frame();
+            const defaultStable = size() === defaultWidth;
+            window.Soft98Pro.configure({ utilityInHeader:false }); await frame();
+            const sidebar = document.querySelector('[data-soft98-pro-column=secondary]');
             scrollTo(0,0); await frame();
             const before = size();
             const sidebarLeft = Math.round(sidebar.getBoundingClientRect().left);
             const start = Math.ceil(sidebar.getBoundingClientRect().bottom);
             const samples = [];
+            window.Soft98Pro.configure({ expandMain:true }); await frame();
             for (const pixels of [80, 160, 80]) {
               scrollTo(0, start + pixels); await frame();
               samples.push({ added: size() - before, scrolled: scrollY - start });
@@ -342,21 +357,25 @@ async function main() {
             const expanded = size();
             window.Soft98Pro.configure({ expandMain:false }); await frame();
             const disabled = size();
-            window.Soft98Pro.configure({ expandMain:true }); await frame();
             scrollTo(0,0); await frame();
-            done({ before, expanded, disabled, restored:size(), samples,
-              sidebarStable: Math.round(sidebar.getBoundingClientRect().left) === sidebarLeft });
+            const restored = size();
+            const sidebarStable = Math.round(sidebar.getBoundingClientRect().left) === sidebarLeft;
+            window.Soft98Pro.configure({ utilityInHeader:true }); await frame();
+            done({ before, expanded, disabled, restored, samples, sidebarStable, defaultStable });
           })();
         ` });
         if (widths.expanded < widths.before + 200 || widths.before !== widths.disabled || widths.before !== widths.restored ||
-            !widths.sidebarStable || widths.samples.some(({ added, scrolled }) => Math.abs(added - scrolled) > 2)) {
+            !widths.defaultStable || !widths.sidebarStable || widths.samples.some(({ added, scrolled }) => Math.abs(added - scrolled) > 2)) {
           throw new Error(`Article width did not round-trip: ${JSON.stringify(widths)}`);
         }
         console.log(JSON.stringify({ articleWidths: widths }));
         if (process.env.SOFT98_EXPANDED_SCREENSHOT) {
+          await evaluate("Soft98Pro.configure({utilityInHeader:false,expandMain:true})");
+          await new Promise((resolve) => setTimeout(resolve, 150));
           await evaluate("const side = document.querySelector('[data-soft98-pro-column=secondary]').getBoundingClientRect(); scrollBy(0, side.bottom + side.width + 60)");
           await new Promise((resolve) => setTimeout(resolve, 250));
           await screenshot(session, process.env.SOFT98_EXPANDED_SCREENSHOT);
+          await evaluate("Soft98Pro.configure({utilityInHeader:true,expandMain:false})");
         }
         await evaluate("document.querySelector('[data-soft98-pro-password-shell]').scrollIntoView({block:'center',behavior:'instant'})");
         const find = (value) => post("/element", { using: "css selector", value }).then((element) => Object.values(element)[0]);
@@ -437,8 +456,6 @@ async function main() {
             const css = getComputedStyle(n);
             return { tag:n.tagName, className:n.className, box:[box.left,box.top,box.width,box.height], display:css.display, visibility:css.visibility };
           });
-          Soft98Pro.configure({utilityInHeader:true});
-          await settle();
           const button = document.querySelector('nav [aria-haspopup=dialog]:has([data-soft98-pro-page-icon=grid])');
           button?.click();
           await settle();
@@ -446,7 +463,6 @@ async function main() {
           if (opened) history.back();
           await settle();
           const closed = !location.hash && !document.querySelector('dialog[open]');
-          Soft98Pro.configure({utilityInHeader:false});
           done({start,light,dark,search,searchState,handled:hotkey.defaultPrevented,opened,closed});
         })();
       ` });
