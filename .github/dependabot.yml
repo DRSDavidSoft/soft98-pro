@@ -20,5 +20,8 @@ updates:
       timezone: Asia/Tehran
     open-pull-requests-limit: 5
     labels: ["dependencies", "ci"]
+    groups:
+      codeql:
+        patterns: ["github/codeql-action*"]
     commit-message:
       prefix: "ci"
