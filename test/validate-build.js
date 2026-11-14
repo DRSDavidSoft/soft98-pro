@@ -3,11 +3,14 @@
 
 const fs = require("fs");
 const path = require("path");
+const assert = require("node:assert/strict");
+const { PNG } = require("pngjs");
 
 const ROOT = path.resolve(__dirname, "..");
 const DIST = path.join(ROOT, "dist");
 const VERSION = require(path.join(ROOT, "package.json")).version;
 const messages = JSON.parse(fs.readFileSync(path.join(ROOT, "src", "messages.json"), "utf8"));
+const previews = require("../src/option-previews.json");
 const compatibility = JSON.parse(fs.readFileSync(path.join(ROOT, "src", "compatibility", "soft98-scripts.json"), "utf8"));
 const required = [
   "chromium/manifest.json",
@@ -49,6 +52,53 @@ for (const manifest of [chromium, firefox]) {
     throw new Error("The ad stylesheet must be injected before the page runtime");
   }
 }
+for (const [target, manifest, action] of [["firefox", firefox, firefox.browser_action], ["chromium", chromium, chromium.action]]) {
+  const read = (file) => fs.readFileSync(path.join(DIST, target, file));
+  assert.equal(manifest.default_locale, "en");
+  assert.equal(manifest.homepage_url, "https://github.com/DRSDavidSoft/soft98-pro");
+  assert.equal(manifest.name, "__MSG_extensionName__");
+  assert.equal(manifest.description, "__MSG_extensionDescription__");
+  assert.equal(action.default_title, manifest.name);
+  assert.equal(action.default_popup, "popup.html");
+  for (const size of [16, 32, 48, 64, 128]) {
+    if (size <= 32) assert.equal(action.default_icon[size], manifest.icons[size]);
+    const icon = PNG.sync.read(read(manifest.icons[size]));
+    assert.deepEqual([icon.width, icon.height, icon.data[3]], [size, size, 0]);
+    const hasColor = (match) => icon.data.some((red, i, rgba) => i % 4 === 0 && rgba[i + 3] > 200 && match(red, rgba[i + 1], rgba[i + 2]));
+    assert.ok(hasColor((r, g, b) => r < 140 && g > 180 && b > 150), `Missing mint border at ${size}px`);
+    assert.ok(hasColor((r, g, b) => r > 200 && g > 160 && b < 145), `Missing gold check at ${size}px`);
+  }
+  for (const locale of ["en", "fa"]) {
+    const browserMessages = JSON.parse(read(`_locales/${locale}/messages.json`));
+    assert.equal(browserMessages.extensionName.message, messages.locales[locale].manifest.name);
+    assert.equal(browserMessages.extensionDescription.message, messages.locales[locale].manifest.description);
+    assert.ok(!Object.hasOwn(messages.locales[locale].options, "headline"));
+  }
+  for (const file of ["popup.html", "options.html", "downloads.html"]) {
+    assert.match(read(file).toString(), /href="typography\.css"/);
+    assert.match(read(file).toString(), /href="theme\.css"/);
+    assert.match(read(file).toString(), /src="theme\.js"/);
+    assert.match(read(file).toString(), /rel="icon" href="assets\/icon-32\.png"/);
+  }
+  for (const [key, entry] of Object.entries(previews)) {
+    const illustrated = entry === "illustration";
+    const files = illustrated ? [`${key}-off.svg`, `${key}-on.svg`] : entry;
+    for (const file of files) {
+      const art = read(`assets/previews/${file}`);
+      if (illustrated) assert.match(art.toString(), /^<svg\b/, key);
+      else assert.equal(art.subarray(8, 12).toString(), "WEBP", key);
+    }
+    assert.notDeepEqual(read(`assets/previews/${files[0]}`), read(`assets/previews/${files[1]}`), `Identical preview for ${key}`);
+  }
+  for (const key of Object.keys(messages.locales.en.options.options)) assert.ok(Object.hasOwn(previews, key), `No preview for ${key}`);
+  assert.equal(previews.rgbMode.length, 3, "RGB must have an animated and reduced-motion asset");
+  assert.ok(read("assets/previews/rgb.webp").includes(Buffer.from("ANIM")), "RGB preview is not animated");
+  assert.match(read("theme.css").toString(), /data-theme="light"[\s\S]+color-scheme: light/);
+  assert.match(read("typography.css").toString(), /--ui-font: "Soft98 Local", Vazirmatn/);
+  for (const file of ["styles.css", "downloads.css"]) assert.match(read(file).toString(), /var\(--ui-font\)/);
+}
+assert.equal(firefox.browser_specific_settings.gecko.id, "soft98-pro@drsdavidsoft.github.io");
+assert.deepEqual(firefox.browser_specific_settings.gecko.data_collection_permissions.required, ["none"]);
 if (!chromium.content_scripts.some((entry) => entry.world === "MAIN")) {
   throw new Error("Chromium build must run the page runtime in MAIN world");
 }
@@ -57,8 +107,11 @@ if (!chromium.permissions.includes("webRequest") || !firefox.permissions.include
 
 const runtime = fs.readFileSync(path.join(DIST, "chromium", "assets", "runtime.page.js"), "utf8");
 const userscript = fs.readFileSync(path.join(ROOT, "soft98-pro.user.js"), "utf8");
-const runtimeWithoutImages = runtime.replace(/data:image\/png;base64,[A-Za-z0-9+/=]+/g, "data:image/png;base64,ASSET");
-const userscriptWithoutImages = userscript.replace(/data:image\/png;base64,[A-Za-z0-9+/=]+/g, "data:image/png;base64,ASSET");
+assert.match(userscript, /rgbMode:\{files:\["data:image\/webp;base64,/);
+assert.doesNotMatch(userscript, /raw\.githubusercontent\.com\/DRSDavidSoft\/soft98-pro\/.+\/docs\/assets\/settings\//);
+const inlineBitmap = /data:image\/(png|webp|svg\+xml);base64,[A-Za-z0-9+/=]+/g;
+const runtimeWithoutImages = runtime.replace(inlineBitmap, "data:image/$1;base64,ASSET");
+const userscriptWithoutImages = userscript.replace(inlineBitmap, "data:image/$1;base64,ASSET");
 const runtimeWithoutCatalogHashes = runtimeWithoutImages.replace(/[a-f0-9]{64}/gi, "SHA256");
 const userscriptWithoutCatalogHashes = userscriptWithoutImages.replace(/[a-f0-9]{64}/gi, "SHA256");
 for (const needle of ["fbd", "abdd", "error_abdd", "fbd--compiled"]) {
@@ -87,7 +140,7 @@ if (!/data-soft98-pro-layout/.test(runtime) || !/data-soft98-pro-column/.test(ru
 if (!/role=tab/.test(runtime) || !/data-toggle=tab/.test(runtime) || !/aria-selected/.test(runtime)) {
   throw new Error("Semantic and conventional fallback dark-theme tab styling is missing");
 }
-const withoutBundledUtilityIcons = runtimeWithoutImages.replace(/data:image\/svg\+xml;base64,[A-Za-z0-9+/=]+/g, "");
+const withoutBundledUtilityIcons = runtimeWithoutImages.replace(/data:image\/svg\+xml;base64,ASSET/g, "");
 if (/PIRATE_LOGO|data:image\/svg\+xml|fa-desktop-alt:before|font-family:\\?Arial/.test(withoutBundledUtilityIcons)) {
   throw new Error("Logo/icon replacement hacks must not ship");
 }

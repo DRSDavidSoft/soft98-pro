@@ -42,13 +42,14 @@
 
   function applySettings(settings) {
     const merged = { ...DEFAULT_SETTINGS, ...(settings || {}) };
+    document.documentElement.setAttribute("data-soft98-pro-settings", encodeURIComponent(JSON.stringify(merged)));
     document.documentElement.toggleAttribute("data-soft98-pro-ads-off", !merged.blockAds);
     sendRuntime({ type: "soft98:set-interception", enabled: merged.patchScripts });
     inject(`
       try {
         localStorage.setItem(${JSON.stringify(PAGE_STORAGE_KEY)}, ${JSON.stringify(JSON.stringify(merged))});
         if (window.Soft98AdBlocker && window.Soft98AdBlocker.configure) {
-          window.Soft98AdBlocker.configure(${JSON.stringify(merged)});
+          window.Soft98AdBlocker.configure(${JSON.stringify(merged)}, { sync: false });
           window.Soft98AdBlocker.scan();
         }
       } catch (_) {}
@@ -165,6 +166,13 @@
     });
   }
 
+  api.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local" || !changes[STORAGE_KEY]) return;
+    const next = { ...DEFAULT_SETTINGS, ...changes[STORAGE_KEY].newValue };
+    const root = document.documentElement;
+    if (root.getAttribute("data-soft98-pro-settings") === encodeURIComponent(JSON.stringify(next))) return;
+    applySettings(next);
+  });
   readSettings(applySettings);
   installScriptDiscovery();
   document.addEventListener("soft98-pro:request-upstream-script", requestPatchedUpstream);

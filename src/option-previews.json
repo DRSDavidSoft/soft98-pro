@@ -1,0 +1,19 @@
+{
+  "darkDesign": ["dark-off.webp", "dark-on.webp"],
+  "rgbMode": ["dark-on.webp", "rgb.webp", "rgb-still.webp"],
+  "expandMain": "illustration",
+  "showLatest": ["latest-off.webp", "latest-on.webp"],
+  "pirateLogo": ["pirate-detail-off.webp", "pirate-detail-on.webp"],
+  "blockAds": "illustration",
+  "patchScripts": "illustration",
+  "pro": "illustration",
+  "compactLayout": "illustration",
+  "quickNavigation": "illustration",
+  "utilityInHeader": "illustration",
+  "hideAnnoyances": "illustration",
+  "linkBadges": "illustration",
+  "taunt": "illustration",
+  "diagnostics": "illustration",
+  "soundFeedback": "illustration",
+  "recommendExtension": "illustration"
+}

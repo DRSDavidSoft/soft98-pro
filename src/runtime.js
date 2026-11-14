@@ -220,7 +220,7 @@
     }
   }
 
-  function writeSettings(next) {
+  function writeSettings(next, { sync = true } = {}) {
     settings = { ...DEFAULT_SETTINGS, ...next };
     document.documentElement.toggleAttribute("data-soft98-pro-ads-off", !settings.blockAds);
     try {
@@ -228,7 +228,7 @@
     } catch (error) {
       safeConsole("warn", text("logs.settingsPersistFailed"), error);
     }
-    if (IS_EXTENSION) {
+    if (IS_EXTENSION && sync) {
       try {
         document.documentElement.setAttribute("data-soft98-pro-settings", encodeURIComponent(JSON.stringify(settings)));
         document.dispatchEvent(new CustomEvent("soft98-pro:settings-changed"));
@@ -3709,6 +3709,7 @@
       <div class="s98p-option-preview" aria-hidden="true" dir="${RTL ? "rtl" : "ltr"}" hidden>
         <span>${escapeHtml(text("previewBefore"))}<img alt="" draggable="false"></span>
         <span>${escapeHtml(text("previewAfter"))}<img alt="" draggable="false"></span>
+        <small data-preview-kind hidden>${escapeHtml(text("previewIllustration"))}</small>
       </div>
     `;
     const style = document.createElement("style");
@@ -3804,6 +3805,8 @@
       #soft98-pro-control .s98p-switch input:focus-visible+span{outline:2px solid var(--c-accent);outline-offset:3px}
       #soft98-pro-control .s98p-option-preview{position:fixed;pointer-events:none;z-index:5;box-sizing:border-box;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:8px;border:1px solid var(--c-border);border-radius:8px;background:var(--c-bg);box-shadow:0 12px 35px #0007;text-align:center;font-size:11px;color:var(--c-text)!important}
       #soft98-pro-control .s98p-option-preview[hidden]{display:none!important}
+      #soft98-pro-control .s98p-option-preview [data-preview-kind]{grid-column:1/-1;text-align:start;color:var(--c-muted)}
+      #soft98-pro-control .s98p-option-preview [data-preview-kind][hidden]{display:none!important}
       #soft98-pro-control .s98p-option-preview img{display:block;width:100%;aspect-ratio:16/9;max-height:var(--c-preview-height);box-sizing:border-box;object-fit:contain;margin-top:5px;border:1px solid var(--c-border-soft);border-radius:4px;background:var(--c-bg-soft);filter:none!important}
       #soft98-pro-control footer{display:grid;grid-template-columns:1fr auto;gap:8px;padding:11px 14px;border-top:1px solid var(--c-border-soft);background:color-mix(in srgb,var(--c-bg-soft) 88%,var(--c-bg))}
       #soft98-pro-control footer button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;margin:0;padding:7px 12px;border:1px solid var(--c-border);border-radius:7px;background:var(--c-bg-raised)!important;color:var(--c-text)!important;font-size:11px;font-weight:650;line-height:1.4;cursor:pointer;transition:border-color .16s ease,background-color .16s ease,transform .16s ease}
@@ -3858,7 +3861,8 @@
       previewOption = option;
       previewTimer = setTimeout(() => {
         if (previewOption !== option || form.inert || !option.getClientRects().length) return;
-        const [before, after, still] = OPTION_PREVIEWS[option.dataset.s98pPreview];
+        const { files: [before, after, still], illustrated } = OPTION_PREVIEWS[option.dataset.s98pPreview];
+        preview.querySelector("[data-preview-kind]").hidden = !illustrated;
         previewImages[0].src = before;
         previewImages[1].src = reduceMotion.matches && still ? still : after;
         const viewport = controlViewport();
@@ -4223,7 +4227,9 @@
     wrap.addEventListener("change", (event) => {
       const input = event.target;
       if (!input?.matches(".s98p-switch input")) return;
-      writeSettings({ ...settings, [input.name]: input.checked });
+      const next = { ...settings, [input.name]: input.checked };
+      if (input.name === "darkDesign" && !input.checked) next.rgbMode = false;
+      writeSettings(next);
     }, { signal });
     document.addEventListener("pointerdown", (event) => {
       if (!menu.contains(event.target) && event.target !== options && !options.contains(event.target)) closeMenu();
@@ -4899,7 +4905,7 @@
     get compatibility() {
       return compatibilityState ? { ...compatibilityState } : null;
     },
-    configure: (next) => writeSettings({ ...settings, ...next }),
+    configure: (next, options) => writeSettings({ ...settings, ...next }, options),
     openPanel: () => renderControlPanel()?.open(),
     patchSoft98Code,
     unpackDeanEdwards,

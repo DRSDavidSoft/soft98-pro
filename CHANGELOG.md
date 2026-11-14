@@ -6,6 +6,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-11-14
+
+### Changed
+
+- Kept real previews for the page features they show clearly and used labeled illustrations for settings that are hard to see in a screenshot.
+- Bundled preview assets with the extension and userscript, so previews do not depend on a network request.
+
+### Fixed
+
+- Restored before-and-after previews for every setting, including keyboard and touch access in extension Settings and a reduced-motion RGB preview.
+- Kept Settings, the browser popup, and Downloads in sync with the selected Pro light or dark theme.
+
+- Restored the Soft98 Pro icon in the browser toolbar and add-on manager.
+- Matched the settings and toolbar popup typography to Downloads and rewrote the Persian settings copy.
+
+See the [visual change log](docs/changes/v1.2.1.md) for examples of the preview styles and both themes.
+
 ## [1.2.0] - 2026-08-13
 
 ### Added
@@ -121,6 +138,7 @@ Soft98 currently serves some download buttons as placeholders and fills in their
 
 - Unified extension and userscript maintenance in the Soft98 Pro repository.
 
-[Unreleased]: https://github.com/DRSDavidSoft/soft98-pro/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/DRSDavidSoft/soft98-pro/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/DRSDavidSoft/soft98-pro/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/DRSDavidSoft/soft98-pro/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/DRSDavidSoft/soft98-pro/releases/tag/v1.1.1

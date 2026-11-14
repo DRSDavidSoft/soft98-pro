@@ -4,7 +4,7 @@
     "en": {
       "manifest": {
         "name": "Soft98 Pro",
-        "description": "Soft98 Pro enhancements, ad blocking, anti-adblock patching, and download recovery."
+        "description": "Block ads, manage downloads, and switch between light and dark themes on Soft98."
       },
       "runtime": {
         "product": "Soft98 Pro",
@@ -22,6 +22,7 @@
         "downloadQueueFile": "Add to download queue",
         "previewBefore": "Before",
         "previewAfter": "After",
+        "previewIllustration": "Illustration",
         "downloadCopyAll": "Copy direct links",
         "downloadLinkCopied": "{count} download link copied.",
         "downloadLinksCopied": "{count} download links copied.",
@@ -186,8 +187,8 @@
       },
       "options": {
         "product": "Soft98 Pro",
-        "headline": "Precise page control without fragile names.",
-        "body": "Patch packed Soft98 code, preserve download links, remove ads and noisy blocker-side notices, then optionally tune the Soft98 Pro experience.",
+        "body": "Settings for ads, appearance, and downloads on Soft98",
+        "previewOption": "Preview: {title}",
         "scan": "Scan active tab",
         "repo": "Repository",
         "version": "Installed version {version}",
@@ -226,7 +227,7 @@
     "fa": {
       "manifest": {
         "name": "Soft98 Pro",
-        "description": "بهبود Soft98 با حذف تبلیغات، اصلاح ضدادبلاک و بازیابی لینک دانلود."
+        "description": "حذف تبلیغات، مدیریت دانلود و تغییر ظاهر سافت‌۹۸"
       },
       "runtime": {
         "product": "Soft98 Pro",
@@ -244,6 +245,7 @@
         "downloadQueueFile": "افزودن به صف دانلود",
         "previewBefore": "قبل",
         "previewAfter": "بعد",
+        "previewIllustration": "نمای شماتیک",
         "downloadCopyAll": "کپی لینک‌های مستقیم",
         "downloadLinkCopied": "{count} لینک دانلود کپی شد.",
         "downloadLinksCopied": "{count} لینک دانلود کپی شدند.",
@@ -408,40 +410,40 @@
       },
       "options": {
         "product": "Soft98 Pro",
-        "headline": "کنترل دقیق صفحه بدون وابستگی به نام‌های شکننده.",
-        "body": "کد فشرده Soft98 را اصلاح کنید، لینک‌های دانلود را سالم نگه دارید، تبلیغات و اعلان‌های مزاحم را حذف کنید و تجربه Soft98 Pro را مطابق نیاز تنظیم کنید.",
-        "scan": "بررسی تب فعال",
-        "repo": "مخزن پروژه",
+        "body": "تنظیمات تبلیغات، ظاهر سایت و دانلودها",
+        "previewOption": "پیش‌نمایش {title}",
+        "scan": "بررسی همین تب",
+        "repo": "پروژه در گیت‌هاب",
         "version": "نسخه نصب‌شده {version}",
-        "updateChecking": "در حال بررسی نسخه‌های GitHub...",
-        "updateCurrent": "جدیدترین نسخه GitHub نصب است.",
-        "updateAvailable": "نسخه {version} در GitHub Releases آماده است.",
-        "updateFailed": "بررسی نسخه جدید انجام نشد؛ محافظت نصب‌شده همچنان فعال است.",
-        "updateAction": "دریافت به‌روزرسانی",
-        "compatibilityTitle": "سازگاری اسکریپت Soft98",
-        "compatibilityCurrent": "جدیدترین اسکریپت شناسایی‌شده Soft98 بررسی شده و سازگار است.",
-        "compatibilityUnknown": "Soft98 اسکریپت بررسی‌نشده‌ای منتشر کرده است؛ محافظت مقاوم در برابر خطا تا پایان بررسی فعال می‌ماند.",
-        "compatibilityUnavailable": "هنوز نتیجه‌ای برای سازگاری اسکریپت در دسترس نیست.",
-        "compatibilityHash": "SHA-256: {hash}",
+        "updateChecking": "در حال بررسی نسخهٔ جدید",
+        "updateCurrent": "آخرین نسخه رو داری.",
+        "updateAvailable": "نسخهٔ {version} آمادهٔ دانلود شده.",
+        "updateFailed": "نتونستیم نسخهٔ جدید رو بررسی کنیم. افزونه همچنان فعاله.",
+        "updateAction": "دانلود نسخهٔ جدید",
+        "compatibilityTitle": "سازگاری با سافت‌۹۸",
+        "compatibilityCurrent": "کد فعلی سایت با افزونه سازگاره.",
+        "compatibilityUnknown": "سایت کدش رو عوض کرده. هنوز بررسیش نکردیم، ولی افزونه فعاله.",
+        "compatibilityUnavailable": "هنوز سازگاری با کد سایت رو بررسی نکردیم.",
+        "compatibilityHash": "شناسهٔ کد (SHA-256): {hash}",
         "compatibilityChecked": "زمان بررسی: {date}",
-        "compatibilityReport": "گزارش تغییر بالادستی",
+        "compatibilityReport": "گزارش تغییر سایت",
         "options": {
-          "blockAds": ["حذف تبلیغات", "حذف سطح‌های تبلیغاتی بر اساس منبع، شکل و رفتار لینک."],
-          "patchScripts": ["اصلاح کد Soft98", "بازکردن و اصلاح کد ضد‌مسدودسازی پیش از اجرا."],
-          "pro": ["Soft98 Pro", "فعال‌سازی لایه تجربه پیشرفته."],
-          "darkDesign": ["تم تیره", "بین ظاهر روشن و تیره جابه‌جا شو؛ امکانات پرو فعال می‌مونن."],
-          "compactLayout": ["چیدمان بهبودیافته", "سازمان‌دهی محتوای معنایی و کنترل‌ها در یک چیدمان آرام و واکنش‌گرا."],
-          "expandMain": ["عریض‌شدن مطلب هنگام پیمایش", "وقتی از ستون کناری رد شدی، مطلب از فضای خالی آن استفاده کند."],
-          "utilityInHeader": ["نرم‌افزارهای کاربردی در نوار بالا", "لیست را از ستون کناری بردار و از نوار بالا باز کن."],
+          "blockAds": ["حذف تبلیغات", "بنرها و بخش‌های تبلیغاتی از صفحه حذف می‌شن."],
+          "patchScripts": ["رفع اختلال دانلود", "جلوی کدی رو می‌گیره که با دیدن مسدودکنندهٔ تبلیغات، لینک‌های دانلود رو از کار می‌اندازه."],
+          "pro": ["امکانات پرو", "ظاهر و ابزارهای اضافهٔ سافت‌۹۸ پرو"],
+          "darkDesign": ["دارک‌مود", "بین ظاهر روشن و تیره جابه‌جا شو. امکانات پرو فعال می‌مونن."],
+          "compactLayout": ["چیدمان مرتب‌تر", "چیدمان تازه برای منوها، مطالب و دکمه‌ها"],
+          "expandMain": ["مطلب عریض‌تر با اسکرول", "وقتی از ستون کناری رد می‌شی، مطلب فضای خالی کنارش رو پر می‌کنه."],
+          "utilityInHeader": ["نرم‌افزارهای کاربردی در نوار بالا", "لیست رو به‌جای ستون کناری از نوار بالا باز کن."],
           "quickNavigation": ["مرور سریع", "لیست نرم‌افزارها بدون بارگیری دوبارهٔ صفحه باز می‌شه. مطالب مثل قبل باز می‌شن."],
-          "soundFeedback": ["صدای دکمه‌ها", "هنگام استفاده از دکمه‌ها، یک صدای کوتاه و ملایم پخش شود."],
-          "showLatest": ["نمایش تازه‌ها و اخبار", "فهرست تازه‌های نرم‌افزار، اندروید و اخبار را بالای صفحه نشان بده."],
-          "hideAnnoyances": ["پنهان‌کردن گزینه‌های اضافه", "دکمهٔ ادامهٔ فهرست کاربردی و پیشنهاد نصب نرم‌افزار را پنهان کن."],
-          "rgbMode": ["حالت RGB متحرک", "افزودن ظاهر شیشه‌ای طیفی و کنترل‌شده با حرکت بهینه و پشتیبانی از کاهش حرکت."],
-          "linkBadges": ["نشان لینک دانلود", "نمایش نشان روی لینک‌های بازیابی‌شده."],
-          "pirateLogo": ["لوگوی دزدان دریایی", "استفاده از لوگوی داخلی پس از پاک‌سازی موفق."],
-          "taunt": ["پیام موفقیت", "بعد از پاک‌سازی، پیام را چند ثانیه نشان بده. پیش‌فرض خاموش است."],
-          "diagnostics": ["گزارش کنسول", "نمایش لاگ‌ها و APIهای تعاملی برای بررسی."]
+          "soundFeedback": ["صدای دکمه‌ها", "با زدن دکمه‌ها یه صدای کوتاه پخش می‌شه."],
+          "showLatest": ["تازه‌ها و اخبار", "نمایش تازه‌های نرم‌افزار، اندروید و اخبار بالای صفحه"],
+          "hideAnnoyances": ["پنهان‌کردن گزینه‌های اضافه", "دکمهٔ ادامهٔ لیست کاربردی و پیشنهاد نصب نرم‌افزار پنهان می‌شن."],
+          "rgbMode": ["افکت RGB متحرک", "لبه‌ها و رنگ‌های حالت تیره آروم تغییر می‌کنن."],
+          "linkBadges": ["نشان لینک دانلود", "لینک‌هایی که دوباره فعال شدن یه نشان می‌گیرن."],
+          "pirateLogo": ["لوگوی دزدان دریایی", "بعد از حذف تبلیغات، لوگوی پرو جای لوگوی سایت رو می‌گیره."],
+          "taunt": ["پیام موفقیت", "بعد از حذف تبلیغات، یه پیام کوتاه می‌بینی. این گزینه به‌طور پیش‌فرض خاموشه."],
+          "diagnostics": ["گزارش فنی در کنسول", "گزارش و ابزارهای بررسی در کنسول مرورگر"]
         }
       }
     }

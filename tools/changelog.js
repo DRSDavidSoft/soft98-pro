@@ -42,6 +42,8 @@ function releaseNotes(markdown, version = VERSION) {
   const tag = `v${version}`;
   const assets = `${repository}/releases/download/${tag}`;
   const source = `${repository}/blob/${tag}`;
+  const media = fs.readdirSync(path.join(ROOT, "docs", "assets", "comparison"))
+    .filter((file) => file.startsWith(`${tag}-`) && file.endsWith(".png")).sort();
   const publishedSection = release.section.replace(/\]\((docs\/[\w./-]+\.md)\)/g,
     (_match, file) => `](${source}/${file})`).replace(/^### (\w+)$/gm,
     (_match, heading) => `### ${RELEASE_ICONS[heading]} ${heading}`);
@@ -61,6 +63,16 @@ function releaseNotes(markdown, version = VERSION) {
     "",
     publishedSection,
     "",
+    ...(media.length ? [
+      "## Screenshots 📸",
+      "",
+      ...media.map((file) => {
+        const [page, theme] = file.slice(tag.length + 1, -4).split("-");
+        const title = `${page === "downloads" ? "Download Manager" : "Settings previews"} · ${theme} theme`;
+        return `<img src="https://raw.githubusercontent.com/DRSDavidSoft/soft98-pro/${tag}/docs/assets/comparison/${file}" alt="${title}" width="455">`;
+      }),
+      "",
+    ] : []),
   ].join("\n");
 }
 

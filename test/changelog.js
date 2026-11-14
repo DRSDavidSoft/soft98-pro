@@ -18,6 +18,15 @@ for (const file of [`soft98-pro-chromium-${version}.zip`, `soft98-pro-firefox-${
 if (release.section.includes("docs/changes/") && !notes.includes(`/blob/v${version}/docs/changes/`)) {
   throw new Error("GitHub release notes must link to versioned visual evidence");
 }
+const visual = path.join(root, "docs", "changes", `v${version}.md`);
+if (fs.existsSync(visual)) {
+  const gallery = fs.readFileSync(visual, "utf8");
+  for (const [, file] of gallery.matchAll(/\.\.\/assets\/comparison\/(v[\w.-]+\.png)\)/g)) {
+    if (file.startsWith(`v${version}-`) && !notes.includes(`/v${version}/docs/assets/comparison/${file}`)) {
+      throw new Error("Missing versioned release screenshot: " + file);
+    }
+  }
+}
 
 let rejected = false;
 try {

@@ -8,6 +8,7 @@ const { default: ZipStream } = require("zip-stream");
 const { pipeline } = require("node:stream/promises");
 const terser = require("terser");
 const { writeReleaseNotes } = require("./changelog.js");
+const { illustration } = require("./preview-illustrations.js");
 
 const ROOT = path.resolve(__dirname, "..");
 const SRC = path.join(ROOT, "src");
@@ -18,6 +19,18 @@ const PATCH_ENGINE = path.join(SRC, "patch-engine.js");
 const META = path.join(SRC, "meta.txt");
 const USERSCRIPT_OUT = path.join(ROOT, "soft98-pro.user.js");
 const MESSAGES = JSON.parse(fs.readFileSync(path.join(SRC, "messages.json"), "utf8"));
+const OPTION_PREVIEWS = require("../src/option-previews.json");
+const PREVIEW_ASSETS = path.join(ROOT, "docs", "assets", "settings");
+const PREVIEW_FILES = new Map();
+const PREVIEW_CATALOG = Object.fromEntries(Object.entries(OPTION_PREVIEWS).map(([key, entry]) => {
+  const illustrated = entry === "illustration";
+  const files = illustrated ? [`${key}-off.svg`, `${key}-on.svg`] : entry;
+  for (const [index, file] of files.entries()) {
+    if (!PREVIEW_FILES.has(file)) PREVIEW_FILES.set(file, illustrated ?
+      Buffer.from(illustration(key, index === 1)) : fs.readFileSync(path.join(PREVIEW_ASSETS, file)));
+  }
+  return [key, { files, illustrated }];
+}));
 const COMPATIBILITY = JSON.parse(fs.readFileSync(path.join(SRC, "compatibility", "soft98-scripts.json"), "utf8"));
 const RELEASE_BASE = "https://github.com/DRSDavidSoft/soft98-pro/releases/latest/download";
 const BRAND_FILES = {
@@ -39,7 +52,7 @@ VLC icon copyright (c) 1996-2010 VideoLAN. Use is permitted to identify VideoLAN
 and its products; no endorsement is implied. https://www.videolan.org/goodies.html
 Firefox and Free Download Manager artwork by Papirus contributors (GPL-3.0).
 Java Duke by Sun Microsystems (BSD-3-Clause); LeoMoon ParsiNegar artwork by LeoMoon Studios (MIT).
-Sources and license: https://github.com/DRSDavidSoft/soft98-pro/tree/develop/src/assets/utility
+Sources and license: https://github.com/DRSDavidSoft/soft98-pro/tree/main/src/assets/utility
 ${UTILITY_NOTICES.slice(1).map((file) => fs.readFileSync(path.join(UTILITY_ASSETS, file), "utf8").trim()).join("\n\n")}
 Platform marks belong to their respective owners.
 */`;
@@ -86,11 +99,16 @@ const UTILITY_PATH_ICONS = Object.fromEntries(UTILITY_CATALOG.rows.flatMap(({ pa
   return paths.map((route) => [route, icon]);
 }));
 
+const EXTENSION_ICONS = Object.fromEntries([16, 32, 48, 64, 128].map((size) => [size, `assets/icon-${size}.png`]));
+const TOOLBAR_ICONS = { 16: EXTENSION_ICONS[16], 32: EXTENSION_ICONS[32] };
 const commonManifest = {
-  name: MESSAGES.locales.en.manifest.name,
-  short_name: MESSAGES.locales.en.manifest.name,
+  name: "__MSG_extensionName__",
+  short_name: "__MSG_extensionName__",
   version: VERSION.replace(/[^\d.]/g, ""),
-  description: MESSAGES.locales.en.manifest.description,
+  description: "__MSG_extensionDescription__",
+  default_locale: "en",
+  homepage_url: "https://github.com/DRSDavidSoft/soft98-pro",
+  icons: EXTENSION_ICONS,
 };
 
 function validateMessages() {
@@ -126,20 +144,10 @@ function dataUrl(file) {
 const replacementCache = new Map();
 function sourceReplacements(target) {
   if (replacementCache.has(target)) return replacementCache.get(target);
-  const previewFiles = {
-    darkDesign: ["dark-off.webp", "dark-on.webp"],
-    rgbMode: ["dark-on.webp", "rgb.webp", "rgb-still.webp"],
-    pirateLogo: ["pirate-off.webp", "pirate-on.webp"],
-    showLatest: ["latest-off.webp", "latest-on.webp"],
-    expandMain: ["expand-off.webp", "expand-on.webp"],
-  };
   const inlined = {};
-  const previews = Object.fromEntries(Object.entries(previewFiles).map(([key, files]) => {
-    const resolve = (file) => {
-      if (target !== "extension") return "https://raw.githubusercontent.com/DRSDavidSoft/soft98-pro/develop/docs/assets/settings/" + file;
-      return inlined[file] ||= "data:image/webp;base64," + fs.readFileSync(path.join(ROOT, "docs", "assets", "settings", file)).toString("base64");
-    };
-    return [key, files.map(resolve)];
+  const previews = Object.fromEntries(Object.entries(PREVIEW_CATALOG).map(([key, entry]) => {
+    const files = entry.files.map((file) => inlined[file] ||= `data:image/${file.endsWith(".svg") ? "svg+xml" : "webp"};base64,${PREVIEW_FILES.get(file).toString("base64")}`);
+    return [key, { ...entry, files }];
   }));
   const replacements = {
     __SOFT98_BUILD_TARGET__: target,
@@ -237,7 +245,7 @@ function chromiumManifest() {
     declarative_net_request: {
       rule_resources: [{ id: "soft98_upstream_gateway", enabled: true, path: "rules.json" }],
     },
-    action: { default_title: "Soft98 Pro", default_popup: "popup.html" },
+    action: { default_title: "__MSG_extensionName__", default_popup: "popup.html", default_icon: TOOLBAR_ICONS },
     options_page: "options.html",
     web_accessible_resources: [{ resources: ["assets/upstream-gateway.js"], matches: ["*://*.soft98.ir/*"] }],
     content_scripts: [
@@ -261,10 +269,11 @@ function firefoxManifest() {
   return {
     manifest_version: 2,
     ...commonManifest,
-    applications: {
+    browser_specific_settings: {
       gecko: {
         id: "soft98-pro@drsdavidsoft.github.io",
         strict_min_version: "109.0",
+        data_collection_permissions: { required: ["none"] },
       },
     },
     permissions: [
@@ -281,7 +290,7 @@ function firefoxManifest() {
       "https://objects.githubusercontent.com/*",
     ],
     background: { scripts: ["assets/release-client.js", "assets/background.js"], persistent: false },
-    browser_action: { default_title: "Soft98 Pro", default_popup: "popup.html" },
+    browser_action: { default_title: "__MSG_extensionName__", default_popup: "popup.html", default_icon: TOOLBAR_ICONS },
     options_ui: { page: "options.html", open_in_tab: true },
     web_accessible_resources: ["assets/runtime.page.js", "assets/upstream-gateway.js"],
     content_scripts: [
@@ -305,7 +314,8 @@ function copyUi(target) {
     const to = path.join(target, file);
     if (file.endsWith(".js")) {
       mkdir(path.dirname(to));
-      fs.writeFileSync(to, applyReplacements(fs.readFileSync(from, "utf8"), "extension"), "utf8");
+      fs.writeFileSync(to, applyReplacements(fs.readFileSync(from, "utf8"), "extension")
+        .replace("__SOFT98_SETTINGS_PREVIEWS__", () => JSON.stringify(PREVIEW_CATALOG)), "utf8");
     } else if (file.endsWith(".html")) {
       const labels = ["en", "fa"].map((lang) => `<span lang="${lang}">${catalog[lang].title.replace(/[&<>]/g, (value) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[value])}</span>`).join("");
       const nav = `<nav class="downloads-entry" aria-label="Soft98 Pro"><a href="downloads.html" target="_blank" rel="noopener"><span aria-hidden="true">${icons.download}</span>${labels}</a></nav>`;
@@ -314,7 +324,13 @@ function copyUi(target) {
       copyFile(from, to);
     }
   }
-  for (const file of ["downloads.html", "downloads.css", "downloads-link.css"]) copyFile(path.join(SRC, "ui", file), path.join(target, file));
+  for (const file of ["downloads.html", "downloads.css", "downloads-link.css", "typography.css", "theme.js", "theme.css"]) {
+    copyFile(path.join(SRC, "ui", file), path.join(target, file));
+  }
+  const previewDir = path.join(target, "assets", "previews");
+  mkdir(previewDir);
+  for (const [file, content] of PREVIEW_FILES) fs.writeFileSync(path.join(previewDir, file), content);
+  copyFile(path.join(TABLER_ROOT, "icons", "outline", "photo.svg"), path.join(target, "assets", "preview-icon.svg"));
   copyFile(path.join(TABLER_ROOT, "LICENSE"), path.join(target, "TABLER-LICENSE.txt"));
   copyFile(path.join(VAZIRMATN_ROOT, "LICENSE"), path.join(target, "VAZIRMATN-LICENSE.txt"));
   for (const subset of ["arabic", "latin"]) {
@@ -374,6 +390,13 @@ async function buildTarget(name, manifest) {
   const target = path.join(DIST, name);
   mkdir(path.join(target, "assets"));
   for (const notice of UTILITY_NOTICES) copyFile(path.join(UTILITY_ASSETS, notice), path.join(target, notice));
+  for (const file of Object.values(EXTENSION_ICONS)) copyFile(path.join(SRC, file), path.join(target, file));
+  for (const [locale, { manifest: copy }] of Object.entries(MESSAGES.locales)) {
+    writeJson(path.join(target, "_locales", locale, "messages.json"), {
+      extensionName: { message: copy.name },
+      extensionDescription: { message: copy.description },
+    });
+  }
   writeJson(path.join(target, "manifest.json"), manifest);
   copyUi(target);
   fs.writeFileSync(path.join(target, "assets", "user-origin.css"),
@@ -412,7 +435,7 @@ function writeReleaseMetadata() {
   }));
   const metadata = {
     schemaVersion: 1,
-    product: commonManifest.name,
+    product: MESSAGES.locales.en.manifest.name,
     version: VERSION,
     releaseUrl: "https://github.com/DRSDavidSoft/soft98-pro/releases/latest",
     userscript: assets["soft98-pro.user.js"],
