@@ -12,7 +12,7 @@
 ![Soft98 Pro protection, link recovery, and Pro themes](docs/assets/soft98-pro-banner.svg)
 
 [![Latest Release](https://img.shields.io/github/v/release/DRSDavidSoft/soft98-pro?style=for-the-badge&color=3b82f6&labelColor=0f172a&label=Latest+Release)](https://github.com/DRSDavidSoft/soft98-pro/releases/latest)
-[![CI](https://img.shields.io/github/actions/workflow/status/DRSDavidSoft/soft98-pro/ci.yml?branch=develop&style=for-the-badge&label=CI&labelColor=0f172a)](https://github.com/DRSDavidSoft/soft98-pro/actions/workflows/ci.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/DRSDavidSoft/soft98-pro/ci.yml?branch=main&style=for-the-badge&label=CI&labelColor=0f172a)](https://github.com/DRSDavidSoft/soft98-pro/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/DRSDavidSoft/soft98-pro?style=for-the-badge&color=8b5cf6&labelColor=0f172a)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/DRSDavidSoft/soft98-pro?style=for-the-badge&color=f59e0b&labelColor=0f172a)](https://github.com/DRSDavidSoft/soft98-pro/stargazers)
 
