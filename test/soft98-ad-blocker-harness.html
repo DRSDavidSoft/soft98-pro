@@ -4,6 +4,8 @@
     <meta charset="utf-8" />
     <title>Soft98 Test Page</title>
     <style>
+      .night-mode .list-group-item-light, .night-mode .fixture-help { background-color: #252525; color: #b7b7b7; }
+      .fixture-report { background-color: #71263b; }
       body {
         margin: 0;
         background: #101820;
@@ -225,7 +227,9 @@
             '<dd><a data-test="direct-download" href="https://dl2.soft98.ir/files/metadata.zip?123456">دانلود فایل</a></dd>' +
             '<dd><a data-test="signed-download" href="https://dl2.soft98.ir/files/signed.zip?token=123456">دانلود فایل امضاشده</a></dd>' +
             '<dt><span>اطلاعات بیشتر</span></dt><dd><a data-test="article-placeholder" data-key="hidden" href="/article.html">صفحهٔ نرم‌افزار</a></dd></dl>' +
-            '<div data-toggle="copy"><span>پسورد فایل</span><input readonly value="soft98.ir"></div></div>';
+            '<div><div data-toggle="copy"><span>پسورد فایل</span><input readonly value="soft98.ir"></div>' +
+            '<button data-test="neutral-help" class="fixture-help" data-toggle="mbd" data-target="#fixture-help">Guide</button>' +
+            '<button data-test="report-help" class="fixture-report" data-toggle="complaint" data-url="/report" data-target="#fixture-report">Report</button></div></div>';
           document.body.appendChild(downloadArticle);
 
           var keyedArticle = document.createElement("article");

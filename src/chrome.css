@@ -517,6 +517,23 @@
   box-shadow: 0 1px #ffffff21 inset;
 }
 
+:root.soft98-pro-theme :is(.list-group-item-light,[data-soft98-pro-help-action]):not(#soft98-pro-control *) {
+  background-color: var(--s98p-surface-2) !important;
+  background-image: none !important;
+  border-color: var(--s98p-border-soft) !important;
+  color: var(--s98p-text) !important;
+}
+
+:root.soft98-pro-theme :is(.list-group-item-light,[data-soft98-pro-help-action]):is(:hover,:focus-visible):not(#soft98-pro-control *,:disabled,[aria-disabled="true"]) {
+  background-color: var(--s98p-soft) !important;
+  border-color: var(--s98p-control-edge) !important;
+}
+
+:root.soft98-pro-theme :is(.list-group-item-light,[data-soft98-pro-help-action]):focus-visible {
+  outline: 2px solid var(--s98p-accent) !important;
+  outline-offset: -3px !important;
+}
+
 :root.soft98-pro-theme [data-soft98-pro-related] {
   background: var(--s98p-surface) !important;
   border: 1px solid var(--s98p-border-soft) !important;

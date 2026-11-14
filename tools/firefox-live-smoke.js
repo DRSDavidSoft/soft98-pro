@@ -220,6 +220,29 @@ async function main() {
       throw new Error("Live Firefox page failed the Soft98 Pro smoke checks");
     }
     if (process.env.SOFT98_LIVE_SCREENSHOT) await screenshot(session, process.env.SOFT98_LIVE_SCREENSHOT);
+    if (addon && process.env.SOFT98_PALETTE_CHECK === "1") {
+      const palette = await evaluate(`
+        const actions = [...document.querySelectorAll('.list-group-item-light')];
+        const read = node => getComputedStyle(node).backgroundColor;
+        const probe = document.createElement('i');
+        probe.style.backgroundColor = 'var(--s98p-surface-2)';
+        document.body.append(probe);
+        const expected = read(probe);
+        const rows = actions.map(action => ({
+          tagged: action.hasAttribute('data-soft98-pro-help-action'), background: read(action),
+          image: getComputedStyle(action).backgroundImage, visible: Boolean(action.getClientRects().length),
+        }));
+        probe.remove();
+        const leftover = [...document.querySelectorAll('body *')].filter(node =>
+          node.getClientRects().length && read(node) === 'rgb(37, 37, 37)').length;
+        return { rows, expected, leftover };
+      `);
+      if (palette.rows.length < 3 || palette.rows.some(row => row.background !== palette.expected ||
+          row.image !== "none" || !row.tagged || !row.visible) || palette.leftover) {
+        throw new Error("Stock night surface remained visible: " + JSON.stringify(palette));
+      }
+      console.log(JSON.stringify({ palette }));
+    }
     if (addon && process.env.SOFT98_INTERACTION_CHECK === "1") {
       const timings = await post("/execute/async", { args: [], script: `
         const done = arguments[0];

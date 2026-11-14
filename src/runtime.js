@@ -1321,8 +1321,8 @@
       :root.soft98-pro-light [data-soft98-pro-nav-chrome]{box-shadow:0 1px #fffb inset,0 6px 22px #18343e18!important}
       :root.soft98-pro-light :is([data-soft98-pro-surface=menu],[data-soft98-pro-surface=megamenu]){background:linear-gradient(145deg,#fffffff5,#e9f3f3f2)!important;border-color:var(--s98p-border-soft)!important;box-shadow:0 16px 38px #16334229,0 1px #fff inset!important}
       :root.soft98-pro-light :is([data-soft98-pro-surface=menu],[data-soft98-pro-surface=megamenu]) :is(a,button):is(:hover,:focus-visible){background:var(--s98p-soft)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border-soft)!important}
-      :root.soft98-pro-light :is(button,[role=button],input[type=button],input[type=submit]):not(#soft98-pro-control *,[data-soft98-pro-footer] *){background:var(--s98p-control-bg)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border)!important}
-      :root.soft98-pro-light :is(button,[role=button]):not(#soft98-pro-control *,[data-soft98-pro-footer] *):is(:hover,:focus-visible){background:var(--s98p-control-hover)!important;color:var(--s98p-text)!important;border-color:var(--s98p-control-edge)!important}
+      :root.soft98-pro-light :is(button,[role=button],input[type=button],input[type=submit]):not(#soft98-pro-control *,[data-soft98-pro-footer] *,.list-group-item-light,[data-soft98-pro-help-action]){background:var(--s98p-control-bg)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border)!important}
+      :root.soft98-pro-light :is(button,[role=button]):not(#soft98-pro-control *,[data-soft98-pro-footer] *,.list-group-item-light,[data-soft98-pro-help-action]):is(:hover,:focus-visible){background:var(--s98p-control-hover)!important;color:var(--s98p-text)!important;border-color:var(--s98p-control-edge)!important}
       :root.soft98-pro-light :is(dt,dd){background:var(--s98p-bg-2)!important;border-color:var(--s98p-border-soft)!important}
       :root.soft98-pro-light dd:nth-child(odd){background:var(--s98p-surface-2)!important}
       :root.soft98-pro-light [data-soft98-pro-download-group] a[data-soft98-pro-icon-host=download]:is(:hover,:focus-visible){color:#06554e!important}
@@ -2321,6 +2321,13 @@
         label.setAttribute("data-soft98-pro-password", "");
         decorateIcon(label, "lock");
         enhancePassword(label);
+        const group = label.closest("[data-soft98-pro-password-shell]")?.parentElement;
+        if (!group) continue;
+        for (const action of group.querySelectorAll(':scope > button[data-target^="#"]:not([data-url],[data-toggle=complaint]), :scope > a[href]:not([href^="#"],[download])')) {
+          if (action.matches("button") || (action.origin === location.origin && action.pathname !== location.pathname)) {
+            action.setAttribute("data-soft98-pro-help-action", "");
+          }
+        }
       }
     }
   }
