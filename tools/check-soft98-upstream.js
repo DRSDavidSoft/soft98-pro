@@ -17,6 +17,8 @@ const PACKER = /eval\s*\(\s*function\s*\(\s*p\s*,\s*a\s*,\s*c\s*,\s*k\s*,\s*e\s*
 const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 const BASELINE_PATH = path.join(ROOT, "src", "compatibility", "upstream-baseline.json");
 
+class UpstreamUnavailable extends Error {}
+
 function option(name, fallback) {
   const index = process.argv.indexOf(name);
   return index >= 0 && process.argv[index + 1] ? process.argv[index + 1] : fallback;
@@ -59,12 +61,12 @@ async function readSoft98Response(value, script, depth = 0) {
       accept: script ? "application/javascript,text/javascript" : "text/html,application/xhtml+xml",
       "user-agent": "Soft98-Pro-Compatibility-Monitor/1.0 (+https://github.com/DRSDavidSoft/soft98-pro)",
     },
-  });
+  }).catch((error) => { throw new UpstreamUnavailable("Could not reach Soft98", { cause: error }); });
   if ([301, 302, 303, 307, 308].includes(response.status) && response.headers.has("location")) {
     await response.body?.cancel();
     return readSoft98Response(new URL(response.headers.get("location"), url), script, depth + 1);
   }
-  if (!response.ok) throw new Error(`${url} returned HTTP ${response.status}`);
+  if (!response.ok) throw new UpstreamUnavailable(`${url} returned HTTP ${response.status}`);
   const type = response.headers.get("content-type") || "";
   if (script && !/^(?:(?:text|application)\/(?:x-)?(?:java|ecma)script|application\/octet-stream)(?:;|$)/i.test(type)) {
     throw new Error("Unexpected Soft98 script content type");
@@ -89,7 +91,7 @@ async function inspect(pageUrl, directScriptUrl, { includeSource = false } = {})
     const page = await readSoft98Response(pageUrl, false);
     candidates = scriptUrls(page.buffer.toString("utf8"), page.response.url);
   }
-  if (!candidates.length) throw new Error(`No supported packed Soft98 script was found at ${pageUrl}`);
+  if (!candidates.length) throw new UpstreamUnavailable(`No supported packed Soft98 script was found at ${pageUrl}`);
   let lastError;
   for (const url of candidates.slice(0, 20)) {
     let source;
@@ -180,7 +182,7 @@ async function main() {
 if (require.main === module) {
   main().catch((error) => {
     console.error(error.stack || error.message);
-    process.exitCode = 1;
+    process.exitCode = error instanceof UpstreamUnavailable ? 3 : 1;
   });
 }
 
