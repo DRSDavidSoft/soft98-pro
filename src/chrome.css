@@ -546,6 +546,32 @@
   border-inline-start-width: 0 !important;
 }
 
+:root.soft98-pro-theme .pagination :is(a,span).page-link {
+  background: var(--s98p-surface-2) !important;
+  color: var(--s98p-text) !important;
+  border-color: var(--s98p-border) !important;
+}
+
+:root.soft98-pro-theme .pagination :is(.page-item.active .page-link,.page-link[aria-current="page"]) {
+  background: color-mix(in srgb,var(--s98p-accent) 16%,var(--s98p-surface)) !important;
+  color: var(--s98p-text) !important;
+  border-color: var(--s98p-accent) !important;
+  box-shadow: inset 0 -2px 0 var(--s98p-accent) !important;
+}
+
+:root.soft98-pro-theme .pagination .page-item.disabled .page-link {
+  color: var(--s98p-muted) !important;
+}
+
+:root.soft98-pro-theme .pagination .page-item:not(.active,.disabled) > a.page-link:not([aria-current="page"]):is(:hover,:focus-visible) {
+  background: var(--s98p-soft) !important;
+  border-color: var(--s98p-control-edge) !important;
+}
+
+:root.soft98-pro-theme .pagination a.page-link:focus-visible {
+  outline-offset: -4px !important;
+}
+
 :root.soft98-pro-theme :is(.list-group-item-light,[data-soft98-pro-help-action]):not(#soft98-pro-control *) {
   background-color: var(--s98p-surface-2) !important;
   background-image: none !important;

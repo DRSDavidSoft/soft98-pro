@@ -604,6 +604,14 @@ async function main() {
             probe.style.backgroundColor = 'var(--s98p-' + name + ')';
             return color(probe);
           };
+          const current = document.querySelector('.pagination .page-item.active .page-link');
+          const inactive = document.querySelector('.pagination a.page-link');
+          const selection = () => {
+            probe.style.backgroundColor = 'color-mix(in srgb,var(--s98p-accent) 16%,var(--s98p-surface))';
+            const expected = color(probe);
+            return color(current) === expected && color(inactive) !== expected && getComputedStyle(current).borderTopColor === token('accent');
+          };
+          const darkPage = selection();
           const dark = color(help) === token('surface-2') && color(late) === token('surface-2');
           const installThemed = install.getAttribute('data-soft98-pro-help-action') === 'install' &&
             color(install) === token('surface-2') && getComputedStyle(install,'::after').display === 'none' &&
@@ -611,20 +619,23 @@ async function main() {
           Soft98Pro.configure({darkDesign:false});
           await settle();
           const light = color(help) === token('surface-2') && color(help) !== 'rgb(37, 37, 37)';
+          const lightPage = selection();
           Soft98Pro.configure({rgbMode:true});
           await settle();
           const rgb = color(help) === token('surface-2') && color(help) !== 'rgb(37, 37, 37)';
+          const rgbPage = selection();
           Soft98Pro.configure({pro:false});
           document.body.classList.add('night-mode');
           await settle();
           const stock = color(help) === 'rgb(37, 37, 37)' && color(late) === 'rgb(37, 37, 37)';
+          const stockPage = color(current) === 'rgb(54, 76, 32)' && getComputedStyle(current).borderTopColor === 'rgb(54, 76, 32)';
           const installStock = color(install) === 'rgb(40, 62, 18)' && getComputedStyle(install,'::after').backgroundImage.includes('radial-gradient');
           const reportUnchanged = !report.hasAttribute('data-soft98-pro-help-action') && color(report) === 'rgb(113, 38, 59)';
           Soft98Pro.configure({pro:true,darkDesign:true,rgbMode:false});
           help.style.removeProperty('transition');
           probe.remove();
           late.remove();
-          return {dark, light, rgb, stock, reportUnchanged, installThemed, installStock};
+          return {dark, light, rgb, stock, reportUnchanged, installThemed, installStock, darkPage, lightPage, rgbPage, stockPage};
         })()`);
         for (const [field, value] of Object.entries(helpPalette)) assertEqual("download help palette", field, value, true);
         assertEqual(name, "clean icon after expiry", await faviconPixel(client), idleDark);

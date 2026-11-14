@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <title>Soft98 Test Page</title>
     <style>
+      .night-mode .page-item.active .page-link { background-color: #364c20; border: 1px solid #364c20; }
       .night-mode .list-group-item-light, .night-mode .fixture-help { background-color: #252525; color: #b7b7b7; }
       .fixture-report { background-color: #71263b; }
       .night-mode .fixture-install { background: #283e12; }
@@ -225,6 +226,11 @@
           listingPreview.innerHTML = '<article><a data-test="article-preview-trigger" href="/100-preview.html">ادامه مطلب</a></article>' +
             '<article><a data-test="keyed-preview-trigger" href="/101-keyed.html">ادامه مطلب</a></article>';
           document.body.appendChild(listingPreview);
+          var pagination = document.createElement("ul");
+          pagination.className = "pagination";
+          pagination.innerHTML = '<li class="page-item active"><span class="page-link">1</span></li>' +
+            '<li class="page-item"><a class="page-link" href="/page/2/">2</a></li>';
+          listingPreview.appendChild(pagination);
 
           var downloadArticle = document.createElement("article");
           downloadArticle.setAttribute("data-test", "download-article");
