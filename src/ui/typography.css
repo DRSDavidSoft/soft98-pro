@@ -1,0 +1,7 @@
+@font-face { font-family: "Soft98 Local"; src: local("IranSANS"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Soft98 Local"; src: local("IranSANS Bold"), local("IRANSans-Bold"); font-weight: 700; font-display: swap; }
+@font-face { font-family: Vazirmatn; src: url("assets/vazirmatn-arabic-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-display: swap; unicode-range: U+0600-06FF,U+0750-077F,U+0870-08FF,U+200C-200F,U+FB50-FDFF,U+FE70-FEFF; }
+@font-face { font-family: Vazirmatn; src: url("assets/vazirmatn-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-display: swap; unicode-range: U+0000-00FF,U+2000-200B,U+2010-206F; }
+
+:root { --ui-font: system-ui, sans-serif; --ui-line: 1.55; }
+:root:lang(fa) { --ui-font: "Soft98 Local", Vazirmatn, sans-serif; --ui-line: 1.7; }

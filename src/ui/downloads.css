@@ -1,11 +1,5 @@
-@font-face { font-family: "Soft98 Local"; src: local("IranSANS"); font-weight: 400; font-display: swap; }
-@font-face { font-family: "Soft98 Local"; src: local("IranSANS Bold"), local("IRANSans-Bold"); font-weight: 700; font-display: swap; }
-@font-face { font-family: Vazirmatn; src: url("assets/vazirmatn-arabic-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-display: swap; unicode-range: U+0600-06FF,U+0750-077F,U+0870-08FF,U+200C-200F,U+FB50-FDFF,U+FE70-FEFF; }
-@font-face { font-family: Vazirmatn; src: url("assets/vazirmatn-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-display: swap; unicode-range: U+0000-00FF,U+2000-200B,U+2010-206F; }
-:root { color-scheme: dark; --page: #101518; --panel: #171e22; --field: #0e1417; --button: #25323a; --line: #34434b; --ink: #edf5f3; --muted: #a9bbc0; --mint: #74e5bb; --sky: #a5cfff; --amber: #ffd795; --rose: #ffa8b2; }
 * { box-sizing: border-box; }
-body { margin: 0; min-height: 100vh; background: var(--page); color: var(--ink); font: 14px/1.55 system-ui, sans-serif; }
-:root:lang(fa) body { font-family: "Soft98 Local", Vazirmatn, sans-serif; line-height: 1.7; }
+body { margin: 0; min-height: 100vh; background: var(--page); color: var(--ink); font: 14px/var(--ui-line) var(--ui-font); }
 body::before { content: ""; display: block; height: 3px; background: linear-gradient(90deg, var(--mint), var(--sky) 62%, var(--amber)); }
 h1, h2, p { margin: 0; }
 h1 { font-size: 27px; line-height: 1.25; }
@@ -27,9 +21,9 @@ input:not([type="checkbox"]), textarea, select, button { min-width: 0; min-heigh
 input:not([type="checkbox"]), textarea, select { padding: 6px 8px; }
 textarea { width: 100%; resize: vertical; overflow-wrap: anywhere; }
 button { display: inline-flex; justify-content: center; align-items: center; gap: 6px; padding-inline: 10px; background: var(--button); cursor: pointer; }
-button:hover:not(:disabled) { background: #31444d; border-color: var(--sky); }
-button.primary { width: fit-content; padding-inline: 14px; background: var(--mint); color: #0b251c; border-color: transparent; font-weight: 700; }
-button.primary:hover:not(:disabled) { background: #a8f2d4; }
+button:hover:not(:disabled) { background: var(--button-hover); border-color: var(--sky); }
+button.primary { width: fit-content; padding-inline: 14px; background: var(--mint); color: var(--mint-on); border-color: transparent; font-weight: 700; }
+button.primary:hover:not(:disabled) { background: var(--mint-hover); }
 button:disabled { opacity: .46; cursor: not-allowed; }
 [hidden] { display: none !important; }
 button svg { flex: none; width: 18px; height: 18px; }

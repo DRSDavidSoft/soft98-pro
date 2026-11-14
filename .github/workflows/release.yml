@@ -76,6 +76,16 @@ jobs:
       - name: "🧩 Build current server-side patched edition"
         run: npm run build:patched-upstream
 
+      - name: "📸 Collect versioned release screenshots"
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        shell: bash
+        run: |
+          mkdir -p dist/release/screenshots
+          for screenshot in docs/assets/comparison/"$RELEASE_TAG"-*.png; do
+            if [[ -f "$screenshot" ]]; then cp "$screenshot" dist/release/screenshots/; fi
+          done
+
       - name: "🔏 Attest release artifacts"
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
         with:
@@ -85,6 +95,7 @@ jobs:
             dist/release/latest.json
             dist/release/SHA256SUMS.txt
             dist/release/RELEASE-NOTES.md
+            dist/release/screenshots/*.png
             dist/upstream/manifest.json
             dist/upstream/soft98-application.patched.js
 
@@ -108,6 +119,7 @@ jobs:
             dist/upstream/manifest.json
             dist/upstream/soft98-application.patched.js
             CHANGELOG.md
+            dist/release/screenshots/*.png
 
       - name: "🧾 Publish branded release summary"
         if: always() && hashFiles('dist/release/latest.json') != ''

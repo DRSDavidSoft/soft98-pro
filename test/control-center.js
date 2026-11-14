@@ -23,8 +23,8 @@ const substitutions = {
   COMMENTS_CSS: '""',
   CHROME_CSS: '""',
   EARLY_ADS_CSS: '""',
-  OPTION_PREVIEWS: JSON.stringify({ rgbMode: ["dark-on.webp", "rgb.webp", "rgb-still.webp"].map((file) =>
-    "data:image/webp;base64," + fs.readFileSync(path.join(root, "docs", "assets", "settings", file)).toString("base64")) }),
+  OPTION_PREVIEWS: JSON.stringify({ rgbMode: { files: ["dark-on.webp", "rgb.webp", "rgb-still.webp"].map((file) =>
+    "data:image/webp;base64," + fs.readFileSync(path.join(root, "docs", "assets", "settings", file)).toString("base64")), illustrated: false } }),
 };
 const runtime = ["src/patch-engine.js", "src/listing-navigation.js", "src/comments.js"].map(source).join("\n") + "\n" + source("src/runtime.js").replace(/__SOFT98_([A-Z_]+)__/g,
   (token, name) => Object.hasOwn(substitutions, name) ? substitutions[name] : token);

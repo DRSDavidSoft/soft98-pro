@@ -379,6 +379,12 @@
     renderBadge();
   }));
   ignore(protectOpenTabs());
+  api.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.soft98AdBlockerSettings) {
+      const { newValue, oldValue } = changes.soft98AdBlockerSettings;
+      if ((newValue?.patchScripts !== false) !== (oldValue?.patchScripts !== false)) syncInterceptionRules(newValue?.patchScripts !== false);
+    }
+  });
   ignore(call(api.storage.local, "get", { soft98AdBlockerSettings: { patchScripts: true } }).then((result) => {
     syncInterceptionRules(!result.soft98AdBlockerSettings || result.soft98AdBlockerSettings.patchScripts !== false);
   }));
