@@ -1095,14 +1095,31 @@ async function main() {
     }
     if (process.env.SOFT98_TEST_DOWNLOAD_LINK === "1") {
       const item = await post("/element", { using: "css selector", value: "article [role=tabpanel] a[data-key]" });
+      if (addon) await evaluate(`
+        const link = document.querySelector('article [role=tabpanel] a[data-key]');
+        window.__soft98DownloadFeedback = { shown:false, restored:false };
+        const observer = new MutationObserver(() => {
+          const check = link.querySelector('[data-soft98-pro-download-check]');
+          if (check && getComputedStyle(check).display !== 'none') window.__soft98DownloadFeedback.shown = true;
+          else if (window.__soft98DownloadFeedback.shown) {
+            window.__soft98DownloadFeedback.restored = true;
+            observer.disconnect();
+          }
+        });
+        observer.observe(link, {attributes:true, attributeFilter:['data-soft98-pro-download-activated']});
+      `);
       const before = await request("GET", session + "/window/handles");
       await post(`/element/${Object.values(item)[0]}/click`, {});
       const after = await request("GET", session + "/window/handles");
       const newTab = after.find((handle) => !before.includes(handle));
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await new Promise((resolve) => setTimeout(resolve, 1950));
       const remaining = await request("GET", session + "/window/handles");
       const files = await fs.readdir(downloadDirectory);
       const clickResult = { openedDownloadTab: Boolean(newTab), tabClosed: Boolean(newTab && !remaining.includes(newTab)), files };
+      if (addon) {
+        clickResult.feedback = await evaluate("return window.__soft98DownloadFeedback");
+        if (!clickResult.feedback?.shown || !clickResult.feedback.restored) throw new Error("Download checkmark did not show and restore");
+      }
       if (newTab && remaining.includes(newTab)) {
         await post("/window", { handle: newTab });
         clickResult.destination = await evaluate("return location.href");

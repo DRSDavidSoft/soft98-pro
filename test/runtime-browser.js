@@ -520,6 +520,27 @@ async function main() {
             selected:expected, visible:expected, mislabeled:!expected, notWarning:true, unrelatedHidden:true, originalHref:true,
           }));
         }
+        const feedback = await evaluate(client, `(async () => {
+          const file = document.querySelector('[data-test=direct-download]');
+          const keyed = document.querySelector('[data-test=keyed-article] a[data-key]');
+          const other = document.querySelector('[data-test=article-placeholder]');
+          const check = link => link.querySelector('[data-soft98-pro-download-check]');
+          const showing = link => Boolean(check(link) && getComputedStyle(check(link)).display !== 'none');
+          const click = (link, type, button) => {
+            let reached = false;
+            link.addEventListener(type, event => { reached = !event.defaultPrevented; event.preventDefault(); }, {once:true});
+            link.dispatchEvent(new MouseEvent(type, { bubbles:true, cancelable:true, button }));
+            return reached;
+          };
+          const idle = !showing(file);
+          const width = file.querySelector('[data-soft98-pro-page-icon]').getBoundingClientRect().width;
+          const direct = click(file,'click',0) && showing(file);
+          const stable = file.querySelector('[data-soft98-pro-page-icon]').getBoundingClientRect().width === width;
+          const middle = click(keyed,'auxclick',1) && showing(keyed);
+          const unrelated = click(other,'click',0) && !showing(other);
+          return {idle,direct,stable,middle,unrelated};
+        })()`);
+        for (const [key, value] of Object.entries(feedback)) assertEqual("download activation", key, value, true);
         const controls = await evaluate(client, `
           (async () => {
             const article = document.querySelector('[data-test="download-article"]');
@@ -571,6 +592,8 @@ async function main() {
         await waitForFaviconPixel(client, badgeDark, "a second pulse");
         await waitForFaviconPixel(client, idleDark, "the clean icon after the second pulse");
         await delay(850);
+        assertEqual(name, "original download icon restored", await evaluate(client,
+          "document.querySelectorAll('[data-soft98-pro-download-activated]').length"), 0);
         assertEqual(name, "expired copy toast", await evaluate(client, "Boolean(document.querySelector('[data-soft98-pro-copy-toast][data-visible]'))"), false);
         await client.send("DOM.enable");
         await client.send("CSS.enable");

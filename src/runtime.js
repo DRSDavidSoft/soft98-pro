@@ -62,6 +62,7 @@
   const originalLogos = new Map();
   const hiddenPageDisplays = new WeakMap();
   const passwordActions = new WeakMap();
+  const downloadFeedbackTimers = new WeakMap();
   const contentGrids = new Map();
   const restoredUtilityCards = new Map();
   const stockFooters = new Map();
@@ -1109,6 +1110,10 @@
       :root.soft98-pro-theme article [data-soft98-pro-download-group] [data-soft98-pro-download-row]:active{background-color:color-mix(in srgb,var(--s98p-accent) 16%,var(--s98p-surface))!important}
       .soft98-pro-theme [data-soft98-pro-download-row] > *{pointer-events:none}
       .soft98-pro-theme [data-soft98-pro-download-row] > [data-soft98-pro-page-icon]{grid-column:1;grid-row:1;margin:0}
+      [data-soft98-pro-download-check]{display:none!important}
+      .soft98-pro-theme [data-soft98-pro-download-activated] > [data-soft98-pro-page-icon]{--icon-color:var(--s98p-accent)}
+      .soft98-pro-theme [data-soft98-pro-download-activated] > [data-soft98-pro-page-icon] > :not([data-soft98-pro-download-check]){display:none!important}
+      .soft98-pro-theme [data-soft98-pro-download-activated] [data-soft98-pro-download-check]{display:block!important}
       .soft98-pro-theme [data-soft98-pro-download-copy]{display:grid;gap:2px;min-width:0;overflow-wrap:anywhere}
       .soft98-pro-theme [data-soft98-pro-download-title]{min-width:0;color:inherit}
       .soft98-pro-theme [data-soft98-pro-download-meta]{min-width:0;color:var(--s98p-muted)!important;font-size:.82em;font-weight:400}
@@ -2479,6 +2484,14 @@
     const previous = downloadRows.get(link);
     const direct = url || /^(?:دانلود|download)/i.test(normalizedPersian(link.textContent || ""));
     decorateIcon(link, direct && icon === "link" ? "download" : icon);
+    const glyph = link.querySelector(":scope > [data-soft98-pro-page-icon]");
+    if ((url || (link.hasAttribute("data-key") && link.closest("dl[data-json]"))) &&
+        !glyph.querySelector("[data-soft98-pro-download-check]")) {
+      const check = document.createElement("span");
+      check.setAttribute("data-soft98-pro-download-check", "");
+      check.innerHTML = PAGE_ICONS.check;
+      glyph.append(check);
+    }
     if (previous?.copy.parentNode === link && previous.title.parentNode === previous.copy && previous.url === url?.href) return;
     const originalSize = link.getAttribute("data-soft98-pro-inline-size");
     if (previous) {
@@ -4658,6 +4671,18 @@
     }
   }
 
+  function showDownloadActivation(event) {
+    if (!settings.pro || event.defaultPrevented || event.button !== (event.type === "auxclick" ? 1 : 0)) return;
+    const link = event.target?.closest?.("a[data-soft98-pro-download-row]");
+    if (!link?.querySelector("[data-soft98-pro-download-check]") || link.closest('[aria-disabled="true"],[inert]')) return;
+    clearTimeout(downloadFeedbackTimers.get(link));
+    link.setAttribute("data-soft98-pro-download-activated", "");
+    downloadFeedbackTimers.set(link, setTimeout(() => {
+      link.removeAttribute("data-soft98-pro-download-activated");
+      downloadFeedbackTimers.delete(link);
+    }, 1600));
+  }
+
   function installObserver() {
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
@@ -4775,6 +4800,8 @@
     receiveExtensionPatchedScript();
     installProStyle();
     installClickRepair();
+    document.addEventListener("click", showDownloadActivation, true);
+    document.addEventListener("auxclick", showDownloadActivation, true);
     setPersistentStyle("soft98-pro-listing-style", LISTING_NAVIGATION_CSS);
     setPersistentStyle("soft98-pro-comments-style", COMMENTS_CSS);
     installSoft98ListingNavigation({

@@ -54,6 +54,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Showed a brief checkmark when a download link is activated without changing the site's download behavior.
 - Hid promotional banners before the Photoshop article and similar pages finish loading.
 - Replaced the stock green pagination highlight with the Pro accent in all themes.
 - Kept megamenu headings and their indicators from shifting on hover or keyboard focus.
