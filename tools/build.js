@@ -26,6 +26,7 @@ const BRAND_FILES = {
 };
 const { siAndroid, siKaspersky, siDotnet, siOpenjdk, siRustdesk } = require("simple-icons");
 const TABLER_ROOT = path.resolve(path.dirname(require.resolve("@tabler/icons/outline/download.svg")), "../..");
+const VAZIRMATN_ROOT = path.dirname(require.resolve("@fontsource-variable/vazirmatn/package.json"));
 const UTILITY_ASSETS = path.join(SRC, "assets", "utility");
 const UTILITY_CATALOG = JSON.parse(fs.readFileSync(path.join(SRC, "utility-artwork.json"), "utf8"));
 const UTILITY_NOTICES = ["PAPIRUS-LICENSE.txt", ...new Set(Object.values(UTILITY_CATALOG.artwork).map((art) => art.notice))];
@@ -315,6 +316,11 @@ function copyUi(target) {
   }
   for (const file of ["downloads.html", "downloads.css", "downloads-link.css"]) copyFile(path.join(SRC, "ui", file), path.join(target, file));
   copyFile(path.join(TABLER_ROOT, "LICENSE"), path.join(target, "TABLER-LICENSE.txt"));
+  copyFile(path.join(VAZIRMATN_ROOT, "LICENSE"), path.join(target, "VAZIRMATN-LICENSE.txt"));
+  for (const subset of ["arabic", "latin"]) {
+    const font = `vazirmatn-${subset}-wght-normal.woff2`;
+    copyFile(path.join(VAZIRMATN_ROOT, "files", font), path.join(target, "assets", font));
+  }
   const downloads = fs.readFileSync(path.join(SRC, "ui", "downloads.js"), "utf8")
     .replace("__SOFT98_DOWNLOAD_MESSAGES__", () => JSON.stringify(catalog))
     .replace("__SOFT98_DOWNLOAD_ICONS__", () => JSON.stringify(icons));

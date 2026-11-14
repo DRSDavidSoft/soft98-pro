@@ -12,6 +12,9 @@ const release = validate(markdown, version);
 const notes = releaseNotes(markdown, version);
 if (release.bullets.length < 3) throw new Error("Current release needs a useful set of user-facing changes");
 if (!notes.includes(`Soft98 Pro ${version}`) || !notes.includes("## Downloads")) throw new Error("Generated release notes are incomplete");
+for (const file of [`soft98-pro-chromium-${version}.zip`, `soft98-pro-firefox-${version}.zip`, "soft98-pro.user.js", "SHA256SUMS.txt"]) {
+  if (!notes.includes(`/releases/download/v${version}/${file}`)) throw new Error("Missing direct release link: " + file);
+}
 if (release.section.includes("docs/changes/") && !notes.includes(`/blob/v${version}/docs/changes/`)) {
   throw new Error("GitHub release notes must link to versioned visual evidence");
 }

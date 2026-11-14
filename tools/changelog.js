@@ -8,6 +8,7 @@ const ROOT = path.resolve(__dirname, "..");
 const CHANGELOG = path.join(ROOT, "CHANGELOG.md");
 const VERSION = require(path.join(ROOT, "package.json")).version;
 const ALLOWED_SECTIONS = new Set(["Added", "Changed", "Deprecated", "Removed", "Fixed", "Security"]);
+const RELEASE_ICONS = { Added: "✨", Changed: "🎨", Deprecated: "⚠️", Removed: "🧹", Fixed: "🛠️", Security: "🛡️" };
 
 function sectionForVersion(markdown, version) {
   const escaped = String(version).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -37,18 +38,28 @@ function validate(markdown, version = VERSION) {
 
 function releaseNotes(markdown, version = VERSION) {
   const release = validate(markdown, version);
+  const repository = "https://github.com/DRSDavidSoft/soft98-pro";
+  const tag = `v${version}`;
+  const assets = `${repository}/releases/download/${tag}`;
+  const source = `${repository}/blob/${tag}`;
   const publishedSection = release.section.replace(/\]\((docs\/[\w./-]+\.md)\)/g,
-    (_match, file) => `](https://github.com/DRSDavidSoft/soft98-pro/blob/v${version}/${file})`);
+    (_match, file) => `](${source}/${file})`).replace(/^### (\w+)$/gm,
+    (_match, heading) => `### ${RELEASE_ICONS[heading]} ${heading}`);
   return [
-    `# Soft98 Pro ${version}`,
+    `![Soft98 Pro](https://raw.githubusercontent.com/DRSDavidSoft/soft98-pro/${tag}/docs/assets/soft98-pro-banner.svg)`,
     "",
-    "Soft98 Pro is available as a Chromium/Edge extension, Firefox extension, and single-file userscript.",
+    `# 🏴‍☠️ Soft98 Pro ${version}`,
+    "",
+    "## Downloads 🧩",
+    "",
+    `- 🟦 [Chrome and Edge ZIP](${assets}/soft98-pro-chromium-${version}.zip) · [Unpacked install guide](${source}/docs/wiki/Installation.md)`,
+    `- 🦊 [Firefox ZIP](${assets}/soft98-pro-firefox-${version}.zip) · [Temporary add-on install guide](${source}/docs/wiki/Installation.md)`,
+    `- ⚡ [Install the userscript](${assets}/soft98-pro.user.js) · [ZIP archive](${assets}/soft98-pro-userscript-${version}.zip)`,
+    `- 🔏 [SHA-256 checksums](${assets}/SHA256SUMS.txt) · [English guide](${source}/README.md) · [راهنمای فارسی](${source}/README.fa.md)`,
+    "",
+    "## What's New ✨",
     "",
     publishedSection,
-    "",
-    "## Downloads",
-    "",
-    "Choose the package for your browser or install `soft98-pro.user.js` with a userscript manager. Verify downloaded files with `SHA256SUMS.txt`.",
     "",
   ].join("\n");
 }

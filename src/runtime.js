@@ -3625,11 +3625,13 @@
       protection: ["blockAds", "patchScripts"],
       experience: ["pro", "darkDesign", "rgbMode", "compactLayout", "expandMain", "quickNavigation", "showLatest", "hideAnnoyances", "utilityInHeader", "linkBadges", "pirateLogo"],
       advanced: ["taunt", "soundFeedback", "diagnostics", "recommendExtension"],
+      ...(IS_EXTENSION ? { downloads: [] } : {}),
     };
     const groupLabels = {
       protection: text("controlProtection"),
       experience: text("controlExperience"),
       advanced: text("controlAdvanced"),
+      downloads: text("articlePreview"),
     };
     if (!groups[controlSection]) controlSection = "protection";
     wrap.innerHTML = `
@@ -3663,11 +3665,12 @@
           <div><dt>${escapeHtml(text("controlLinksSecured"))}</dt><dd data-metric="links">0</dd></div>
           <div><dt>${escapeHtml(text("controlCodePatches"))}</dt><dd data-metric="patches">0</dd></div>
         </dl>
-        <div class="s98p-tabs" role="tablist" aria-label="${escapeHtml(text("controlTitle"))}">
+        <div class="s98p-tabs" role="tablist" aria-label="${escapeHtml(text("controlTitle"))}" style="--tab-count:${Object.keys(groups).length}">
           ${[
             ["protection", text("controlProtection")],
             ["experience", text("controlExperience")],
             ["advanced", text("controlAdvanced")],
+            ...(IS_EXTENSION ? [["downloads", text("articlePreview")]] : []),
           ]
             .map(([key, label]) => `<button type="button" role="tab" id="soft98-pro-tab-${key}" aria-controls="soft98-pro-panel-${key}" aria-selected="${controlSection === key}" tabindex="${controlSection === key ? "0" : "-1"}" data-section="${key}">${escapeHtml(label)}</button>`)
             .join("")}
@@ -3677,9 +3680,15 @@
             .map(([group, keys]) => `<section role="tabpanel" id="soft98-pro-panel-${group}" aria-labelledby="soft98-pro-tab-${group}" data-panel="${group}" ${controlSection === group ? "" : "hidden"}>
               <div class="s98p-panel-intro">
                 <span><strong>${escapeHtml(groupLabels[group])}</strong><small>${escapeHtml(text(`controlSectionDescriptions.${group}`))}</small></span>
-                <b><span dir="ltr">${keys.length}</span> ${escapeHtml(text("controlModules"))}</b>
+                ${group === "downloads" ? "" : `<b><span dir="ltr">${keys.length}</span> ${escapeHtml(text("controlModules"))}</b>`}
               </div>
               ${keys.map(controlOptionMarkup).join("")}
+              ${group === "downloads" ? `
+              <dl class="s98p-download-overview">
+                ${["active", "waiting", "finished"].map(key => `<div><dt>${escapeHtml(text("controlDownloadStates." + key))}</dt><dd data-queue-count="${key}">–</dd></div>`).join("")}
+              </dl>
+              <button class="s98p-download-open" type="button" data-soft98-pro-download-manager="open">${PAGE_ICONS.download}${escapeHtml(text("controlOpenDownloads"))}</button>
+              ` : ""}
             </section>`)
             .join("")}
           <section id="soft98-pro-report" class="s98p-report" aria-labelledby="soft98-pro-report-title" hidden>
@@ -3760,7 +3769,13 @@
       #soft98-pro-control .s98p-metrics div:first-child{border-color:color-mix(in srgb,var(--c-accent) 25%,var(--c-border-soft))}
       #soft98-pro-control .s98p-metrics dt{margin:0;background:transparent!important;color:var(--c-muted)!important;font-size:10px;font-weight:500;white-space:normal}
       #soft98-pro-control .s98p-metrics dd{margin:0;background:transparent!important;color:var(--c-text)!important;font-size:18px;font-weight:750;line-height:1.15;font-variant-numeric:tabular-nums}
-      #soft98-pro-control .s98p-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;margin:11px 14px 0;padding:3px;border:1px solid var(--c-border-soft);border-radius:7px;background:var(--c-bg-soft)}
+      #soft98-pro-control .s98p-tabs{display:grid;grid-template-columns:repeat(var(--tab-count,3),minmax(0,1fr));gap:3px;margin:11px 14px 0;padding:3px;border:1px solid var(--c-border-soft);border-radius:7px;background:var(--c-bg-soft)}
+      #soft98-pro-control .s98p-download-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:4px 0}
+      #soft98-pro-control .s98p-download-overview>div{display:grid;gap:4px;padding:8px;border:1px solid var(--c-border-soft);border-radius:6px;background:var(--c-bg-soft);text-align:center}
+      #soft98-pro-control .s98p-download-overview dt{font-size:11px;color:var(--c-muted)}
+      #soft98-pro-control .s98p-download-overview dd{margin:0;font-weight:700;font-size:18px;color:var(--c-accent);font-variant-numeric:tabular-nums}
+      #soft98-pro-control .s98p-download-open{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:7px;border:1px solid var(--c-border);border-radius:6px;background:var(--c-bg-raised)!important;color:var(--c-text)!important;cursor:pointer}
+      #soft98-pro-control .s98p-download-open svg{width:18px;height:18px;pointer-events:none}
       #soft98-pro-control .s98p-tabs button{position:relative;min-width:0;margin:0;padding:8px 5px;border:0;border-radius:5px;background:transparent!important;color:var(--c-muted)!important;font-size:11px;font-weight:650;line-height:1.4;cursor:pointer;transition:color .16s ease,box-shadow .16s ease}
       #soft98-pro-control .s98p-tabs button:hover{color:var(--c-text)!important}
       #soft98-pro-control .s98p-tabs button[aria-selected=true]{background:var(--c-bg-raised)!important;color:var(--c-accent)!important;border-color:var(--c-accent)!important;box-shadow:0 1px 7px rgba(0,0,0,.22)!important}
@@ -3972,6 +3987,7 @@
         panelDeadline = setTimeout(finishClose, open ? 330 : 270);
       } else if (!open) finishClose();
       if (open) {
+        if (controlSection === "downloads") document.dispatchEvent(new Event("soft98-pro:download-summary-request"));
         if (moveFocus) form.querySelector('[role="tab"][aria-selected="true"]').focus({ preventScroll: true });
         refreshControlTelemetry();
       }
@@ -4014,7 +4030,18 @@
       }
       for (const panel of form.querySelectorAll('[role="tabpanel"]')) panel.hidden = panel.getAttribute("data-panel") !== section;
       if (changed) scroller.scrollTop = sectionScroll.get(section) || 0;
+      if (section === "downloads") document.dispatchEvent(new Event("soft98-pro:download-summary-request"));
     };
+    if (IS_EXTENSION) document.addEventListener("soft98-pro:download-summary", () => {
+      try {
+        const counts = JSON.parse(document.documentElement.getAttribute("data-soft98-pro-download-summary"));
+        const number = new Intl.NumberFormat(LOCALE);
+        for (const value of form.querySelectorAll("[data-queue-count]")) {
+          const count = counts?.[value.dataset.queueCount];
+          if (Number.isInteger(count) && count >= 0 && count <= 160) value.textContent = number.format(count);
+        }
+      } catch (_error) {}
+    }, { signal });
     form.addEventListener("submit", (event) => event.preventDefault(), { signal });
     toggle.addEventListener("pointerdown", (event) => {
       if (event.button !== 0 || !event.isPrimary || drag) return;

@@ -26,6 +26,7 @@
     "ci": "npm run check && npm test && npm run check:repo"
   },
   "devDependencies": {
+    "@fontsource-variable/vazirmatn": "5.3.0",
     "@tabler/icons": "3.51.0",
     "acorn": "^8.19.0",
     "pngjs": "7.0.0",

@@ -134,6 +134,21 @@
   }
 
   if (!(api.extension && api.extension.inIncognitoContext)) {
+    let summaryPending = false;
+    const refreshSummary = () => {
+      if (summaryPending || !document.querySelector('#soft98-pro-control[data-open="true"] [data-panel="downloads"]:not([hidden])')) return;
+      summaryPending = true;
+      setTimeout(() => { summaryPending = false; }, 750);
+      sendRuntime({ type: "soft98:downloads-summary" }, (counts) => {
+        if (!counts) return;
+        document.documentElement.setAttribute("data-soft98-pro-download-summary", JSON.stringify(counts));
+        document.dispatchEvent(new Event("soft98-pro:download-summary"));
+      });
+    };
+    document.addEventListener("soft98-pro:download-summary-request", refreshSummary);
+    api.storage.onChanged.addListener((changes, area) => {
+      if (area === "local" && changes.soft98DownloadQueue) refreshSummary();
+    });
     document.addEventListener("click", (event) => {
       if (!event.isTrusted || event.button !== 0 || event.defaultPrevented) return;
       const control = event.target instanceof Element && event.target.closest("button[data-soft98-pro-download-manager]");

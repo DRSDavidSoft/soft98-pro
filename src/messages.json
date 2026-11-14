@@ -49,10 +49,13 @@
         "controlProtection": "Protection",
         "controlExperience": "Experience",
         "controlAdvanced": "Advanced",
+        "controlOpenDownloads": "Open download manager",
+        "controlDownloadStates": { "active": "Active", "waiting": "Waiting", "finished": "Finished" },
         "controlSectionDescriptions": {
           "protection": "Interception, cleanup, and script integrity",
           "experience": "Visual system, layout, and download workflow",
-          "advanced": "Diagnostics, feedback, and integration controls"
+          "advanced": "Diagnostics, feedback, and integration controls",
+          "downloads": "Download queue"
         },
         "controlProtectionActive": "Protection active",
         "controlProtectionPaused": "Protection paused",
@@ -268,10 +271,13 @@
         "controlProtection": "محافظت",
         "controlExperience": "ظاهر",
         "controlAdvanced": "پیشرفته",
+        "controlOpenDownloads": "باز کردن مدیر دانلود",
+        "controlDownloadStates": { "active": "فعال", "waiting": "در انتظار", "finished": "پایان‌یافته" },
         "controlSectionDescriptions": {
           "protection": "شناسایی، پاک‌سازی و بررسی سلامت اسکریپت‌ها",
           "experience": "ظاهر، چیدمان و روند دانلود",
-          "advanced": "گزارش‌ها، بازخورد و یکپارچه‌سازی"
+          "advanced": "گزارش‌ها و تنظیمات بیشتر",
+          "downloads": "صف دانلود"
         },
         "controlProtectionActive": "حفاظت فعال است",
         "controlProtectionPaused": "محافظت موقتاً متوقف است",

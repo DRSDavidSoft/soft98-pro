@@ -1148,6 +1148,17 @@ async function main() {
         return button?.matches('[data-soft98-pro-download-manager=file]') && row.href;
       `, "the official archive's resolved link and queue action");
       if (!await evaluate("return !!document.querySelector('[data-soft98-pro-download-manager=open]')")) throw new Error("The Downloads header action is missing");
+      await evaluate(`
+        const launcher = document.querySelector('#soft98-pro-control');
+        if (launcher.dataset.open !== 'true') launcher.querySelector('[data-role=toggle]').click();
+        launcher.querySelector('[data-section=downloads]').click();
+      `);
+      await until(`
+        const panel = document.querySelector('#soft98-pro-control [data-panel=downloads]:not([hidden])');
+        return panel?.querySelector('[data-soft98-pro-download-manager=open]') &&
+          [...panel.querySelectorAll('[data-queue-count]')].every(node => /^[\\p{Nd}]+$/u.test(node.textContent));
+      `, "the control center Downloads tab and queue summary");
+      await evaluate("document.querySelector('#soft98-pro-control [data-role=close]').click()");
       const element = await post("/element", { using: "css selector", value: "article a[href*='AnyDesk'][href$='.zip'] + [data-soft98-pro-download-manager=file]" });
       await post(`/element/${Object.values(element)[0]}/click`, {});
       const targets = await request("GET", session + "/window/handles");
@@ -1156,6 +1167,7 @@ async function main() {
       await post("/window", { handle: manager });
       const prefilled = await until("return document.getElementById('add')?.disabled === false && document.getElementById('urls')?.value", "the exact URL prefilled into the manager");
       if (prefilled !== ready) throw new Error("The manager did not receive the original file URL");
+      await until("return document.documentElement.lang !== 'fa' || [...document.fonts].some(face => face.family === 'Vazirmatn' && face.status === 'loaded') || [...document.fonts].some(face => face.family.includes('Soft98 Local') && face.status === 'loaded')", "the Persian manager font");
       if (await evaluate("return document.querySelectorAll('.job').length")) throw new Error("The download started before confirmation");
       const add = await post("/element", { using: "css selector", value: "#add" });
       await post(`/element/${Object.values(add)[0]}/click`, {});

@@ -306,9 +306,21 @@
   }
   api.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!message || typeof message !== "object") return false;
-    if (message.type === "soft98:open-downloads") {
+    if (message.type === "soft98:open-downloads" || message.type === "soft98:downloads-summary") {
       if (sender.id !== api.runtime.id || sender.frameId !== 0 || !Number.isInteger(sender.tab?.id) || sender.incognito || sender.tab.incognito ||
           !isProtectedPage(sender.url)) return false;
+      if (message.type === "soft98:downloads-summary") {
+        queue.request({ action:"list" }).then(({ jobs }) => {
+          const counts = { active:0, waiting:0, finished:0 };
+          for (const { status } of jobs) {
+            if (["starting", "resuming", "downloading"].includes(status)) counts.active++;
+            else if (["queued", "resume-queued", "paused"].includes(status)) counts.waiting++;
+            else counts.finished++;
+          }
+          sendResponse(counts);
+        }, () => sendResponse(null));
+        return true;
+      }
       let target = downloadPage;
       if (message.url) {
         try {
