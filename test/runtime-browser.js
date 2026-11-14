@@ -315,10 +315,25 @@ async function main() {
             const details = document.querySelector('[data-test=download-article] details');
             const summary = details.querySelector('summary');
             const height = () => details.getBoundingClientRect().height;
+            const endMargin = () => getComputedStyle(details).marginBlockEnd;
             const closed = height();
+            const closedMargin = endMargin();
             summary.click();
             let animation = details.getAnimations()[0];
             if (!animation) return { animated:false };
+            animation.pause();
+            animation.currentTime = animation.effect.getTiming().duration;
+            const endpoint = height();
+            animation.finish();
+            await animation.finished;
+            const openSettled = details.open && Math.abs(height() - endpoint) < 1 && endMargin() === closedMargin &&
+              !details.hasAttribute('data-soft98-pro-faq-motion');
+            summary.click();
+            animation = details.getAnimations()[0];
+            animation.finish();
+            await animation.finished;
+            summary.click();
+            animation = details.getAnimations()[0];
             animation.pause();
             animation.currentTime = 70;
             const middle = height();
@@ -327,11 +342,11 @@ async function main() {
             const reversible = Math.abs(parseFloat(animation.effect.getKeyframes()[0].maxHeight) - middle) < .1;
             animation.finish();
             await new Promise(resolve => setTimeout(resolve, 70));
-            return { animated:true, reversible, moved:middle > closed, restored:Math.abs(height() - closed) < 1 &&
+            return { animated:true, reversible, openSettled, moved:middle > closed, restored:Math.abs(height() - closed) < 1 &&
               !details.open && !details.hasAttribute('data-soft98-pro-faq-motion') };
           })()
         `);
-        for (const key of ["animated", "reversible", "moved", "restored"]) assertEqual("FAQ motion", key, faqMotion[key], true);
+        for (const key of ["animated", "reversible", "openSettled", "moved", "restored"]) assertEqual("FAQ motion", key, faqMotion[key], true);
         idleDark = await faviconPixel(client);
         if (idleDark.split(",").some(value => Number(value) > 40)) throw new Error("The idle favicon has a bright badge");
         const latest = await evaluate(client, `

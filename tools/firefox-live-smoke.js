@@ -282,6 +282,21 @@ async function main() {
           const summary = faq?.querySelector('summary');
           if (!summary) return done({ queries, scrollMs, faq:false });
           const closed = faq.getBoundingClientRect().height;
+          const closedMargin = getComputedStyle(faq).marginBlockEnd;
+          summary.click();
+          const opening = faq.getAnimations()[0];
+          opening.pause();
+          opening.currentTime = opening.effect.getTiming().duration;
+          const endpoint = faq.getBoundingClientRect().height;
+          opening.finish();
+          await opening.finished;
+          await wait(100);
+          const openJump = Math.abs(faq.getBoundingClientRect().height - endpoint);
+          const marginStable = getComputedStyle(faq).marginBlockEnd === closedMargin;
+          summary.click();
+          const closing = faq.getAnimations()[0];
+          closing.finish();
+          await closing.finished;
           summary.click();
           const anim = faq.getAnimations()[0];
           if (anim) {
@@ -316,13 +331,13 @@ async function main() {
             trace.push({ y, actual:scrollY, positions:targets.map(absoluteY), height:document.documentElement.scrollHeight });
           }
           window.scrollTo({top:0,behavior:'instant'});
-          done({ queries, warningSweeps, scrollMs, faq:true, midExpansion: middle > closed,
+          done({ queries, warningSweeps, scrollMs, faq:true, midExpansion: middle > closed, openJump, marginStable,
             reversed: !faq.open && Math.abs(closed-returned) < 1, shift, scrollError,
             sticky: getComputedStyle(header).position, ...(shift > 1 || scrollError > 1 ? { before, settled, trace } : {}) });
         })().catch(error => done({ error:String(error) }));
       ` });
       console.log(JSON.stringify({ interactions: timings }));
-      if (timings.warningSweeps !== 0 || !timings.faq || !timings.midExpansion || !timings.reversed ||
+      if (timings.warningSweeps !== 0 || !timings.faq || !timings.midExpansion || !timings.reversed || timings.openJump > 1 || !timings.marginStable ||
           timings.shift > 1 || timings.scrollError > 1 || timings.sticky !== "static") {
         throw new Error("Interaction performance regression: " + JSON.stringify(timings));
       }

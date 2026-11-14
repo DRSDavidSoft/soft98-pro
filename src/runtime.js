@@ -1147,7 +1147,9 @@
       @media (prefers-reduced-motion:reduce){.soft98-pro-theme :is([data-soft98-pro-download-row],[data-soft98-pro-download-actions] [aria-expanded] svg,[data-soft98-pro-copy-toast]){transition:none!important}}
       .soft98-pro-theme [data-soft98-pro-faq] > summary{display:flex!important;align-items:center;gap:9px;list-style:none!important;padding-inline-start:0!important;color:var(--s98p-text)!important}
       .soft98-pro-theme [data-soft98-pro-faq] > summary::-webkit-details-marker{display:none}
-      :is(.soft98-pro-theme [data-soft98-pro-faq-motion],.soft98-pro-theme [data-soft98-pro-utility-motion],#soft98-pro-control [data-soft98-pro-report-motion]){box-sizing:border-box;overflow:clip!important;overflow-anchor:none}
+      .soft98-pro-theme [data-soft98-pro-faq]{box-sizing:border-box;overflow:hidden!important;margin-block-end:0!important}
+      .soft98-pro-theme [data-soft98-pro-faq-motion]{overflow-anchor:none}
+      :is(.soft98-pro-theme [data-soft98-pro-utility-motion],#soft98-pro-control [data-soft98-pro-report-motion]){box-sizing:border-box;overflow:clip!important;overflow-anchor:none}
       :root.soft98-pro-theme [data-soft98-pro-utility-card] [data-soft98-pro-utility-extra]:is([data-soft98-pro-utility-extra=open],[data-soft98-pro-utility-motion]){display:grid!important;grid-auto-rows:max-content;align-content:start;max-height:none!important;flex:none}
       :root.soft98-pro-theme [data-soft98-pro-utility-extra=open]:not([data-soft98-pro-utility-motion]){height:max-content!important}
       :root.soft98-pro-theme [data-soft98-pro-utility-motion]{min-height:0!important}
@@ -1697,13 +1699,14 @@
       const animation = details.animate([{ maxHeight: from + "px" }, { maxHeight: to + "px" }],
         { duration: 250, easing: "cubic-bezier(.24,.76,.25,1)", fill: "forwards" });
       faqAnimations.set(details, animation);
-      animation.onfinish = () => {
+      animation.finished.then(() => {
+        if (faqAnimations.get(details) !== animation) return;
         details.open = opening;
         details.removeAttribute("data-soft98-pro-closing");
         details.removeAttribute("data-soft98-pro-faq-motion");
         faqAnimations.set(details, null);
         animation.cancel();
-      };
+      }, () => {});
     });
   }
 
