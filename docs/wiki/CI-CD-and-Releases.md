@@ -18,7 +18,7 @@ An unfamiliar hash creates or updates a structured GitHub issue and fails the co
 
 ## Release
 
-Merging active development into `main` runs `🏴‍☠️ Soft98 Pro · Release`. The workflow:
+Merging into `main` runs CI but does not publish. After approval, manually run `🏴‍☠️ Soft98 Pro · Release` on `main` with the version tag from `package.json`. The workflow:
 
 1. Verifies that `package.json` and the requested tag agree.
 2. Rebuilds and runs the entire acceptance suite.

@@ -2,8 +2,6 @@ name: "🏴‍☠️ Soft98 Pro · Release"
 run-name: "🏴‍☠️ Release · ${{ github.event.inputs.tag || github.ref_name }} · ${{ github.event_name }}"
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       tag:
@@ -28,6 +26,7 @@ concurrency:
 jobs:
   release:
     name: "🚀 Verify · Attest · Publish"
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -52,7 +51,7 @@ jobs:
           set -euo pipefail
           version="$(node -p "require('./package.json').version")"
           expected="v${version}"
-          requested="${DISPATCH_TAG:-$expected}"
+          requested="$DISPATCH_TAG"
           if [[ "$requested" != "$expected" ]]; then
             echo "Requested tag $requested does not match package.json ($expected)." >&2
             exit 1
