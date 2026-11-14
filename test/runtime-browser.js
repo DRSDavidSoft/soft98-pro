@@ -541,6 +541,37 @@ async function main() {
           return {idle,direct,stable,middle,unrelated};
         })()`);
         for (const [key, value] of Object.entries(feedback)) assertEqual("download activation", key, value, true);
+        const recoveryBadge = await evaluate(client, `(async () => {
+          const row = document.querySelector('[data-test=direct-download]');
+          const entry = row.closest('dd');
+          // Make this existing download eligible for the runtime's preservation badge.
+          row.classList.add('download-list-link');
+          entry.style.inlineSize = '164px';
+          entry.style.overflowWrap = 'anywhere';
+          Soft98Pro.scan();
+          for (let i = 0; i < 20 && !row.querySelector('.soft98-pro-link-badge'); i++) {
+            await new Promise(resolve => requestAnimationFrame(resolve));
+          }
+          const badge = row.querySelector(':scope > .soft98-pro-link-badge');
+          if (!badge) throw new Error('Ready badge did not render');
+          const range = document.createRange();
+          range.selectNodeContents(badge);
+          const copy = row.querySelector('[data-soft98-pro-download-copy]').getBoundingClientRect();
+          const icon = row.querySelector('[data-soft98-pro-page-icon]').getBoundingClientRect();
+          const box = badge.getBoundingClientRect();
+          const result = {
+            text: badge.textContent,
+            oneLine: range.getClientRects().length === 1,
+            besideIcon: copy.left - 1 <= box.left && box.right <= copy.right + 1 && box.right <= icon.left + 1,
+            rowFits: box.bottom <= row.getBoundingClientRect().bottom + 1,
+          };
+          entry.style.removeProperty('inline-size');
+          entry.style.removeProperty('overflow-wrap');
+          row.classList.remove('download-list-link');
+          return result;
+        })()`);
+        assertEqual("download badge", "Persian label", recoveryBadge.text, "آماده");
+        for (const key of ["oneLine", "besideIcon", "rowFits"]) assertEqual("download badge", key, recoveryBadge[key], true);
         const controls = await evaluate(client, `
           (async () => {
             const article = document.querySelector('[data-test="download-article"]');

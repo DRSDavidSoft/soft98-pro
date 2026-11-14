@@ -1110,6 +1110,7 @@
       :root.soft98-pro-theme article [data-soft98-pro-download-group] [data-soft98-pro-download-row]:active{background-color:color-mix(in srgb,var(--s98p-accent) 16%,var(--s98p-surface))!important}
       .soft98-pro-theme [data-soft98-pro-download-row] > *{pointer-events:none}
       .soft98-pro-theme [data-soft98-pro-download-row] > [data-soft98-pro-page-icon]{grid-column:1;grid-row:1;margin:0}
+      .soft98-pro-theme [data-soft98-pro-download-row] > .soft98-pro-link-badge{grid-column:2;justify-self:start;margin:0}
       :root.soft98-pro-theme dd:has(> [data-soft98-pro-download-manager=file]){display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px}
       :root.soft98-pro-theme dd[data-soft98-pro-download-collapsed]:has(> [data-soft98-pro-download-manager=file]){display:none!important}
       :root:not(.soft98-pro-theme) [data-soft98-pro-download-manager]{display:none!important}
@@ -1214,7 +1215,7 @@
       .soft98-pro-theme img{filter:saturate(.96) contrast(1.02)}
       .soft98-pro-theme pre,.soft98-pro-theme code{background:#071018!important;border-color:var(--s98p-border)!important;color:#d8f8ff!important}
       .soft98-pro-theme ::selection{background:rgba(116,224,176,.32);color:#fff}
-      .soft98-pro-link-badge{margin-inline-start:.45em;padding:.12em .45em;border:1px solid rgba(112,225,178,.42);border-radius:999px;color:#baffd8;background:rgba(112,225,178,.12);font-size:.78em;vertical-align:middle}
+      .soft98-pro-link-badge{display:inline-block;white-space:nowrap;word-break:normal;overflow-wrap:normal;margin-inline-start:.45em;padding:.12em .45em;border:1px solid rgba(112,225,178,.42);border-radius:999px;color:#baffd8;background:rgba(112,225,178,.12);font-size:.78em;vertical-align:middle}
       .soft98-pro-compact [data-soft98-pro-layout=content-grid]{display:grid!important;grid-template-columns:minmax(0,2fr) minmax(270px,1fr)!important;align-items:start!important;gap:18px!important}
       @media(min-width:821px){
         .soft98-pro-compact [data-soft98-pro-layout=content-grid]>[data-soft98-pro-column]{grid-row:1!important}
@@ -2543,7 +2544,7 @@
     meta.setAttribute("data-soft98-pro-download-meta", "");
     copy.setAttribute("data-soft98-pro-download-copy", "");
     for (const child of [...link.childNodes]) {
-      if (child.matches?.("[data-soft98-pro-page-icon]")) continue;
+      if (child.matches?.("[data-soft98-pro-page-icon],.soft98-pro-link-badge")) continue;
       title.append(child);
     }
     const inlineSize = extractInlineDownloadSize(title) || previous?.inlineSize || originalSize;
@@ -2553,7 +2554,8 @@
     }
     link.setAttribute("data-soft98-pro-download-row", "");
     copy.append(title, meta);
-    link.append(copy);
+    const badge = link.querySelector(":scope > .soft98-pro-link-badge");
+    link.insertBefore(copy, badge);
     downloadRows.set(link, { copy, title, meta, url: url?.href, inlineSize });
     if (url && !url.search && (url.origin === location.origin || url.hostname.endsWith(".soft98.ir")) && "IntersectionObserver" in window) {
       downloadObserver ||= new IntersectionObserver((entries) => {

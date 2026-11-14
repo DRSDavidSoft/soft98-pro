@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-11-14
+
+### Fixed
+
+- Kept the Ready badge on one line and aligned it with the download text, including on the RustDesk mirror link.
+
 ## [1.2.1] - 2026-11-14
 
 ### Changed
@@ -138,7 +144,8 @@ Soft98 currently serves some download buttons as placeholders and fills in their
 
 - Unified extension and userscript maintenance in the Soft98 Pro repository.
 
-[Unreleased]: https://github.com/DRSDavidSoft/soft98-pro/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/DRSDavidSoft/soft98-pro/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/DRSDavidSoft/soft98-pro/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/DRSDavidSoft/soft98-pro/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/DRSDavidSoft/soft98-pro/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/DRSDavidSoft/soft98-pro/releases/tag/v1.1.1
