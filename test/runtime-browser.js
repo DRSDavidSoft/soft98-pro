@@ -365,6 +365,29 @@ async function main() {
         assertEqual("megamenu platform links", "wide", platformLayout.wide, true);
         assertEqual("megamenu platform links", "narrow RTL", platformLayout.narrow, true);
         assertEqual("megamenu platform links", "destinations", platformLayout.paths, "/internet/|/mac/internet-mac/");
+        await client.send("DOM.enable");
+        await client.send("CSS.enable");
+        const { root: menuRoot } = await client.send("DOM.getDocument");
+        const { nodeId: headingLink } = await client.send("DOM.querySelector", {
+          nodeId: menuRoot.nodeId, selector: '[data-test="megamenu-heading-link"]',
+        });
+        const headingLayout = `(() => {
+          const link = document.querySelector('[data-test="megamenu-heading-link"]');
+          const title = link.parentElement;
+          const text = document.createRange();
+          text.selectNodeContents(link);
+          const rect = box => [box.x, box.y, box.width, box.height];
+          const style = getComputedStyle(link);
+          return [rect(title.getBoundingClientRect()), rect(link.getBoundingClientRect()), rect(text.getBoundingClientRect()),
+            style.paddingInlineStart, style.borderInlineStartWidth, getComputedStyle(title,'::before').pointerEvents];
+        })()`;
+        const resting = await evaluate(client, headingLayout);
+        assertEqual("megamenu heading", "indicator hit testing", resting.at(-1), "none");
+        for (const state of ["hover", "focus-visible"]) {
+          await client.send("CSS.forcePseudoState", { nodeId: headingLink, forcedPseudoClasses: [state] });
+          assertEqual("megamenu heading", state + " layout", JSON.stringify(await evaluate(client, headingLayout)), JSON.stringify(resting));
+        }
+        await client.send("CSS.forcePseudoState", { nodeId: headingLink, forcedPseudoClasses: [] });
         if (idleDark.split(",").some(value => Number(value) > 40)) throw new Error("The idle favicon has a bright badge");
         const latest = await evaluate(client, `
           (() => {

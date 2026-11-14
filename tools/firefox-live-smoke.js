@@ -256,6 +256,39 @@ async function main() {
         throw new Error("Megamenu platform links wrapped incorrectly: " + JSON.stringify(platform));
       }
       console.log(JSON.stringify({ platform }));
+      const heading = await post("/execute/async", { args: [], script: `
+        const done = arguments[0];
+        const link = document.querySelector('nav a[href="/mac/internet-mac/"]');
+        const owner = link.closest('li:has(> [data-toggle=dropdown])');
+        const trigger = owner.querySelector(':scope > [data-toggle=dropdown]');
+        trigger.click();
+        setTimeout(() => {
+          const title = [...owner.querySelectorAll('[data-soft98-pro-mega-heading]')].find(node =>
+            node.querySelector('a[href]')?.getBoundingClientRect().width);
+          if (!title) return done({error:'No linked megamenu heading'});
+          const action = title.querySelector('a[href]');
+          const read = () => {
+            const text = new Range();
+            text.selectNodeContents(action);
+            return [title, action, text].map(node => {
+              const box = node.getBoundingClientRect();
+              return [box.x,box.y,box.width,box.height];
+            });
+          };
+          const before = read();
+          action.focus({preventScroll:true});
+          const after = read();
+          const focusVisible = action.matches(':focus-visible');
+          const indicator = getComputedStyle(title,'::before').pointerEvents;
+          action.blur();
+          document.body.click();
+          done({before,after,focusVisible,indicator});
+        }, 350);
+      ` });
+      if (!heading.focusVisible || heading.indicator !== "none" || JSON.stringify(heading.before) !== JSON.stringify(heading.after)) {
+        throw new Error("Megamenu heading moved during focus: " + JSON.stringify(heading));
+      }
+      console.log(JSON.stringify({ headingStable: true }));
     }
     if (addon && process.env.SOFT98_REFERRER_CHECK === "1") {
       const directLinks = await evaluate(`

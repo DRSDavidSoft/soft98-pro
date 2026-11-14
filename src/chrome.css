@@ -492,6 +492,7 @@
   border-radius: 2px;
   rotate: 45deg;
   background: var(--mega-tint);
+  pointer-events: none;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-mega-frame] [data-soft98-pro-mega-group] a[href] {
@@ -506,10 +507,18 @@
 
 :root.soft98-pro-theme [data-soft98-pro-mega-frame] [data-soft98-pro-mega-heading] a[href] {
   padding: 2px 0 !important;
+  border-inline-start-width: 0 !important;
   color: var(--mega-tint) !important;
 }
 
-:root.soft98-pro-theme [data-soft98-pro-mega-frame] [data-soft98-pro-mega-group] a[href]:is(:hover,:focus-visible) {
+:root.soft98-pro-theme [data-soft98-pro-mega-frame] [data-soft98-pro-mega-heading] a[href]:is(:hover,:focus-visible) {
+  padding-inline: 0 !important;
+  background: var(--mega-tile-highlight) !important;
+  color: var(--mega-tint) !important;
+  box-shadow: none !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-mega-frame] [data-soft98-pro-mega-group] a[href]:not(:where([data-soft98-pro-mega-heading] *)):is(:hover,:focus-visible) {
   background: var(--mega-tile-highlight) !important;
   color: var(--mega-tint) !important;
   border-inline-start: 2px solid var(--mega-tint) !important;

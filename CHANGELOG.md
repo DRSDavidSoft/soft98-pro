@@ -54,6 +54,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Kept megamenu headings and their indicators from shifting on hover or keyboard focus.
 - Kept platform links together in the megamenu so labels with Windows and Mac links no longer split into separate lines.
 - Removed the second height jump at the end of FAQ expansion.
 - Opened links wrapped by href.li directly without sending a referrer, while preserving destination parameters and fragments.
