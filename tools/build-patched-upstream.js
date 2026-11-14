@@ -28,7 +28,11 @@ function sha256(value) {
 async function build() {
   const pageUrl = option("--page", DEFAULT_PAGE);
   const directUrl = option("--script", "");
+  const expectedHash = option("--expect-sha256", "");
   const observed = await inspect(pageUrl, directUrl);
+  if (expectedHash && observed.sha256 !== expectedHash) {
+    throw new Error("Upstream changed after compatibility verification. Rerun the monitor.");
+  }
   const reviewed = catalog.entries.find((entry) => entry.status === "compatible" && entry.sha256 === observed.sha256);
   if (!reviewed) throw new Error("Upstream artifact generation requires a reviewed source hash");
   const fetched = await readSoft98Response(observed.url, true);

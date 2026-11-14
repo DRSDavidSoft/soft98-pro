@@ -13,6 +13,11 @@ on:
         required: true
         default: false
         type: boolean
+      allow_missing_upstream:
+        description: "Publish browser packages without the optional server artifact if live discovery is unavailable"
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -71,10 +76,33 @@ jobs:
         run: npm run ci
 
       - name: "🧬 Verify current Soft98 compatibility"
-        run: npm run check:soft98-upstream
+        id: upstream
+        env:
+          ALLOW_MISSING: ${{ inputs.allow_missing_upstream }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for page in \
+            'https://soft98.ir/' \
+            'https://soft98.ir/internet/remote-control/15737-anydesk-download.html'; do
+            if node tools/check-soft98-upstream.js --check --page "$page"; then
+              echo 'verified=true' >> "$GITHUB_OUTPUT"
+              exit 0
+            else
+              status=$?
+              if [[ "$status" != 3 ]]; then exit "$status"; fi
+            fi
+          done
+          if [[ "$ALLOW_MISSING" != true ]]; then exit 1; fi
+          echo "::warning::Live upstream discovery unavailable; the optional server artifact will not be included."
+          echo '⚠️ Live upstream discovery was unavailable. This release contains the browser packages and userscript, but not the server-side artifact.' >> "$GITHUB_STEP_SUMMARY"
 
       - name: "🧩 Build current server-side patched edition"
-        run: npm run build:patched-upstream
+        if: steps.upstream.outputs.verified == 'true'
+        env:
+          VERIFIED_SCRIPT: ${{ steps.upstream.outputs.script_url }}
+          VERIFIED_SHA256: ${{ steps.upstream.outputs.sha256 }}
+        run: npm run build:patched-upstream -- --script "$VERIFIED_SCRIPT" --expect-sha256 "$VERIFIED_SHA256"
 
       - name: "📸 Collect versioned release screenshots"
         env:
@@ -86,6 +114,15 @@ jobs:
             if [[ -f "$screenshot" ]]; then cp "$screenshot" dist/release/screenshots/; fi
           done
 
+      - name: "📝 Disclose omitted server artifact"
+        env:
+          UPSTREAM_VERIFIED: ${{ steps.upstream.outputs.verified }}
+        run: |
+          cp dist/release/RELEASE-NOTES.md dist/release/body.md
+          if [[ "$UPSTREAM_VERIFIED" != true ]]; then
+            printf '\n> The optional server-side artifact is not included because live discovery was unavailable on the release runner.\n' >> dist/release/body.md
+          fi
+
       - name: "🔏 Attest release artifacts"
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
         with:
@@ -96,8 +133,12 @@ jobs:
             dist/release/SHA256SUMS.txt
             dist/release/RELEASE-NOTES.md
             dist/release/screenshots/*.png
-            dist/upstream/manifest.json
-            dist/upstream/soft98-application.patched.js
+
+      - name: "🔏 Attest the optional server-side artifact"
+        if: steps.upstream.outputs.verified == 'true'
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4
+        with:
+          subject-path: dist/upstream/*
 
       - name: "🚀 Publish GitHub Release"
         uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3
@@ -105,7 +146,7 @@ jobs:
           tag_name: ${{ steps.version.outputs.tag }}
           target_commitish: ${{ github.sha }}
           name: "🏴‍☠️ Soft98 Pro ${{ steps.version.outputs.tag }}"
-          body_path: dist/release/RELEASE-NOTES.md
+          body_path: dist/release/body.md
           prerelease: ${{ github.event.inputs.prerelease || false }}
           make_latest: true
           files: |
@@ -116,8 +157,8 @@ jobs:
             dist/release/latest.json
             dist/release/SHA256SUMS.txt
             dist/release/RELEASE-NOTES.md
-            dist/upstream/manifest.json
-            dist/upstream/soft98-application.patched.js
+            ${{ steps.upstream.outputs.verified == 'true' && 'dist/upstream/manifest.json' || '' }}
+            ${{ steps.upstream.outputs.verified == 'true' && 'dist/upstream/soft98-application.patched.js' || '' }}
             CHANGELOG.md
             dist/release/screenshots/*.png
 
