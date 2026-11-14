@@ -65,6 +65,8 @@
   const restoredUtilityCards = new Map();
   const stockFooters = new Map();
   const faqAnimations = new WeakMap();
+  const utilityDisclosures = new WeakMap();
+  const disclosureAnimations = new WeakMap();
   const proDialogs = new Map();
   const siteReadOnlyDialogs = new Map();
   const dialogState = new WeakMap();
@@ -1100,7 +1102,11 @@
       @media (prefers-reduced-motion:reduce){.soft98-pro-theme :is([data-soft98-pro-download-row],[data-soft98-pro-download-actions] [aria-expanded] svg,[data-soft98-pro-copy-toast]){transition:none!important}}
       .soft98-pro-theme [data-soft98-pro-faq] > summary{display:flex!important;align-items:center;gap:9px;list-style:none!important;padding-inline-start:0!important;color:var(--s98p-text)!important}
       .soft98-pro-theme [data-soft98-pro-faq] > summary::-webkit-details-marker{display:none}
-      .soft98-pro-theme [data-soft98-pro-faq-motion]{box-sizing:border-box;overflow:clip;overflow-anchor:none}
+      :is(.soft98-pro-theme [data-soft98-pro-faq-motion],.soft98-pro-theme [data-soft98-pro-utility-motion],#soft98-pro-control [data-soft98-pro-report-motion]){box-sizing:border-box;overflow:clip!important;overflow-anchor:none}
+      :root.soft98-pro-theme [data-soft98-pro-utility-card] [data-soft98-pro-utility-extra]:is([data-soft98-pro-utility-extra=open],[data-soft98-pro-utility-motion]){display:grid!important;grid-auto-rows:max-content;align-content:start;max-height:none!important;flex:none}
+      :root.soft98-pro-theme [data-soft98-pro-utility-extra=open]:not([data-soft98-pro-utility-motion]){height:max-content!important}
+      :root.soft98-pro-theme [data-soft98-pro-utility-motion]{min-height:0!important}
+      :root.soft98-pro-theme [data-soft98-pro-utility-card] [data-soft98-pro-utility-extra=closed]:not([data-soft98-pro-utility-motion]){display:none!important}
       .soft98-pro-theme [data-soft98-pro-faq] [data-soft98-pro-page-icon]{margin-inline-end:0}
       .soft98-pro-theme [data-soft98-pro-faq] summary:is(:hover,:focus-visible) [data-soft98-pro-page-icon],.soft98-pro-theme [data-soft98-pro-faq][open] [data-soft98-pro-page-icon]{--icon-color:var(--s98p-accent)}
       .soft98-pro-theme [data-soft98-pro-faq]:dir(ltr) svg{transform:scaleX(-1)}
@@ -1268,6 +1274,11 @@
       :root.soft98-pro-theme details[data-soft98-pro-faq] > summary{transition:color .18s ease,background .18s ease;border-radius:6px}
       :root.soft98-pro-theme details[data-soft98-pro-faq] > summary:is(:hover,:focus-visible){background:var(--s98p-surface-2)!important}
       :root.soft98-pro-theme details[data-soft98-pro-faq] > summary svg{transition:transform .22s cubic-bezier(.2,.8,.2,1)}
+      :root.soft98-pro-theme details[data-soft98-pro-faq][open]:not([data-soft98-pro-closing]) > summary [data-soft98-pro-page-icon=chevron]{rotate:-90deg}
+      :root.soft98-pro-theme details[data-soft98-pro-faq]:dir(ltr)[open]:not([data-soft98-pro-closing]) > summary [data-soft98-pro-page-icon=chevron]{rotate:90deg}
+      :root.soft98-pro-theme details[data-soft98-pro-faq] > summary [data-soft98-pro-page-icon=chevron]{transition:rotate .24s cubic-bezier(.2,.8,.2,1)}
+      :root.soft98-pro-theme [data-soft98-pro-utility-card]>footer [data-soft98-pro-page-icon=chevron]{transition:rotate .24s cubic-bezier(.2,.8,.2,1)}
+      :root.soft98-pro-theme [data-soft98-pro-utility-card]>footer[aria-expanded=true] [data-soft98-pro-page-icon=chevron]{rotate:180deg}
       :root.soft98-pro-theme [data-soft98-pro-read-more]{display:inline-flex!important;gap:8px;align-items:center;padding:6px 12px!important;border:1px solid var(--s98p-border)!important;border-radius:6px;background:var(--s98p-control-bg)!important;color:var(--s98p-text)!important;text-decoration:none!important;min-height:36px}
       :root.soft98-pro-theme [data-soft98-pro-read-more]:is(:hover,:focus-visible){background:var(--s98p-control-hover)!important;border-color:var(--s98p-accent)!important}
       :root.soft98-pro-theme [data-soft98-pro-search]{max-inline-size:min(720px,calc(100vw - 20px))!important;max-block-size:calc(100dvh - 66px);overflow:auto!important}
@@ -1294,7 +1305,7 @@
       :root.soft98-pro-theme [data-soft98-pro-read-preview] > button{min-height:36px;padding-inline:9px}
       :root.soft98-pro-theme [data-soft98-pro-preview-panel]{position:absolute;inset-inline-start:0;inset-block-end:100%;z-index:8;min-width:min(250px,75vw);max-width:min(340px,85vw);display:grid;gap:5px;padding:12px;border:1px solid var(--s98p-border);border-radius:7px;background:var(--s98p-elevated);box-shadow:0 8px 25px #0008}
       :root.soft98-pro-theme [data-soft98-pro-preview-panel][hidden],:root:not(.soft98-pro-theme) [data-soft98-pro-read-preview]{display:none!important}
-      @media(prefers-reduced-motion:reduce){:root.soft98-pro-theme details[data-soft98-pro-faq] > summary svg{transition:none}}
+      @media(prefers-reduced-motion:reduce){:root.soft98-pro-theme :is(details[data-soft98-pro-faq] > summary svg,[data-soft98-pro-page-icon=chevron]){transition:none}}
       :root.soft98-pro-theme [data-soft98-pro-heading-divider]{border-inline-start:0!important;padding-inline-start:14px!important;position:relative!important}
       :root.soft98-pro-theme [data-soft98-pro-heading-divider]::before{content:""!important;position:absolute!important;inset-inline-start:0!important;inset-block-start:50%!important;transform:translateY(-50%)!important;width:4px!important;height:1.15em!important;border:0!important;border-radius:3px!important;background:linear-gradient(180deg,var(--s98p-link),color-mix(in srgb,var(--s98p-link) 40%,var(--s98p-border)))!important;box-shadow:0 0 8px color-mix(in srgb,var(--s98p-link) 15%,transparent)!important;pointer-events:none!important}
       :root.soft98-pro-light{color-scheme:light;--s98p-bg:#e9eff2;--s98p-bg-2:#f2f6f8;--s98p-nav:#f5faf9;--s98p-surface:#fff;--s98p-surface-2:#edf4f5;--s98p-elevated:#e5f0f0;--s98p-soft:#deecee;--s98p-border:#a8bdc6;--s98p-border-soft:#d4e0e5;--s98p-text:#172e39;--s98p-muted:#435e6b;--s98p-faint:#556f7c;--s98p-accent:#087468;--s98p-accent-2:#8a5318;--s98p-link:#205b88;--s98p-danger:#a6294b;--s98p-control-bg:linear-gradient(180deg,#fff,#e9f3f4);--s98p-control-hover:linear-gradient(180deg,#f1faf9,#d7ebeb);--s98p-control-edge:#9cbac0;--s98p-control-shadow:0 1px #fff inset,0 1px 2px #14323f14;--s98p-light-shadow:0 8px 24px #153d4d14,0 1px 3px #153d4d0e}
@@ -1639,7 +1650,7 @@
       const to = opening ? bounds.height : summary.getBoundingClientRect().bottom - bounds.top +
         parseFloat(style.paddingBottom) + parseFloat(style.borderBottomWidth);
       const animation = details.animate([{ maxHeight: from + "px" }, { maxHeight: to + "px" }],
-        { duration: 190, easing: "cubic-bezier(.24,.76,.25,1)", fill: "forwards" });
+        { duration: 250, easing: "cubic-bezier(.24,.76,.25,1)", fill: "forwards" });
       faqAnimations.set(details, animation);
       animation.onfinish = () => {
         details.open = opening;
@@ -1649,6 +1660,69 @@
         animation.cancel();
       };
     });
+  }
+
+  function slideDisclosure(panel, opening, attribute, reveal, finish) {
+    const from = panel.getBoundingClientRect().height;
+    disclosureAnimations.get(panel)?.cancel();
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches || !panel.animate) {
+      panel.removeAttribute(attribute);
+      finish();
+      return;
+    }
+    panel.setAttribute(attribute, "");
+    reveal();
+    const to = opening ? Math.max(panel.getBoundingClientRect().height, panel.scrollHeight) : 0;
+    if (Math.abs(to - from) < 1) {
+      panel.removeAttribute(attribute);
+      finish();
+      return;
+    }
+    const animation = panel.animate([{ height: from + "px" }, { height: to + "px" }],
+      { duration: 265, easing: "cubic-bezier(.22,.74,.24,1)", fill: "both" });
+    disclosureAnimations.set(panel, animation);
+    animation.finished.then(() => {
+      if (disclosureAnimations.get(panel) !== animation) return;
+      finish();
+      panel.removeAttribute(attribute);
+      disclosureAnimations.delete(panel);
+      animation.cancel();
+    }, () => {});
+  }
+
+  function bindUtilityDisclosure(card) {
+    if (utilityDisclosures.has(card)) return;
+    const trigger = card.querySelector(':scope > footer[data-toggle="collapse"][aria-controls]');
+    const list = trigger && document.getElementById(trigger.getAttribute("aria-controls"));
+    const button = trigger?.querySelector("button");
+    if (!list?.matches("ul,ol") || !card.contains(list) || !button) return;
+
+    const setExpanded = (open) => {
+      trigger.setAttribute("aria-expanded", String(open));
+      button.setAttribute("aria-expanded", String(open));
+      list.setAttribute("data-soft98-pro-utility-extra", open ? "open" : "closed");
+    };
+    utilityDisclosures.set(card, true);
+    button.setAttribute("aria-controls", list.id);
+    decorateIcon(button, "chevron");
+    setExpanded(trigger.getAttribute("aria-expanded") === "true");
+    if (!button.hasAttribute("aria-label") && trigger.hasAttribute("aria-label")) button.setAttribute("aria-label", trigger.getAttribute("aria-label"));
+    trigger.addEventListener("click", (event) => {
+      if (!settings.pro) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      const open = trigger.getAttribute("aria-expanded") !== "true";
+      if (!open && list.contains(document.activeElement)) button.focus({ preventScroll: true });
+      list.inert = !open;
+      slideDisclosure(list, open, "data-soft98-pro-utility-motion", () => {
+        list.setAttribute("data-soft98-pro-utility-extra", "open");
+      }, () => {
+        list.inert = false;
+        setExpanded(open);
+      });
+      trigger.setAttribute("aria-expanded", String(open));
+      button.setAttribute("aria-expanded", String(open));
+    }, true);
   }
 
   function syncNativeNightMode() {
@@ -2845,6 +2919,7 @@
         const utilityCard = title === "لیستنرمافزارهایکاربردی";
         if (utilityCard) {
           card.setAttribute("data-soft98-pro-utility-card", "");
+          bindUtilityDisclosure(card);
           heading.closest("header").setAttribute("data-soft98-pro-utility-header", "");
           const clean = (heading.textContent || "").normalize("NFKC").replace(/\u0640/g, "").replace(/\s+/gu, " ").trim();
           if (clean !== heading.textContent) heading.textContent = clean;
@@ -3460,16 +3535,16 @@
       #soft98-pro-control[data-dragging=true]>[data-role=toggle]{cursor:grabbing;transform:scale(1.04);transition:none;box-shadow:0 4px 12px #0004!important}
       #soft98-pro-control>[data-role=toggle]:hover,#soft98-pro-control[data-open=true]>[data-role=toggle]{transform:translateY(-1px) scale(1.04);border-color:var(--c-accent)!important;background:var(--c-bg-raised)!important;box-shadow:0 14px 36px rgba(0,0,0,.38),0 0 0 4px var(--c-accent-soft)}
       #soft98-pro-control[data-theme=rgb]>[data-role=toggle]{border-color:transparent!important;background:linear-gradient(150deg,var(--c-bg-raised),var(--c-bg-soft)) padding-box,var(--s98p-neon-edge) border-box!important;box-shadow:0 14px 38px rgba(0,0,0,.55),0 0 26px var(--c-accent-soft)}
-      #soft98-pro-control .s98p-dock-target{position:absolute;inset:0;translate:var(--dock-x,0px) var(--dock-y,0px);box-sizing:border-box;border:2px dashed var(--c-accent);border-radius:50%;outline:4px solid var(--c-accent-soft);background:var(--c-accent-soft);pointer-events:none;z-index:-1}
+      #soft98-pro-control .s98p-dock-target{position:absolute;inset:-4px;box-sizing:border-box;border:2px dashed var(--c-accent);border-radius:50%;outline:3px solid var(--c-accent-soft);background:var(--c-accent-soft);pointer-events:none;z-index:-1;will-change:transform,opacity}
       #soft98-pro-control[data-gravity=true]>[data-role=toggle]{transform:none;scale:.9;border-color:var(--c-accent)!important;box-shadow:0 0 0 4px var(--c-accent-soft),0 4px 18px var(--c-accent-soft)!important}
-      #soft98-pro-control form{position:absolute;box-sizing:border-box;display:grid;grid-template-rows:auto auto auto auto minmax(0,1fr) auto;overflow:hidden;margin:0;padding:0;border:1px solid color-mix(in srgb,var(--c-accent) 42%,var(--c-border))!important;border-radius:8px;background:var(--c-bg)!important;background-image:linear-gradient(135deg,color-mix(in srgb,var(--c-accent) 4%,transparent),transparent 36%,color-mix(in srgb,var(--c-accent-2) 3%,transparent))!important;color:var(--c-text)!important;box-shadow:0 0 0 1px rgba(255,255,255,.045) inset,0 0 0 4px rgba(7,13,17,.55),0 30px 90px rgba(0,0,0,.58),0 0 36px color-mix(in srgb,var(--c-accent) 9%,transparent)!important;backdrop-filter:blur(28px) saturate(145%);transform-origin:left bottom;transform:translateY(7px) scale(.98);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s ease,transform .22s cubic-bezier(.2,.8,.2,1),visibility 0s linear .22s}
+      #soft98-pro-control form{position:absolute;box-sizing:border-box;display:grid;grid-template-rows:auto auto auto auto minmax(0,1fr) auto;overflow:hidden;margin:0;padding:0;border:1px solid color-mix(in srgb,var(--c-accent) 42%,var(--c-border))!important;border-radius:8px;background:var(--c-bg)!important;background-image:linear-gradient(135deg,color-mix(in srgb,var(--c-accent) 4%,transparent),transparent 36%,color-mix(in srgb,var(--c-accent-2) 3%,transparent))!important;color:var(--c-text)!important;box-shadow:0 0 0 1px rgba(255,255,255,.045) inset,0 0 0 4px rgba(7,13,17,.55),0 30px 90px rgba(0,0,0,.58),0 0 36px color-mix(in srgb,var(--c-accent) 9%,transparent)!important;backdrop-filter:blur(28px) saturate(145%);transform-origin:left bottom}
       #soft98-pro-control form:before{content:"";position:absolute;z-index:4;inset:0 0 auto;height:3px;background:linear-gradient(90deg,var(--c-accent),var(--c-accent-2),var(--c-accent));pointer-events:none}
       #soft98-pro-control form[dir=rtl]{text-align:right}
       #soft98-pro-control form[dir=ltr]{text-align:left}
       #soft98-pro-control form[data-align=right]{transform-origin:right bottom}
-      #soft98-pro-control form[data-opens=down]{transform:translateY(-7px) scale(.98);transform-origin:left top}
+      #soft98-pro-control form[data-opens=down]{transform-origin:left top}
       #soft98-pro-control form[data-align=right][data-opens=down]{transform-origin:right top}
-      #soft98-pro-control[data-open=true] form{opacity:1;visibility:visible;pointer-events:auto;transform:translateY(0) scale(1);transition:opacity .18s ease,transform .22s cubic-bezier(.2,.8,.2,1),visibility 0s}
+      #soft98-pro-control form[inert]{pointer-events:none}
       #soft98-pro-control[data-theme=rgb] form{border-color:transparent!important;background:linear-gradient(135deg,color-mix(in srgb,var(--c-accent) 5%,var(--c-bg-soft)),var(--c-bg-soft) 50%,color-mix(in srgb,var(--c-accent-2) 4%,var(--c-bg-soft))) padding-box,var(--s98p-neon-edge) border-box!important;box-shadow:0 0 0 1px rgba(255,255,255,.035) inset,0 0 0 4px rgba(0,0,0,.72),0 32px 94px rgba(0,0,0,.72),0 0 32px var(--c-accent-soft)!important}
       #soft98-pro-control[data-theme=rgb] form::before,#soft98-pro-control[data-theme=rgb] .s98p-tabs [aria-selected=true]::after{background:var(--s98p-neon-line)}
       #soft98-pro-control .s98p-console-header{position:relative;display:grid;grid-template-columns:46px minmax(0,1fr) auto 30px 30px;align-items:center;gap:8px;padding:17px 15px 14px;border-bottom:1px solid var(--c-border-soft);background:linear-gradient(180deg,color-mix(in srgb,var(--c-bg-raised) 88%,transparent),color-mix(in srgb,var(--c-bg) 92%,transparent));color:var(--c-text)}
@@ -3637,21 +3712,22 @@
     let position;
     let drag = null;
     const dockTarget = wrap.querySelector(".s98p-dock-target");
+    let guide = null;
     let dockAnimation = null;
     let dragFrame = 0;
     let suppressClick = false;
     let menuTrigger = null;
-    let closeTimer = 0;
+    let panelAnimation = null;
+    let panelDeadline = 0;
     const finishClose = () => {
-      clearTimeout(closeTimer);
-      closeTimer = 0;
+      clearTimeout(panelDeadline);
+      panelAnimation?.cancel();
+      panelAnimation = null;
       if (wrap.dataset.open !== "true") form.hidden = true;
     };
-    form.addEventListener("transitionend", (event) => {
-      if (event.target === form && event.propertyName === "visibility") finishClose();
-    }, { signal });
     signal.addEventListener("abort", () => {
-      clearTimeout(closeTimer);
+      clearTimeout(panelDeadline);
+      panelAnimation?.cancel();
       dockAnimation?.cancel();
       cancelAnimationFrame(dragFrame);
     }, { once: true });
@@ -3661,6 +3737,7 @@
       else {
         wrap.style.removeProperty("translate");
         dockTarget.hidden = true;
+        guide = null;
         delete wrap.dataset.gravity;
       }
       if (!form.hidden) placeControlSurface(form, position, viewport, 448, 720);
@@ -3688,26 +3765,31 @@
         updateLauncher();
       }
       if (!open && (moveFocus || form.contains(document.activeElement))) (requested.tucked ? restore : toggle).focus({ preventScroll: true });
+      const current = panelAnimation && getComputedStyle(form);
+      const from = current ? { opacity: current.opacity, transform: current.transform } : null;
+      clearTimeout(panelDeadline);
+      panelAnimation?.cancel();
+      panelAnimation = null;
       if (open) {
-        clearTimeout(closeTimer);
-        closeTimer = 0;
-        if (form.hidden) {
-          form.hidden = false;
-          layout();
-          // Establish the closed style before entering from display:none.
-          form.getBoundingClientRect();
-        } else layout();
+        form.hidden = false;
+        layout();
       }
       wrap.dataset.open = String(open);
       toggle.setAttribute("aria-expanded", String(open));
       form.setAttribute("aria-hidden", String(!open));
       form.inert = !open;
+      if (changing && !reduceMotion.matches) {
+        const rest = { opacity: 1, transform: "none" };
+        const tucked = { opacity: 0, transform: `translateY(${form.dataset.opens === "up" ? 15 : -15}px) scale(.94)` };
+        const animation = form.animate([from || (open ? tucked : rest), open ? rest : tucked],
+          { duration: open ? 280 : 220, easing: "cubic-bezier(.22,.74,.24,1)", fill: "both" });
+        panelAnimation = animation;
+        animation.finished.then(() => { if (panelAnimation === animation) finishClose(); }, () => {});
+        panelDeadline = setTimeout(finishClose, open ? 330 : 270);
+      } else if (!open) finishClose();
       if (open) {
         if (moveFocus) form.querySelector('[role="tab"][aria-selected="true"]').focus({ preventScroll: true });
         refreshControlTelemetry();
-      } else if (changing) {
-        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) finishClose();
-        else closeTimer = window.setTimeout(finishClose, 250);
       }
     };
     const openMenu = (trigger, last = false) => {
@@ -3728,12 +3810,15 @@
     const setReport = (open) => {
       if (open) fillControlReport(report.querySelector("[data-role='report-content']"));
       diagnostics.setAttribute("aria-expanded", String(open));
-      report.hidden = !open;
+      if (!open && report.contains(document.activeElement)) diagnostics.focus({ preventScroll: true });
+      slideDisclosure(report, open, "data-soft98-pro-report-motion", () => { report.hidden = false; },
+        () => { report.hidden = !open; });
+      report.inert = !open;
       if (open) reportTitle.focus();
     };
     const selectSection = (section, focus) => {
       if (!groups[section]) return;
-      if (!report.hidden) setReport(false);
+      if (diagnostics.getAttribute("aria-expanded") === "true") setReport(false);
       if (section !== controlSection) sectionScroll.set(controlSection, scroller.scrollTop);
       const changed = section !== controlSection;
       controlSection = section;
@@ -3768,32 +3853,47 @@
       drag.tuck = event.clientX <= viewport.left + 8 || event.clientX >= viewport.right - 8;
       wrap.dataset.dragging = "true";
       wrap.dataset.tuckPreview = String(drag.tuck);
-      if (!dragFrame) dragFrame = requestAnimationFrame(() => {
-        dragFrame = 0;
-        if (drag?.moved) renderDrag();
-      });
+      queueDragFrame();
     }, { signal });
-    const renderDrag = () => {
+    function queueDragFrame() {
+      if (!dragFrame) dragFrame = requestAnimationFrame((now) => {
+        dragFrame = 0;
+        if (drag?.moved) renderDrag(now);
+      });
+    }
+    const renderDrag = (now = performance.now(), settleGuide = true) => {
       const gravity = drag.tuck ? null : controlGravity(drag.point, viewport);
       const anchor = controlPoint(requested, viewport);
       position = controlPoint(gravity?.point || drag.point, viewport);
       wrap.style.translate = `${position.x - anchor.x}px ${position.y - anchor.y}px`;
       const { inlineEdge, blockEdge } = gravity?.target || {};
-      dockTarget.hidden = !(inlineEdge || blockEdge);
-      if (dockTarget.hidden) delete wrap.dataset.gravity;
+      const active = Boolean(inlineEdge || blockEdge);
+      if (!active) delete wrap.dataset.gravity;
       else wrap.dataset.gravity = "true";
-      if (!dockTarget.hidden) {
-        const bounds = controlBounds(viewport);
-        dockTarget.style.setProperty("--dock-x", `${inlineEdge ? bounds[inlineEdge] - position.x : 0}px`);
-        dockTarget.style.setProperty("--dock-y", `${blockEdge ? bounds[blockEdge] - position.y : 0}px`);
-      }
+      if (!active && !guide) return;
+      // Follow in viewport coordinates so movement of the launcher does not drag the guide along with it.
+      guide ||= { ...position, opacity: 0, scale: .78, time: now - 16 };
+      const target = controlPoint({ ...position, inlineEdge, blockEdge }, viewport);
+      const blend = reduceMotion.matches ? 1 : 1 - Math.exp(-Math.max(0, now - guide.time) / 68);
+      const approach = (value, goal, epsilon) => Math.abs(goal - value) < epsilon ? goal : value + (goal - value) * blend;
+      guide.x = approach(guide.x, target.x, .4);
+      guide.y = approach(guide.y, target.y, .4);
+      guide.opacity = approach(guide.opacity, active ? 1 : 0, .02);
+      guide.scale = approach(guide.scale, active ? 1 : .78, .01);
+      guide.time = now;
+      dockTarget.hidden = !active && guide.opacity === 0;
+      dockTarget.style.opacity = guide.opacity;
+      dockTarget.style.transform = `translate(${guide.x - position.x}px,${guide.y - position.y}px) scale(${guide.scale})`;
+      if (dockTarget.hidden) guide = null;
+      else if (settleGuide && (guide.x !== target.x || guide.y !== target.y || guide.opacity !== Number(active) ||
+          guide.scale !== (active ? 1 : .78))) queueDragFrame();
     };
     const finishDrag = (event, cancelled = false) => {
       if (!drag || drag.pointerId !== event.pointerId) return;
       if (dragFrame) {
         cancelAnimationFrame(dragFrame);
         dragFrame = 0;
-        if (!cancelled) renderDrag();
+        if (!cancelled) renderDrag(performance.now(), false);
       }
       const current = drag;
       drag = null;
@@ -3890,7 +3990,7 @@
       schedule(document);
       enqueueMicrotask(refreshControlTelemetry);
     }, { signal });
-    diagnostics.addEventListener("click", () => setReport(report.hidden), { signal });
+    diagnostics.addEventListener("click", () => setReport(diagnostics.getAttribute("aria-expanded") !== "true"), { signal });
     form.querySelector("[role='tablist']").addEventListener("click", (event) => {
       const tab = event.target.closest('[role="tab"]');
       if (tab) selectSection(tab.getAttribute("data-section"), true);

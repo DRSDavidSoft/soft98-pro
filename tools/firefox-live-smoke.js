@@ -288,6 +288,53 @@ async function main() {
           timings.shift > 1 || timings.scrollError > 1 || timings.sticky !== "static") {
         throw new Error("Interaction performance regression: " + JSON.stringify(timings));
       }
+      const disclosures = await post("/execute/async", { args: [], script: `
+        const done = arguments[0];
+        (async () => {
+          const testMotion = async (node, click, property, read) => {
+            const start = read();
+            click();
+            const animation = node.getAnimations().find(animation => property in animation.effect.getKeyframes()[0]);
+            if (!animation) return { animated:false };
+            animation.pause();
+            animation.currentTime = 0;
+            const first = read();
+            animation.currentTime = 100;
+            const middle = read();
+            animation.finish();
+            await animation.finished;
+            const end = read();
+            return { animated:true, start, first, middle, end, between: Math.min(first,end) < middle && middle < Math.max(first,end) };
+          };
+          const launcher = document.querySelector('#soft98-pro-control [data-role=toggle]');
+          const form = document.querySelector('#soft98-pro-console');
+          const opacity = () => form.hidden ? 0 : Number(getComputedStyle(form).opacity);
+          const panelOpening = await testMotion(form, () => launcher.click(), 'opacity', opacity);
+          const panelClosing = await testMotion(form, () => launcher.click(), 'opacity', opacity);
+          const utility = document.querySelector('nav [aria-haspopup=dialog]:has([data-soft98-pro-page-icon=grid])');
+          utility.click();
+          const dialog = document.querySelector('dialog[aria-labelledby=soft98-pro-utility-title]');
+          const list = dialog.querySelector('[data-soft98-pro-utility-extra]');
+          const button = dialog.querySelector('[data-soft98-pro-utility-card] > footer button');
+          const height = () => list.getBoundingClientRect().height;
+          const listOpening = await testMotion(list, () => button.click(), 'height', height);
+          const listRows = [...list.children].filter(row => row.getBoundingClientRect().height > 0);
+          const rowRange = listRows.at(-1)?.getBoundingClientRect().bottom - listRows[0]?.getBoundingClientRect().top;
+          const look = getComputedStyle(list);
+          const layout = { height: look.height, minHeight: look.minHeight, maxHeight: look.maxHeight, flex: look.flex,
+            inline:list.getAttribute('style'), state:list.getAttribute('data-soft98-pro-utility-extra') };
+          const listClosing = await testMotion(list, () => button.click(), 'height', height);
+          dialog.close();
+          done({ panelOpening, panelClosing, listOpening, listClosing, rows:listRows.length, rowRange, layout });
+        })().catch(error => done({ error:String(error) }));
+      ` });
+      if (!disclosures.panelOpening?.between || !disclosures.panelClosing?.between || !disclosures.listOpening?.between ||
+          !disclosures.listClosing?.between || disclosures.listOpening.start !== 0 || disclosures.listClosing.end !== 0 ||
+          disclosures.rows < 3 || disclosures.rowRange < disclosures.rows * 24 ||
+          disclosures.listOpening.end < disclosures.rowRange - 2) {
+        throw new Error("Disclosure motion regression: " + JSON.stringify(disclosures));
+      }
+      console.log(JSON.stringify({ disclosures }));
     }
     if (addon && process.env.SOFT98_RGB_CHECK === "1") {
       await evaluate(`
@@ -678,11 +725,16 @@ async function main() {
           requestAnimationFrame(() => {
             const pull = wrap.getBoundingClientRect().left - (x - 21);
             const guide = !marker.hidden && !!marker.getClientRects().length;
-            send(window,'pointercancel',x,42);
-            done({ pull, guide, cancelled: marker.hidden && Math.abs(wrap.getBoundingClientRect().left - 12) < 1 });
+            const first = marker.getBoundingClientRect();
+            requestAnimationFrame(() => requestAnimationFrame(() => {
+              const next = marker.getBoundingClientRect();
+              send(window,'pointercancel',x,42);
+              done({ pull, guide, travelled: next.right - first.right, grew: next.width > first.width,
+                cancelled: marker.hidden && Math.abs(wrap.getBoundingClientRect().left - 12) < 1 });
+            }));
           });
         ` });
-        if (gravity.pull < 8 || !gravity.guide || !gravity.cancelled) {
+        if (gravity.pull < 8 || !gravity.guide || gravity.travelled < 1 || !gravity.grew || !gravity.cancelled) {
           throw new Error("Launcher gravity failed: " + JSON.stringify(gravity));
         }
         console.log(JSON.stringify({ footer: darkFooter }));

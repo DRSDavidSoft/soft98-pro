@@ -61,7 +61,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Made F2 refocus an already open search and kept the discussion styling on read-only threads.
 - Clarified that the download group copy action copies direct links only.
 - Restored the Pro palette on the related-posts card, replacing the stock gray background.
-- Made the control center pull toward nearby edges while dragging and show where it will dock.
+- Animated the docking guide as it moves from the launcher toward the nearest edge.
+- Added smooth, reversible transitions to the control center, its technical report, and the expanded useful-software list.
 - Rebuilt the footer with solid theme colors, clearer project and support links, and quick access to settings and the top of the page.
 - Preserved dark surface gradients in RGB mode and added animated multicolor accents to the control center frame, launcher, tabs, navigation, and card headings.
 - Kept the article download tab usable when the site's tab handler fails, and restored the download list when its own wrapper was left hidden.
