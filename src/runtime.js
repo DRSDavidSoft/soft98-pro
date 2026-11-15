@@ -17,9 +17,11 @@
   const nativeEval = typeof window.eval === "function" ? window.eval : null;
   const nativeFetch = window.fetch ? window.fetch.bind(window) : null;
   const NativeStyleSheet = window.CSSStyleSheet;
-  const IS_EXTENSION = "__SOFT98_BUILD_TARGET__" === "extension";
+  const BUILD_TARGET = "__SOFT98_BUILD_TARGET__";
+  const IS_EXTENSION = BUILD_TARGET !== "userscript";
   const STORAGE_KEY = "soft98-ad-blocker.settings";
   const EXTENSION_REPO = "https://github.com/DRSDavidSoft/soft98-pro";
+  const COMMUNITY_URL = "https://t.me/PersianBlocker/1/27859";
   const COMPATIBILITY_ISSUE = `${EXTENSION_REPO}/issues/new?template=soft98-script-update.yml`;
   const CATALOG = __SOFT98_MESSAGES__;
   const COMPATIBILITY = __SOFT98_COMPATIBILITY__;
@@ -49,7 +51,6 @@
     utilityInHeader: true,
     quickNavigation: false,
     soundFeedback: false,
-    linkBadges: true,
     pirateLogo: true,
     taunt: false,
     diagnostics: true,
@@ -732,7 +733,7 @@
     }
     for (const node of nodes) {
       const removable = adRemovalRoot(node);
-      if (removable?.isConnected && !containsKeyedDownloadList(removable)) {
+      if (removable?.isConnected && !isProtectedContentContainer(removable)) {
         const advertiser = isIranicardBanner(node) ? "Iranicard" : undefined;
         removable.remove();
         stats.adsRemoved += 1;
@@ -767,8 +768,8 @@
 
   function isProtectedContentContainer(element) {
     if (!element || !element.querySelectorAll) return false;
-    if (element.matches("html,body,main,article,#content,#main,.content,.main,.entry,.post,.download-list,.download-list-item")) return true;
-    if (element.querySelector("main,article,#content,#main,.content,.main,.entry,.post,.download-list,.download-list-item")) return true;
+    const boundaries = "main,article,[role=main],[role=tabpanel],#content,#main,.content,.main,.entry,.post,.download-list,.download-list-item";
+    if (element.matches("html,body," + boundaries) || element.querySelector(boundaries)) return true;
     if (containsKeyedDownloadList(element)) return true;
     const links = element.querySelectorAll("a[href]");
     if (links.length >= 5) return true;
@@ -929,7 +930,6 @@
         if (document.contains(link)) restoreLink(link);
         else trackedLinks.delete(link);
       }
-      applyLinkBadges();
       announceSuccess();
       refreshControlTelemetry();
     });
@@ -1110,7 +1110,6 @@
       :root.soft98-pro-theme article [data-soft98-pro-download-group] [data-soft98-pro-download-row]:active{background-color:color-mix(in srgb,var(--s98p-accent) 16%,var(--s98p-surface))!important}
       .soft98-pro-theme [data-soft98-pro-download-row] > *{pointer-events:none}
       .soft98-pro-theme [data-soft98-pro-download-row] > [data-soft98-pro-page-icon]{grid-column:1;grid-row:1;margin:0}
-      .soft98-pro-theme [data-soft98-pro-download-row] > .soft98-pro-link-badge{grid-column:2;justify-self:start;margin:0}
       :root.soft98-pro-theme dd:has(> [data-soft98-pro-download-manager=file]){display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px}
       :root.soft98-pro-theme dd[data-soft98-pro-download-collapsed]:has(> [data-soft98-pro-download-manager=file]){display:none!important}
       :root:not(.soft98-pro-theme) [data-soft98-pro-download-manager]{display:none!important}
@@ -1215,7 +1214,6 @@
       .soft98-pro-theme img{filter:saturate(.96) contrast(1.02)}
       .soft98-pro-theme pre,.soft98-pro-theme code{background:#071018!important;border-color:var(--s98p-border)!important;color:#d8f8ff!important}
       .soft98-pro-theme ::selection{background:rgba(116,224,176,.32);color:#fff}
-      .soft98-pro-link-badge{display:inline-block;white-space:nowrap;word-break:normal;overflow-wrap:normal;margin-inline-start:.45em;padding:.12em .45em;border:1px solid rgba(112,225,178,.42);border-radius:999px;color:#baffd8;background:rgba(112,225,178,.12);font-size:.78em;vertical-align:middle}
       .soft98-pro-compact [data-soft98-pro-layout=content-grid]{display:grid!important;grid-template-columns:minmax(0,2fr) minmax(270px,1fr)!important;align-items:start!important;gap:18px!important}
       @media(min-width:821px){
         .soft98-pro-compact [data-soft98-pro-layout=content-grid]>[data-soft98-pro-column]{grid-row:1!important}
@@ -1271,7 +1269,6 @@
       :root.soft98-pro-rgb :is([role=tab][aria-selected=true],[data-toggle=tab][aria-expanded=true],[data-soft98-pro-tab-active=true],[aria-current=page]){background:linear-gradient(160deg,color-mix(in srgb,var(--s98p-neon) 11%,var(--s98p-elevated)),color-mix(in srgb,var(--s98p-neon-2) 8%,var(--s98p-bg-2)))!important;border-color:var(--s98p-neon)!important;color:#f3f6f7!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--s98p-neon) 28%,transparent) inset,0 0 18px var(--s98p-neon-soft)!important}
       .soft98-pro-rgb img:not([data-soft98-brand-kind]){filter:saturate(.18) brightness(.72) contrast(1.08)!important;transition:filter .2s ease}
       .soft98-pro-rgb a:hover img:not([data-soft98-brand-kind]){filter:saturate(.38) brightness(.82) contrast(1.08)!important}
-      .soft98-pro-rgb .soft98-pro-link-badge{border-color:var(--s98p-neon);background:#0c0f10;box-shadow:0 0 16px var(--s98p-neon-soft)}
       :root.soft98-pro-theme{--s98p-control-bg:linear-gradient(180deg,#253341,#1a2430);--s98p-control-hover:linear-gradient(180deg,#344757,#233342);--s98p-control-edge:#415265;--s98p-control-shadow:0 1px 0 #ffffff12 inset,0 2px 4px #0004}
       @media(min-width:821px){:root.soft98-pro-scroll-width{overflow-anchor:none}}
       :root.soft98-pro-rgb{--s98p-control-bg:linear-gradient(180deg,#191d20,#0b0d0e);--s98p-control-hover:linear-gradient(180deg,#21262a,#15191b);--s98p-control-edge:#343c41}
@@ -1395,7 +1392,6 @@
       :root.soft98-pro-light [role=alert]{background:#fff4db!important;border-color:#e1bd78!important;color:#664214!important}
       :root.soft98-pro-light :is(pre,code){background:#e8f1f4!important;color:#244958!important}
       :root.soft98-pro-light ::selection{background:#bce6de;color:#123b38}
-      :root.soft98-pro-light .soft98-pro-link-badge{background:#e1f5ef;color:#0d574f;border-color:#9acabd}
       :root.soft98-pro-light [data-soft98-pro-dialog],:root.soft98-pro-light [data-soft98-pro-native-dialog]::backdrop{background:#223c5147!important}
       :root.soft98-pro-light [data-soft98-pro-dialog-panel]{box-shadow:0 20px 60px #16283936,0 1px #fff inset!important}
       @media(max-width:560px){:root.soft98-pro-theme [data-soft98-pro-nav-item=icon]{width:clamp(32px,9vw,40px);margin-inline:1px}}
@@ -1420,12 +1416,17 @@
     const element = asElement(root) || document;
     const surfaces = [];
     if (element.matches && element.matches("header,nav,main,article,aside,section,footer,form,table,[role]")) surfaces.push(element);
-    if (element.querySelectorAll) surfaces.push(...element.querySelectorAll("header,nav,main,article,aside,section,footer,form,table,[role],div"));
+    if (element.querySelectorAll) surfaces.push(...element.querySelectorAll("header,nav,main,article,aside,section,footer,form,table,[role],div,blockquote"));
     for (const node of surfaces) {
       if (node.closest("#soft98-pro-control,#soft98-extension-recommendation,#soft98-ad-blocker-taunt")) continue;
       const box = visibleBox(node);
       if (box.width < 120 || box.height < 28 || box.width * box.height < 4200) continue;
-      const background = colorMetrics(getComputedStyle(node).backgroundColor);
+      const backgroundColor = getComputedStyle(node).backgroundColor;
+      const background = colorMetrics(backgroundColor);
+      if (/^rgb\((37|38), \1, \1\)$/.test(backgroundColor) && node.matches("main,article,article :is(div,section,blockquote), main > section")) {
+        if (!node.hasAttribute("data-soft98-pro-surface")) node.setAttribute("data-soft98-pro-surface", "raised");
+        continue;
+      }
       if (!background || background.alpha < 0.45 || (document.documentElement.classList.contains("soft98-pro-light")
         ? background.luminance > 0.24 : background.luminance < 0.55)) continue;
       node.setAttribute("data-soft98-pro-surface", node.matches("nav,[role=navigation]") ? "nav" : "raised");
@@ -2246,7 +2247,8 @@
     resources.append(node("strong", "", "resources"), action("source", "github", EXTENSION_REPO),
       action("releases", "history", EXTENSION_REPO + "/releases"));
     const support = node("div", "s98p-footer-links");
-    support.append(node("strong", "", "support"), action("report", "external", EXTENSION_REPO + "/issues"));
+    support.append(node("strong", "", "support"), action("community", "message", COMMUNITY_URL),
+      action("report", "external", EXTENSION_REPO + "/issues"));
     main.append(brand, resources, support);
     const end = node("div", "s98p-footer-end");
     const version = node("bdi", "s98p-footer-version");
@@ -2368,9 +2370,10 @@
 
   function enhanceDownloadSections() {
     const panes = new Set();
-    for (const list of document.querySelectorAll("article [role=tabpanel] dl:has(> dt):has(> dd > a[href])")) {
+    for (const list of document.querySelectorAll("article [role=tabpanel] dl:has(> dt):has(> dd > a:is([href],[data-key]))")) {
       if (!list.hasAttribute("data-soft98-pro-download-group") &&
-          ![...list.querySelectorAll(":scope > dd > a[href]")].some((link) => directDownloadUrl(link.getAttribute("href")) ||
+          ![...list.querySelectorAll(":scope > dd > a:is([href],[data-key])")].some((link) => directDownloadUrl(link.getAttribute("href")) ||
+            (list.hasAttribute("data-json") && link.hasAttribute("data-key")) ||
             /^(?:دانلود|download)/i.test(normalizedPersian(link.textContent || "")))) continue;
       list.setAttribute("data-soft98-pro-download-group", "");
       const pane = list.closest("[role=tabpanel]");
@@ -2384,7 +2387,8 @@
           if (node.hasAttribute("data-soft98-pro-download-recovery")) continue;
           const style = getComputedStyle(node);
           if (style.display === "none" || style.contentVisibility === "hidden" || style.pointerEvents === "none" ||
-              style.visibility === "hidden" || Number(style.opacity) === 0) {
+              style.visibility === "hidden" || Number(style.opacity) === 0 ||
+              (/^(?:hidden|clip)$/.test(style.overflowY) && (style.height === "0px" || style.maxHeight === "0px"))) {
             node.setAttribute("data-soft98-pro-download-recovery", type);
           }
         }
@@ -2402,7 +2406,7 @@
           if (icon) decorateIcon(label, icon);
         } else if (item.tagName === "DD") {
           entries.push(item);
-          const links = item.querySelectorAll(":scope > a[href]");
+          const links = item.querySelectorAll(":scope > a:is([href],[data-key])");
           if (links.length !== 1) continue;
           const [link] = links;
           item.setAttribute("data-soft98-pro-download-entry", "");
@@ -2544,7 +2548,7 @@
     meta.setAttribute("data-soft98-pro-download-meta", "");
     copy.setAttribute("data-soft98-pro-download-copy", "");
     for (const child of [...link.childNodes]) {
-      if (child.matches?.("[data-soft98-pro-page-icon],.soft98-pro-link-badge")) continue;
+      if (child.matches?.("[data-soft98-pro-page-icon]")) continue;
       title.append(child);
     }
     const inlineSize = extractInlineDownloadSize(title) || previous?.inlineSize || originalSize;
@@ -2554,8 +2558,7 @@
     }
     link.setAttribute("data-soft98-pro-download-row", "");
     copy.append(title, meta);
-    const badge = link.querySelector(":scope > .soft98-pro-link-badge");
-    link.insertBefore(copy, badge);
+    link.append(copy);
     downloadRows.set(link, { copy, title, meta, url: url?.href, inlineSize });
     if (url && !url.search && (url.origin === location.origin || url.hostname.endsWith(".soft98.ir")) && "IntersectionObserver" in window) {
       downloadObserver ||= new IntersectionObserver((entries) => {
@@ -3253,18 +3256,6 @@
     ctx.closePath();
   }
 
-  function applyLinkBadges() {
-    if (!settings.pro || !settings.linkBadges) return;
-    for (const link of trackedLinks) {
-      if (!document.contains(link) || link.querySelector(".soft98-pro-link-badge")) continue;
-      const badge = document.createElement("span");
-      badge.className = "soft98-pro-link-badge";
-      badge.textContent = text("ready");
-      localizeElement(badge);
-      link.appendChild(badge);
-    }
-  }
-
   function restoreOriginalLogo() {
     for (const [logo, original] of originalLogos) {
       if (original.attributes) {
@@ -3625,7 +3616,7 @@
     wrap.dataset.open = "false";
     const groups = {
       protection: ["blockAds", "patchScripts"],
-      experience: ["pro", "darkDesign", "rgbMode", "compactLayout", "expandMain", "quickNavigation", "showLatest", "hideAnnoyances", "utilityInHeader", "linkBadges", "pirateLogo"],
+      experience: ["pro", "darkDesign", "rgbMode", "compactLayout", "expandMain", "quickNavigation", "showLatest", "hideAnnoyances", "utilityInHeader", "pirateLogo"],
       advanced: ["taunt", "soundFeedback", "diagnostics", "recommendExtension"],
       ...(IS_EXTENSION ? { downloads: [] } : {}),
     };
@@ -4607,7 +4598,7 @@
   function neutralizeScript(script) {
     if (!isSoft98Script(script)) return;
     const src = script.src || script.getAttribute("src") || "";
-    if (SOFT98_SCRIPT.test(src) && !settings.patchScripts) return;
+    if (SOFT98_SCRIPT.test(src) && (!settings.patchScripts || BUILD_TARGET !== "extension")) return;
     script.setAttribute(DATA_PATCHED, "1");
     script.type = "javascript/blocked-by-soft98-ad-blocker";
     script.removeAttribute("src");
@@ -4940,15 +4931,27 @@
     }
   }
 
-  exposePublicApi();
-  init();
-  bindSiteChromeEvents();
-  document.addEventListener("scroll", scheduleContentGridUpdate, { passive: true });
-  window.addEventListener("resize", () => {
-    sidebarContentsDirty = true;
-    scheduleContentGridUpdate();
-  }, { passive: true });
-  document.addEventListener("focusin", scheduleContentGridUpdate);
-  window.setTimeout(exposePublicApi, 0);
-  window.setTimeout(exposePublicApi, 1000);
+  function start() {
+    exposePublicApi();
+    init();
+    bindSiteChromeEvents();
+    document.addEventListener("scroll", scheduleContentGridUpdate, { passive: true });
+    window.addEventListener("resize", () => {
+      sidebarContentsDirty = true;
+      scheduleContentGridUpdate();
+    }, { passive: true });
+    document.addEventListener("focusin", scheduleContentGridUpdate);
+    window.setTimeout(exposePublicApi, 0);
+    window.setTimeout(exposePublicApi, 1000);
+  }
+
+  if (document.documentElement) start();
+  else {
+    const root = new MutationObserver(() => {
+      if (!document.documentElement) return;
+      root.disconnect();
+      start();
+    });
+    root.observe(document, { childList: true });
+  }
 })();

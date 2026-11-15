@@ -223,9 +223,6 @@ if (!background.includes("soft98-release-check") || !background.includes('origin
 if (!background.includes("soft98CompatibilityStatus") || !background.includes("crypto.subtle") || !background.includes("soft98:inspect-script")) {
   throw new Error("Background service-worker compatibility monitor is missing");
 }
-if (!background.includes("soft98:get-upstream-script") || !background.includes("soft98UpstreamSourceCache") || !background.includes("updateEnabledRulesets")) {
-  throw new Error("Background service-worker application gateway is missing");
-}
 const bridge = fs.readFileSync(path.join(DIST, "chromium", "assets", "bridge.js"), "utf8");
 const optionsUi = fs.readFileSync(path.join(DIST, "chromium", "options.js"), "utf8");
 if (!bridge.includes("data-soft98-pro-upstream-payload") || /soft98-pro-upstream-payload[^\n]{0,80}\.id/.test(bridge)) {
@@ -234,15 +231,12 @@ if (!bridge.includes("data-soft98-pro-upstream-payload") || /soft98-pro-upstream
 if (!optionsUi.includes("safeExternalUrl") || !optionsUi.includes("STRINGS.en.options.options")) {
   throw new Error("Extension options must sanitize update destinations and safely fall back to English labels");
 }
-if (!chromium.permissions.includes("declarativeNetRequestWithHostAccess") || !chromium.declarative_net_request) {
-  throw new Error("Chromium build must intercept parser-inserted Soft98 application scripts");
+if (chromium.permissions.some((permission) => permission.startsWith("declarativeNetRequest")) ||
+    chromium.declarative_net_request || fs.existsSync(path.join(DIST, "chromium", "assets", "upstream-gateway.js"))) {
+  throw new Error("Chromium must leave parser-inserted scripts in native loading order");
 }
-const gatewayRules = JSON.parse(fs.readFileSync(path.join(DIST, "chromium", "rules.json"), "utf8"));
-if (gatewayRules.length !== 1 || gatewayRules[0].action.redirect.extensionPath !== "/assets/upstream-gateway.js" || !/jquery/.test(gatewayRules[0].condition.regexFilter)) {
-  throw new Error("Chromium application gateway rules are incomplete");
-}
-if (!fs.existsSync(path.join(DIST, "chromium", "assets", "upstream-gateway.js")) || !fs.existsSync(path.join(DIST, "firefox", "assets", "upstream-gateway.js"))) {
-  throw new Error("Application gateway is not packaged for both browsers");
+if (!fs.existsSync(path.join(DIST, "firefox", "assets", "upstream-gateway.js"))) {
+  throw new Error("Firefox's application gateway is not packaged");
 }
 if (/radial-gradient|conic-gradient|createElement\(["']div["']\)[\s\S]{0,180}soft98-pro-ambient/.test(themeSource) || !/soft98-pro-neon/.test(themeSource)) {
   throw new Error("RGB mode must animate existing neon accents without an ambient radial layer");

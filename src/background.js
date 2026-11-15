@@ -126,14 +126,6 @@
 
   function syncInterceptionRules(enabled) {
     modificationEngineEnabled = Boolean(enabled);
-    if (!api.declarativeNetRequest || !api.declarativeNetRequest.updateEnabledRulesets) return;
-    ignore(call(api.declarativeNetRequest, "updateEnabledRulesets", modificationEngineEnabled ? {
-      enableRulesetIds: ["soft98_upstream_gateway"],
-      disableRulesetIds: [],
-    } : {
-      enableRulesetIds: [],
-      disableRulesetIds: ["soft98_upstream_gateway"],
-    }));
   }
 
   async function checkRelease() {
@@ -291,7 +283,7 @@
   api.alarms.onAlarm.addListener((alarm) => {
     if (alarm && alarm.name === ALARM_NAME) ignore(checkRelease());
   });
-  if (!api.declarativeNetRequest && api.webRequest && api.webRequest.onBeforeRequest) {
+  if (api.runtime.getManifest().manifest_version === 2 && api.webRequest?.onBeforeRequest) {
     api.webRequest.onBeforeRequest.addListener(
       (details) => modificationEngineEnabled && details.tabId >= 0 && supportedScriptUrl(details.url) ? { redirectUrl: UPSTREAM_GATEWAY } : {},
       { urls: ["*://*.soft98.ir/templates/*"], types: ["script"] },
@@ -360,6 +352,7 @@
       return true;
     }
     if (message.type === "soft98:get-upstream-script") {
+      if (api.runtime.getManifest().manifest_version !== 2) return false;
       upstreamScriptPayload(message.url, Boolean(message.force))
         .then(sendResponse)
         .catch((error) => sendResponse({ ok: false, error: String(error && error.message ? error.message : error) }));

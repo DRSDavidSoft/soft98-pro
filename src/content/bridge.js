@@ -14,7 +14,6 @@
     utilityInHeader: true,
     quickNavigation: false,
     soundFeedback: false,
-    linkBadges: true,
     pirateLogo: true,
     taunt: false,
     diagnostics: true,
@@ -174,8 +173,10 @@
     applySettings(next);
   });
   readSettings(applySettings);
-  installScriptDiscovery();
-  document.addEventListener("soft98-pro:request-upstream-script", requestPatchedUpstream);
+  if (api.runtime.getManifest().manifest_version === 2) {
+    installScriptDiscovery();
+    document.addEventListener("soft98-pro:request-upstream-script", requestPatchedUpstream);
+  }
 
   document.addEventListener("soft98-pro:settings-changed", () => {
     try {

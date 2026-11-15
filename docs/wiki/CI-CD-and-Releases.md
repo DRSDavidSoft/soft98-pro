@@ -12,6 +12,8 @@ Soft98 Pro treats release packaging and upstream compatibility as separate conce
 
 An unfamiliar hash creates or updates a structured GitHub issue and fails the compatibility gate until the revision has been unpacked, compared, patched, and tested. The installed extension performs the same fingerprint check in its background worker and offers a fail-safe choice when an unfamiliar script appears.
 
+To triage a new report, run `node tools/check-soft98-upstream.js --check --audit --capture`. Add `--page <article-url>` to inspect a particular article. The command saves the exact response as `dist/upstream-source.txt` and its URL, SHA-256, applied patches, and parse failures as `dist/compatibility-report.json`. The audit parses the packed text without executing the site code. The scheduled workflow attaches the same evidence; a hash match does not substitute for browser testing.
+
 ## Repository Health and Security
 
 `🛡️ Soft98 Pro · Repository Health` validates required policy files, release documentation, action pins, issue-evidence policy, workflow syntax, and whitespace. `🛡️ Soft98 Pro · CodeQL` analyzes both the JavaScript project and GitHub Actions workflows.

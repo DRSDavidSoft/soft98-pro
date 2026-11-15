@@ -6,6 +6,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+### Added
+
+- Added a Telegram community link for questions and support.
+
+### Fixed
+
+- Restored downloads in Chrome when the site left the list clipped to zero height.
+- Replaced legacy gray article callouts with the Pro palette.
+
+### Removed
+
+- Removed the Ready badge so preserving or recovering a link no longer makes its download row taller.
+
 ## [1.2.2] - 2026-11-14
 
 ### Fixed

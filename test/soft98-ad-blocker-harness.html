@@ -236,6 +236,7 @@
           downloadArticle.setAttribute("data-test", "download-article");
           downloadArticle.dir = "rtl";
           downloadArticle.innerHTML =
+            '<div data-test="legacy-article-callout" style="background:#252525;min-height:48px"><p>An editorial callout must stay visible and use the theme palette.</p></div>' +
             '<details><summary>پرسش درباره anydesk ( windows )</summary><p>پاسخ</p></details>' +
             '<div role="tabpanel"><dl><dt><span>نسخه windows</span></dt>' +
             '<dd><a data-test="download-copy" href="/files/AnyDesk.9.8.3.zip">دانلود ( official link ) ، <span>حجم <strong>1,200</strong> مگابایت</span></a></dd>' +
@@ -257,7 +258,7 @@
             '<li><a role="tab" data-toggle="tab" aria-controls="harness.downloads" href="#harness.downloads" aria-selected="false">Downloads</a></li>' +
             '</ul><div><div role="tabpanel" id="harness.requirements">Requirements</div>' +
             '<div role="tabpanel" id="harness.downloads" aria-hidden="true" style="display:none;opacity:0">' +
-            '<div id="harness-gate" style="display:none"><span data-target="#harness-gate" style="opacity:0;pointer-events:none">' +
+            '<div id="harness-gate"><span data-target="#harness-gate" style="display:block;max-height:0;overflow:hidden">' +
             '<p role="alert">افزونه حذف تبلیغات را غیرفعال کنید</p><dl data-json="{}"><dt>Windows</dt>' +
             '<dd><a data-key="test-key" href="/file/sample.zip" target="_blank">Download ZIP</a></dd></dl></span></div>' +
             '<div data-test="unrelated-hidden" style="display:none">Unrelated hidden content</div></div></div>';

@@ -69,6 +69,9 @@
 }
 
 :root.soft98-pro-theme article [data-soft98-pro-content-pane="active"] [data-soft98-pro-download-recovery] {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
   visibility: visible !important;
   opacity: 1 !important;
   pointer-events: auto !important;

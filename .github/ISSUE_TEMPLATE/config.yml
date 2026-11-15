@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Telegram community
+    url: https://t.me/PersianBlocker/1/27859
+    about: Ask questions, chat with other users, or get help with Soft98 Pro.
   - name: Security vulnerability
     url: https://github.com/DRSDavidSoft/soft98-pro/security/advisories/new
     about: Report security vulnerabilities privately.

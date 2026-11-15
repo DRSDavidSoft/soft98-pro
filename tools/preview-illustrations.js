@@ -30,7 +30,6 @@ const scenes = {
     box(173, 54, 48, 63)) + line(on ? "M181 60h32m-32 13h25m-25 13h27" : "M182 69h27m-27 14h23m-23 14h27", on ? colors.mint : colors.ink, 3),
   hideAnnoyances: (on) => download(true, 51) + (on ? line("M52 101h149", colors.border, 2) :
     box(44, 92, 168, 26, "#543d2c") + line("M58 99v6m0 5h.1M70 105h115", colors.gold, 3)),
-  linkBadges: (on) => download(on) + (on ? check(177, 91) : "") + line("M48 60h102", colors.sky, 3),
   taunt: (on) => article(37, 52, 132, 66) + (on ? box(135, 92, 86, 29, "#235a51", colors.mint) + check(146, 106) +
     line("M173 107h34", colors.mint, 3) : ""),
   diagnostics: (on) => box(37, 52, 182, 68, "#0c1722", colors.border) +

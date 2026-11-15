@@ -213,6 +213,8 @@ window.Soft98AdBlocker.stats
 
 ## 📚 مستندات
 
+برای سؤال، راهنمای نصب یا گپ با بقیه، بیا به [گفت‌وگوهای تلگرام](https://t.me/PersianBlocker/1/27859). اگه به مشکلی برخوردی که می‌شه دوباره دیدش، توی [گیت‌هاب](https://github.com/DRSDavidSoft/soft98-pro/issues) گزارش بده.
+
 - [خانهٔ ویکی](docs/wiki/fa/Home.md)
 - [راهنمای نصب](docs/wiki/fa/Installation.md)
 - [فرق یوزراسکریپت و افزونه](docs/wiki/fa/Userscript-vs-Extension.md)

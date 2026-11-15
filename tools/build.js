@@ -70,6 +70,7 @@ const PAGE_ICONS = Object.fromEntries(Object.entries({
   grid: "outline/layout-grid", arrow: "outline/arrow-left", github: "outline/brand-github",
   settings: "outline/settings", history: "outline/history", external: "outline/external-link",
   news: "outline/news", rss: "outline/rss", twitter: "filled/brand-twitter", anchor: "outline/anchor", up: "outline/arrow-up",
+  message: "outline/brand-telegram",
   facebook: "filled/brand-facebook", instagram: "outline/brand-instagram",
   ...UTILITY_CATALOG.genericIcons,
 }).map(([key, name]) => [key, fs.readFileSync(path.join(TABLER_ROOT, "icons", name + ".svg"), "utf8")
@@ -151,7 +152,7 @@ function sourceReplacements(target) {
   }));
   const replacements = {
     __SOFT98_BUILD_TARGET__: target,
-    __SOFT98_RECOMMEND_EXTENSION__: target === "extension" ? "false" : "true",
+    __SOFT98_RECOMMEND_EXTENSION__: target === "userscript" ? "true" : "false",
     __SOFT98_VERSION__: VERSION,
     __SOFT98_MESSAGES__: JSON.stringify(MESSAGES),
     __SOFT98_COMPATIBILITY__: JSON.stringify(COMPATIBILITY),
@@ -233,7 +234,7 @@ function chromiumManifest() {
   return {
     manifest_version: 3,
     ...commonManifest,
-    permissions: ["storage", "tabs", "alarms", "scripting", "webRequest", "declarativeNetRequestWithHostAccess", "downloads"],
+    permissions: ["storage", "tabs", "alarms", "scripting", "webRequest", "downloads"],
     host_permissions: [
       "*://*.soft98.ir/*",
       "https://github.com/DRSDavidSoft/soft98-pro/releases/*",
@@ -242,12 +243,8 @@ function chromiumManifest() {
       "https://objects.githubusercontent.com/*",
     ],
     background: { service_worker: "assets/background.js" },
-    declarative_net_request: {
-      rule_resources: [{ id: "soft98_upstream_gateway", enabled: true, path: "rules.json" }],
-    },
     action: { default_title: "__MSG_extensionName__", default_popup: "popup.html", default_icon: TOOLBAR_ICONS },
     options_page: "options.html",
-    web_accessible_resources: [{ resources: ["assets/upstream-gateway.js"], matches: ["*://*.soft98.ir/*"] }],
     content_scripts: [
       {
         matches: ["*://*.soft98.ir/*"],
@@ -372,20 +369,6 @@ async function zipDirectory(source, output) {
   }
 }
 
-function chromiumRules() {
-  return [{
-    id: 1,
-    priority: 1,
-    action: { type: "redirect", redirect: { extensionPath: "/assets/upstream-gateway.js" } },
-    condition: {
-      regexFilter: "^https?://([^/]+\\.)?soft98\\.ir/templates/.*/(application\\.min\\.packed|jquery(-v[^/?#]+)?(\\.min\\.packed)?)\\.js([?#].*)?$",
-      isUrlFilterCaseSensitive: false,
-      initiatorDomains: ["soft98.ir"],
-      resourceTypes: ["script"],
-    },
-  }];
-}
-
 async function buildTarget(name, manifest) {
   const target = path.join(DIST, name);
   mkdir(path.join(target, "assets"));
@@ -403,14 +386,13 @@ async function buildTarget(name, manifest) {
     ["user-origin.css", "early-ads.css"].map(file => fs.readFileSync(path.join(SRC, file), "utf8")).join("\n"));
   copyFile(path.join(SRC, "early-ads.css"), path.join(target, "assets", "early-ads.css"));
   await minifyFile(path.join(SRC, "release-client.js"), path.join(target, "assets", "release-client.js"));
-  await minifySource(runtimeSource("extension"), path.join(target, "assets", "runtime.page.js"));
+  await minifySource(runtimeSource(name === "chromium" ? "chromium" : "extension"), path.join(target, "assets", "runtime.page.js"));
   const backgroundPrefix = name === "chromium" ? 'importScripts("release-client.js");\n' : "";
   const queue = fs.readFileSync(path.join(SRC, "download-queue.js"), "utf8");
   await minifySource(backgroundPrefix + queue + "\n" + applyReplacements(fs.readFileSync(path.join(SRC, "background.js"), "utf8"), "extension"), path.join(target, "assets", "background.js"));
   await minifyFile(path.join(SRC, "content", "bridge.js"), path.join(target, "assets", "bridge.js"));
-  await minifyFile(path.join(SRC, "content", "upstream-gateway.js"), path.join(target, "assets", "upstream-gateway.js"));
-  if (name === "chromium") writeJson(path.join(target, "rules.json"), chromiumRules());
   if (name === "firefox") {
+    await minifyFile(path.join(SRC, "content", "upstream-gateway.js"), path.join(target, "assets", "upstream-gateway.js"));
     await minifyFile(path.join(SRC, "content", "firefox-injector.js"), path.join(target, "assets", "firefox-injector.js"));
   }
   await zipDirectory(target, path.join(DIST, "packages", `soft98-pro-${name}-${VERSION}.zip`));

@@ -16,7 +16,7 @@ test("both built extensions package the internal manager without exposing it to 
     const read = (file) => fs.readFileSync(path.join(DIST, target, file), "utf8");
     const manifest = JSON.parse(read("manifest.json"));
     assert.ok(manifest.permissions.includes("downloads"));
-    assert.ok(!JSON.stringify(manifest.web_accessible_resources).includes("downloads"));
+    assert.ok(!JSON.stringify(manifest.web_accessible_resources || []).includes("downloads"));
     assert.match(read("popup.html"), /href="downloads\.html"/);
     assert.match(read("options.html"), /href="downloads\.html"/);
     assert.match(read("downloads.html"), /src="downloads\.js"/);

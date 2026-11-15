@@ -225,6 +225,8 @@ Use `Soft98Pro.inspectedRoles()` in DevTools to see readable page roles alongsid
 
 ## 📚 Documentation
 
+Questions, setup help, and chat: [Telegram community](https://t.me/PersianBlocker/1/27859). Please keep reproducible bug reports on [GitHub Issues](https://github.com/DRSDavidSoft/soft98-pro/issues).
+
 - [Wiki Home](docs/wiki/Home.md): overview and documentation navigation.
 - [Installation](docs/wiki/Installation.md): installation for every supported browser.
 - [Userscript vs Extension](docs/wiki/Userscript-vs-Extension.md): detailed format comparison.

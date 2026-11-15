@@ -8,7 +8,6 @@
       },
       "runtime": {
         "product": "Soft98 Pro",
-        "ready": "ready",
         "blockAds": "Block ads",
         "patchScripts": "Patch Soft98 code",
         "pro": "Enable Pro",
@@ -35,9 +34,8 @@
         "controlRestore": "Restore launcher",
         "controlResetPosition": "Reset launcher position",
         "navLabels": {"menu":"Menu","moon":"Toggle dark mode","bell":"Download notice","mail":"Messages","author":"Account","search":"Search"},
-        "footer": {"brand":"Soft98 Pro","tagline":"Appearance and download tools","resources":"Project","source":"Source code","releases":"Versions and updates","support":"Support","settings":"Open control center","report":"Report a problem","independent":"Independent project","top":"Back to top"},
+        "footer": {"brand":"Soft98 Pro","tagline":"Appearance and download tools","resources":"Project","source":"Source code","releases":"Versions and updates","support":"Support","settings":"Open control center","report":"Report a problem","community":"Telegram community","independent":"Independent project","top":"Back to top"},
         "rgbMode": "Animated RGB mode",
-        "linkBadges": "Download badges",
         "pirateLogo": "Pirate logo",
         "taunt": "Success notification",
         "diagnostics": "Console diagnostics",
@@ -99,10 +97,6 @@
           "utilityInHeader": {"title":"Useful software in the top bar","detail":"Move the utility list out of the sidebar and open it from the top bar."},
           "quickNavigation": {"title":"Quick browsing","detail":"Load software lists without reloading the page. Articles still open normally."},
           "soundFeedback": {"title":"Interface sounds","detail":"Play a short, quiet sound when you use a control."},
-          "linkBadges": {
-            "title": "Download recovery badges",
-            "detail": "Identify links that Soft98 Pro preserved or restored."
-          },
           "showLatest": {
             "title": "Show latest posts and news",
             "detail": "Keep the latest software, Android posts, and news at the top of the page."
@@ -217,7 +211,6 @@
           "showLatest": ["Show latest posts and news", "Show the software, Android, and news lists at the top of the page."],
           "hideAnnoyances": ["Hide extra site prompts", "Hide the utility-list expansion prompt and the offer to install software for you."],
           "rgbMode": ["Animated RGB mode", "Add a restrained spectral glass experience with efficient motion and reduced-motion support."],
-          "linkBadges": ["Download badges", "Mark recovered download links."],
           "pirateLogo": ["Pirate logo", "Use the bundled pirate logo after successful cleanup."],
           "taunt": ["Success notification", "Briefly show a message after cleanup. Off by default."],
           "diagnostics": ["Console diagnostics", "Expose useful logs and interactive page APIs."]
@@ -231,7 +224,6 @@
       },
       "runtime": {
         "product": "Soft98 Pro",
-        "ready": "آماده",
         "blockAds": "حذف تبلیغات",
         "patchScripts": "اصلاح کد Soft98",
         "pro": "فعال‌سازی Pro",
@@ -258,9 +250,8 @@
         "controlRestore": "برگرداندن دکمهٔ مرکز کنترل",
         "controlResetPosition": "برگرداندن دکمه به جای اول",
         "navLabels": {"menu":"منو","moon":"تغییر حالت تیره","bell":"اطلاعیهٔ دانلود","mail":"پیام‌ها","author":"حساب کاربری","search":"جست‌وجو"},
-        "footer": {"brand":"سافت‌۹۸ پرو","tagline":"یکی از تبلیغ‌دار ترین مراجع نرم‌افزاری در ایران","resources":"پروژه","source":"کد پروژه","releases":"نسخه‌ها و به‌روزرسانی‌ها","support":"پشتیبانی","settings":"باز کردن مرکز کنترل","report":"گزارش مشکل","independent":"پروژهٔ مستقل","top":"بالای صفحه"},
+        "footer": {"brand":"سافت‌۹۸ پرو","tagline":"یکی از تبلیغ‌دار ترین مراجع نرم‌افزاری در ایران","resources":"پروژه","source":"کد پروژه","releases":"نسخه‌ها و به‌روزرسانی‌ها","support":"پشتیبانی","settings":"باز کردن مرکز کنترل","report":"گزارش مشکل","community":"گفت‌وگو در تلگرام","independent":"پروژهٔ مستقل","top":"بالای صفحه"},
         "rgbMode": "حالت RGB متحرک",
-        "linkBadges": "نشان لینک دانلود",
         "pirateLogo": "لوگوی دزدان دریایی",
         "taunt": "پیام موفقیت",
         "diagnostics": "گزارش کنسول",
@@ -322,10 +313,6 @@
           "utilityInHeader": {"title":"نرم‌افزارهای کاربردی در نوار بالا","detail":"لیست را از ستون کناری بردار و از نوار بالا باز کن."},
           "quickNavigation": {"title":"مرور سریع","detail":"لیست نرم‌افزارها بدون بارگیری دوبارهٔ صفحه باز می‌شه. مطالب مثل قبل باز می‌شن."},
           "soundFeedback": {"title":"صدای دکمه‌ها","detail":"هنگام استفاده از دکمه‌ها، یک صدای کوتاه و ملایم پخش شود."},
-          "linkBadges": {
-            "title": "نشان بازیابی دانلود",
-            "detail": "لینک‌هایی را که Soft98 Pro حفظ یا بازیابی کرده مشخص می‌کند."
-          },
           "showLatest": {
             "title": "نمایش تازه‌ها و اخبار",
             "detail": "فهرست تازه‌های نرم‌افزار، اندروید و اخبار را بالای صفحه نشان بده."
@@ -440,7 +427,6 @@
           "showLatest": ["تازه‌ها و اخبار", "نمایش تازه‌های نرم‌افزار، اندروید و اخبار بالای صفحه"],
           "hideAnnoyances": ["پنهان‌کردن گزینه‌های اضافه", "دکمهٔ ادامهٔ لیست کاربردی و پیشنهاد نصب نرم‌افزار پنهان می‌شن."],
           "rgbMode": ["افکت RGB متحرک", "لبه‌ها و رنگ‌های حالت تیره آروم تغییر می‌کنن."],
-          "linkBadges": ["نشان لینک دانلود", "لینک‌هایی که دوباره فعال شدن یه نشان می‌گیرن."],
           "pirateLogo": ["لوگوی دزدان دریایی", "بعد از حذف تبلیغات، لوگوی پرو جای لوگوی سایت رو می‌گیره."],
           "taunt": ["پیام موفقیت", "بعد از حذف تبلیغات، یه پیام کوتاه می‌بینی. این گزینه به‌طور پیش‌فرض خاموشه."],
           "diagnostics": ["گزارش فنی در کنسول", "گزارش و ابزارهای بررسی در کنسول مرورگر"]

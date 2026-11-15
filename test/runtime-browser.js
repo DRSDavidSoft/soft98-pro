@@ -286,6 +286,12 @@ async function main() {
       await client.send("Page.navigate", { url: `http://127.0.0.1:${PORT}/?${query}` });
       const results = await waitForResults(client);
       assertCase(name, results, expected);
+      const calloutTheme = await evaluate(client, `(() => {
+        const box = document.querySelector('[data-test=legacy-article-callout]');
+        return box.getAttribute('data-soft98-pro-surface') === 'raised' &&
+          getComputedStyle(box).backgroundColor !== 'rgb(37, 37, 37)' && box.getBoundingClientRect().height > 0;
+      })()`);
+      assertEqual(name, "article callout uses the Pro palette", calloutTheme, true);
       if (name === "default-dark") {
         const earlyCheck = await evaluate(client, "firstPaintCheck");
         for (const key of ["loading", "bannerHidden", "cardHidden", "editorialVisible", "settingRespected"]) {
@@ -495,7 +501,8 @@ async function main() {
             const state = () => ({
               selected: downloads.getAttribute('aria-selected') === 'true',
               visible: Boolean(link.getClientRects().length) && getComputedStyle(link).pointerEvents !== 'none' &&
-                getComputedStyle(link.closest('[data-target]')).opacity === '1',
+                getComputedStyle(link.closest('[data-target]')).opacity === '1' &&
+                link.closest('[data-target]').getBoundingClientRect().height >= link.getBoundingClientRect().height,
               mislabeled: pane.getAttribute('aria-hidden') === 'true',
               notWarning: !pane.querySelector('[role=alert]'),
               unrelatedHidden: !pane.querySelector('[data-test=unrelated-hidden]').getClientRects().length,
@@ -541,37 +548,34 @@ async function main() {
           return {idle,direct,stable,middle,unrelated};
         })()`);
         for (const [key, value] of Object.entries(feedback)) assertEqual("download activation", key, value, true);
-        const recoveryBadge = await evaluate(client, `(async () => {
+        const recovery = await evaluate(client, `(async () => {
           const row = document.querySelector('[data-test=direct-download]');
           const entry = row.closest('dd');
-          // Make this existing download eligible for the runtime's preservation badge.
-          row.classList.add('download-list-link');
+          const expected = row.href;
+          const waitFor = async test => {
+            for (let i = 0; i < 20 && !test(); i++) await new Promise(resolve => requestAnimationFrame(resolve));
+          };
           entry.style.inlineSize = '164px';
-          entry.style.overflowWrap = 'anywhere';
+          const originalHeight = row.getBoundingClientRect().height;
+          row.classList.add('download-list-link');
           Soft98Pro.scan();
-          for (let i = 0; i < 20 && !row.querySelector('.soft98-pro-link-badge'); i++) {
-            await new Promise(resolve => requestAnimationFrame(resolve));
-          }
-          const badge = row.querySelector(':scope > .soft98-pro-link-badge');
-          if (!badge) throw new Error('Ready badge did not render');
-          const range = document.createRange();
-          range.selectNodeContents(badge);
-          const copy = row.querySelector('[data-soft98-pro-download-copy]').getBoundingClientRect();
-          const icon = row.querySelector('[data-soft98-pro-page-icon]').getBoundingClientRect();
-          const box = badge.getBoundingClientRect();
+          await waitFor(() => row.getAttribute('data-soft98-adblocker-href') === expected);
+          const preserved = row.getAttribute('data-soft98-adblocker-href') === expected;
+          row.removeAttribute('href');
+          Soft98Pro.scan();
+          await waitFor(() => row.href === expected);
           const result = {
-            text: badge.textContent,
-            oneLine: range.getClientRects().length === 1,
-            besideIcon: copy.left - 1 <= box.left && box.right <= copy.right + 1 && box.right <= icon.left + 1,
-            rowFits: box.bottom <= row.getBoundingClientRect().bottom + 1,
+            preserved,
+            restored: row.href === expected && row.getAttribute('data-soft98-adblocker-state') === 'restored',
+            noBadge: !row.querySelector('.soft98-pro-link-badge'),
+            stableHeight: row.getBoundingClientRect().height === originalHeight,
+            noSetting: !document.querySelector('#soft98-pro-control input[name=linkBadges]'),
           };
           entry.style.removeProperty('inline-size');
-          entry.style.removeProperty('overflow-wrap');
           row.classList.remove('download-list-link');
           return result;
         })()`);
-        assertEqual("download badge", "Persian label", recoveryBadge.text, "آماده");
-        for (const key of ["oneLine", "besideIcon", "rowFits"]) assertEqual("download badge", key, recoveryBadge[key], true);
+        for (const [key, value] of Object.entries(recovery)) assertEqual("download recovery without badge", key, value, true);
         const controls = await evaluate(client, `
           (async () => {
             const article = document.querySelector('[data-test="download-article"]');
@@ -790,6 +794,30 @@ async function main() {
       if (await evaluate(client, "document.title").catch(() => "") === "Full-page fallback") break;
       if (attempt === 29) throw new Error("Unsupported AJAX response did not fall back to ordinary navigation");
       await delay(100);
+    }
+    const userscript = fs.readFileSync(path.join(ROOT, "soft98-pro.user.js"), "utf8");
+    const { identifier } = await client.send("Page.addScriptToEvaluateOnNewDocument", {
+      source: `window.__soft98HadRootAtStart = Boolean(document.documentElement);\n${userscript}`,
+    });
+    try {
+      const fallbackUrl = new URL(await evaluate(client, "location.href"));
+      fallbackUrl.searchParams.set("document-start", "1");
+      await client.send("Page.navigate", { url: fallbackUrl.href });
+      for (let attempt = 0; attempt < 30; attempt += 1) {
+        const result = await evaluate(client, `[
+          location.search,
+          window.__soft98HadRootAtStart,
+          document.documentElement?.hasAttribute("data-soft98-runtime-ready")
+        ]`).catch(() => []);
+        if (result[0] === "?document-start=1" && result[2]) {
+          assertEqual("userscript", "runs before the document root exists", result[1], false);
+          break;
+        }
+        if (attempt === 29) throw new Error("Userscript did not initialize after the document root appeared");
+        await delay(100);
+      }
+    } finally {
+      await client.send("Page.removeScriptToEvaluateOnNewDocument", { identifier });
     }
     console.log("Soft98 runtime browser acceptance passed");
   } finally {
