@@ -1,0 +1,12 @@
+[
+  { "name": "🧪 status: ready to test", "color": "FBCA04", "description": "A preview build is available for testing" },
+  { "name": "✅ status: verified", "color": "1B7430", "description": "The fix was verified on the reported path" },
+  { "name": "🗃️ status: superseded", "color": "B8C4CE", "description": "Replaced by another issue or pull request" },
+  { "name": "⬇️ area: downloads", "color": "006D77", "description": "Download links, metadata, and the download manager" },
+  { "name": "🧩 area: extension", "color": "1D76DB", "description": "Chromium, Edge, Brave, or Firefox extension behavior" },
+  { "name": "📜 area: userscript", "color": "5319E7", "description": "Userscript installation, startup, and behavior" },
+  { "name": "🎨 area: appearance", "color": "E996BD", "description": "Themes, visual layout, and interface polish" },
+  { "name": "📦 area: release", "color": "F9D0C4", "description": "Release preparation, packaging, and distribution" },
+  { "name": "compatibility", "color": "0E8A16", "description": "🧬 Compatibility with upstream scripts, browsers, or filter lists" },
+  { "name": "upstream-change", "color": "B60205", "description": "📡 A new Soft98 script revision needs review" }
+]
