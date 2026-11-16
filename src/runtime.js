@@ -5070,6 +5070,25 @@
     surface.dataset.align = alignRight ? "right" : "left";
   }
 
+  function placeHeaderMenu(menu, trigger, wrap, viewport) {
+    const { margin } = controlBounds(viewport);
+    const anchor = trigger.getBoundingClientRect();
+    const origin = wrap.getBoundingClientRect();
+    const gap = 6;
+    const width = Math.min(246, viewport.width - 2 * margin);
+    const above = Math.max(0, anchor.top - viewport.top - margin - gap);
+    const below = Math.max(0, viewport.bottom - margin - anchor.bottom - gap);
+    menu.style.width = `${width}px`;
+    menu.style.maxHeight = `${Math.min(220, Math.max(above, below))}px`;
+    const height = menu.getBoundingClientRect().height;
+    const opensBelow = below >= height || below >= above;
+    const aligned = menu.dir === "rtl" ? anchor.left : anchor.right - width;
+    const left = Math.max(viewport.left + margin, Math.min(aligned, viewport.right - margin - width));
+    menu.style.left = `${left - origin.left}px`;
+    menu.style.top = `${(opensBelow ? anchor.bottom + gap : anchor.top - gap - height) - origin.top}px`;
+    menu.style.bottom = "auto";
+  }
+
   function controlPatchCount() {
     return stats.patches.reduce((total, entry) => total + (Array.isArray(entry && entry.patches) ? entry.patches.length : 0), 0);
   }
@@ -5222,7 +5241,7 @@
             <small>${escapeHtml(text("controlSubtitle"))}</small>
           </span>
           <span class="s98p-version" dir="ltr">${escapeHtml(VERSION)}</span>
-          <button type="button" data-role="options" aria-haspopup="menu" aria-expanded="false" aria-controls="soft98-pro-launcher-menu" aria-label="${escapeHtml(text("controlLauncherMenu"))}" title="${escapeHtml(text("controlLauncherMenu"))}"><span aria-hidden="true"></span></button>
+          <button type="button" data-role="options" aria-haspopup="menu" aria-expanded="false" aria-controls="soft98-pro-launcher-menu" aria-label="${escapeHtml(text("controlLauncherMenu"))}" title="${escapeHtml(text("controlLauncherMenu"))}"><span aria-hidden="true">${PAGE_ICONS.dots}</span></button>
           <button type="button" data-role="close" aria-label="${escapeHtml(text("close"))}" title="${escapeHtml(text("close"))}"><span aria-hidden="true"></span></button>
         </header>
         <section class="s98p-status" aria-live="polite">
@@ -5350,7 +5369,7 @@
       #soft98-pro-control .s98p-version{padding:3px 7px;border:1px solid var(--c-border-soft);border-radius:999px;background:var(--c-bg-soft);color:var(--c-muted);font:600 10px/1.2 ui-monospace,monospace}
       #soft98-pro-control :is([data-role=close],[data-role=options]){position:relative;display:grid;place-items:center;width:30px;height:30px;margin:0;padding:0;border:0!important;border-radius:6px;background:transparent!important;background-image:none!important;color:var(--c-muted)!important;cursor:pointer}
       #soft98-pro-control :is([data-role=close],[data-role=options]):hover,#soft98-pro-control [data-role=options][aria-expanded=true]{background:var(--c-accent-soft)!important;color:var(--c-text)!important;transform:none!important}
-      #soft98-pro-control [data-role=options] span{width:3px;height:3px;border-radius:50%;background:currentColor;box-shadow:-5px 0 currentColor,5px 0 currentColor}
+      #soft98-pro-control [data-role=options] svg{display:block;width:20px;height:20px;pointer-events:none}
       #soft98-pro-control [data-role=close] span:before,#soft98-pro-control [data-role=close] span:after{content:"";position:absolute;top:14px;left:8px;width:14px;height:1.5px;border-radius:2px;background:currentColor}
       #soft98-pro-control [data-role=close] span:before{transform:rotate(45deg)}
       #soft98-pro-control [data-role=close] span:after{transform:rotate(-45deg)}
@@ -5541,11 +5560,17 @@
     let menuTrigger = null;
     let panelAnimation = null;
     let panelDeadline = 0;
+    const layoutMenu = () => {
+      if (menu.hidden || !menuTrigger) return;
+      if (menuTrigger === options) placeHeaderMenu(menu, options, wrap, viewport);
+      else placeControlSurface(menu, position, viewport, 246, 220);
+    };
     const finishClose = () => {
       clearTimeout(panelDeadline);
       panelAnimation?.cancel();
       panelAnimation = null;
       if (wrap.dataset.open !== "true") form.hidden = true;
+      else if (menuTrigger === options) layoutMenu();
     };
     signal.addEventListener("abort", () => {
       clearTimeout(panelDeadline);
@@ -5563,7 +5588,7 @@
         delete wrap.dataset.gravity;
       }
       if (!form.hidden) placeControlSurface(form, position, viewport, 448, 720);
-      if (!menu.hidden) placeControlSurface(menu, position, viewport, 246, 220);
+      layoutMenu();
     };
     const updateLauncher = () => {
       toggle.hidden = requested.tucked;
@@ -5620,8 +5645,9 @@
       }
     };
     const openMenu = (trigger, last = false) => {
+      hidePreview();
       menuTrigger = trigger;
-      options.setAttribute("aria-expanded", "true");
+      options.setAttribute("aria-expanded", String(trigger === options));
       menu.hidden = false;
       layout();
       menuItems[last ? menuItems.length - 1 : 0].focus();
@@ -5790,6 +5816,7 @@
       }, { signal });
     }
     options.addEventListener("click", () => menu.hidden ? openMenu(options) : closeMenu(true), { signal });
+    form.addEventListener("scroll", () => { if (menuTrigger === options) closeMenu(true); }, { passive: true, signal });
     menu.addEventListener("keydown", (event) => {
       const current = menuItems.indexOf(event.target);
       let next;
