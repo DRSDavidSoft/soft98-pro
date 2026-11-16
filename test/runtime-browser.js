@@ -1116,7 +1116,11 @@ async function verifyAppearanceBridge(client) {
       const roles = ["action", "info", "success", "warning", "danger", "related"];
       const contrast = roles.every(role => (luminance(value(role + "-wash")) + .05) / (luminance(value(role)) + .05) >= 4.5);
       const center = getComputedStyle(document.getElementById("soft98-pro-control"));
-      return neutral && contrast && value("focus") !== value("action") && new Set(roles.map(value)).size === roles.length &&
+      const depth = ["canvas", "raised", "field", "paper"].map(name => luminance(value(name)));
+      const focusContrast = (depth[0] + .05) / (luminance(value("focus")) + .05);
+      return neutral && contrast && depth.every((level, i) => i === 0 || level > depth[i - 1]) &&
+        depth[3] - depth[0] >= .1 && focusContrast >= 3 && value("focus") !== value("action") &&
+        new Set(roles.map(value)).size === roles.length &&
         center.getPropertyValue("--c-bg").trim() === value("field");
     })()`));
   } finally {
@@ -1259,17 +1263,17 @@ async function verifyThemeRestore(client) {
       check(mode + " uses one solid fill across the article title and metadata", await run(`(() => {
         const styles = ["[data-soft98-pro-article-header]","[data-soft98-pro-article-meta]"]
           .map(selector => getComputedStyle(document.querySelector(selector)));
-        return styles.every(style => style.backgroundImage === "none" && style.backgroundColor === "rgb(245, 245, 247)");
+        return styles.every(style => style.backgroundImage === "none" && style.backgroundColor === "rgb(240, 239, 235)");
       })()`), true);
-      check(mode + " keeps the page backdrop and cards white", await run(`
-        getComputedStyle(document.body).backgroundColor === "rgb(255, 255, 255)" &&
-        getComputedStyle(document.querySelector("article")).backgroundColor === "rgb(255, 255, 255)"`), true);
-      await until('getComputedStyle(document.querySelector("[data-soft98-pro-footer] .s98p-footer-brand button")).backgroundColor === "rgb(48, 52, 58)"');
+      check(mode + " separates the mineral backdrop from the lighter article", await run(`
+        getComputedStyle(document.body).backgroundColor === "rgb(233, 234, 231)" &&
+        getComputedStyle(document.querySelector("article")).backgroundColor === "rgb(251, 250, 247)"`), true);
+      await until('getComputedStyle(document.querySelector("[data-soft98-pro-footer] .s98p-footer-brand button")).backgroundColor === "rgb(48, 53, 49)"');
       check(mode + " gives the light footer a graphite rule and neutral action", await run(`(() => {
         const footer = document.querySelector("[data-soft98-pro-footer]");
         return [getComputedStyle(footer.querySelector(".s98p-footer-frame")).borderTopColor,
           getComputedStyle(footer.querySelector(".s98p-footer-brand button")).backgroundColor].join("|");
-      })()`), "rgb(49, 58, 63)|rgb(48, 52, 58)");
+      })()`), "rgb(48, 53, 49)|rgb(48, 53, 49)");
       check(mode + " gives alert types distinct, readable colors", await run(`(() => {
         const styles = ["warning","danger","success"].map(kind => getComputedStyle(document.querySelector(".alert-" + kind)));
         const luminance = color => color.match(/[0-9]+/g).slice(0,3).map(Number)
@@ -1695,8 +1699,8 @@ async function verifyWideLayout(client) {
     const activeTab = `(() => {
       const tab = document.querySelector('[data-s98p-latest-topic][aria-selected="true"]');
       const style = tab && getComputedStyle(tab);
-      return style?.backgroundColor === "rgb(235, 235, 239)" &&
-        style.boxShadow.includes("inset") && style.color === "rgb(36, 37, 43)" &&
+      return style?.backgroundColor === "rgb(232, 232, 226)" &&
+        style.boxShadow.includes("inset") && style.color === "rgb(37, 40, 36)" &&
         style.getPropertyValue("--tab-ink").trim() === ({software:"#1e5a8a",android:"#0a6b46",news:"#32616a"})[tab.dataset.s98pLatestTopic];
     })()`;
     await until(activeTab);
@@ -2201,11 +2205,11 @@ function assertCase(name, results, expected) {
       if (/radial-gradient|conic-gradient/i.test(results.rgbBackgroundImage || "")) throw new Error(`${name}: RGB mode reintroduced an ambient radial background`);
     }
   } else {
-    assertEqual(name, "light tab card", results.tabTheme.cardBackground, "rgb(255, 255, 255)");
+    assertEqual(name, "light tab card", results.tabTheme.cardBackground, "rgb(251, 250, 247)");
     assertEqual(name, "light tab structure", results.tabTheme.cardSurface, "tab-card");
     assertEqual(name, "light color scheme", results.colorScheme, "light");
-    assertEqual(name, "light control panel", results.controlBackground, "rgb(247, 249, 244)");
-    assertEqual(name, "light control text", results.controlForeground, "rgb(32, 46, 36)");
+    assertEqual(name, "light control panel", results.controlBackground, "rgb(247, 247, 244)");
+    assertEqual(name, "light control text", results.controlForeground, "rgb(37, 40, 36)");
   }
 }
 
@@ -2759,13 +2763,13 @@ async function main() {
           const source = document.querySelector('[data-soft98-pro-password]');
           const input = source.querySelector('input');
           const copy = document.querySelector('[data-soft98-pro-password-actions] button');
-          const toast = document.querySelector('[data-soft98-pro-copy-toast]');
-          const message = toast.querySelector('[data-role=message]');
           const originalCopy = document.execCommand;
           document.execCommand = command => command === 'copy';
           try {
             source.setAttribute('data-text_success', 'First server-provided instruction');
             copy.click();
+            const toast = document.querySelector('[data-soft98-pro-copy-toast]');
+            const message = toast.querySelector('[data-role=message]');
             const first = message.textContent;
             source.setAttribute('data-text-success', 'Updated server-provided instruction');
             copy.click();

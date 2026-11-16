@@ -5788,6 +5788,7 @@
       #soft98-pro-control form[data-opens=down]{transform-origin:left top}
       #soft98-pro-control form[data-align=right][data-opens=down]{transform-origin:right top}
       #soft98-pro-control form[inert]{pointer-events:none}
+      #soft98-pro-control[data-theme=light] form{background-image:none!important;box-shadow:0 0 0 1px var(--c-bg-raised) inset,0 14px 36px #21282026,0 3px 8px #21282014!important}
       #soft98-pro-control[data-theme=rgb] form{border-color:transparent!important;background:linear-gradient(135deg,color-mix(in srgb,var(--c-accent) 5%,var(--c-bg-soft)),var(--c-bg-soft) 50%,color-mix(in srgb,var(--c-accent-2) 4%,var(--c-bg-soft))) padding-box,var(--s98p-neon-edge) border-box!important;box-shadow:0 0 0 1px rgba(255,255,255,.035) inset,0 0 0 4px rgba(0,0,0,.72),0 32px 94px rgba(0,0,0,.72),0 0 32px var(--c-accent-soft)!important}
       #soft98-pro-control[data-theme=rgb] form::before,#soft98-pro-control[data-theme=rgb] .s98p-tabs [aria-selected=true]::after{background:var(--s98p-neon-line)}
       #soft98-pro-control .s98p-console-header{position:relative;display:grid;grid-template-columns:46px minmax(0,1fr) auto 30px 30px;align-items:center;gap:8px;padding:17px 15px 14px;border-bottom:1px solid var(--c-border-soft);background:linear-gradient(180deg,color-mix(in srgb,var(--c-bg-raised) 88%,transparent),color-mix(in srgb,var(--c-bg) 92%,transparent));color:var(--c-text)}

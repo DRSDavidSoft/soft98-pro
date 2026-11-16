@@ -1704,6 +1704,10 @@
   color: var(--s98p-muted) !important;
 }
 
+:root.soft98-pro-light article > [data-soft98-pro-article-meta] {
+  border-block-end-color: var(--s98p-border-soft) !important;
+}
+
 :root.soft98-pro-light [data-soft98-pro-heading-divider]::before {
   background: var(--s98p-heading-mark,var(--s98p-day-action)) !important;
   box-shadow: none !important;
@@ -1716,6 +1720,10 @@
 
 :root.soft98-pro-light [data-soft98-pro-tech-news] [data-soft98-pro-latest-header="news"] {
   background: var(--s98p-day-raised) !important;
+}
+
+:root.soft98-pro-light [data-soft98-pro-page-surface][data-soft98-pro-latest-frame] {
+  box-shadow: var(--s98p-day-shadow) !important;
 }
 
 :root.soft98-pro-light [data-soft98-pro-tech-news] [data-soft98-pro-news-title] > [data-soft98-pro-page-icon] {
@@ -2064,6 +2072,10 @@
   background: var(--callout-fill) !important;
 }
 
+:root.soft98-pro-light [data-soft98-pro-callout="notice"]:has([data-soft98-pro-faq]) {
+  --callout-fill: color-mix(in srgb,var(--s98p-day-info-wash) 30%,var(--s98p-surface-2));
+}
+
 :root.soft98-pro-light [data-soft98-pro-callout="quote"] {
   --callout-accent: var(--s98p-day-related);
   --callout-fill: var(--s98p-day-related-wash);
@@ -2361,7 +2373,11 @@
   --foot-action: var(--s98p-day-action);
   --foot-action-ink: var(--s98p-day-paper);
   --foot-crest: var(--s98p-day-raised);
-  --foot-crest-ink: #313a3f;
+  --foot-crest-ink: var(--s98p-day-action);
+}
+
+:root.soft98-pro-light [data-soft98-pro-footer] .s98p-footer-frame {
+  box-shadow: var(--s98p-day-shadow);
 }
 
 :root.soft98-pro-rgb [data-soft98-pro-footer] {
