@@ -538,7 +538,7 @@ async function verifyTopbar(client) {
 async function verifyLinkdoni(client) {
   const run = expression => evaluate(client, expression);
   await client.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 850, deviceScaleFactor: 1, mobile: false });
-  await client.send("Page.navigate", { url: `http://127.0.0.1:${PORT}/test/linkdoni.html` });
+  await client.send("Page.navigate", { url: `http://127.0.0.1:${PORT}/page/1/` });
   try {
     for (let attempt = 0; attempt < 35; attempt++) {
       if (await run('Boolean(document.querySelector("[data-s98p-ld-story]"))').catch(() => false)) break;
@@ -549,7 +549,8 @@ async function verifyLinkdoni(client) {
     check("preserves original story links, targets, and ordered dates", await run(`(() => {
       const links = [...document.querySelectorAll("[data-s98p-ld-story]")];
       return links.map(a => a.getAttribute("href")).join(",") === "/link-42.html,/link-41.html,/link-40.html" &&
-        links[0].target === "_blank" && document.querySelectorAll("[data-s98p-ld-date-group]").length === 2;
+        links[0].target === "_blank" && document.querySelectorAll("[data-s98p-ld-date-group]").length === 2 &&
+        getComputedStyle(links[1].querySelector("[data-s98p-ld-story-title]")).textAlign === "right";
     })()`));
     check("preserves the searchable form and real page links", await run(`(() => {
       const input = document.querySelector("[data-s98p-ld-query]");
@@ -562,6 +563,28 @@ async function verifyLinkdoni(client) {
     check("centers the feed independently of the original wrapper width", await run(`(() => {
       const box = document.querySelector("[data-s98p-ld-frame]").getBoundingClientRect();
       return Math.abs(box.left + box.right - document.documentElement.clientWidth) < 2;
+    })()`));
+    check("uses Persian digits and a bordered count pill", await run(`(() => {
+      const badge = document.querySelector("[data-s98p-ld-count]");
+      return badge.textContent === "۳ لینک" && getComputedStyle(badge).borderRadius === "20px" &&
+        [...document.querySelector("[data-s98p-ld-pages]").children].map(x => x.textContent).join("") === "۱۲۳";
+    })()`));
+    check("the control stays fixed while scrolling past the initial viewport", await run(`(() => {
+      const dock = document.getElementById("soft98-pro-control");
+      const y = dock.getBoundingClientRect().top;
+      scrollTo(0, 580);
+      return scrollY > 350 && Math.abs(dock.getBoundingClientRect().top - y) < 1;
+    })()`));
+    await run('document.querySelector("[data-s98p-ld-date-group]").focus()');
+    await client.send("Input.dispatchKeyEvent", { type: "keyDown", key: " ", code: "Space", text: " ", windowsVirtualKeyCode: 32 });
+    await client.send("Input.dispatchKeyEvent", { type: "keyUp", key: " ", code: "Space", windowsVirtualKeyCode: 32 });
+    check("keyboard collapse hides only its own date and reopening restores it", await run(`(() => {
+      const toggle = document.querySelector("[data-s98p-ld-date-group]");
+      const stories = [...document.querySelectorAll("[data-s98p-ld-story]")];
+      const closed = toggle.getAttribute("aria-expanded") === "false" &&
+        stories.map(a => Boolean(a.getClientRects().length)).join() === "false,false,true";
+      toggle.click();
+      return closed && toggle.getAttribute("aria-expanded") === "true" && stories.every(a => a.getClientRects().length);
     })()`));
     const storyBackground = 'getComputedStyle(document.querySelector("[data-s98p-ld-story]")).backgroundColor';
     const darkBackground = await run(storyBackground);
@@ -576,7 +599,46 @@ async function verifyLinkdoni(client) {
     })()`));
     await run('restoreLinkdoni()');
     check("stock branding is restored when disabled", await run(`getComputedStyle(document.querySelector("[data-s98p-ld-brand-original]")).display !== "none" &&
-      getComputedStyle(document.querySelector("[data-s98p-ld-identity]")).display === "none"`));
+      getComputedStyle(document.querySelector("[data-s98p-ld-identity]")).display === "none" &&
+      document.querySelector("[data-s98p-ld-pages] [aria-current]").textContent === "1"`));
+    await run('window.fixtureMarker = 1; document.querySelector("[data-s98p-ld-actions] button").click(); scrollTo(0, 420)');
+    const waitFor = async expression => {
+      for (let i = 0; i < 35; i++) {
+        if (await run(expression).catch(() => false)) return true;
+        await delay(60);
+      }
+      return false;
+    };
+    await run('document.querySelector("[data-s98p-ld-pages] a").click()');
+    check("shows a loader and keeps the URL and original content until the result is ready", await run(`location.pathname === "/page/1/" &&
+      Boolean(document.querySelector("[data-s98p-ld-loading][role=status]")) &&
+      document.querySelector("[data-s98p-ld-feed]").getAttribute("aria-busy") === "true"`));
+    check("page two updates the URL, content, and active page without reloading", await waitFor(`location.pathname === "/page/2/" &&
+      document.querySelector("[data-s98p-ld-story]").pathname === "/link-39.html" &&
+      document.querySelector("[data-s98p-ld-pages] [aria-current]").textContent === "۲" &&
+      !document.querySelector("[data-s98p-ld-loading]") && window.fixtureMarker === 1 && !window.archiveScriptRan &&
+      !document.querySelector("[data-s98p-ld-story]").hasAttribute("onclick")`));
+    await run('history.back()');
+    check("Back restores the prior archive contents and scroll", await waitFor(`location.pathname === "/page/1/" &&
+      document.querySelector("[data-s98p-ld-story]").pathname === "/link-42.html" && window.fixtureMarker === 1 && scrollY === 420`));
+    await run('history.forward()');
+    check("Forward restores page two without reloading", await waitFor(`location.pathname === "/page/2/" &&
+      document.querySelector("[data-s98p-ld-story]").pathname === "/link-39.html" && window.fixtureMarker === 1`));
+    await run(`document.querySelector("[data-s98p-ld-pages] a[href$='/page/3/']").click()`);
+    check("native navigation is used after a failed background request", await waitFor(`location.pathname === "/page/3/" &&
+      document.title === "Archive native fallback" && !window.fixtureMarker`));
+    await client.send("Page.navigate", { url: `http://127.0.0.1:${PORT}/index.php?do=search&subaction=search&story=Linux` });
+    check("legacy search pager exposes real restorable URLs", await waitFor(`document.querySelector("[data-s98p-ld-pages] a")?.href.includes("search_start=2")`));
+    await run(`window.originalSearchForm = document.querySelector("[data-s98p-ld-details]"); document.querySelector("[data-s98p-ld-pages] a").click()`);
+    check("search pagination stays in place and updates the original form's results", await waitFor(`location.search.includes("search_start=2") &&
+      document.querySelector("[data-s98p-ld-pages] [aria-current]")?.textContent === "۲" &&
+      document.querySelector("[data-s98p-ld-details]") === window.originalSearchForm &&
+      document.querySelector("[data-s98p-ld-result-summary]")?.textContent.includes("4 - 6")`));
+    await run('history.back()');
+    check("Back restores search results and their original URL", await waitFor(`!location.search.includes("search_start") &&
+      document.querySelector("[data-s98p-ld-pages] [aria-current]")?.textContent === "۱" &&
+      document.querySelector("[data-s98p-ld-details]") === window.originalSearchForm &&
+      document.querySelector("[data-s98p-ld-result-summary]")?.textContent.includes("1 - 3")`));
   } finally {
     await client.send("Emulation.clearDeviceMetricsOverride");
   }

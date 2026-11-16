@@ -16,6 +16,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Added category icons to the sticky header and redesigned its menus to match the rest of Soft98 Pro.
 - Kept the full download box in the article even when a second copy appears in the sidebar.
 - Redesigned Linkdoni with light and dark themes and a date-grouped archive, retaining its original search and article links.
+- Added collapsible dates, a link-count badge, and Persian page numbers to Linkdoni. Archive pages now load without a full refresh and support Back and Forward. The Control Center stays visible while scrolling.
 
 ### Fixed
 

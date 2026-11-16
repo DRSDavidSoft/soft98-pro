@@ -29,6 +29,7 @@
           "light": "Switch to light mode",
           "dark": "Switch to dark mode",
           "pagination": "Archive pages",
+          "loading": "Loading archive page…",
           "previous": "Previous page",
           "next": "Next page",
           "months": ["", "Farvardin", "Ordibehesht", "Khordad", "Tir", "Mordad", "Shahrivar", "Mehr", "Aban", "Azar", "Dey", "Bahman", "Esfand"]
@@ -289,6 +290,7 @@
           "light": "رفتن به حالت روشن",
           "dark": "رفتن به دارک‌مود",
           "pagination": "صفحه‌های آرشیو",
+          "loading": "در حال بارگیری صفحه…",
           "previous": "صفحهٔ قبل",
           "next": "صفحهٔ بعد",
           "months": ["", "فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"]

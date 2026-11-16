@@ -4,6 +4,9 @@
 <title>Linkdoni test</title>
 <link rel="stylesheet" href="/src/linkdoni.css">
 <style>
+  html { transform: translateX(100%); }
+  body { transform: translateX(-100%); }
+  #soft98-pro-control { position: fixed; bottom: 12px; left: 12px; }
   #old-site { max-width: 1100px; margin: 0 auto; background: white; }
   #banner { height: 265px; background: url("/stock-banner.png"); }
   #banner h1 a { display: block; text-indent: -9999px; }
@@ -19,19 +22,49 @@
   <div>
     <section><ul>
       <li><a href="/link-42.html" target="_blank">بررسی دستگاه جدید با پردازنده Core Ultra</a><span>1405-08-23</span></li>
-      <li><a href="/link-41.html">خبر دیگری از Firefox</a><span>1405-08-23</span></li>
+      <li><a href="/link-41.html">Firefox و یک خبر دیگر</a><span>1405-08-23</span></li>
       <li><a href="/link-40.html">Android به‌روز شد</a><span>1405-08-22</span></li>
     </ul></section>
     <div><div><span>1</span><a href="/page/2/">2</a><a href="/page/3/">3</a></div></div>
   </div>
 </div></div></div>
+<div id="soft98-pro-control">Pro</div>
+<div style="height: 120vh"></div>
 <script src="/src/linkdoni.js"></script>
 <script>
   let dark = true;
   const icon = '<svg viewBox="0 0 24 24"><path d="M1 1h10"/></svg>';
   const icons = Object.fromEntries(["rss","search","external","home","moon","sun","chevron","chevronRight"].map(name => [name, icon]));
+  const frame = document.querySelector(".changing-frame");
+  const searching = new URL(location.href).searchParams.has("story");
+  if (searching) {
+    frame.querySelector(":scope > div").insertAdjacentHTML("afterbegin", '<form method="post"><input name="story" value="Linux"><p>نتایج 1 - 3</p></form>');
+    for (const link of frame.querySelectorAll('a[href^="/page/"]')) {
+      link.setAttribute("onclick", "javascript:list_submit(" + link.textContent + "); return(false)");
+      link.setAttribute("href", "#");
+    }
+  }
+  const stock = frame.outerHTML;
   const fixture = Soft98Linkdoni.create(document, {
     icons, locale: "fa", text: (key, values) => values ? values.count + " لینک" : key,
+    fetchPage: async (url, { signal }) => {
+      const path = new URL(url);
+      const second = path.pathname === "/page/2/" || path.searchParams.get("search_start") === "2";
+      if (path.pathname === "/page/3/") return new Response("", { status: 502 });
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(resolve, 320);
+        signal.addEventListener("abort", () => { clearTimeout(timer); reject(signal.reason); }, { once: true });
+      });
+      const next = second ? stock
+        .replace(searching ? '<span>1</span><a href="#" onclick="javascript:list_submit(2); return(false)">2</a>' :
+          '<span>1</span><a href="/page/2/">2</a>', searching ?
+          '<a href="#" onclick="javascript:list_submit(1); return(false)">1</a><span>2</span>' : '<a href="/page/1/">1</a><span>2</span>')
+        .replace("نتایج 1 - 3", "نتایج 4 - 6")
+        .replace('/link-42.html', '/link-39.html')
+        .replace('target="_blank"', 'target="_blank" onclick="window.archiveScriptRan = true"') : stock;
+      return new Response('<title>Archive ' + (second ? 2 : 1) + '</title>' + next + '<scr' + 'ipt>window.archiveScriptRan = true</scr' + 'ipt>',
+        { headers: { "content-type": "text/html; charset=utf-8" } });
+    },
     changeTheme: () => {
       dark = !dark;
       document.documentElement.classList.toggle("soft98-pro-light", !dark);

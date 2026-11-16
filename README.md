@@ -68,7 +68,7 @@ Both formats are built from the shared runtime in [`src/runtime.js`](src/runtime
 - **Download manager (extension):** the download-plus button queues a file without starting it. Use the arrow or right-click the button to queue, start, or copy a link just once, or to change the default. You can also change the default under **Control Center → Downloads**. The manager shows progress, speed, and time remaining; the original site link still works normally.
 - **Bulk imports and multipart archives:** [review pasted links or text files](docs/wiki/Download-Manager.md), sort and filter before downloading, see automatically fetched details, and follow grouped downloads with browser notifications.
 - **Discussions:** read threaded replies and use the original comment form in either Pro theme.
-- **Linkdoni:** browse the dated technology archive with light and dark themes, keeping the site's original search and article links.
+- **Linkdoni:** expand or collapse each day's technology news and turn archive pages without reloading. The original search and article links still work.
 - **Bilingual interface:** uses Persian when the browser language is `fa` or the timezone is `Asia/Tehran`; otherwise it uses English.
 - **Status favicon:** generates a canvas favicon that reflects the current protection state.
 

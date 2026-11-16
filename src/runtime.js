@@ -44,6 +44,8 @@
   const linkdoni = location.hostname === "linkdoni.soft98.ir" ? Soft98Linkdoni.create(document, {
     text, icons: PAGE_ICONS, locale: LOCALE,
     changeTheme: () => writeSettings({ ...settings, darkDesign: !(settings.darkDesign || settings.rgbMode), rgbMode: false }),
+    fetchPage: nativeFetch,
+    afterRender: (title) => { originalTitle = title; schedule(document); },
   }) : null;
   const STRINGS = CATALOG.locales;
   const DEFAULT_SETTINGS = {
@@ -5599,7 +5601,7 @@
     setPersistentStyle("soft98-pro-listing-style", LISTING_NAVIGATION_CSS);
     setPersistentStyle("soft98-pro-comments-style", COMMENTS_CSS);
     if (linkdoni) setPersistentStyle("soft98-pro-linkdoni-style", LINKDONI_CSS);
-    installSoft98ListingNavigation({
+    else installSoft98ListingNavigation({
       enabled: () => settings.pro && settings.quickNavigation,
       fetchPage: nativeFetch,
       label: text,

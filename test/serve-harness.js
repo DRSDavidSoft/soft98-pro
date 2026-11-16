@@ -85,6 +85,17 @@ http
         response.end("<!doctype html><title>Full-page fallback</title><p>Normal browser navigation completed.</p>");
         return;
       }
+      if (requestUrl.pathname === "/page/3/") {
+        response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+        response.end("<!doctype html><title>Archive native fallback</title><p>Archive loaded by the browser.</p>");
+        return;
+      }
+      if (requestUrl.pathname === "/page/1/" ||
+          (requestUrl.pathname === "/index.php" && requestUrl.searchParams.get("story") === "Linux")) {
+        response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+        response.end(fs.readFileSync(path.join(ROOT, "test", "linkdoni.html")));
+        return;
+      }
       if (requestUrl.pathname === "/proxy") {
         const target = requestUrl.searchParams.get("url") || "";
         if (!isSoft98Url(target)) throw new Error("Proxy target must be a Soft98 asset");
