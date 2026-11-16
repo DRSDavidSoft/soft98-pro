@@ -39,6 +39,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Improved the download review dialog with row selection, animated save options, and reorderable columns with their own menus.
 - Improved file details for downloads, added file-specific icons to the queue and review, and made the review table left to right by default with a direction setting.
 - Simplified article download actions, made copying the default, and added a configurable size limit for review before internal downloads.
+- Restyled article quotes, warnings, and secondary notices to match the Pro themes.
+- Fixed FAQ expand arrows and themed the answer checkmark.
 
 ### Removed
 

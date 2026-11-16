@@ -64,6 +64,7 @@ const PAGE_ICONS = Object.fromEntries(Object.entries({
   info: "outline/info-circle", help: "outline/help-circle", lock: "outline/lock", check: "outline/check", close: "outline/x", plus: "outline/plus", minus: "outline/minus", star: "outline/star", starFill: "filled/star",
   chevron: "outline/chevron-left", chevronRight: "outline/chevron-right", chevronDown: "outline/chevron-down", copy: "outline/copy", select: "outline/select-all", eye: "outline/eye",
   archive: "outline/archive", web: "outline/world-www", remove: "outline/file-x",
+  quote: "outline/quote", alertTriangle: "outline/alert-triangle",
   photo: "outline/photo", document: "outline/file-text", shield: "outline/shield",
   play: "outline/player-play", music: "outline/music", desktop: "outline/device-desktop",
   folder: "outline/folder", author: "outline/user", date: "outline/calendar",
@@ -167,7 +168,9 @@ function sourceReplacements(target) {
     __SOFT98_OPTION_PREVIEWS__: JSON.stringify(previews),
     __SOFT98_LISTING_NAVIGATION_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "listing-navigation.css"), "utf8")),
     __SOFT98_COMMENTS_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "comments.css"), "utf8")),
-    __SOFT98_CHROME_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "chrome.css"), "utf8")),
+    __SOFT98_CHROME_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "chrome.css"), "utf8")
+      .replace(/__CALLOUT_ICON_(info|quote|alertTriangle|check)__/g, (_, icon) =>
+        `data:image/svg+xml;base64,${Buffer.from(PAGE_ICONS[icon]).toString("base64")}`)),
     __SOFT98_LINKDONI_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "linkdoni.css"), "utf8").replace(
       "__SOFT98_LINKDONI_FONT__", "data:font/woff2;base64," +
       fs.readFileSync(path.join(VAZIRMATN_ROOT, "files", "vazirmatn-arabic-wght-normal.woff2")).toString("base64"))),

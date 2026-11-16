@@ -1086,6 +1086,7 @@
         node.removeAttribute("data-soft98-pro-list-row");
         node.removeAttribute("data-soft98-pro-list-copy");
       });
+      document.querySelectorAll("[data-soft98-pro-callout]").forEach(node => node.removeAttribute("data-soft98-pro-callout"));
       updateFavicon();
       return;
     }
@@ -1216,8 +1217,6 @@
       :root.soft98-pro-theme [data-soft98-pro-utility-card] [data-soft98-pro-utility-extra=closed]:not([data-soft98-pro-utility-motion]){display:none!important}
       .soft98-pro-theme [data-soft98-pro-faq] [data-soft98-pro-page-icon]{margin-inline-end:0}
       .soft98-pro-theme [data-soft98-pro-faq] summary:is(:hover,:focus-visible) [data-soft98-pro-page-icon],.soft98-pro-theme [data-soft98-pro-faq][open] [data-soft98-pro-page-icon]{--icon-color:var(--s98p-accent)}
-      .soft98-pro-theme [data-soft98-pro-faq]:dir(ltr) svg{transform:scaleX(-1)}
-      .soft98-pro-theme [data-soft98-pro-faq][open] svg{transform:rotate(-90deg)}
       .soft98-pro-theme [data-soft98-pro-latest] li a:not([role=tab]){color:var(--s98p-muted)!important}
       .soft98-pro-theme [data-soft98-pro-latest] li a:not([role=tab]):is(:hover,:focus-visible){color:var(--s98p-link)!important}
       :root.soft98-pro-theme [data-soft98-pro-latest] li a[data-soft98-pro-news-link]::before{color:var(--s98p-faint)!important;text-shadow:none!important}
@@ -1377,10 +1376,6 @@
       :root.soft98-pro-theme [data-soft98-pro-news-counter] svg{width:12px;height:12px;color:inherit!important}
       :root.soft98-pro-theme details[data-soft98-pro-faq] > summary{transition:color .18s ease,background .18s ease;border-radius:6px}
       :root.soft98-pro-theme details[data-soft98-pro-faq] > summary:is(:hover,:focus-visible){background:var(--s98p-surface-2)!important}
-      :root.soft98-pro-theme details[data-soft98-pro-faq] > summary svg{transition:transform .22s cubic-bezier(.2,.8,.2,1)}
-      :root.soft98-pro-theme details[data-soft98-pro-faq][open]:not([data-soft98-pro-closing]) > summary [data-soft98-pro-page-icon=chevron]{rotate:-90deg}
-      :root.soft98-pro-theme details[data-soft98-pro-faq]:dir(ltr)[open]:not([data-soft98-pro-closing]) > summary [data-soft98-pro-page-icon=chevron]{rotate:90deg}
-      :root.soft98-pro-theme details[data-soft98-pro-faq] > summary [data-soft98-pro-page-icon=chevron]{transition:rotate .24s cubic-bezier(.2,.8,.2,1)}
       :root.soft98-pro-theme [data-soft98-pro-utility-card]>footer [data-soft98-pro-page-icon=chevron]{transition:rotate .24s cubic-bezier(.2,.8,.2,1)}
       :root.soft98-pro-theme [data-soft98-pro-utility-card]>footer[aria-expanded=true] [data-soft98-pro-page-icon=chevron]{rotate:180deg}
       :root.soft98-pro-theme [data-soft98-pro-read-more]{display:inline-flex!important;gap:8px;align-items:center;padding:6px 12px!important;border:1px solid var(--s98p-border)!important;border-radius:6px;background:var(--s98p-control-bg)!important;color:var(--s98p-text)!important;text-decoration:none!important;min-height:36px}
@@ -1410,7 +1405,7 @@
       :root.soft98-pro-theme [data-soft98-pro-read-preview] > button{min-height:36px;padding-inline:9px}
       :root.soft98-pro-theme [data-soft98-pro-preview-panel]{position:absolute;inset-inline-start:0;inset-block-end:100%;z-index:8;min-width:min(250px,75vw);max-width:min(340px,85vw);display:grid;gap:5px;padding:12px;border:1px solid var(--s98p-border);border-radius:7px;background:var(--s98p-elevated);box-shadow:0 8px 25px #0008}
       :root.soft98-pro-theme [data-soft98-pro-preview-panel][hidden],:root:not(.soft98-pro-theme) [data-soft98-pro-read-preview]{display:none!important}
-      @media(prefers-reduced-motion:reduce){:root.soft98-pro-theme :is(details[data-soft98-pro-faq] > summary svg,[data-soft98-pro-page-icon=chevron]){transition:none}}
+      @media(prefers-reduced-motion:reduce){:root.soft98-pro-theme [data-soft98-pro-page-icon=chevron]{transition:none}}
       :root.soft98-pro-theme [data-soft98-pro-heading-divider]{border-inline-start:0!important;padding-inline-start:14px!important;position:relative!important}
       :root.soft98-pro-theme [data-soft98-pro-heading-divider]::before{content:""!important;position:absolute!important;inset-inline-start:0!important;inset-block-start:50%!important;transform:translateY(-50%)!important;width:4px!important;height:1.15em!important;border:0!important;border-radius:3px!important;background:linear-gradient(180deg,var(--s98p-link),color-mix(in srgb,var(--s98p-link) 40%,var(--s98p-border)))!important;box-shadow:0 0 8px color-mix(in srgb,var(--s98p-link) 15%,transparent)!important;pointer-events:none!important}
       :root.soft98-pro-light{color-scheme:light;--s98p-bg:#e9eff2;--s98p-bg-2:#f2f6f8;--s98p-nav:#f5faf9;--s98p-surface:#fff;--s98p-surface-2:#edf4f5;--s98p-elevated:#e5f0f0;--s98p-soft:#deecee;--s98p-border:#a8bdc6;--s98p-border-soft:#d4e0e5;--s98p-text:#172e39;--s98p-muted:#435e6b;--s98p-faint:#556f7c;--s98p-accent:#087468;--s98p-accent-2:#8a5318;--s98p-link:#205b88;--s98p-danger:#a6294b;--s98p-control-bg:linear-gradient(180deg,#fff,#e9f3f4);--s98p-control-hover:linear-gradient(180deg,#f1faf9,#d7ebeb);--s98p-control-edge:#9cbac0;--s98p-control-shadow:0 1px #fff inset,0 1px 2px #14323f14;--s98p-light-shadow:0 8px 24px #153d4d14,0 1px 3px #153d4d0e}
@@ -1455,17 +1450,47 @@
     return { luminance: 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2], alpha: match[4] === undefined ? 1 : Number(match[4]) };
   }
 
+  function semanticCallout(node) {
+    // Recognize semantic notices first; these conventional aliases cover older article markup.
+    if (node.matches('blockquote[role="alert"],[role="note"][aria-live="assertive"],.quote-danger')) return "danger";
+    if (node.matches(".alert-secondary") || (node.matches("div,section,aside") &&
+        Array.prototype.some.call(node.children, child => child.matches('[itemscope][itemtype$="/FAQPage"]')))) return "notice";
+    if (node.matches('blockquote,[role="note"],.quote')) return "quote";
+    return "";
+  }
+
+  function legacyCallout(node, style) {
+    if (!node.matches("div,section,aside,p") || !node.closest("article,main,[role=dialog]")) return "";
+    if (style.color === "rgb(137, 137, 137)" && style.borderTopColor === "rgb(63, 63, 63)" &&
+        style.backgroundImage.includes("rgb(39, 39, 39), rgb(36, 36, 36)")) return "quote";
+    if (style.backgroundColor === "rgb(23, 23, 23)" && style.borderTopColor === "rgb(33, 33, 33)" &&
+        style.color === "rgb(183, 183, 183)") return "notice";
+    return "";
+  }
+
   function applyProThemeHeuristics(root) {
     if (!settings.pro) return;
     const element = asElement(root) || document;
-    const surfaces = [];
-    if (element.matches && element.matches("header,nav,main,article,aside,section,footer,form,table,[role]")) surfaces.push(element);
-    if (element.querySelectorAll) surfaces.push(...element.querySelectorAll("header,nav,main,article,aside,section,footer,form,table,[role],div,blockquote"));
+    const surfaceSelector = "header,nav,main,article,aside,section,footer,form,table,[role],div,blockquote,.quote,.quote-danger,.alert-secondary";
+    const surfaces = [...element.querySelectorAll(surfaceSelector)];
+    if (element.matches?.(surfaceSelector)) surfaces.unshift(element);
     for (const node of surfaces) {
       if (node.closest("#soft98-pro-control,#soft98-extension-recommendation,#soft98-ad-blocker-taunt")) continue;
+      const semantic = semanticCallout(node);
+      const tagged = node.getAttribute("data-soft98-pro-callout");
+      if (semantic || tagged) {
+        if (semantic && semantic !== tagged) node.setAttribute("data-soft98-pro-callout", semantic);
+        continue;
+      }
       const box = visibleBox(node);
       if (box.width < 120 || box.height < 28 || box.width * box.height < 4200) continue;
-      const backgroundColor = getComputedStyle(node).backgroundColor;
+      const style = getComputedStyle(node);
+      const legacy = legacyCallout(node, style);
+      if (legacy) {
+        node.setAttribute("data-soft98-pro-callout", legacy);
+        continue;
+      }
+      const backgroundColor = style.backgroundColor;
       const background = colorMetrics(backgroundColor);
       if (/^rgb\((37|38|39), \1, \1\)$/.test(backgroundColor) &&
           (node.matches("main,aside,article,section,blockquote,:is(main,article,[role=dialog]) :is(div,footer),[role=tabpanel]") ||

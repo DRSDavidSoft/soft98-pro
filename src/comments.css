@@ -34,7 +34,7 @@
   padding: 0 !important;
 }
 
-:root.soft98-pro-theme [data-soft98-pro-comments] [data-soft98-pro-comments-structure="notice"] {
+:root.soft98-pro-theme [data-soft98-pro-comments] [data-soft98-pro-comments-structure="notice"]:not([data-soft98-pro-callout]) {
   margin: 0 0 8px;
   padding: 8px 12px;
   border: 0;
@@ -46,7 +46,7 @@
   text-align: start;
 }
 
-:root.soft98-pro-theme [data-soft98-pro-comments] [data-soft98-pro-comments-structure="notice"]:has([data-toggle="collapse"]) {
+:root.soft98-pro-theme [data-soft98-pro-comments] [data-soft98-pro-comments-structure="notice"]:not([data-soft98-pro-callout]):has([data-toggle="collapse"]) {
   border-inline-start-color: var(--s98p-accent, #49edb3);
 }
 

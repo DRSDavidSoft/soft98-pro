@@ -14,6 +14,13 @@
   #legacy[aria-hidden=true] { display: none; }
   #updates { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
   .legacy-glyph::before { content: "legacy icon" !important; }
+  .night-mode :is(.quote,.quote-danger,.fixture-unlabelled) {
+    background: linear-gradient(45deg, #272727, #242424) !important;
+    color: #898989 !important;
+    border: 1px solid #3f3f3f !important;
+  }
+  .night-mode .alert-secondary { color: #b7b7b7; background: #171717; border: 1px solid #212121; }
+  #unlabelled-faq details p::before { content: "✓"; color: #7bad49; }
   @media (max-width: 820px) { #workspace { display: block; } }
 </style>
 <div id="updates">
@@ -31,6 +38,14 @@
     <article>
       <h1>Firewall Control</h1>
       <p>Example article content and a direct file link.</p>
+      <div id="plain-quote" class="quote"><b>Setup instructions</b><p>Keep the <a href="/about-tool">original link</a> accessible.</p></div>
+      <div id="danger-quote" class="quote-danger" dir="ltr"><b>Warning</b><p>Review these settings first.</p></div>
+      <div id="secondary-alert" class="alert alert-secondary" role="alert"><h3>Help</h3><hr><p>Use the published instructions.</p></div>
+      <div id="unlabelled-quote" class="fixture-unlabelled"><p>This callout only has the legacy visual signature.</p></div>
+      <div id="unlabelled-faq"><h3>Frequently asked questions</h3><div itemscope itemtype="https://schema.org/FAQPage">
+        <details dir="rtl"><summary>سوال</summary><div><p>پاسخ</p></div></details>
+        <details dir="ltr"><summary>A question</summary><div itemprop="text"><p>An answer</p></div></details>
+      </div></div>
       <ul role="tablist"><li><a id="files-tab" role="tab" data-toggle="tab" aria-controls="files" href="#files" aria-selected="true">Downloads</a></li><li><a id="requirements-tab" role="tab" data-toggle="tab" aria-controls="requirements" href="#requirements">Requirements</a></li></ul>
       <div>
         <div id="files" role="tabpanel">

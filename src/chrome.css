@@ -1164,6 +1164,147 @@
   outline-offset: -4px !important;
 }
 
+:root.soft98-pro-theme [data-soft98-pro-callout] {
+  --callout-accent: var(--s98p-link);
+  --callout-icon: url("__CALLOUT_ICON_info__");
+  --callout-inset: 14px;
+  --callout-badge: 28px;
+  position: relative;
+  box-sizing: border-box;
+  max-inline-size: 100%;
+  padding: 12px var(--callout-inset) !important;
+  padding-inline-start: calc(var(--callout-inset) + var(--callout-badge) + 10px) !important;
+  border: 1px solid color-mix(in srgb, var(--callout-accent) 26%, var(--s98p-border-soft)) !important;
+  border-radius: var(--s98p-radius) !important;
+  background: color-mix(in srgb, var(--callout-accent) 6%, var(--s98p-surface-2)) !important;
+  box-shadow: none !important;
+  color: var(--s98p-text) !important;
+  text-shadow: none !important;
+  line-height: 1.75;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout="quote"] {
+  --callout-accent: var(--s98p-accent);
+  --callout-icon: url("__CALLOUT_ICON_quote__");
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout="danger"] {
+  --callout-accent: var(--s98p-danger);
+  --callout-icon: url("__CALLOUT_ICON_alertTriangle__");
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout]::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute;
+  inset-block: 11px auto;
+  inset-inline: var(--callout-inset) auto;
+  inline-size: var(--callout-badge);
+  block-size: var(--callout-badge);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--callout-accent) 13%, var(--s98p-surface)) !important;
+  border: 1px solid color-mix(in srgb, var(--callout-accent) 38%, var(--s98p-border-soft)) !important;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout]::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute;
+  inset-block: 11px auto;
+  inset-inline: var(--callout-inset) auto;
+  inline-size: var(--callout-badge);
+  block-size: var(--callout-badge);
+  background: var(--callout-accent) !important;
+  border: 0 !important;
+  mask: var(--callout-icon) center / 16px 16px no-repeat;
+  pointer-events: none;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout] > :is(h2,h3,h4,h5,h6),
+:root.soft98-pro-theme [data-soft98-pro-callout] > :first-child > :only-child:is(b,strong) {
+  color: color-mix(in srgb, var(--callout-accent) 66%, var(--s98p-text)) !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout] > :is(p,ul,ol):last-child {
+  margin-block-end: 0;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout] > hr {
+  border-color: color-mix(in srgb, var(--callout-accent) 25%, var(--s98p-border-soft)) !important;
+  opacity: 1;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout] a[href]:not([role="button"],[data-toggle],.btn,[data-soft98-pro-tone="action"]) {
+  color: var(--s98p-link) !important;
+  text-decoration: underline;
+  text-underline-offset: .18em;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout] pre {
+  max-inline-size: 100%;
+  overflow: auto;
+  background: var(--s98p-bg-2) !important;
+  border: 1px solid var(--s98p-border-soft) !important;
+  border-radius: 6px;
+  color: var(--s98p-text) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout] pre > code {
+  background: transparent !important;
+  color: inherit !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-faq] > summary > [data-soft98-pro-page-icon="chevron"] {
+  transition: rotate .24s cubic-bezier(.2,.8,.2,1);
+}
+
+:root.soft98-pro-theme [data-soft98-pro-faq][open]:not([data-soft98-pro-closing]) > summary > [data-soft98-pro-page-icon="chevron"] {
+  rotate: -90deg;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-faq]:dir(ltr) > summary > [data-soft98-pro-page-icon="chevron"] > svg {
+  transform: scaleX(-1);
+}
+
+:root.soft98-pro-theme [data-soft98-pro-faq]:dir(ltr)[open]:not([data-soft98-pro-closing]) > summary > [data-soft98-pro-page-icon="chevron"] {
+  rotate: 90deg;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout="notice"] :is(
+  [data-soft98-pro-faq] > p, [data-soft98-pro-faq] > :not(summary) > p, [data-soft98-pro-faq] [itemprop="text"] > p
+):first-of-type {
+  position: relative;
+  padding-inline-start: 1.85em !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout="notice"] :is(
+  [data-soft98-pro-faq] > p, [data-soft98-pro-faq] > :not(summary) > p, [data-soft98-pro-faq] [itemprop="text"] > p
+):first-of-type::before {
+  content: "" !important;
+  position: absolute;
+  inset-inline: .4em auto;
+  inset-block: .36em auto;
+  inline-size: 1em;
+  block-size: 1em;
+  background: var(--s98p-accent) !important;
+  mask: url("__CALLOUT_ICON_check__") center / contain no-repeat;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root.soft98-pro-theme [data-soft98-pro-faq] > summary > [data-soft98-pro-page-icon="chevron"] { transition: none; }
+}
+
+@media (max-width: 560px) {
+  :root.soft98-pro-theme [data-soft98-pro-callout] { --callout-inset: 10px; }
+}
+
 :root.soft98-pro-theme :is(.list-group-item-light,[data-soft98-pro-help-action]):not(#soft98-pro-control *) {
   background-color: var(--s98p-surface-2) !important;
   background-image: none !important;

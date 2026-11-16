@@ -671,6 +671,64 @@ async function verifyWideLayout(client) {
     check("legacy modal shell does not scale its shade", await run('getComputedStyle(document.querySelector("#legacy")).transform'), "none");
     check("modal footer uses the Pro palette", await run('getComputedStyle(document.querySelector("#legacy footer")).backgroundColor !== "rgb(39, 39, 39)"'), true);
     check("backdrop fades independently", await run('getComputedStyle(document.querySelector("#legacy"), "::before").animationName'), "s98p-shade-in");
+    await run('document.querySelector("#legacy").setAttribute("aria-hidden","true"); document.body.classList.add("night-mode"); Soft98Pro.scan()');
+    await until('document.querySelector("#unlabelled-quote").dataset.soft98ProCallout === "quote"');
+    const callouts = `(() => {
+      const selectors = ["#plain-quote", "#danger-quote", "#secondary-alert", "#unlabelled-quote", "#unlabelled-faq"];
+      const pixels = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
+      const contrastOf = color => {
+        pixels.fillStyle = color;
+        pixels.fillRect(0, 0, 1, 1);
+        const channels = [...pixels.getImageData(0, 0, 1, 1).data.slice(0, 3)].map(v => v / 255);
+        return channels.map(v => v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4)
+          .reduce((sum, value, i) => sum + value * [.2126, .7152, .0722][i], 0);
+      };
+      return selectors.map(selector => {
+        const node = document.querySelector(selector), style = getComputedStyle(node), mark = getComputedStyle(node, "::after");
+        const ink = contrastOf(style.color), surface = contrastOf(style.backgroundColor);
+        const head = contrastOf(getComputedStyle(node.querySelector("h3") || node).color);
+        const icon = parseFloat(mark[style.direction === "rtl" ? "right" : "left"]);
+        return { type: node.dataset.soft98ProCallout, bg:style.backgroundColor, icon:mark.maskImage, image:style.backgroundImage,
+          visible:node.getBoundingClientRect().right <= innerWidth,
+          placed: Number.isFinite(icon) && icon > 0 && parseFloat(style.paddingInlineStart) >= icon + parseFloat(mark.width),
+          readable: (Math.max(ink,surface)+.05)/(Math.min(ink,surface)+.05) >= 4.5 &&
+            (Math.max(head,surface)+.05)/(Math.min(head,surface)+.05) >= 4.5
+        };
+      });
+    })()`;
+    const darkCallouts = await run(callouts);
+    check("known, semantic, and recolored aliases are distinguished", darkCallouts.map(item => item.type).join(","), "quote,danger,notice,quote,notice");
+    check("dark callouts do not retain the legacy gradient and have three distinct icon treatments", darkCallouts.every(item => item.image === "none") &&
+      darkCallouts.slice(0, 3).every(item => item.icon.startsWith("url(")) && new Set(darkCallouts.slice(0, 3).map(item => item.icon)).size === 3, true);
+    check("dark callouts are readable with the glyph on the correct edge", darkCallouts.every(item => item.readable && item.placed), true);
+    const faqDirections = `[...document.querySelectorAll("#unlabelled-faq details")].map(detail => {
+      const svg = detail.querySelector("summary svg"), m = svg.getScreenCTM();
+      const tip = new DOMPoint(9, 12).matrixTransform(m);
+      const base = new DOMPoint(15, 12).matrixTransform(m);
+      return Math.abs(tip.y - base.y) > Math.abs(tip.x - base.x) ? (tip.y > base.y ? "down" : "up") :
+        (tip.x > base.x ? "right" : "left");
+    }).join(",")`;
+    check("closed FAQ chevrons point inward in both directions", await run(faqDirections), "left,right");
+    await run('document.querySelectorAll("#unlabelled-faq summary").forEach(summary => summary.click())');
+    await until(`(${faqDirections}) === "down,down"`);
+    const faqChecks = `[...document.querySelectorAll("#unlabelled-faq details p")].every(p => {
+      const before = getComputedStyle(p,"::before");
+      const chevron = p.closest("details").querySelector("[data-soft98-pro-page-icon]");
+      return before.content === '""' && before.maskImage.startsWith("url(") &&
+        before.backgroundColor === getComputedStyle(chevron).color &&
+        getComputedStyle(p).paddingInlineStart !== "0px";
+    })`;
+    check("FAQ answer check icon matches the Pro accent", await run(faqChecks), true);
+    await resize(390, 770);
+    await run("Soft98Pro.configure({darkDesign:false})");
+    await until('document.documentElement.classList.contains("soft98-pro-light")');
+    const lightCallouts = await run(callouts);
+    check("light mobile makes a different palette choice without clipping", lightCallouts.every((item, i) =>
+      item.bg !== darkCallouts[i].bg && item.visible && item.placed && item.readable), true);
+    check("FAQ check stays matched to the light accent", await run(faqChecks), true);
+    await run('Soft98Pro.configure({pro:false}); document.body.classList.add("night-mode")');
+    check("turning Pro off restores the stock quote styling", await run('!document.querySelector("[data-soft98-pro-callout]") && getComputedStyle(document.querySelector("#plain-quote")).backgroundImage.includes("rgb(39, 39, 39)")'), true);
+    await run('Soft98Pro.configure({pro:true,darkDesign:true,rgbMode:false})');
   } finally {
     await client.send("Emulation.clearDeviceMetricsOverride");
   }
