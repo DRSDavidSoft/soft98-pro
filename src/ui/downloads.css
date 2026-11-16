@@ -18,20 +18,24 @@ html { scroll-padding-block-start: 95px; }
 .identity { display: flex; align-items: center; gap: 10px; }
 .identity a { display: inline-block; color: var(--mint); font-size: 12px; font-weight: 750; text-decoration: none; }
 .identity img { flex: none; border-radius: 8px; }
+.manager-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; min-width: 0; }
 .manager-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; border: 1px solid var(--line); border-radius: 8px; background: var(--field); padding: 3px; }
 .manager-nav a { display: inline-flex; align-items: center; gap: 6px; min-block-size: 34px; padding: 3px 11px; border: 1px solid transparent; border-radius: 5px; color: var(--muted); text-decoration: none; }
 .manager-nav a:hover { color: var(--ink); background: var(--button); }
 .manager-nav a[aria-current] { color: var(--mint); border-color: var(--edge); background: var(--button); font-weight: 650; }
 .manager-nav svg { width: 17px; height: 17px; }
+#open-guide { min-inline-size: 40px; min-block-size: 40px; padding-inline: 11px; background: var(--button); color: var(--sky); }
+#open-guide:hover, #open-guide[aria-expanded="true"] { border-color: var(--sky); background: var(--button-hover); color: var(--ink); }
 #expand-manager { display: none; }
 :root[data-compact-popup] { width: 464px; max-width: 100%; }
 :root[data-compact-popup] body { min-height: 370px; }
 :root[data-compact-popup] .masthead-inner { gap: 7px; padding: 9px 12px; }
 :root[data-compact-popup] .manager-nav a { padding-inline: 7px; }
 :root[data-compact-popup] #expand-manager { display: inline-flex; font-size: 0; gap: 0; }
+:root[data-compact-popup] #open-guide { width: 40px; padding: 0; font-size: 0; gap: 0; }
 :root[data-compact-popup] .workspace { padding: 10px 12px; gap: 9px; }
 :root[data-compact-popup] .queue-header { row-gap: 10px; }
-:root[data-compact-popup] .manager-footer { gap: 5px 12px; }
+@media (max-width: 560px) { #open-guide { width: 40px; padding: 0; font-size: 0; gap: 0; } }
 .queue, .settings { min-width: 0; padding: 18px; border-block: 1px solid var(--line); background: var(--panel); }
 .settings h2 { margin-block-end: 12px; }
 .setting-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; min-height: 54px; padding-block: 8px; border-block-start: 1px solid var(--line); }
@@ -116,8 +120,6 @@ progress:indeterminate { appearance: auto; }
 progress[hidden], .detail[hidden] { display: none; }
 .actions button { min-height: 30px; padding-inline: 7px; font-size: 13px; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.manager-footer { display: flex; flex-wrap: wrap; gap: 12px 20px; padding: 0 3px; font-size: 13px; }
-.manager-footer a { color: var(--muted); }
 dialog { width: min(950px, calc(100% - 24px)); max-height: calc(100% - 24px); padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); box-shadow: 0 20px 58px #0006; }
 dialog { opacity: 0; translate: 0 8px; transition: opacity .18s ease, translate .18s ease, display .18s allow-discrete, overlay .18s allow-discrete; }
 dialog[open] { opacity: 1; translate: none; }

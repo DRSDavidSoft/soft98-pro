@@ -48,6 +48,7 @@ const Soft98DownloadView = (() => {
         if (dialog !== active && dialog.open) dialog.close();
       }
       if (active && !active.open) active.showModal();
+      $("open-guide").setAttribute("aria-expanded", String(active === dialogs[1]));
       if (job) highlight(job);
       if (token && !tokens.has(token)) {
         tokens.add(token);
@@ -107,7 +108,7 @@ const Soft98DownloadView = (() => {
     }
     nav("queue-tab", "#queue");
     nav("settings-tab", "#settings");
-    nav("guide-link", "#guide");
+    $("open-guide").addEventListener("click", () => hash("#guide"));
     $("close-guide").addEventListener("click", closeDialog);
     for (const dialog of dialogs) {
       let outside = false;

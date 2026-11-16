@@ -8,7 +8,7 @@ Open **Download Manager** from the Soft98 header, footer, or Control Center. Pas
 
 Click the Soft98 Pro toolbar icon to open the same queue in a compact view. The arrow in its header opens the full manager in a tab. **Soft98 Pro** still opens the extension's general settings.
 
-Right-click a row for its available actions. Use **Shift+F10** from a focused row control to open the same menu with the keyboard. Close the review dialog with **Escape** or a click outside it. The built-in **Download guide** works offline.
+Right-click a row for its available actions. Use **Shift+F10** from a focused row control to open the same menu with the keyboard. Close the review dialog with **Escape** or a click outside it. The **Help** button in the header opens the built-in guide, even offline.
 
 ![The download review dialog with selectable links, file sizes, dates, and a file type filter](../assets/comparison/download-manager-import.webp)
 

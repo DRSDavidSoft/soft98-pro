@@ -340,8 +340,10 @@ async function verifyDownloadManager(client) {
     check("Escape returns focus to the menu button", await run('document.activeElement.matches(".job-menu")'), true);
     await run('document.querySelector("#settings-tab").click()');
     check("settings are routed and separated from the queue", await run('location.hash === "#settings" && document.querySelector("#queue-view").hidden && document.querySelector("#settings-view #limit") !== null'), true);
-    await run('document.querySelector("#guide-link").click()');
-    check("the help route works without GitHub", await run('location.hash === "#guide" && document.querySelector("#guide").open'), true);
+    check("Help is in the sticky header and Telegram is not in the manager", await run(`Boolean(document.querySelector(".masthead button#open-guide svg")) &&
+      !document.querySelector('a[href*="t.me/"]')`), true);
+    await run('document.querySelector("#open-guide").click()');
+    check("the help route works without GitHub", await run('location.hash === "#guide" && document.querySelector("#guide").open && document.querySelector("#open-guide").getAttribute("aria-expanded") === "true"'), true);
     await delay(240);
     const point = { x: 3, y: 3, button: "left", clickCount: 1 };
     await client.send("Input.dispatchMouseEvent", { type: "mousePressed", ...point });

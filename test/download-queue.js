@@ -493,6 +493,7 @@ async function verifyNativeQueue(browser, chromium) {
     await until(async () => (await inspect()).filter(item => item.status === "complete").length === 3, "the popup reads the same native queue");
     assert.equal(await evaluate(`return document.documentElement.hasAttribute("data-compact-popup") &&
       document.querySelector("#expand-manager").getClientRects().length === 1 &&
+      document.querySelector(".masthead button#open-guide").getClientRects().length === 1 &&
       document.documentElement.scrollWidth <= innerWidth`), true);
     console.log(`${browser} ${capabilities.browserVersion}: native queue, file bytes, HTML handling, and narrow layout verified`);
   } finally {

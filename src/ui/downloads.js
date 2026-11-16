@@ -524,6 +524,9 @@
   buttonContent($("expand-manager"), "openFullManager", "external-link");
   $("expand-manager").title = text("openFullManager");
   $("expand-manager").setAttribute("aria-label", text("openFullManager"));
+  buttonContent($("open-guide"), "help", "help-circle");
+  $("open-guide").title = text("managerGuide");
+  $("open-guide").setAttribute("aria-label", text("managerGuide"));
   for (const [id, label, icon] of [["queue-tab", "queue", "list-details"], ["settings-tab", "settings", "settings"], ["close-guide", "close", "x"]]) {
     buttonContent($(id), label, icon);
     if (id === "close-guide") $(id).setAttribute("aria-label", text(label));
