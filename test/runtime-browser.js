@@ -1094,8 +1094,13 @@ async function main() {
             });
             const actions = shortcuts[0].closest("[data-soft98-pro-news-actions]");
             const toolbar = actions.closest('[data-soft98-pro-latest-header="news"]');
-            const leftAligned = actions.getBoundingClientRect().left - toolbar.getBoundingClientRect().left < 16;
-            return { initial, click, rtl, focused, home, centered, leftAligned, shortcuts:shortcuts.length };
+            const collapse = toolbar.querySelector("[data-s98p-news-toggle]");
+            const title = toolbar.querySelector("[data-soft98-pro-news-title]");
+            const edge = collapse.getBoundingClientRect();
+            const shares = actions.getBoundingClientRect();
+            const collapseLast = toolbar.lastElementChild === collapse && edge.left - toolbar.getBoundingClientRect().left < 16 &&
+              edge.right <= shares.left && shares.left - edge.right < 16 && shares.right <= title.getBoundingClientRect().left;
+            return { initial, click, rtl, focused, home, centered, collapseLast, shortcuts:shortcuts.length };
           })()
         `);
         for (const [step, index] of [["initial", 0], ["click", 1], ["rtl", 2], ["home", 0]]) {
@@ -1104,7 +1109,7 @@ async function main() {
         assertEqual("latest-tabs", "keyboard focus", latest.focused, true);
         assertEqual("news", "shortcut count", latest.shortcuts, 5);
         assertEqual("news", "shortcut SVG centers", latest.centered, true);
-        assertEqual("news", "shortcut group is left-aligned", latest.leftAligned, true);
+        assertEqual("news", "collapse follows the left-aligned shortcuts in RTL and keyboard order", latest.collapseLast, true);
         const previewLinks = await evaluate(client, `
           (async () => {
             const trigger = document.querySelector('[data-test=article-preview-trigger]');

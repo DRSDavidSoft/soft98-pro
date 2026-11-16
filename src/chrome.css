@@ -695,7 +695,7 @@
 :root.soft98-pro-theme [data-soft98-pro-tech-news] [data-soft98-pro-latest-header="news"] {
   display: grid !important;
   grid-template-columns: auto auto minmax(0,1fr);
-  grid-template-areas: "shares collapse title";
+  grid-template-areas: "collapse shares title";
   direction: ltr;
   gap: 8px;
   padding-inline: 10px !important;
