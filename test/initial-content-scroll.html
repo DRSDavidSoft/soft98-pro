@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Initial content scroll fixture</title>
+<style>
+  body { margin: 0; }
+  nav { position: fixed; inset: 0 0 auto; z-index: 10; height: 52px; }
+  #lead { height: 800px; }
+  main { min-height: 1900px; }
+  article { min-height: 270px; }
+</style>
+<script>
+  window.firstScroll = null;
+  window.addEventListener("scroll", () => {
+    if (!window.firstScroll && scrollY > 0) window.firstScroll = { ready: document.readyState, y: scrollY };
+  }, { passive: true });
+</script>
+<script src="/soft98-pro.user.js"></script>
+<nav><button type="button" data-toggle="night-mode">Theme</button></nav>
+<div id="lead"><h1>Page masthead</h1></div>
+<main></main>
+<script>
+  const params = new URLSearchParams(location.search);
+  const main = document.querySelector("main");
+  main.innerHTML = params.get("do") === "search" ?
+    params.has("empty") ? "<section>No results found</section>" :
+    '<section><h2>Search heading</h2></section><article><header id="first"><h2><a href="/test/302-initial-scroll.html">First result</a></h2></header></article>' +
+    '<article><header id="second"><h2><a href="/test/303-initial-scroll.html">Second result</a></h2></header></article>' :
+    '<article><header id="product"><h1>Main software title</h1></header><section id="details" style="margin-top:400px">Deep link target</section></article>';
+</script>
+<script src="/test/initial-content-scroll-delay.js"></script>

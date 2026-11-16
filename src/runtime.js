@@ -159,6 +159,7 @@
   const persistentStyles = new Map();
   const executedUpstreamScripts = new Set();
   let scanFrame = 0;
+  let alignInitialContent;
   let recoveryStarted = false;
   let originalTitle = document.title || "";
   let successAnnounced = false;
@@ -1188,6 +1189,7 @@
         else trackedLinks.delete(link);
       }
       rememberArticleFrame();
+      alignInitialContent?.();
       announceSuccess();
       refreshControlTelemetry();
     });
@@ -6840,6 +6842,78 @@
     });
   }
 
+  function initialContentTarget(search) {
+    const main = document.querySelector("main,[role=main]");
+    if (!main) return null;
+    const headings = main.querySelectorAll(search ?
+      "article > header :is(h2,h3):has(a[href]),article > :is(h2,h3):has(a[href])" :
+      "article > header h1,article > h1");
+    for (const heading of headings) {
+      if (!heading.textContent.trim() || heading.closest("aside,details,[hidden],[inert]") || !heading.getClientRects().length) continue;
+      const header = heading.closest("header");
+      return header?.closest("article") === heading.closest("article") ? header : heading;
+    }
+    return null;
+  }
+
+  function installInitialContentScroll() {
+    const search = new URLSearchParams(location.search).get("do") === "search";
+    const navigation = performance.getEntriesByType("navigation")[0];
+    if (linkdoni || location.hash || navigation?.type === "back_forward" || navigation?.type === "reload" ||
+        (!search && !/\/\d+[^/]*\.html$/i.test(location.pathname))) return;
+
+    const listeners = new AbortController();
+    const { signal } = listeners;
+    const startingPage = location.pathname + location.search;
+    let target, timer, frame = 0, started = false;
+    const stop = () => {
+      alignInitialContent = undefined;
+      clearTimeout(timer);
+      cancelAnimationFrame(frame);
+      layout.disconnect();
+      listeners.abort();
+    };
+    const update = () => {
+      if (!settings.pro || location.hash || location.pathname + location.search !== startingPage || (!started && scrollY > 1)) {
+        stop();
+        return;
+      }
+      if (!target?.isConnected || !target.getClientRects().length) target = initialContentTarget(search);
+      if (!target) {
+        if (document.readyState === "complete") stop();
+        return;
+      }
+      const topbar = document.querySelector('[data-s98p-topbar-shell],nav:has([data-toggle="night-mode"]),header nav');
+      const fixed = [topbar, topbar?.parentElement].find(node => node && /^(?:fixed|sticky)$/.test(getComputedStyle(node).position));
+      const delta = target.getBoundingClientRect().top - (fixed?.getBoundingClientRect().height || 0) - 12;
+      if (Math.abs(delta) > 1) window.scrollBy({ top: delta, behavior: "instant" });
+      if (!started) {
+        started = true;
+        // The lead content can still change height as styles and images load.
+        layout.observe(document.body);
+        timer = setTimeout(stop, 2500);
+      }
+    };
+    const requestUpdate = () => {
+      if (!frame) frame = requestAnimationFrame(() => { frame = 0; update(); });
+    };
+    const layout = new ResizeObserver(requestUpdate);
+    alignInitialContent = update;
+    for (const type of ["pointerdown", "wheel", "touchstart", "hashchange", "popstate", "pagehide"]) {
+      window.addEventListener(type, stop, { capture: true, passive: true, once: true, signal });
+    }
+    window.addEventListener("keydown", event => {
+      if ([" ", "Tab", "ArrowDown", "ArrowUp", "PageUp", "PageDown", "Home", "End"].includes(event.key)) stop();
+    }, { capture: true, signal });
+    window.addEventListener("load", () => {
+      requestUpdate();
+      if (started) {
+        clearTimeout(timer);
+        timer = setTimeout(stop, 250);
+      }
+    }, { once: true, signal });
+  }
+
   function resetDocumentHandles() {
     const proto = window.Document && window.Document.prototype;
     if (!proto) return false;
@@ -6927,6 +7001,7 @@
     document.addEventListener("auxclick", showDownloadActivation, true);
     setPersistentStyle("soft98-pro-listing-style", LISTING_NAVIGATION_CSS);
     setPersistentStyle("soft98-pro-comments-style", COMMENTS_CSS);
+    installInitialContentScroll();
     if (linkdoni) setPersistentStyle("soft98-pro-linkdoni-style", LINKDONI_CSS);
     else installSoft98ListingNavigation({
       enabled: () => settings.pro && settings.quickNavigation,

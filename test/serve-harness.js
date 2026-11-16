@@ -71,6 +71,15 @@ http
   .createServer(async (request, response) => {
     try {
       const requestUrl = new URL(request.url, "http://127.0.0.1");
+      if (requestUrl.pathname === "/test/302-initial-scroll.html") {
+        response.writeHead(200, { "content-type": "text/html; charset=utf-8" }).end(fs.readFileSync(path.join(ROOT, "test", "initial-content-scroll.html")));
+        return;
+      }
+      if (requestUrl.pathname === "/test/initial-content-scroll-delay.js") {
+        await new Promise(resolve => setTimeout(resolve, 800));
+        response.writeHead(200, { "content-type": "text/javascript; charset=utf-8" }).end("");
+        return;
+      }
       if (requestUrl.pathname === "/fixtures/42-dialog.html") {
         response.writeHead(302, { Location: "/test/42-dialog-current.html" }).end();
         return;

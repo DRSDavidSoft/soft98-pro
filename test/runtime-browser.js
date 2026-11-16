@@ -133,6 +133,47 @@ async function waitForResults(client) {
   throw new Error("Timed out waiting for Soft98 runtime results");
 }
 
+async function verifyInitialContentScroll(client) {
+  const base = `http://127.0.0.1:${PORT}/test/`;
+  const open = async (url) => {
+    await client.send("Page.navigate", { url: base + url });
+    for (let i = 0; i < 60; i++) {
+      if (await evaluate(client, `location.href === ${JSON.stringify(base + url)} && document.readyState === "complete"`)) return;
+      await delay(35);
+    }
+    throw new Error("Initial scroll fixture did not finish loading");
+  };
+  const aligned = (id) => evaluate(client, `(() => {
+    const target = document.getElementById(${JSON.stringify(id)});
+    const nav = document.querySelector("nav").getBoundingClientRect();
+    const top = target.getBoundingClientRect().top;
+    return top >= nav.height && top <= nav.height + 22;
+  })()`);
+  for (const [url, id] of [["initial-content-scroll.html?do=search", "first"], ["302-initial-scroll.html", "product"]]) {
+    await open(url);
+    assertEqual("initial scroll", id + " before the parser finishes", await evaluate(client, "firstScroll?.ready"), "loading");
+    assertEqual("initial scroll", id + " is below the sticky bar", await aligned(id), true);
+  }
+  await client.send("Input.dispatchMouseEvent", { type: "mouseWheel", x: 130, y: 130, deltaX: 0, deltaY: 330 });
+  await delay(350);
+  assertEqual("initial scroll", "manual scrolling is not reset", await aligned("product"), false);
+  await open("initial-content-scroll.html?do=search&empty=1");
+  assertEqual("initial scroll", "empty searches stay at the top", await evaluate(client, "scrollY"), 0);
+  await open("302-initial-scroll.html?anchor=1#details");
+  assertEqual("initial scroll", "explicit fragments win", await evaluate(client,
+    "Math.abs(document.querySelector('#details').getBoundingClientRect().top) < 5"), true);
+  await open("302-initial-scroll.html?reload=1");
+  await evaluate(client, "scrollTo({ top: 1325, behavior: 'instant' })");
+  const beforeReload = await evaluate(client, "scrollY");
+  await client.send("Page.reload");
+  for (let i = 0; i < 70; i++) {
+    if (await evaluate(client, 'performance.getEntriesByType("navigation")[0]?.type === "reload" && document.readyState === "complete"')) break;
+    await delay(35);
+  }
+  assertEqual("initial scroll", "reload preserves the browser position", await evaluate(client,
+    `Math.abs(scrollY - ${beforeReload}) < 5`), true);
+}
+
 async function verifyArticlePreview(client) {
   const results = await evaluate(client, `
     (async () => {
@@ -2068,6 +2109,11 @@ async function main() {
       console.log("Soft98 site search and sticky navigation passed");
       return;
     }
+    if (process.argv.includes("--initial-content-scroll-only")) {
+      await verifyInitialContentScroll(client);
+      console.log("Soft98 early search and article scrolling passed");
+      return;
+    }
     if (process.argv.includes("--article-preview-only")) {
       for (const mode of ["", "&legacyPopover=1"]) {
         await client.send("Page.navigate", { url: `http://127.0.0.1:${PORT}/?taunt=0&dark=1${mode}` });
@@ -2662,6 +2708,7 @@ async function main() {
     await verifyTopbar(client);
     await verifyTopbarSearch(client);
     await verifySearchHint(client);
+    await verifyInitialContentScroll(client);
     await verifyLinkdoni(client);
     console.log("Soft98 runtime browser acceptance passed");
   } finally {
