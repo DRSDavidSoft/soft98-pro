@@ -1153,9 +1153,10 @@
       :root.soft98-pro-theme dd[data-soft98-pro-download-entry]:has(>.s98p-file-actions){display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:stretch}
       :root.soft98-pro-theme dd[data-soft98-pro-download-collapsed]:has(>.s98p-file-actions){display:none!important}
       :root:not(.soft98-pro-theme) :is([data-soft98-pro-download-manager],.s98p-file-actions,.s98p-file-menu){display:none!important}
-      .soft98-pro-theme .s98p-file-actions{display:inline-flex;direction:ltr;align-self:stretch;align-items:center;gap:3px;margin-inline-end:8px;min-width:0}
+      .soft98-pro-theme .s98p-file-actions{display:inline-flex;direction:inherit;align-self:stretch;align-items:center;gap:3px;margin-inline-end:8px;min-width:0}
       :root.soft98-pro-theme .s98p-file-actions button{display:grid;place-items:center;min-width:0;width:34px;height:34px;padding:0;margin:0;border:1px solid var(--s98p-border)!important;border-radius:6px;background:transparent!important;color:var(--s98p-text)!important;cursor:pointer;transform:none!important}
-      :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-more]{width:28px;border-color:transparent!important;transition:opacity .14s ease,color .14s ease}
+      :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-more]{order:1;width:28px;border-color:transparent!important;transition:opacity .14s ease,color .14s ease}
+      :root.soft98-pro-theme .s98p-file-actions:dir(rtl) [data-soft98-pro-download-manager=file]{order:2}
       @media (hover:hover) and (pointer:fine){
         :root.soft98-pro-theme dd[data-soft98-pro-download-entry]:not(:hover,:focus-within) [data-s98p-file-more]:not([aria-expanded=true]){opacity:0;pointer-events:none}
       }
@@ -1164,7 +1165,8 @@
       .soft98-pro-theme :is(.s98p-file-actions button,[data-soft98-pro-download-manager=section])[aria-busy=true]{cursor:progress;opacity:.75}
       .soft98-pro-theme .s98p-file-actions svg,.soft98-pro-theme .s98p-file-menu svg{width:18px;height:18px;flex:none;pointer-events:none}
       .soft98-pro-theme .s98p-file-actions [data-s98p-file-more] svg{width:14px;height:14px}
-      :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status]{--file-status-color:var(--s98p-link);width:auto;min-width:28px;max-width:75px;height:24px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-inline-end:5px;padding:0 5px;border-radius:5px;border-color:color-mix(in srgb,var(--file-status-color) 43%,var(--s98p-border))!important;background:color-mix(in srgb,var(--file-status-color) 10%,transparent)!important;color:var(--file-status-color)!important;font:inherit;font-size:11px;font-weight:680;text-align:center;font-variant-numeric:tabular-nums}
+      :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status]{--file-status-color:var(--s98p-link);box-sizing:border-box;inline-size:auto;min-inline-size:28px;max-inline-size:76px;block-size:24px;display:grid;place-items:center;margin-inline-end:3px;padding:0 6px;border-radius:5px;border-color:color-mix(in srgb,var(--file-status-color) 43%,var(--s98p-border))!important;background:color-mix(in srgb,var(--file-status-color) 10%,transparent)!important;color:var(--file-status-color)!important;font:inherit;font-size:11px!important;font-weight:680;line-height:1.2!important;text-align:center;font-variant-numeric:tabular-nums}
+      :root.soft98-pro-theme [data-s98p-file-status] > bdi{display:block;max-inline-size:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:inherit!important}
       :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status][hidden]{display:none!important}
       :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status=complete]{--file-status-color:var(--s98p-accent)}
       :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status]:is([data-s98p-file-status=interrupted],[data-s98p-file-status=review]){--file-status-color:var(--s98p-text)}
@@ -1431,8 +1433,8 @@
       :root.soft98-pro-light [data-soft98-pro-surface=nav-shell]{background:#f1f8f7ed!important;box-shadow:0 7px 22px #153d4d20!important}
       :root.soft98-pro-light :is([data-soft98-pro-surface=menu],[data-soft98-pro-surface=megamenu]){background:linear-gradient(145deg,#fffffff5,#e9f3f3f2)!important;border-color:var(--s98p-border-soft)!important;box-shadow:0 16px 38px #16334229,0 1px #fff inset!important}
       :root.soft98-pro-light :is([data-soft98-pro-surface=menu],[data-soft98-pro-surface=megamenu]) :is(a,button):is(:hover,:focus-visible){background:var(--s98p-soft)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border-soft)!important}
-      :root.soft98-pro-light:not([data-s98p-ld-page]) :is(button,[role=button],input[type=button],input[type=submit]):not(#soft98-pro-control *,[data-soft98-pro-footer] *,[data-s98p-download-confirm] *,.list-group-item-light,[data-soft98-pro-help-action],[data-s98p-topbar-toggle],:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li > :is(a,button)){background:var(--s98p-control-bg)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border)!important}
-      :root.soft98-pro-light:not([data-s98p-ld-page]) :is(button,[role=button]):not(#soft98-pro-control *,[data-soft98-pro-footer] *,[data-s98p-download-confirm] *,.list-group-item-light,[data-soft98-pro-help-action],[data-s98p-topbar-toggle],:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li > :is(a,button)):is(:hover,:focus-visible){background:var(--s98p-control-hover)!important;color:var(--s98p-text)!important;border-color:var(--s98p-control-edge)!important}
+      :root.soft98-pro-light:not([data-s98p-ld-page]) :is(button,[role=button],input[type=button],input[type=submit]):not(#soft98-pro-control *,[data-soft98-pro-footer] *,[data-s98p-download-confirm] *,.s98p-file-actions *,.list-group-item-light,[data-soft98-pro-help-action],[data-s98p-topbar-toggle],:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li > :is(a,button)){background:var(--s98p-control-bg)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border)!important}
+      :root.soft98-pro-light:not([data-s98p-ld-page]) :is(button,[role=button]):not(#soft98-pro-control *,[data-soft98-pro-footer] *,[data-s98p-download-confirm] *,.s98p-file-actions *,.list-group-item-light,[data-soft98-pro-help-action],[data-s98p-topbar-toggle],:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li > :is(a,button)):is(:hover,:focus-visible){background:var(--s98p-control-hover)!important;color:var(--s98p-text)!important;border-color:var(--s98p-control-edge)!important}
       :root.soft98-pro-light :is(dt,dd){background:var(--s98p-bg-2)!important;border-color:var(--s98p-border-soft)!important}
       :root.soft98-pro-light dd:nth-child(odd){background:var(--s98p-surface-2)!important}
       :root.soft98-pro-light [data-soft98-pro-download-group] a[data-soft98-pro-icon-host=download]:is(:hover,:focus-visible){color:#06554e!important}
@@ -3118,6 +3120,7 @@
     badge.dataset.soft98ProDownloadManager = "open";
     badge.dataset.s98pFileStatus = "";
     badge.hidden = true;
+    badge.append(document.createElement("bdi"));
     group.prepend(badge);
     link.after(group);
     return group;
@@ -3194,7 +3197,9 @@
     const progress = isActiveTransfer(state) ? managedPercent(state) : null;
     const label = text("downloadBadge." + key);
     const value = progress !== null ? `${progress}%` : label;
-    if (badge.textContent !== value) badge.textContent = value;
+    const valueNode = badge.querySelector("bdi") || document.createElement("bdi");
+    if (valueNode.parentNode !== badge || badge.childNodes.length !== 1) badge.replaceChildren(valueNode);
+    if (valueNode.textContent !== value) valueNode.textContent = value;
     if (badge.dataset.s98pFileStatus !== key) badge.dataset.s98pFileStatus = key;
     const title = progress !== null ? `${label} (${value})` : label;
     setDownloadHint(badge, `${title}: ${text("controlOpenDownloads")}`, true);
@@ -3458,13 +3463,13 @@
 
   function prepareDownloadRow(link, icon, url) {
     const previous = downloadRows.get(link);
+    let group;
     if (IS_EXTENSION) {
       const existing = link.nextElementSibling?.matches(".s98p-file-actions") && link.nextElementSibling;
       if (url?.protocol === "https:" && !url.port) {
         if (link.dataset.s98pFileUrl !== url.href) link.dataset.s98pFileUrl = url.href;
-        const group = existing || createFileControls(link);
+        group = existing || createFileControls(link);
         const button = group.querySelector("[data-soft98-pro-download-manager=file]");
-        renderFileBadge(link, group);
         if (!existing) document.dispatchEvent(new Event("soft98-pro:download-snapshot-request"));
         const action = defaultFileAction();
         if (button.dataset.s98pFileCommand !== action) {
@@ -3489,17 +3494,14 @@
       check.innerHTML = PAGE_ICONS.check;
       glyph.append(check);
     }
-    if (previous?.copy.parentNode === link && previous.title.parentNode === previous.copy && previous.url === url?.href) return;
-    const originalSize = link.getAttribute("data-soft98-pro-inline-size");
-    if (previous) {
-      previous.meta.remove();
-      previous.transfer?.node.remove();
-      if (link.contains(previous.title)) previous.title.replaceWith(...previous.title.childNodes);
-      if (link.contains(previous.copy)) previous.copy.replaceWith(...previous.copy.childNodes);
+    if (previous?.copy.parentNode === link && previous.title.parentNode === previous.copy && previous.url === url?.href) {
+      if (group) renderFileBadge(link, group);
+      return;
     }
-    for (const existing of link.querySelectorAll(":scope > [data-soft98-pro-download-copy]")) existing.replaceWith(...existing.childNodes);
-    for (const existing of link.querySelectorAll(":scope > [data-soft98-pro-download-meta]")) existing.remove();
-    for (const existing of link.querySelectorAll(":scope > [data-soft98-pro-download-title]")) existing.replaceWith(...existing.childNodes);
+    const originalSize = link.getAttribute("data-soft98-pro-inline-size");
+    // A rebuilt link can carry markup from an earlier runtime; remove its metrics before reusing the title.
+    for (const node of link.querySelectorAll("[data-soft98-pro-download-meta],[data-s98p-download-transfer]")) node.remove();
+    for (const node of link.querySelectorAll("[data-soft98-pro-download-copy],[data-soft98-pro-download-title]")) node.replaceWith(...node.childNodes);
     const title = document.createElement("span");
     const meta = document.createElement("span");
     const copy = document.createElement("span");
@@ -3519,7 +3521,7 @@
     copy.append(title, meta);
     link.append(copy);
     downloadRows.set(link, { copy, title, meta, url: url?.href, inlineSize });
-    if (link.nextElementSibling?.matches(".s98p-file-actions")) renderFileBadge(link, link.nextElementSibling);
+    if (group) renderFileBadge(link, group);
     if (url && !url.search && (url.origin === location.origin || url.hostname.endsWith(".soft98.ir")) && "IntersectionObserver" in window) {
       downloadObserver ||= new IntersectionObserver((entries) => {
         for (const entry of entries) {

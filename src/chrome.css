@@ -1478,6 +1478,14 @@
   outline-offset: -3px !important;
 }
 
+:root.soft98-pro-theme :has(> [data-soft98-pro-password-shell]) > :is(a[href],button):is(:hover,:focus-visible):not(:disabled,[aria-disabled="true"]) {
+  position: relative;
+  z-index: 2;
+  background: var(--s98p-soft) !important;
+  color: var(--s98p-text) !important;
+  box-shadow: inset 0 0 0 1px var(--s98p-control-edge) !important;
+}
+
 :root.soft98-pro-theme [data-soft98-pro-help-action="install"]::after {
   content: none !important;
   display: none !important;

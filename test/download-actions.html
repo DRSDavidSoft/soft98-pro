@@ -5,6 +5,8 @@
 <title>Download actions fixture</title>
 <style>
   dialog button { appearance: auto !important; background: #272727 !important; box-shadow: inset -2px -2px #000 !important; }
+  #password-fixture > button { display: block; width: 100%; padding: 8px; border: 1px solid; }
+  #password-fixture > button + button { border-block-start-width: 0; }
 </style>
 <main>
   <article>
@@ -12,12 +14,17 @@
     <section id="downloads" role="tabpanel" class="active">
       <dl>
         <dt>Windows</dt>
-        <dd><a href="https://files.example.test/tool.zip?sig=A%2Fb">Download tool (64 MB)</a></dd>
+        <dd><a href="https://files.example.test/tool.zip?sig=A%2Fb">Download tool size 64 MB</a></dd>
         <dt id="linux-section">لینوکـس</dt>
         <dd id="linux-file"><a href="https://files.example.test/linux.deb">Linux package</a></dd>
         <dt id="multi-section">Windows / macOS</dt>
         <dd id="multi-file"><a href="https://files.example.test/multi.zip">Multi-platform package</a></dd>
       </dl>
+      <aside id="password-fixture">
+        <div data-toggle="copy"><span>پسورد فایل:</span><input readonly value="soft98.ir"></div>
+        <button type="button">Download help</button>
+        <button type="button" id="fixture-help-repair">Repair a downloaded file</button>
+      </aside>
     </section>
   </article>
 </main>

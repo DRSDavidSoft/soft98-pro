@@ -314,6 +314,10 @@ async function verifyFileActions(client) {
   await click(section);
   check("group action also uses the threshold-aware route", await run(`${jobs}.at(-1).urls[0]`), destination);
   check("review does not display another confirmation", await run('!document.querySelector("dialog[data-s98p-download-confirm][open]")'), true);
+  const actionPositions = `[...document.querySelector(${JSON.stringify(selector)}).closest(".s98p-file-actions").querySelectorAll(
+    "[data-s98p-file-command],[data-s98p-file-more]"
+  )].map(b=>b.getBoundingClientRect().left).join(",")`;
+  const untrackedPositions = await run(actionPositions);
   await run(`(() => {
     const url = ${JSON.stringify(destination)};
     document.documentElement.setAttribute("data-soft98-pro-download-snapshot", JSON.stringify({
@@ -323,6 +327,7 @@ async function verifyFileActions(client) {
     document.dispatchEvent(new Event("soft98-pro:download-snapshot"));
   })()`);
   check("article badges show real progress", await run('document.querySelector("[data-s98p-file-status]").dataset.s98pFileStatus'), "downloading");
+  check("showing a badge does not move the actions", await run(actionPositions), untrackedPositions);
   check("article progress includes byte counts and an ETA", await run(`(() => {
     const transfer = document.querySelector("[data-soft98-pro-download-copy] [data-s98p-download-transfer]");
     return transfer.querySelector("progress").value === 42 && transfer.textContent.includes("42 B") &&
@@ -347,6 +352,39 @@ async function verifyFileActions(client) {
     return document.querySelector("[data-s98p-file-status]").dataset.s98pFileStatus;
   })()`), "complete");
   check("completion also appears on the article", await run('document.querySelector("[data-soft98-pro-copy-toast]").textContent.includes("دانلود تموم شد")'), true);
+  check("the badge is centered between the row text and anchored actions", await run(`(() => {
+    const button=document.querySelector("[data-s98p-file-status]");
+    const pill=button.getBoundingClientRect(), label=button.querySelector("bdi").getBoundingClientRect();
+    const more=button.parentElement.querySelector("[data-s98p-file-more]").getBoundingClientRect();
+    return Math.abs(pill.top+pill.height/2-label.top-label.height/2)<.5 && label.height<pill.height && pill.left>more.right;
+  })()`), true);
+  check("switching to the completed badge does not move the actions", await run(actionPositions), untrackedPositions);
+  await run(`(() => {
+    const link=document.querySelector("[data-soft98-pro-download-row]");
+    const stale=link.cloneNode(true);
+    const title=stale.querySelector("[data-soft98-pro-download-title]");
+    title.append(stale.querySelector("[data-s98p-download-transfer]").cloneNode(true));
+    link.replaceWith(stale);
+  })()`);
+  await until(`document.querySelector("[data-soft98-pro-download-row]").querySelectorAll("[data-s98p-download-transfer]").length===1`);
+  check("reused download markup shows exactly one visible size", await run(`(() => {
+    const link=document.querySelector("[data-soft98-pro-download-row]");
+    return link.querySelectorAll("[data-soft98-pro-download-title] [data-s98p-download-transfer]").length===0 &&
+      !link.querySelector("[data-soft98-pro-download-meta] bdi").getClientRects().length &&
+      link.querySelector("[data-s98p-download-transfer] bdi").textContent==="100 B";
+  })()`), true);
+  const help = "#fixture-help-repair";
+  await until('document.querySelector("#password-fixture > [data-soft98-pro-password-shell]")');
+  await run('document.querySelector("[data-soft98-pro-copy-toast] button")?.click(); document.querySelector("#fixture-help-repair").scrollIntoView({block:"center",behavior:"instant"})');
+  await delay(250);
+  const helpAt = await position(help);
+  await client.send("Input.dispatchMouseEvent", { type: "mouseMoved", ...helpAt });
+  await until(`getComputedStyle(document.querySelector("${help}")).boxShadow.includes("1px inset")`);
+  check("a password help item has an inset hover edge even with zero top border", await run(`(() => {
+    const node=document.querySelector("${help}"), style=getComputedStyle(node);
+    return node.matches(":hover") && style.borderBlockStartWidth==="0px" && style.boxShadow.includes("inset") &&
+      style.zIndex==="2";
+  })()`), true);
   await client.send("Page.reload");
   await until('document.querySelector("#linux-section [data-s98p-download-toggle]")');
   check("an expanded foreign OS section stays open after reload", await run('!document.querySelector("#linux-file").hasAttribute("data-soft98-pro-download-collapsed")'), true);
