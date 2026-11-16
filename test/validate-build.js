@@ -78,7 +78,7 @@ for (const [target, manifest, action] of [["firefox", firefox, firefox.browser_a
     assert.match(read(file).toString(), /href="typography\.css"/);
     assert.match(read(file).toString(), /href="theme\.css"/);
     assert.match(read(file).toString(), /src="theme\.js"/);
-    assert.match(read(file).toString(), /rel="icon" href="assets\/icon-32\.png"/);
+    assert.match(read(file).toString(), file === "downloads.html" ? /rel="icon" href="download-manager\.svg"/ : /rel="icon" href="assets\/icon-32\.png"/);
   }
   for (const [key, entry] of Object.entries(previews)) {
     const illustrated = entry === "illustration";

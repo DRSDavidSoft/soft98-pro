@@ -1165,7 +1165,8 @@
       .soft98-pro-theme [data-soft98-pro-download-activated] [data-soft98-pro-download-check]{display:block!important}
       .soft98-pro-theme [data-soft98-pro-download-copy]{display:grid;gap:2px;min-width:0;overflow-wrap:anywhere}
       .soft98-pro-theme [data-soft98-pro-download-title]{min-width:0;color:inherit}
-      .soft98-pro-theme [data-soft98-pro-download-meta]{min-width:0;color:var(--s98p-muted)!important;font-size:.82em;font-weight:400}
+      .soft98-pro-theme [data-soft98-pro-download-meta]{display:flex;flex-wrap:wrap;gap:2px 10px;min-width:0;color:var(--s98p-muted)!important;font-size:.82em;font-weight:400;font-variant-numeric:tabular-nums}
+      .soft98-pro-theme [data-soft98-pro-download-meta] bdi{font-family:system-ui,sans-serif;font-variant-numeric:tabular-nums}
       .soft98-pro-theme [data-soft98-pro-download-meta]:empty{display:none}
       .soft98-pro-theme [data-soft98-pro-password-shell]{display:grid;grid-template-columns:auto minmax(max-content,1fr) auto;align-items:center;gap:6px;padding:8px;background:var(--s98p-surface-2)!important;border:1px solid var(--s98p-border);border-radius:8px}
       :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-password-shell]>[data-soft98-pro-password]{display:contents!important;color:var(--s98p-text)!important;text-shadow:none!important}
@@ -3214,7 +3215,7 @@
     }
     const inlineSize = extractInlineDownloadSize(title) || previous?.inlineSize || originalSize;
     if (inlineSize) {
-      meta.textContent = inlineSize;
+      paintDownloadMetadata(meta, inlineSize);
       link.setAttribute("data-soft98-pro-inline-size", inlineSize);
     }
     link.setAttribute("data-soft98-pro-download-row", "");
@@ -3263,21 +3264,14 @@
     }
     const show = (data) => {
       if (downloadRows.get(link) !== row || !data) return;
-      const locale = RTL ? "fa-IR-u-ca-persian" : "en";
       let size = row.inlineSize;
       if (Number.isSafeInteger(data.bytes) && data.bytes > 0) {
         const units = ["byte", "kilobyte", "megabyte", "gigabyte", "terabyte"];
         const index = Math.min(units.length - 1, Math.floor(Math.log10(data.bytes) / 3));
+        const locale = RTL ? "fa-IR-u-nu-latn" : "en";
         size = new Intl.NumberFormat(locale, { style: "unit", unit: units[index], maximumFractionDigits: 1 }).format(data.bytes / 1000 ** index);
       }
-      const date = Number.isFinite(data.modified) ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }).format(data.modified) : null;
-      row.meta.replaceChildren();
-      for (const item of [size, date].filter(Boolean)) {
-        if (row.meta.childNodes.length) row.meta.append(" · ");
-        const value = document.createElement("bdi");
-        value.textContent = item;
-        row.meta.append(value);
-      }
+      paintDownloadMetadata(row.meta, size, data.modified);
     };
     const cached = downloadCache.get(row.url);
     if (cached && Date.now() - cached.checked < (cached.bytes || cached.modified ? 86400000 : 3600000)) return show(cached);
@@ -3300,6 +3294,22 @@
       downloadProbes.set(row.url, task);
     }
     downloadProbes.get(row.url).then(show);
+  }
+
+  function paintDownloadMetadata(host, size, modified) {
+    host.replaceChildren();
+    if (size) {
+      const value = document.createElement("bdi");
+      value.textContent = size.replace(/[\u0660-\u0669\u06f0-\u06f9]/g, digit => String(digit.charCodeAt(0) & 15))
+        .replace(/\u066b/g, ".").replace(/\u066c/g, ",");
+      host.append(value);
+    }
+    if (Number.isFinite(modified) && Math.abs(modified) <= 8.64e15) {
+      const date = document.createElement("time");
+      date.dateTime = new Date(modified).toISOString();
+      date.textContent = new Intl.DateTimeFormat(RTL ? "fa-IR-u-ca-persian" : "en", { dateStyle: "medium", timeZone: "UTC" }).format(modified);
+      host.append(date);
+    }
   }
 
   function applyPagePreferences() {

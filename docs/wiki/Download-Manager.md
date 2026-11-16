@@ -6,6 +6,8 @@
 
 Open **Download Manager** from the Soft98 header, footer, or Control Center. Paste with **Ctrl+V** or **Command+V**, or drop a plain text `.txt` file onto the manager. You can also use **Import links** to pick a text file or enter a single address. Nothing downloads until you submit the checked links.
 
+Right-click a row for its available actions. Use **Shift+F10** from a focused row control to open the same menu with the keyboard. Close the review dialog with **Escape** or a click outside it. The built-in **Download guide** works offline.
+
 ![The download review dialog with selectable links, file sizes, dates, and a file type filter](../assets/comparison/download-manager-import.webp)
 
 - Search by file name or host, filter by type, and click a column heading to sort in either direction.
@@ -17,6 +19,8 @@ Open **Download Manager** from the Soft98 header, footer, or Control Center. Pas
 ## Follow downloads
 
 Files such as `Artwork.part01.rar` and `Artwork.part02.rar` appear under one expandable group. Parts stay in numeric order and each keeps its own progress, pause, and cancel controls. **Original page** returns to the article when a download was added from there. Pasted links without a known source do not get a guessed origin page.
+
+Click a completed filename to open it through the browser. Press **F2** to search and follow progress in the sticky header or browser tab icon. File sizes always use English digits. The **Settings** tab holds the parallel download limit, browser notifications, and the action to clear finished entries from the queue without deleting files.
 
 ![A grouped archive with one part complete, another waiting, and original page links](../assets/comparison/download-manager-multipart.webp)
 

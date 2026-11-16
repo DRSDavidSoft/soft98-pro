@@ -231,17 +231,26 @@ async function verifyDownloadManager(client) {
   const origin = "https://soft98.ir/software/example.html";
   const result = await client.send("Page.addScriptToEvaluateOnNewDocument", { source: `
     if (location.pathname.endsWith("/downloads.html")) {
+      if (location.search === "?fa=1") {
+        Object.defineProperty(navigator, "language", { value: "fa-IR" });
+        Object.defineProperty(navigator, "languages", { value: ["fa-IR"] });
+      }
       const state = { limit: 3, maxParallel: 6, held: false, notifications: true, jobs: [
         { id: "part2", url: ${JSON.stringify(part(2))}, source: ${JSON.stringify(origin)}, status: "paused", manualStart: true, total: 48234496 },
-        { id: "part1", url: ${JSON.stringify(part(1))}, source: ${JSON.stringify(origin)}, status: "complete", total: 67108864, bytes: 67108864 },
+        { id: "part1", url: ${JSON.stringify(part(1))}, source: ${JSON.stringify(origin)}, status: "complete", total: 67108864, bytes: 67108864, browserId: 11, exists: true },
       ] };
       window.managerCommands = [];
+      window.setManagerJob = (id, changes) => {
+        Object.assign(state.jobs.find(job => job.id === id), changes);
+        document.dispatchEvent(new Event("visibilitychange"));
+      };
       window.browser = {
         storage: { local: { get: async () => ({}) }, onChanged: { addListener() {} } },
         permissions: { request: async () => true },
+        downloads: { open: async id => managerCommands.push({ action: "open-native", id }) },
         runtime: { sendMessage: async (message) => {
           managerCommands.push(message);
-          return { ok: true, state: { ...state, added: message.urls?.length ?? 0, duplicates: 0 } };
+          return { ok: true, state: structuredClone({ ...state, added: message.urls?.length ?? 0, duplicates: 0 }) };
         } },
       };
     }
@@ -270,6 +279,59 @@ async function verifyDownloadManager(client) {
     check("multipart parts sort numerically", await run('document.querySelector(".job-group .job strong").textContent'), "Artwork.part01.rar");
     check("source page is navigable", await run('document.querySelector(".source a").href'), origin);
     check("a queued-only file has a Start button", await run('document.querySelectorAll(".job")[1].querySelector("[data-action=resume]").dataset.label'), "start");
+    check("completed sizes are not repeated", await run(`(() => {
+      const row = document.querySelector(".job[data-state=complete]");
+      return row.querySelector("[data-metric=percent]").textContent === "100%" &&
+        row.querySelector("[data-metric=bytes]").textContent === "64 MiB" && row.querySelector("[data-metric=total]").hidden;
+    })()`), true);
+    check("downloaded archives have an icon", await run('document.querySelector(".job .file-mark").dataset.icon'), "file-zip");
+    await run('document.querySelector(".file-open").click()');
+    check("the filename opens the completed browser download", await run('managerCommands.find(message => message.action === "open-native")?.id'), 11);
+    await run('document.querySelector(".job-menu").click()');
+    check("row context actions are valid for that file", await run(`(() => {
+      const menu = document.querySelector("#manager-menu");
+      return menu.matches(":popover-open") && [...menu.children].some(button => button.dataset.label === "open") &&
+        [...menu.children].some(button => button.dataset.label === "copyLink") &&
+        ![...menu.children].some(button => button.dataset.label === "pause");
+    })()`), true);
+    await run('document.activeElement.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }))');
+    check("Escape returns focus to the menu button", await run('document.activeElement.matches(".job-menu")'), true);
+    await run('document.querySelector("#settings-tab").click()');
+    check("settings are routed and separated from the queue", await run('location.hash === "#settings" && document.querySelector("#queue-view").hidden && document.querySelector("#settings-view #limit") !== null'), true);
+    await run('document.querySelector("#guide-link").click()');
+    check("the help route works without GitHub", await run('location.hash === "#guide" && document.querySelector("#guide").open'), true);
+    await delay(240);
+    const point = { x: 3, y: 3, button: "left", clickCount: 1 };
+    await client.send("Input.dispatchMouseEvent", { type: "mousePressed", ...point });
+    await client.send("Input.dispatchMouseEvent", { type: "mouseReleased", ...point });
+    check("click outside closes the guide and restores the settings route", await run('location.hash === "#settings" && !document.querySelector("#guide").open'), true);
+    await run('location.hash = "#import"');
+    await until('document.querySelector("#import").open');
+    await run("history.back()");
+    await until('location.hash === "#settings" && !document.querySelector("#import").open');
+    await run("history.forward()");
+    await until('location.hash === "#import" && document.querySelector("#import").open');
+    await run('document.querySelector("#close-import").click()');
+    await client.send("Input.dispatchKeyEvent", { type: "rawKeyDown", key: "F2", code: "F2", windowsVirtualKeyCode: 113 });
+    await client.send("Input.dispatchKeyEvent", { type: "keyUp", key: "F2", code: "F2", windowsVirtualKeyCode: 113 });
+    check("F2 opens and focuses queue search from settings", await run('location.hash === "#queue" && document.activeElement.id === "search"'), true);
+    await run('document.getElementById("search").value = "not in the queue"; document.getElementById("search").dispatchEvent(new Event("input"))');
+    await until('document.querySelector(".job-group").inert && document.querySelector(".job-group").getBoundingClientRect().height < 2');
+    check("filtered rows have a motion transition", await run('getComputedStyle(document.querySelector(".job-group")).transitionProperty.includes("grid-template-rows")'), true);
+    check("the empty filter state offers a reset", await run('document.querySelector("#empty-action").dataset.label'), "resetFilters");
+    await run('document.getElementById("empty-action").click()');
+    await until('!document.querySelector(".job-group").inert && document.querySelector(".job-group").getBoundingClientRect().height > 100');
+    await run('document.body.style.minHeight = "200vh"; scrollTo(0, 450)');
+    check("the manager header stays pinned when scrolling", await run('scrollY > 400 && document.querySelector(".masthead").getBoundingClientRect().top === 0'), true);
+    await run('document.body.style.minHeight = ""; scrollTo(0, 0)');
+    await run('window.idleIcon = document.querySelector("#manager-favicon").href; setManagerJob("part2", { status: "downloading", bytes: 24117248 })');
+    await until('document.documentElement.dataset.downloadIndicator === "active"');
+    check("progress updates the favicon and in-page mark together", await run('document.querySelector("#manager-favicon").href !== idleIcon && document.querySelector("#manager-mark").src === document.querySelector("#manager-favicon").href'), true);
+    await run('Object.defineProperty(document,"hidden",{value:true,configurable:true}); setManagerJob("part2", { status: "complete", bytes: 48234496 })');
+    await until('document.documentElement.dataset.downloadIndicator === "complete"');
+    await until('document.documentElement.dataset.downloadIndicator === "idle"');
+    await run('delete document.hidden; setManagerJob("part2", { status: "paused", bytes: 0 })');
+    await until('document.querySelector("[data-id=part2]").dataset.state === "paused"');
     await capture("download-manager-multipart");
     await run(`(() => {
       const data = new DataTransfer();
@@ -277,6 +339,10 @@ async function verifyDownloadManager(client) {
       document.dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, cancelable: true }));
     })()`);
     await until('document.querySelector("#import").open && document.querySelectorAll("#import-links tr").length === 3');
+    check("pasting opens the import hash", await run('location.hash'), "#import");
+    await run('document.querySelector("#import-links input").dispatchEvent(new KeyboardEvent("keydown", { key: "F10", shiftKey: true, bubbles: true, cancelable: true }))');
+    check("the import table has keyboard context actions inside its dialog", await run('document.querySelector("#import #manager-menu").matches(":popover-open") && document.querySelector("#manager-menu [data-label=copyLink]") !== null'), true);
+    await run('document.activeElement.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }))');
     await until('[...document.querySelectorAll("#import-links tr")].every((tr) => !tr.cells[3].textContent.includes("Unavailable"))');
     check("automatic HEAD reads Content-Length", await run('document.querySelector("#import-links tr").cells[3].textContent.includes("64 MiB")'), true);
     check("automatic HEAD reads Last-Modified", await run('document.querySelector("#import-links tr").cells[4].textContent'), "Oct 21, 2026");
@@ -309,6 +375,14 @@ async function verifyDownloadManager(client) {
     await until('managerCommands.some((message) => message.action === "add")');
     check("only the checked, filtered files enter the queue", await run('managerCommands.find((message) => message.action === "add").urls.length'), 2);
     check("dialog closes after success", await run('document.querySelector("#import").open'), false);
+    check("the import hash clears after success", await run('location.hash'), "");
+    await client.send("Page.navigate", { url: page + "/dist/chromium/downloads.html?fa=1" });
+    await until('document.querySelector(".job[data-state=complete]")');
+    check("English file-size digits and tabular figures in Persian", await run(`(() => {
+      const element = document.querySelector("[data-state=complete] [data-metric=bytes] bdi");
+      return document.documentElement.dir === "rtl" && element.textContent === "64 MiB" &&
+        getComputedStyle(element).fontVariantNumeric.includes("tabular-nums");
+    })()`), true);
   } finally {
     await client.send("Page.removeScriptToEvaluateOnNewDocument", { identifier: result.identifier });
     await client.send("Emulation.clearDeviceMetricsOverride");

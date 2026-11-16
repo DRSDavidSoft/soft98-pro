@@ -35,6 +35,7 @@ test("both built extensions package the internal manager without exposing it to 
     const read = (file) => fs.readFileSync(path.join(DIST, target, file), "utf8");
     const manifest = JSON.parse(read("manifest.json"));
     assert.ok(manifest.permissions.includes("downloads"));
+    assert.ok(manifest.permissions.includes("downloads.open"));
     assert.ok(manifest.permissions.includes("notifications"));
     assert.ok((manifest.optional_host_permissions || manifest.optional_permissions).includes("https://*/*"));
     assert.ok(!JSON.stringify(manifest.web_accessible_resources || []).includes("downloads"));
@@ -42,7 +43,7 @@ test("both built extensions package the internal manager without exposing it to 
     assert.match(read("options.html"), /href="downloads\.html"/);
     assert.match(read("downloads.html"), /src="downloads\.js"/);
     assert.doesNotMatch(read("downloads.html"), /<textarea/i);
-    for (const file of ["downloads.js", "download-links.js", "download-import.js"]) new Script(read(file), { filename: file });
+    for (const file of ["downloads.js", "download-links.js", "download-import.js", "download-view.js"]) new Script(read(file), { filename: file });
     assert.doesNotMatch(read("downloads.js"), /__SOFT98_DOWNLOAD_(MESSAGES|ICONS)__/);
     assert.match(read("assets/background.js"), /soft98:downloads/);
     assert.doesNotMatch(read("assets/bridge.js"), /["']soft98:downloads["']/);

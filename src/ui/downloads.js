@@ -8,7 +8,8 @@
   const locale = [navigator.language, ...(navigator.languages || [])].some((lang) => /^fa(?:-|$)/i.test(lang)) ||
     Intl.DateTimeFormat().resolvedOptions().timeZone === "Asia/Tehran" ? "fa" : "en";
   const number = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
-  const percent = new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: 1 });
+  const latin = new Intl.NumberFormat("en", { maximumFractionDigits: 1 });
+  const percent = new Intl.NumberFormat("en", { style: "percent", maximumFractionDigits: 1 });
   const durations = Object.fromEntries(["hour", "minute", "second"].map(unit =>
     [unit, new Intl.NumberFormat(locale, { style: "unit", unit, unitDisplay: "short" })]));
   const fileDates = new Intl.DateTimeFormat(locale === "fa" ? "fa-IR-u-ca-persian" : locale, { dateStyle: "medium" });
@@ -20,8 +21,9 @@
   const $ = (id) => document.getElementById(id);
   const rows = new Map();
   const groups = new Map();
-  let focusedJob = /^#job=([a-f0-9-]{36})$/.exec(location.hash)?.[1];
+  let focusedJob;
   const actionIcons = { pause: "player-pause", resume: "player-play", cancel: "x", retry: "rotate-clockwise", show: "folder-open", remove: "trash" };
+  const paintIndicator = Soft98DownloadView.indicator(text);
   let state;
   let inFlight;
   let busy = false;
@@ -35,7 +37,7 @@
   function bytes(value) {
     const units = ["B", "KiB", "MiB", "GiB", "TiB"];
     const unit = value > 0 ? Math.min(units.length - 1, Math.floor(Math.log(value) / Math.log(1024))) : 0;
-    return `\u2066${number.format(value / 1024 ** unit)} ${units[unit]}\u2069`;
+    return `${latin.format(value / 1024 ** unit)} ${units[unit]}`;
   }
 
   function duration(seconds) {
@@ -69,18 +71,32 @@
       known && sample?.speed > 0 ? (job.total - received) / sample.speed : null;
     const facts = {
       percent: ratio !== null ? percent.format(ratio) : "",
-      bytes: known ? text("bytes", { received:bytes(received), total:bytes(job.total) }) : active || received ? bytes(received) : "",
-      speed: active && sample?.speed > 0 ? text("speed", { rate:bytes(sample.speed) }) : "",
+      bytes: known || active || received ? bytes(received) : "",
+      total: known && ratio !== 1 && received !== job.total ? bytes(job.total) : "",
+      speed: active && sample?.speed > 0 ? `${bytes(sample.speed)}/s` : "",
       eta: active ? estimated !== null ? text("eta", { duration:duration(estimated) }) : text("etaUnknown") : "",
       elapsed: job.startedAt ? text("elapsed", { duration:duration(((job.endedAt || now) - job.startedAt) / 1000) }) : "",
     };
     for (const node of nodes.metrics.children) {
-      node.textContent = facts[node.dataset.metric];
-      node.hidden = !node.textContent;
+      const key = node.dataset.metric;
+      const value = facts[key];
+      const field = node.querySelector("bdi") || node;
+      if (field.textContent !== value) field.textContent = value;
+      node.hidden = !value;
     }
     nodes.metrics.dataset.received = received;
     nodes.metrics.dataset.total = known ? job.total : "";
-    nodes.metrics.title = known ? text("bytes", { received:`\u2066${number.format(received)} B\u2069`, total:`\u2066${number.format(job.total)} B\u2069` }) : "";
+    nodes.metrics.title = known ? (ratio === 1 || received === job.total ? `${latin.format(received)} B` :
+      text("bytes", { received:`${latin.format(received)} B`, total:`${latin.format(job.total)} B` })) : "";
+  }
+
+  function setIcon(node, icon) {
+    if (node.dataset.icon === icon) return;
+    node.dataset.icon = icon;
+    const template = document.createElement("template");
+    template.innerHTML = icons[icon];
+    template.content.firstElementChild?.setAttribute("aria-hidden", "true");
+    node.replaceChildren(template.content);
   }
 
   function buttonContent(node, label, icon) {
@@ -88,11 +104,9 @@
     node.dataset.label = label;
     node.replaceChildren();
     if (icon) {
-      // Only bundled icon files are parsed; URLs and browser data are always rendered as text.
-      const template = document.createElement("template");
-      template.innerHTML = icons[icon];
-      template.content.firstElementChild.setAttribute("aria-hidden", "true");
-      node.append(template.content);
+      const mark = document.createElement("span");
+      setIcon(mark, icon);
+      node.append(mark);
     }
     node.append(text(label));
   }
@@ -104,8 +118,18 @@
   function createRow(job) {
     const row = document.createElement("li");
     row.className = "job";
-    row.innerHTML = '<div class="job-head"><strong><bdi></bdi></strong><span class="state"></span></div><div class="source"><bdi dir="ltr"></bdi><a target="_blank" rel="noopener noreferrer" hidden></a><small></small></div><progress hidden></progress><div class="job-footer"><div class="metrics"><bdi data-metric="percent"></bdi><bdi data-metric="bytes"></bdi><bdi data-metric="speed"></bdi><bdi data-metric="eta"></bdi><bdi data-metric="elapsed"></bdi></div><div class="actions"></div></div><small class="detail" hidden></small>';
-    const nodes = { row, name: row.querySelector("strong bdi"), state: row.querySelector(".state"), source: row.querySelector(".source bdi"), origin: row.querySelector(".source a"), metadata: row.querySelector(".source small"), progress: row.querySelector("progress"), metrics: row.querySelector(".metrics"), actions: row.querySelector(".actions"), detail: row.querySelector(".detail") };
+    row.dataset.id = job.id;
+    row.innerHTML = '<div class="job-shell"><article class="job-content"><div class="job-head"><span class="file-mark" aria-hidden="true"></span><strong><bdi></bdi><button class="file-open" type="button" data-action="open" hidden></button></strong><span class="state"></span><button class="job-menu icon-button" type="button" aria-haspopup="menu"></button></div><div class="source"><bdi dir="ltr"></bdi><a target="_blank" rel="noopener noreferrer" hidden></a><span class="meta-type" hidden></span><bdi class="meta-size" dir="ltr" hidden></bdi><time class="meta-date" hidden></time></div><progress hidden></progress><div class="job-footer"><div class="metrics"><bdi data-metric="percent" dir="ltr"></bdi><span data-metric="bytes"><bdi dir="ltr"></bdi></span><span data-metric="total"><span data-copy="total"></span><bdi dir="ltr"></bdi></span><bdi data-metric="speed" dir="ltr"></bdi><bdi data-metric="eta"></bdi><bdi data-metric="elapsed"></bdi></div><div class="actions"></div></div><small class="detail" hidden></small></article></div>';
+    const nodes = Object.fromEntries(Object.entries({
+      name: "strong > bdi", open: ".file-open", mark: ".file-mark", menu: ".job-menu", state: ".state",
+      source: ".source > bdi:first-child", origin: ".source a", type: ".meta-type", size: ".meta-size", date: ".meta-date",
+      progress: "progress", metrics: ".metrics", actions: ".actions", detail: ".detail",
+    }).map(([key, selector]) => [key, row.querySelector(selector)]));
+    nodes.row = row;
+    nodes.open.dataset.id = job.id;
+    nodes.metrics.querySelector("[data-copy]").textContent = text("total");
+    nodes.menu.setAttribute("aria-label", text("actions"));
+    buttonContent(nodes.menu, "actions", "dots");
     nodes.origin.textContent = text("originalPage");
     for (const [action, icon] of Object.entries(actionIcons)) {
       const button = document.createElement("button");
@@ -123,7 +147,17 @@
     const name = (job.name || job.filename?.split("/").pop() || file.name).replace(/[\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/gu, "");
     const status = job.status;
     nodes.row.dataset.state = status;
-    nodes.name.textContent = name;
+    if (nodes.name.textContent !== name) nodes.name.textContent = name;
+    nodes.displayName = name;
+    const canOpen = status === "complete" && job.exists && Number.isInteger(job.browserId);
+    if (nodes.open.hidden === canOpen) {
+      nodes.open.hidden = !canOpen;
+      if (canOpen) nodes.open.append(nodes.name);
+      else nodes.open.before(nodes.name);
+    }
+    nodes.open.title = text("open");
+    const nameType = /\.([a-z][a-z0-9]{0,7})$/i.exec(name)?.[1];
+    setIcon(nodes.mark, Soft98DownloadView.fileIcon((job.name && nameType) || job.metadata?.type || file.type || nameType, job.metadata?.mime));
     nodes.state.textContent = text(job.manualStart ? "manual" : status);
     nodes.source.textContent = file.host;
     const source = Soft98DownloadLinks.normalize(job.source);
@@ -131,8 +165,11 @@
     if (source) nodes.origin.href = source;
     else nodes.origin.removeAttribute("href");
     const meta = job.metadata;
-    nodes.metadata.textContent = meta ? [meta.type || meta.mime, meta.size != null ? bytes(meta.size) : "",
-      meta.date != null ? fileDates.format(meta.date) : ""].filter(Boolean).join(" · ") : "";
+    nodes.type.textContent = meta?.type || file.type || meta?.mime || "";
+    nodes.size.textContent = meta?.size != null && meta.size !== job.total ? bytes(meta.size) : "";
+    nodes.date.textContent = meta?.date != null ? fileDates.format(meta.date) : "";
+    if (meta?.date != null) nodes.date.dateTime = new Date(meta.date).toISOString();
+    for (const field of [nodes.type, nodes.size, nodes.date]) field.hidden = !field.textContent;
     const received = job.bytes || 0;
     const known = Number.isFinite(job.total) && job.total >= 0;
     updateMetrics(job, nodes);
@@ -177,8 +214,8 @@
     if (!entry) {
       const row = document.createElement("li");
       row.className = "job-group";
-      row.innerHTML = '<details open><summary><bdi></bdi><small></small></summary><ul></ul></details>';
-      entry = { row, title: row.querySelector("bdi"), status: row.querySelector("small"), list: row.querySelector("ul") };
+      row.innerHTML = '<div class="job-shell"><details open><summary><bdi></bdi><span class="group-facts"><small></small><bdi dir="ltr" class="group-size"></bdi><bdi dir="ltr" class="group-total"></bdi></span></summary><ul></ul></details></div>';
+      entry = { row, title: row.querySelector("bdi"), status: row.querySelector("small"), size: row.querySelector(".group-size"), total: row.querySelector(".group-total"), list: row.querySelector("ul") };
       entry.title.textContent = group.name;
       groups.set(group.key, entry);
     }
@@ -187,10 +224,14 @@
     const sizes = members.map(({ job }) => job.total ?? job.metadata?.size);
     const total = sizes.every(Number.isFinite) ? sizes.reduce((sum, size) => sum + size, 0) : null;
     const done = members.filter(({ job }) => job.status === "complete").length;
-    const status = text("groupStatus", { count: members.length, done });
+    const status = done === members.length ? text("groupComplete") : text("groupStatus", { count: members.length, done });
     const loaded = members.reduce((sum, { job }) => sum + (job.bytes || 0), 0);
-    entry.status.textContent = total === null ? status : `${status} · ${bytes(loaded)} / ${bytes(total)}`;
-    entry.row.hidden = members.every(({ nodes }) => nodes.row.hidden);
+    entry.status.textContent = status;
+    entry.size.textContent = total === null ? "" : bytes(loaded);
+    entry.total.textContent = total === null || total === loaded ? "" : bytes(total);
+    entry.size.hidden = !entry.size.textContent;
+    entry.total.hidden = !entry.total.textContent;
+    Soft98DownloadView.setFiltered(entry.row, members.every(({ nodes }) => nodes.row.hasAttribute("data-filtered")));
     return entry.row;
   }
 
@@ -221,8 +262,9 @@
       const nodes = rows.get(job.id) || createRow(job);
       const file = Soft98DownloadLinks.describe(job.url);
       renderRow(job, nodes, file);
-      nodes.row.hidden = (filter !== "all" && filter !== group) || !`${nodes.name.textContent} ${nodes.source.textContent} ${job.source || ""}`.toLowerCase().includes(query);
-      if (!nodes.row.hidden) visible += 1;
+      const filtered = (filter !== "all" && filter !== group) || !`${nodes.displayName} ${nodes.source.textContent} ${job.source || ""}`.toLowerCase().includes(query);
+      Soft98DownloadView.setFiltered(nodes.row, filtered);
+      if (!filtered) visible += 1;
       if (!file.group) entries.push(nodes.row);
       else {
         const { key, part } = file.group;
@@ -242,12 +284,23 @@
       nodes.row.remove();
       rows.delete(id);
     }
-    $("counts").textContent = text("counts", counts);
+    for (const [key, count] of Object.entries(counts)) $("count-" + key).textContent = number.format(count);
     $("empty").textContent = visible ? "" : text(state.jobs.length ? "noMatches" : "empty");
+    $("queue-empty").hidden = Boolean(visible);
+    $("empty-action").hidden = Boolean(visible);
+    buttonContent($("empty-action"), state.jobs.length ? "resetFilters" : "importOpen", state.jobs.length ? "rotate-clockwise" : "plus");
+    paintIndicator(state.jobs);
     if (focusedJob) {
       const target = rows.get(focusedJob)?.row;
       focusedJob = null;
       if (target) {
+        if (target.inert) {
+          $("search").value = "";
+          $("filter").value = "all";
+          render();
+        }
+        const details = target.closest("details");
+        if (details) details.open = true;
         target.setAttribute("data-highlight", "");
         target.scrollIntoView({ block: "center" });
       }
@@ -280,18 +333,26 @@
       const response = await send(message);
       if (!response?.ok) {
         report(text(response?.error || "native-error"), true);
-        if (!state) $("empty").textContent = "";
+        if (!state) $("queue-empty").hidden = true;
         render();
         return false;
       }
       state = response.state;
       render();
-      if (action === "add") report(text("added", state));
+      if (action === "add") {
+        const messages = [state.added ? text("added", state) : "", state.duplicates ? text("skipped", state) : ""].filter(Boolean);
+        report(messages[0] || text("added", { added: 0 }));
+        if (messages[1]) {
+          const extra = document.createElement("span");
+          extra.textContent = messages[1];
+          $("feedback").append(extra);
+        }
+      }
       else if (action !== "list") report("");
       return true;
     } catch (_error) {
       report(text("native-error"), true);
-      if (!state) $("empty").textContent = "";
+      if (!state) $("queue-empty").hidden = true;
       return false;
     }
   }
@@ -306,26 +367,93 @@
     });
   }
 
-  function refresh() {
+  function refresh(immediate = false) {
     clearTimeout(timer);
-    if (!document.hidden) timer = setTimeout(async () => {
+    const pending = !state || state.jobs.some(job => states.active.has(job.status));
+    if (immediate || !document.hidden || pending) timer = setTimeout(async () => {
       await request("list");
       if (!state || state.jobs.some((job) => states.active.has(job.status))) refresh();
-    }, 500);
+    }, immediate ? 0 : document.hidden ? 1000 : 500);
+  }
+
+  function copyLink(url) {
+    void navigator.clipboard.writeText(url).then(() => report(text("linkCopied")), () => report(text("copyFailed"), true));
+  }
+
+  function externalLink(url) {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  function openNative(id) {
+    if (usesPromises) return api.downloads.open(id);
+    return new Promise((resolve, reject) => api.downloads.open(id, () => {
+      const error = api.runtime.lastError;
+      if (error) reject(error);
+      else resolve();
+    }));
+  }
+
+  async function runJobAction(action, id, button) {
+    if (busy) return;
+    if (action === "cancel" && !confirm(text("cancelConfirm"))) return;
+    if (action === "show" || action === "open") {
+      const job = state?.jobs.find(item => item.id === id && item.status === "complete" && item.exists && Number.isInteger(item.browserId));
+      if (job) {
+        try {
+          if (action === "open") await openNative(job.browserId);
+          else await api.downloads.show(job.browserId);
+        } catch (_error) { report(text("no-file"), true); }
+      }
+    } else if (await request(action, { id })) {
+      if (button?.hidden || (button && !button.isConnected)) {
+        const next = rows.get(id)?.actions.querySelector("button:not([hidden])");
+        (next || $("search")).focus();
+      }
+    }
+  }
+
+  function jobMenu(event) {
+    const row = event.target.closest(".job");
+    const job = row && state?.jobs.find(item => item.id === row.dataset.id);
+    if (!job) return;
+    const nodes = rows.get(job.id);
+    const origin = Soft98DownloadLinks.normalize(job.source);
+    const items = [];
+    if (!nodes.open.hidden) items.push({ label: "open", icon: "external-link", run: () => runJobAction("open", job.id) });
+    for (const button of nodes.actions.querySelectorAll("button:not([hidden])")) {
+      const { action, label } = button.dataset;
+      items.push({ label, icon: actionIcons[action], run: () => runJobAction(action, job.id, button) });
+    }
+    items.push({ label: "copyLink", icon: "clipboard", group: "links", run: () => copyLink(job.url) });
+    if (origin) items.push({ label: "originalPage", icon: "link", group: "links", run: () => externalLink(origin) });
+    view.showMenu(event, items, event.target.closest("a,button") || nodes.menu);
   }
 
   document.documentElement.lang = locale;
   document.documentElement.dir = locale === "fa" ? "rtl" : "ltr";
   document.title = `${text("title")} | Soft98 Pro`;
   for (const node of document.querySelectorAll("[data-copy]")) node.textContent = text(node.dataset.copy);
-  if (locale === "fa") {
-    const guide = document.querySelector('[data-copy="managerGuide"]');
-    guide.href = guide.href.replace("/wiki/Download-Manager.md", "/wiki/fa/Download-Manager.md");
-  }
   for (const key of ["all", ...Object.keys(states)]) $("filter").append(option(key, text(key)));
   $("search").placeholder = text("search");
   $("empty").textContent = text("loading");
-  const review = createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, buttonContent, request, report });
+  setIcon($("empty-icon"), "download");
+  const view = Soft98DownloadView.create({
+    text, buttonContent,
+    async importToken(token) {
+      try {
+        const response = await send({ type: "soft98:download-prefill", token });
+        if (response?.urls?.length && location.hash === "#import") review.append(response.urls, response.source);
+        else if (location.hash === "#import") review.expired();
+      } catch (_error) { review.expired(); }
+    },
+    highlight(job) { focusedJob = job; if (state) render(); },
+  });
+  const review = createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, buttonContent, setIcon, request, view, copyLink, externalLink });
+  $("manager-nav").setAttribute("aria-label", text("managerPages"));
+  for (const [id, label, icon] of [["queue-tab", "queue", "list-details"], ["settings-tab", "settings", "settings"], ["close-guide", "close", "x"]]) {
+    buttonContent($(id), label, icon);
+    if (id === "close-guide") $(id).setAttribute("aria-label", text(label));
+  }
   buttonContent($("hold"), "hold", "player-pause");
   buttonContent($("clear"), "clear", "trash");
   $("hold").addEventListener("click", () => request("configure", { held: !state?.held }));
@@ -334,41 +462,32 @@
     if (!await request("configure", { notifications: event.target.checked })) render();
   });
   $("clear").addEventListener("click", () => request("clear"));
+  $("empty-action").addEventListener("click", () => {
+    if (!state?.jobs.length) $("open-import").click();
+    else {
+      $("search").value = "";
+      $("filter").value = "all";
+      render();
+      $("search").focus();
+    }
+  });
   $("search").addEventListener("input", render);
   $("filter").addEventListener("change", render);
-  $("jobs").addEventListener("click", async (event) => {
+  $("jobs").addEventListener("click", event => {
+    if (event.target.closest(".job-menu")) return jobMenu(event);
     const button = event.target.closest("button[data-action]");
-    if (!button || button.disabled || busy) return;
-    const { action, id } = button.dataset;
-    if (action === "cancel" && !confirm(text("cancelConfirm"))) return;
-    if (action === "show") {
-      const job = state.jobs.find((item) => item.id === id && item.status === "complete" && item.exists);
-      if (job) {
-        try { await api.downloads.show(job.browserId); } catch (_error) { report(text("no-file"), true); }
-      }
-    } else if (await request(action, { id })) {
-      if (button.hidden || !button.isConnected) {
-        const next = rows.get(id)?.actions.querySelector("button:not([hidden])");
-        (next || $("search")).focus();
-      }
-    }
+    if (button && !button.disabled && !button.hidden) void runJobAction(button.dataset.action, button.dataset.id, button);
+  });
+  $("jobs").addEventListener("contextmenu", jobMenu);
+  $("jobs").addEventListener("keydown", event => {
+    if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) jobMenu(event);
   });
   api.storage.onChanged.addListener((changes, area) => {
-    if (area === "local" && changes.soft98DownloadQueue) refresh();
+    if (area === "local" && changes.soft98DownloadQueue) refresh(true);
   });
-  document.addEventListener("visibilitychange", refresh);
+  document.addEventListener("visibilitychange", () => refresh());
   async function initialize() {
-    const token = /^#import=([a-f0-9-]{36})$/.exec(location.hash)?.[1];
-    if (token) {
-      try {
-        const response = await send({ type: "soft98:download-prefill", token });
-        if (response?.urls?.length) review.append(response.urls, response.source);
-        else review.expired();
-      } catch (_error) { review.expired(); }
-    }
-    if (token || focusedJob) {
-      history.replaceState(null, "", location.pathname);
-    }
+    view.route();
     await request("list");
     refresh();
   }

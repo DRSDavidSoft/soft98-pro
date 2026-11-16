@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" href="assets/icon-32.png" type="image/png">
+    <link id="manager-favicon" rel="icon" href="download-manager.svg">
     <link rel="stylesheet" href="typography.css">
     <link rel="stylesheet" href="theme.css">
     <script src="theme.js"></script>
@@ -11,32 +11,50 @@
     <title>Soft98 Pro</title>
   </head>
   <body>
+    <header class="masthead">
+      <div class="masthead-inner">
+        <div class="identity"><img id="manager-mark" src="download-manager.svg" alt="" width="40" height="40"><div><a href="options.html">Soft98 Pro</a><h1 data-copy="title"></h1></div></div>
+        <nav id="manager-nav" class="manager-nav">
+          <a id="queue-tab" href="#queue"></a>
+          <a id="settings-tab" href="#settings"></a>
+        </nav>
+      </div>
+    </header>
     <main class="workspace">
-      <header class="masthead">
-        <a href="options.html">Soft98 Pro</a>
-        <h1 data-copy="title"></h1>
-      </header>
-      <section class="queue" aria-labelledby="queue-title">
+      <section id="queue-view" class="queue" aria-labelledby="queue-title">
         <header class="queue-header">
-          <div><h2 id="queue-title" data-copy="queue"></h2><p id="counts"></p></div>
+          <div><h2 id="queue-title" data-copy="queue"></h2>
+            <dl id="counts">
+              <div><dt data-copy="active"></dt><dd id="count-active">0</dd></div>
+              <div><dt data-copy="waiting"></dt><dd id="count-waiting">0</dd></div>
+              <div><dt data-copy="finished"></dt><dd id="count-finished">0</dd></div>
+            </dl>
+          </div>
           <div class="controls">
             <button id="open-import" type="button" class="primary" aria-haspopup="dialog"></button>
-            <label class="limit"><span data-copy="parallel"></span><select id="limit" disabled></select></label>
             <button id="hold" type="button" disabled></button>
           </div>
         </header>
         <div class="filters">
           <label class="search"><span class="visually-hidden" data-copy="search"></span><input id="search" type="search"></label>
           <label><span class="visually-hidden" data-copy="filter"></span><select id="filter"></select></label>
-          <button id="clear" type="button" disabled></button>
-          <label class="check"><input id="native-notifications" type="checkbox" disabled><span data-copy="nativeNotifications"></span></label>
         </div>
         <p id="notice" role="status"></p>
-        <output id="feedback" role="status"></output>
-        <p id="empty" class="empty"></p>
         <ul id="jobs" class="jobs"></ul>
+        <div id="queue-empty" class="queue-empty">
+          <span id="empty-icon" class="file-mark" aria-hidden="true"></span>
+          <p id="empty"></p>
+          <button id="empty-action" type="button" hidden></button>
+        </div>
       </section>
-      <footer class="manager-footer"><a href="https://github.com/DRSDavidSoft/soft98-pro/blob/main/docs/wiki/Download-Manager.md" data-copy="managerGuide" target="_blank" rel="noopener noreferrer"></a><a href="https://t.me/PersianBlocker/1/27859" data-copy="community" target="_blank" rel="noopener noreferrer"></a></footer>
+      <section id="settings-view" class="settings" aria-labelledby="settings-title" hidden>
+        <h2 id="settings-title" data-copy="settings"></h2>
+        <div class="setting-row"><label for="limit" data-copy="parallel"></label><select id="limit" disabled></select></div>
+        <div class="setting-row"><label for="native-notifications" data-copy="nativeNotifications"></label><input id="native-notifications" type="checkbox" disabled></div>
+        <div class="setting-row"><span data-copy="history"></span><button id="clear" type="button" disabled></button></div>
+      </section>
+      <output id="feedback" role="status"></output>
+      <footer class="manager-footer"><a id="guide-link" href="#guide" data-copy="managerGuide"></a><a href="https://t.me/PersianBlocker/1/27859" data-copy="community" target="_blank" rel="noopener noreferrer"></a></footer>
     </main>
     <dialog id="import" aria-labelledby="import-title">
       <form id="composer">
@@ -80,7 +98,19 @@
         </footer>
       </form>
     </dialog>
+    <dialog id="guide" class="guide" aria-labelledby="guide-title">
+      <div class="guide-body">
+        <header class="import-bar"><h2 id="guide-title" data-copy="managerGuide"></h2><button id="close-guide" class="icon-button" type="button"></button></header>
+        <dl>
+          <div><dt data-copy="importOpen"></dt><dd data-copy="guideImport"></dd></div>
+          <div><dt data-copy="queue"></dt><dd data-copy="guideQueue"></dd></div>
+          <div><dt data-copy="settings"></dt><dd data-copy="guideSettings"></dd></div>
+        </dl>
+      </div>
+    </dialog>
+    <div id="manager-menu" class="context-menu" role="menu" popover="manual"></div>
     <script src="download-links.js"></script>
+    <script src="download-view.js"></script>
     <script src="download-import.js"></script>
     <script src="downloads.js"></script>
   </body>

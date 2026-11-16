@@ -1,10 +1,11 @@
 "use strict";
 
-function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, buttonContent, request, report }) {
+function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, buttonContent, setIcon, request, view, copyLink, externalLink }) {
   const $ = (id) => document.getElementById(id);
   const { MAX_BATCH, MAX_IMPORT, MAX_TEXT, describe, headers, normalize, parse } = Soft98DownloadLinks;
   const dialog = $("import");
   const candidates = new Map();
+  const rowNodes = new Map();
   const selected = new Set();
   const widths = { name: 268, type: 105, size: 104, date: 142 };
   const dates = new Intl.DateTimeFormat(locale === "fa" ? "fa-IR-u-ca-persian" : locale, { dateStyle: "medium" });
@@ -19,7 +20,7 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
   }
 
   function open() {
-    if (!dialog.open) dialog.showModal();
+    if (!dialog.open) view.openImport();
     scheduleDetails();
   }
 
@@ -70,7 +71,7 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
   }
 
   function render() {
-    const focused = $("import-links").contains(document.activeElement) && document.activeElement.value;
+    const body = $("import-links");
     const filter = $("import-type").value;
     const types = [...new Set([...candidates.values()].map((row) => row.type || row.mime || "?"))].sort();
     $("import-type").replaceChildren(new Option(text("allTypes"), ""), ...types.map((type) => new Option(type === "?" ? text("unavailable") : type, type)));
@@ -79,38 +80,46 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
       col.setAttribute("aria-sort", col.dataset.column === sort.key ? (sort.direction === 1 ? "ascending" : "descending") : "none");
     }
     const rows = visibleRows();
-    const body = document.createDocumentFragment();
-    for (const row of rows) {
-      const tr = document.createElement("tr");
-      const check = document.createElement("input");
-      check.type = "checkbox";
-      check.value = row.url;
-      check.setAttribute("aria-label", row.name);
-      const toggle = tr.insertCell();
-      toggle.append(check);
-      const file = tr.insertCell();
-      const name = document.createElement("bdi");
-      name.textContent = row.name;
-      name.title = row.name;
-      const host = document.createElement("small");
-      host.textContent = row.host;
-      host.dir = "ltr";
-      file.append(name, host);
-      const type = tr.insertCell();
+    const visible = new Set(rows.map(row => row.url));
+    const ordered = [...rows, ...[...candidates.values()].filter(row => !visible.has(row.url))];
+    for (const [url, { tr }] of rowNodes) if (!candidates.has(url)) {
+      tr.remove();
+      rowNodes.delete(url);
+    }
+    let next = body.firstElementChild;
+    for (const row of ordered) {
+      if (!rowNodes.has(row.url)) rowNodes.set(row.url, createRow(row));
+      const { tr, mark, type, size, date } = rowNodes.get(row.url);
+      const filtered = !visible.has(row.url);
+      if (filtered && tr.contains(document.activeElement)) $("import-search").focus({ preventScroll: true });
+      tr.toggleAttribute("data-filtered", filtered);
+      tr.inert = filtered;
+      setIcon(mark, Soft98DownloadView.fileIcon(row.type, row.mime));
       type.textContent = row.type || row.mime || text("unavailable");
       type.title = row.mime || type.textContent;
-      const size = tr.insertCell();
+      size.dir = row.size != null ? "ltr" : "auto";
       size.textContent = row.size != null ? bytes(row.size) : text("unavailable");
-      const date = tr.insertCell();
       date.textContent = row.date != null ? dates.format(row.date) : text("unavailable");
-      if (row.probeFailed) { size.title = text("headersUnavailable"); date.title = size.title; }
-      body.append(tr);
+      size.parentElement.title = date.title = row.probeFailed ? text("headersUnavailable") : "";
+      if (tr === next) next = next.nextElementSibling;
+      else body.insertBefore(tr, next);
     }
-    $("import-links").replaceChildren(body);
-    if (focused) [...$("import-links").querySelectorAll("input")].find((box) => box.value === focused)?.focus({ preventScroll: true });
     $("import-empty").hidden = Boolean(rows.length);
     $("import-empty").textContent = text(candidates.size ? "noMatches" : "importEmpty");
     updateSelection();
+  }
+
+  function createRow(row) {
+    const tr = document.createElement("tr");
+    tr.dataset.url = row.url;
+    tr.innerHTML = '<td><input type="checkbox"></td><td class="import-name"><span class="file-mark"></span><span><bdi></bdi><small dir="ltr"></small></span></td><td></td><td class="import-size"><bdi></bdi></td><td></td>';
+    const check = tr.querySelector("input");
+    check.value = row.url;
+    check.setAttribute("aria-label", row.name);
+    const name = tr.querySelector("bdi");
+    name.textContent = name.title = row.name;
+    tr.querySelector("small").textContent = row.host;
+    return { tr, mark: tr.querySelector(".file-mark"), type: tr.cells[2], size: tr.cells[3].firstElementChild, date: tr.cells[4] };
   }
 
   function resize(key, value) {
@@ -225,8 +234,37 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
     append([url]);
     notify("");
   };
+  function setSelected(url, checked) {
+    if (!checked) selected.delete(url);
+    else if (selected.size < MAX_BATCH) selected.add(url);
+    else notify("invalid-batch");
+    updateSelection();
+    scheduleDetails();
+  }
+
+  function tableMenu(event) {
+    const row = event.target.closest("tr[data-url]");
+    const url = row?.dataset.url;
+    const items = [];
+    if (url) {
+      const checked = selected.has(url);
+      items.push({ label: checked ? "deselectLink" : "selectLink", icon: checked ? "square" : "square-check", run: () => setSelected(url, !checked) },
+        { label: "copyLink", icon: "clipboard", group: "links", run: () => copyLink(url) },
+        { label: "openLink", icon: "external-link", group: "links", run: () => externalLink(url) });
+    }
+    for (const [id, label, icon] of [["select-import", "selectVisible", "square-check"], ["clear-import", "deselectAll", "square"], ["probe-import", "fetchDetails", "list-details"]]) {
+      if (!$(id).disabled) items.push({ label, icon, group: "table", run: () => $(id).click() });
+    }
+    view.showMenu(event, items, row?.querySelector("input") || event.target.closest("button") || dialog.querySelector(".import-grid"));
+  }
+
+  const grid = dialog.querySelector(".import-grid");
+  grid.addEventListener("contextmenu", tableMenu);
+  grid.addEventListener("keydown", event => {
+    if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) tableMenu(event);
+  });
   document.addEventListener("paste", (event) => {
-    if (event.target.matches?.("input:not(#import-url),[contenteditable]") || !event.clipboardData) return;
+    if (document.querySelector("#guide[open]") || event.target.matches?.("input:not(#import-url),[contenteditable]") || !event.clipboardData) return;
     const input = event.clipboardData.getData("text/plain");
     if (!input) return;
     event.preventDefault();
@@ -249,7 +287,7 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
     try { importText(await navigator.clipboard.readText()); } catch (_error) { notify("pasteShortcut"); }
   });
   $("open-import").addEventListener("click", open);
-  $("close-import").addEventListener("click", () => dialog.close());
+  $("close-import").addEventListener("click", view.closeDialog);
   $("add-url").addEventListener("click", manual);
   $("import-url").addEventListener("keydown", (event) => {
     if (event.key === "Enter") { event.preventDefault(); manual(); }
@@ -268,11 +306,7 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
   $("clear-import").addEventListener("click", () => { selected.clear(); updateSelection(); });
   $("import-links").addEventListener("change", (event) => {
     const { checked, value } = event.target;
-    if (!checked) selected.delete(value);
-    else if (selected.size < MAX_BATCH) selected.add(value);
-    else notify("invalid-batch");
-    updateSelection();
-    scheduleDetails();
+    setSelected(value, checked);
   });
   dialog.addEventListener("close", () => { clearTimeout(autoTimer); probe?.abort(); });
   $("composer").addEventListener("submit", async (event) => {
@@ -291,7 +325,7 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
     if (ok) {
       for (const url of urls) { candidates.delete(url); selected.delete(url); }
       $("filename").value = "";
-      dialog.close();
+      view.closeDialog();
     } else notify("importFailed");
     render();
   });
@@ -305,5 +339,5 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
   $("check-column").setAttribute("aria-label", text("selection"));
   $("import-search").placeholder = text("search");
   render();
-  return { append, expired: () => report(text("importExpired"), true) };
+  return { append, expired: () => notify("importExpired") };
 }

@@ -243,7 +243,7 @@ function chromiumManifest() {
   return {
     manifest_version: 3,
     ...commonManifest,
-    permissions: ["storage", "tabs", "alarms", "scripting", "webRequest", "downloads", "notifications"],
+    permissions: ["storage", "tabs", "alarms", "scripting", "webRequest", "downloads", "downloads.open", "notifications"],
     optional_host_permissions: ["http://*/*", "https://*/*"],
     host_permissions: [
       "*://*.soft98.ir/*",
@@ -291,6 +291,7 @@ function firefoxManifest() {
       "webRequest",
       "webRequestBlocking",
       "downloads",
+      "downloads.open",
       "notifications",
       "*://*.soft98.ir/*",
       "https://*.82.ir.cdn.ir/*",
@@ -318,7 +319,7 @@ function firefoxManifest() {
 function copyUi(target) {
   const catalog = JSON.parse(fs.readFileSync(path.join(SRC, "ui", "downloads.messages.json"), "utf8"));
   if (JSON.stringify(Object.keys(catalog.en).sort()) !== JSON.stringify(Object.keys(catalog.fa).sort())) throw new Error("Download catalogs must have identical keys");
-  const icons = Object.fromEntries(["download", "plus", "player-play", "player-pause", "x", "rotate-clockwise", "folder-open", "trash", "file-upload", "clipboard", "list-details"].map((name) => [name,
+  const icons = Object.fromEntries(["download", "plus", "player-play", "player-pause", "x", "rotate-clockwise", "folder-open", "trash", "file-upload", "clipboard", "list-details", "settings", "dots", "external-link", "file", "file-zip", "file-text", "photo", "video", "music", "package", "link", "square-check", "square"].map((name) => [name,
     fs.readFileSync(path.join(TABLER_ROOT, "icons", "outline", `${name}.svg`), "utf8")]));
   for (const file of ["popup.html", "options.html", "options.js", "styles.css"]) {
     const from = path.join(SRC, "ui", file);
@@ -335,7 +336,7 @@ function copyUi(target) {
       copyFile(from, to);
     }
   }
-  for (const file of ["downloads.html", "downloads.css", "downloads-link.css", "download-import.js", "typography.css", "theme.js", "theme.css"]) {
+  for (const file of ["downloads.html", "downloads.css", "downloads-link.css", "download-import.js", "download-view.js", "download-manager.svg", "typography.css", "theme.js", "theme.css"]) {
     copyFile(path.join(SRC, "ui", file), path.join(target, file));
   }
   copyFile(path.join(SRC, "download-links.js"), path.join(target, "download-links.js"));

@@ -1,5 +1,11 @@
 {
   "en": {
+    "settings": "Settings", "history": "Download history", "managerPages": "Download Manager views", "actions": "Actions", "resetFilters": "Clear filters",
+    "open": "Open file", "openLink": "Open download link", "copyLink": "Copy download link", "linkCopied": "Download link copied.", "copyFailed": "Could not copy the download link.",
+    "selectLink": "Select this link", "deselectLink": "Deselect this link", "total": "Total", "groupComplete": "All parts complete",
+    "guideImport": "Paste links or choose a .txt file. Check the files you want before adding them to the queue.",
+    "guideQueue": "Right-click a file for more actions. Click a completed filename to open it. Press F2 to search the queue.",
+    "guideSettings": "Set the number of simultaneous downloads and manage browser notifications.",
     "importOpen": "Import links", "importTitle": "Review download links", "addLink": "Add link", "pasteLinks": "Paste", "chooseFile": "Open .txt", "close": "Close",
     "allTypes": "All file types", "selection": "Selected files", "selectVisible": "Select visible", "deselectAll": "Clear selection", "fetchDetails": "Fetch details",
     "column_name": "File", "column_type": "Type", "column_size": "Size", "column_date": "Modified", "resizeColumn": "Resize {column} column",
@@ -12,29 +18,35 @@
     "title": "Downloads", "addTitle": "Add files", "urls": "Direct links", "urlHelp": "One HTTP or HTTPS file link per line, up to 30. Complete any sign-in or verification on the original site first. Links stay in this browser's queue until removed.",
     "saveOptions": "Save options", "path": "Relative path in Downloads (one link only)", "saveAs": "Ask the browser where to save each file", "add": "Add to queue", "queue": "Download queue", "parallel": "At once",
     "hold": "Hold queue", "unhold": "Start queue", "held": "Queue held. Downloads already running will continue.", "search": "Find a file or source", "filter": "Filter downloads", "all": "All downloads", "active": "In progress", "waiting": "Waiting", "finished": "Finished", "clear": "Clear finished",
-    "loading": "Loading your queue…", "empty": "No downloads yet.", "noMatches": "No downloads match the current filters.", "counts": "{active} active · {waiting} waiting · {finished} finished", "added": "Added: {added}. Already queued: {duplicates}.",
+    "loading": "Loading your queue…", "empty": "No downloads yet.", "noMatches": "No downloads match the current filters.", "added": "Added to the queue: {added}.", "skipped": "Already queued: {duplicates}.",
     "pause": "Pause", "resume": "Resume", "start": "Start download", "manual": "Ready to start", "cancel": "Cancel", "retry": "Retry from start", "show": "Show in folder", "remove": "Remove from queue", "cancelConfirm": "Cancel this download? Any partial progress may be lost.",
     "queued": "Queued", "starting": "Starting", "resuming": "Resuming", "downloading": "Downloading", "paused": "Paused", "resume-queued": "Waiting to resume", "complete": "Complete", "canceled": "Canceled", "interrupted": "Interrupted", "missing": "Not in browser history", "review": "Needs review",
     "bytes": "{received} of {total}", "html-response": "The server returned a web page instead of a file. Return to the original site for the correct link or any required verification.", "unknown-start": "The browser did not confirm the start. Check its downloads before retrying.",
     "not-resumable": "The browser cannot resume this download.", "invalid-url": "Enter complete HTTP or HTTPS links without embedded usernames or passwords.", "invalid-path": "Use a relative path such as Tools/file.zip, for a single link only.", "invalid-batch": "Enter 1 to 30 links.", "queue-full": "The queue is full. Clear finished items first.", "invalid-limit": "Choose between 1 and 6 active downloads.", "not-allowed": "That action is no longer available.", "not-found": "That file is no longer in the queue.", "native-error": "The browser could not complete that action. Check its Downloads panel.", "duplicate": "This link is already in the queue.", "no-file": "The browser could not find this file."
   },
   "fa": {
+    "settings": "تنظیمات", "history": "سابقهٔ دانلودها", "managerPages": "بخش‌های مدیر دانلود", "actions": "گزینه‌ها", "resetFilters": "پاک کردن فیلترها",
+    "open": "باز کردن فایل", "openLink": "باز کردن لینک دانلود", "copyLink": "کپی لینک دانلود", "linkCopied": "لینک دانلود کپی شد.", "copyFailed": "لینک دانلود کپی نشد.",
+    "selectLink": "انتخاب این لینک", "deselectLink": "لغو انتخاب این لینک", "total": "حجم کل", "groupComplete": "دانلود همهٔ قسمت‌ها کامل شد.",
+    "guideImport": "لینک‌ها رو بچسبون یا فایل متنی رو انتخاب کن. بعد فایل‌هایی رو که می‌خوای به صف اضافه کن.",
+    "guideQueue": "برای گزینه‌های بیشتر روی فایل راست‌کلیک کن. برای باز کردن فایل دانلودشده روی اسمش بزن. برای پیدا کردن فایل F2 رو بزن.",
+    "guideSettings": "تعداد دانلودهای هم‌زمان و اعلان‌های مرورگر رو از تنظیمات تغییر بده.",
     "importOpen": "وارد کردن لینک‌ها", "importTitle": "بررسی لینک‌های دانلود", "addLink": "افزودن لینک", "pasteLinks": "چسباندن", "chooseFile": "باز کردن فایل متنی", "close": "بستن",
     "allTypes": "همهٔ نوع فایل‌ها", "selection": "فایل‌های انتخاب‌شده", "selectVisible": "انتخاب موارد فیلترشده", "deselectAll": "لغو همهٔ انتخاب‌ها", "fetchDetails": "گرفتن مشخصات فایل",
     "column_name": "فایل", "column_type": "نوع", "column_size": "حجم", "column_date": "آخرین تغییر", "resizeColumn": "تغییر عرض ستون {column}",
     "selectionCount": "{count} از {total} انتخاب شده", "importEmpty": "چسباندن لینک‌ها یا کشیدن فایل متنی به اینجا", "noLinks": "لینک معتبری پیدا نشد.",
-    "pasteShortcut": "لینک‌ها رو با Ctrl+V یا Command+V بچسبون.", "badFile": "یه فایل متنی کمتر از ۲۵۶ کیبی‌بایت انتخاب کن.", "importIgnored": "لینک‌های تکراری، نامعتبر یا اضافه رد شدن.",
+    "pasteShortcut": "لینک‌ها رو با Ctrl+V یا Command+V بچسبون.", "badFile": "یه فایل متنی کمتر از 256 KiB انتخاب کن.", "importIgnored": "فقط لینک‌های معتبر و یکتا تا سقف انتخاب اضافه شدن.",
     "permissionDeclined": "دسترسی به سایت‌های انتخاب‌شده داده نشد.", "fetchingDetails": "در حال بررسی فایل‌های انتخاب‌شده…", "detailsDone": "مشخصات فایل‌ها به‌روز شد.", "detailsPartial": "مشخصات {count} لینک دریافت نشد.",
     "headersUnavailable": "سرور مشخصات رو نداد یا لینک رو به آدرس دیگه‌ای فرستاد.", "unavailable": "نامشخص", "importFailed": "فایل‌ها به صف اضافه نشدن. صف و تنظیمات ذخیره رو بررسی کن.",
     "originalPage": "صفحهٔ اصلی فایل", "groupStatus": "{done} از {count} قسمت دانلود شده", "managerGuide": "راهنمای مدیر دانلود", "community": "گفت‌وگو در تلگرام", "nativeNotifications": "اعلان‌های مرورگر",
     "speed": "{rate} بر ثانیه", "eta": "{duration} مانده", "etaUnknown": "در حال برآورد زمان باقی‌مانده", "elapsed": "{duration} گذشته", "importExpired": "لینک به صف منتقل نشد. دوباره از صفحهٔ مطلب بازش کنید یا نشانی را اینجا بچسبانید.",
-    "title": "دانلودها", "addTitle": "افزودن فایل", "urls": "لینک‌های مستقیم", "urlHelp": "در هر خط یک لینک مستقیم فایل وارد کنید؛ حداکثر ۳۰ لینک. اگر سایت ورود یا تأیید می‌خواهد، اول همان‌جا انجامش دهید. لینک‌ها تا وقتی حذفشان نکنید در صف همین مرورگر می‌مانند.",
+    "title": "دانلودها", "addTitle": "افزودن فایل", "urls": "لینک‌های مستقیم", "urlHelp": "در هر خط یک لینک مستقیم بنویس. می‌تونی تا ۳۰ لینک به صف اضافه کنی. اگه سایت ورود یا تأیید می‌خواد اول از همون‌جا انجامش بده.",
     "saveOptions": "تنظیمات ذخیره", "path": "مسیر داخل پوشهٔ دانلودها (فقط برای یک لینک)", "saveAs": "مرورگر محل ذخیرهٔ هر فایل را بپرسد", "add": "افزودن به صف", "queue": "صف دانلود", "parallel": "دانلود هم‌زمان",
     "hold": "توقف صف", "unhold": "راه‌اندازی صف", "held": "صف متوقف است. دانلودهایی که شروع شده‌اند ادامه دارند.", "search": "جست‌وجوی فایل یا منبع", "filter": "نمایش دانلودها", "all": "همهٔ دانلودها", "active": "در حال انجام", "waiting": "در انتظار", "finished": "پایان‌یافته", "clear": "پاک کردن پایان‌یافته‌ها",
-    "loading": "در حال بارگذاری صف…", "empty": "هنوز چیزی برای دانلود اضافه نکرده‌اید.", "noMatches": "دانلودی با این جست‌وجو یا فیلتر پیدا نشد.", "counts": "{active} فعال · {waiting} در انتظار · {finished} پایان‌یافته", "added": "اضافه شد: {added}؛ از قبل در صف: {duplicates}.",
+    "loading": "در حال بارگذاری صف…", "empty": "هنوز فایلی به صف اضافه نشده.", "noMatches": "دانلودی با این جست‌وجو یا فیلتر پیدا نشد.", "added": "{added} فایل به صف اضافه شد.", "skipped": "{duplicates} فایل از قبل در صف بود.",
     "pause": "مکث", "resume": "ادامه", "start": "شروع دانلود", "manual": "آمادهٔ شروع", "cancel": "لغو", "retry": "شروع دوباره", "show": "نمایش در پوشه", "remove": "حذف از صف", "cancelConfirm": "این دانلود لغو شود؟ ممکن است بخش دانلودشده از دست برود.",
     "queued": "در صف", "starting": "در حال شروع", "resuming": "در حال ادامه", "downloading": "در حال دانلود", "paused": "متوقف", "resume-queued": "در انتظار ادامه", "complete": "کامل شد", "canceled": "لغو شد", "interrupted": "قطع شد", "missing": "در تاریخچهٔ مرورگر نیست", "review": "نیاز به بررسی",
     "bytes": "{received} از {total}", "html-response": "به‌جای فایل، یک صفحهٔ وب دریافت شد. برای لینک درست یا تأیید لازم به سایت اصلی برگردید.", "unknown-start": "مرورگر شروع دانلود را تأیید نکرد. قبل از تلاش دوباره، دانلودهای مرورگر را ببینید.",
-    "not-resumable": "مرورگر نمی‌تواند این دانلود را ادامه دهد.", "invalid-url": "لینک کامل HTTP یا HTTPS وارد کنید، بدون نام کاربری یا رمز در خود لینک.", "invalid-path": "برای یک لینک، مسیری مثل Tools/file.zip وارد کنید.", "invalid-batch": "بین ۱ تا ۳۰ لینک وارد کنید.", "queue-full": "صف پر است. اول موارد پایان‌یافته را پاک کنید.", "invalid-limit": "بین ۱ تا ۶ دانلود هم‌زمان انتخاب کنید.", "not-allowed": "این کار دیگر ممکن نیست.", "not-found": "این فایل دیگر در صف نیست.", "native-error": "مرورگر نتوانست این کار را انجام دهد. بخش دانلودهای مرورگر را بررسی کنید.", "duplicate": "این لینک از قبل در صف است.", "no-file": "مرورگر نتوانست این فایل را پیدا کند."
+    "not-resumable": "مرورگر نمی‌تواند این دانلود را ادامه دهد.", "invalid-url": "لینک کامل HTTP یا HTTPS بدون نام کاربری و رمز وارد کن.", "invalid-path": "فقط برای یک لینک می‌تونی مسیری مثل Tools/file.zip بنویسی.", "invalid-batch": "بین ۱ تا ۳۰ لینک وارد کنید.", "queue-full": "صف پر است. اول موارد پایان‌یافته را پاک کنید.", "invalid-limit": "بین ۱ تا ۶ دانلود هم‌زمان انتخاب کنید.", "not-allowed": "این کار دیگر ممکن نیست.", "not-found": "این فایل دیگر در صف نیست.", "native-error": "مرورگر نتوانست این کار را انجام دهد. بخش دانلودهای مرورگر را بررسی کنید.", "duplicate": "این لینک از قبل در صف است.", "no-file": "مرورگر نتوانست این فایل را پیدا کند."
   }
 }
