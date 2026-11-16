@@ -161,6 +161,58 @@ const Soft98DownloadView = (() => {
     node.inert = hidden;
   }
 
+  function dates(locale, text) {
+    const relative = new Intl.RelativeTimeFormat(locale, { numeric: "always" });
+    const painted = new WeakMap();
+    let short, full;
+    function setCalendar(value) {
+      const mode = value === "persian" || value === "gregory" ? value : "auto";
+      const calendar = mode === "auto" ? (locale === "fa" ? "persian" : "gregory") : mode;
+      short = new Intl.DateTimeFormat(locale, { calendar, dateStyle: "medium" });
+      full = new Intl.DateTimeFormat(locale, { calendar, dateStyle: "full", timeStyle: "short" });
+      return mode;
+    }
+    setCalendar("auto");
+
+    function display(time, exact) {
+      if (!time.matches?.("time[data-date-label]")) return;
+      const value = exact ? time.dataset.exactDate : time.dataset.dateLabel;
+      if (time.textContent !== value) time.textContent = value;
+    }
+    document.addEventListener("focusin", ({ target }) => display(target, true));
+    document.addEventListener("focusout", ({ target }) => display(target, false));
+
+    function paint(time, stamp, label, now = Date.now()) {
+      const valid = Number.isFinite(stamp) && Math.abs(stamp) <= 8.64e15;
+      time.hidden = !valid;
+      if (!valid) {
+        if (painted.delete(time)) {
+          for (const attr of ["datetime", "title", "tabindex", "data-date-label", "data-exact-date"]) time.removeAttribute(attr);
+          time.textContent = "";
+        }
+        return false;
+      }
+      const seconds = (stamp - now) / 1000;
+      const age = Math.abs(seconds);
+      const [unit, divisor] = age >= 86400 ? ["day", 86400] : age >= 3600 ? ["hour", 3600] : ["minute", 60];
+      const recent = age < 7 * 86400;
+      const last = painted.get(time);
+      if (last?.stamp !== stamp || last.formatter !== short || last.label !== label) {
+        time.dateTime = new Date(stamp).toISOString();
+        time.title = label + ": " + full.format(stamp);
+        time.dataset.exactDate = short.format(stamp);
+        painted.set(time, { stamp, formatter: short, label });
+      }
+      time.dataset.dateLabel = !recent ? time.dataset.exactDate : age < 60 ? text("dateNow") :
+        relative.format(Math.trunc(seconds / divisor), unit);
+      if (recent) time.tabIndex = 0;
+      else time.removeAttribute("tabindex");
+      display(time, time === document.activeElement);
+      return true;
+    }
+    return { setCalendar, paint };
+  }
+
   function indicator(text) {
     const canvas = document.createElement("canvas");
     canvas.width = canvas.height = 64;
@@ -247,5 +299,5 @@ const Soft98DownloadView = (() => {
     };
   }
 
-  return { create, fileIcon, indicator, setFiltered };
+  return { create, fileIcon, indicator, setFiltered, dates };
 })();

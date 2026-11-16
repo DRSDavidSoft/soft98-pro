@@ -13,7 +13,7 @@ Right-click a row for its available actions. Use **Shift+F10** from a focused ro
 - Search by file name or host, filter by type, and click a column heading to sort in either direction.
 - Drag a column divider to resize it. With the divider focused, use the Left and Right arrow keys.
 - **Select visible** checks the filtered rows. It keeps earlier selections, even if those rows are now filtered out. **Clear selection** unchecks all rows. Review up to 120 candidates and submit up to 30 per batch.
-- Size, type, and last-modified date are checked automatically for selected links. **Fetch details** retries and may ask the browser for access to the selected sites. It sends HEAD requests without cookies or a referrer. Soft98's download CDN is covered automatically; cross-site restrictions, missing headers, or servers that reject HEAD can leave values unavailable without disabling the download. Persian mode shows dates in the Solar Hijri calendar.
+- Size, type, and last-modified date are checked automatically for selected links. **Fetch details** retries and may ask the browser for access to the selected sites. It sends HEAD requests without cookies or a referrer. Soft98's download CDN is covered automatically; cross-site restrictions, missing headers, or servers that reject HEAD can leave values unavailable without disabling the download.
 - **Save options** lets you request a save prompt or enter a relative path for a single file.
 
 ## Follow downloads
@@ -21,6 +21,8 @@ Right-click a row for its available actions. Use **Shift+F10** from a focused ro
 Files such as `Artwork.part01.rar` and `Artwork.part02.rar` appear under one expandable group. Parts stay in numeric order and each keeps its own progress, pause, and cancel controls. **Original page** returns to the article when a download was added from there. Pasted links without a known source do not get a guessed origin page.
 
 Click a completed filename to open it through the browser. Press **F2** to search and follow progress in the sticky header or browser tab icon. File sizes always use English digits. The **Settings** tab holds the parallel download limit, browser notifications, and the action to clear finished entries from the queue without deleting files.
+
+Recent dates appear as relative time, such as **2 days ago**. Hover over or focus the date to see its exact value. Under **Settings → Date calendar**, choose **Auto**, **Solar Hijri**, or **Gregorian**. Auto follows the interface language.
 
 ![A grouped archive with one part complete, another waiting, and original page links](../assets/comparison/download-manager-multipart.webp)
 

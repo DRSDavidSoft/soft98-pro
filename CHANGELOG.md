@@ -18,6 +18,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Redesigned Linkdoni with light and dark themes and a date-grouped archive, retaining its original search and article links.
 - Added collapsible dates, a link-count badge, and Persian page numbers to Linkdoni. Archive pages now load without a full refresh and support Back and Forward. The Control Center stays visible while scrolling.
 - Added Download Manager settings, file-type icons, context menus, and a built-in guide. Completed files open from their names. The sticky header shows queue progress, and F2 focuses search.
+- Added relative dates for recent downloads and file updates, with an automatic, Solar Hijri, or Gregorian calendar setting.
 
 ### Fixed
 
@@ -32,6 +33,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Left-aligned the technology news share buttons.
 - Kept file sizes in English digits even in Persian and stopped repeating the total when a download is complete. Download dialogs now follow the URL and close when clicked outside.
 - Replaced the final percentage and stale elapsed timer with a localized completion status.
+- Fixed access to the download queue when refreshing the manager directly on Settings or another built-in view.
 
 ### Removed
 

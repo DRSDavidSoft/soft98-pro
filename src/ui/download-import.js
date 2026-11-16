@@ -1,6 +1,6 @@
 "use strict";
 
-function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, buttonContent, setIcon, request, view, copyLink, externalLink }) {
+function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, buttonContent, setIcon, request, view, copyLink, externalLink, dates }) {
   const $ = (id) => document.getElementById(id);
   const { MAX_BATCH, MAX_IMPORT, MAX_TEXT, describe, headers, normalize, parse } = Soft98DownloadLinks;
   const dialog = $("import");
@@ -8,7 +8,6 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
   const rowNodes = new Map();
   const selected = new Set();
   const widths = { name: 268, type: 105, size: 104, date: 142 };
-  const dates = new Intl.DateTimeFormat(locale === "fa" ? "fa-IR-u-ca-persian" : locale, { dateStyle: "medium" });
   const collator = new Intl.Collator(locale, { numeric: true });
   let sort = { key: "name", direction: 1 };
   let probe;
@@ -99,8 +98,8 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
       type.title = row.mime || type.textContent;
       size.dir = row.size != null ? "ltr" : "auto";
       size.textContent = row.size != null ? bytes(row.size) : text("unavailable");
-      date.textContent = row.date != null ? dates.format(row.date) : text("unavailable");
-      size.parentElement.title = date.title = row.probeFailed ? text("headersUnavailable") : "";
+      paintDate(date, row.date);
+      size.parentElement.title = date.parentElement.title = row.probeFailed ? text("headersUnavailable") : "";
       if (tr === next) next = next.nextElementSibling;
       else body.insertBefore(tr, next);
     }
@@ -109,17 +108,30 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
     updateSelection();
   }
 
+  function paintDate(date, stamp) {
+    const fallback = date.nextElementSibling;
+    const available = dates.paint(date, stamp, text("column_date"));
+    fallback.hidden = available;
+    const label = available ? "" : text("unavailable");
+    if (fallback.textContent !== label) fallback.textContent = label;
+  }
+
+  function refreshDates() {
+    for (const [url, { date }] of rowNodes) paintDate(date, candidates.get(url)?.date);
+  }
+
   function createRow(row) {
     const tr = document.createElement("tr");
     tr.dataset.url = row.url;
-    tr.innerHTML = '<td><input type="checkbox"></td><td class="import-name"><span class="file-mark"></span><span><bdi></bdi><small dir="ltr"></small></span></td><td></td><td class="import-size"><bdi></bdi></td><td></td>';
+    tr.innerHTML = '<td><input type="checkbox"></td><td class="import-name"><span class="file-mark"></span><span><bdi></bdi><small dir="ltr"></small></span></td><td></td><td class="import-size"><bdi></bdi></td><td><time></time><span></span></td>';
     const check = tr.querySelector("input");
     check.value = row.url;
     check.setAttribute("aria-label", row.name);
     const name = tr.querySelector("bdi");
     name.textContent = name.title = row.name;
     tr.querySelector("small").textContent = row.host;
-    return { tr, mark: tr.querySelector(".file-mark"), type: tr.cells[2], size: tr.cells[3].firstElementChild, date: tr.cells[4] };
+    const date = tr.cells[4].firstElementChild;
+    return { tr, mark: tr.querySelector(".file-mark"), type: tr.cells[2], size: tr.cells[3].firstElementChild, date };
   }
 
   function resize(key, value) {
@@ -339,5 +351,5 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
   $("check-column").setAttribute("aria-label", text("selection"));
   $("import-search").placeholder = text("search");
   render();
-  return { append, expired: () => notify("importExpired") };
+  return { append, refreshDates, expired: () => notify("importExpired") };
 }

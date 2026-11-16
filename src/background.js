@@ -374,17 +374,15 @@
     if (message.type === "soft98:download-prefill") {
       const token = message.token;
       if (typeof token !== "string" || !/^[a-f0-9-]{36}$/.test(token) ||
-          !(Soft98DownloadQueue.trustedSender(sender, api.runtime.id, downloadPage + "#import=" + token) ||
-            Soft98DownloadQueue.trustedSender(sender, api.runtime.id, downloadPage))) return false;
+          !Soft98DownloadQueue.trustedSender(sender, api.runtime.id, downloadPage) ||
+          !["", "#import", "#import=" + token].includes(sender.url.slice(downloadPage.length))) return false;
       const pending = downloadImports.get(token);
       downloadImports.delete(token);
       sendResponse(pending && pending.expires > Date.now() ? { urls: pending.urls, source: pending.source } : null);
       return false;
     }
     if (message.type === Soft98DownloadQueue.CHANNEL) {
-      const importedUrl = downloadPage + (/^#(?:job|import)=[a-f0-9-]{36}$/.exec(sender.url?.slice(downloadPage.length))?.[0] || "");
-      if (!Soft98DownloadQueue.trustedSender(sender, api.runtime.id, downloadPage) &&
-          !Soft98DownloadQueue.trustedSender(sender, api.runtime.id, importedUrl)) return false;
+      if (!Soft98DownloadQueue.trustedSender(sender, api.runtime.id, downloadPage)) return false;
       queue.request(message).then((state) => sendResponse({ ok: true, state }))
         .catch((error) => sendResponse({ ok: false, error: error.queueCode || "native-error" }));
       return true;

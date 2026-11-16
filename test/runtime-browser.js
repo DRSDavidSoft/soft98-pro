@@ -237,7 +237,8 @@ async function verifyDownloadManager(client) {
       }
       const state = { limit: 3, maxParallel: 6, held: false, notifications: true, jobs: [
         { id: "part2", url: ${JSON.stringify(part(2))}, source: ${JSON.stringify(origin)}, status: "paused", manualStart: true, total: 48234496 },
-        { id: "part1", url: ${JSON.stringify(part(1))}, source: ${JSON.stringify(origin)}, status: "complete", total: 67108864, bytes: 67108864, browserId: 11, exists: true, startedAt: 1790000000000, endedAt: 1790000000700 },
+        { id: "part1", url: ${JSON.stringify(part(1))}, source: ${JSON.stringify(origin)}, status: "complete", total: 67108864, bytes: 67108864, browserId: 11, exists: true, startedAt: Date.now() - 172800700, endedAt: Date.now() - 172800000,
+          metadata: { date: Date.UTC(2024, 10, 16) } },
       ] };
       window.managerCommands = [];
       window.setManagerJob = (id, changes) => {
@@ -245,7 +246,10 @@ async function verifyDownloadManager(client) {
         document.dispatchEvent(new Event("visibilitychange"));
       };
       window.browser = {
-        storage: { local: { get: async () => ({}) }, onChanged: { addListener() {} } },
+        storage: { local: {
+          get: async key => ({ [key]: sessionStorage.getItem(key) || undefined }),
+          set: async values => { for (const [key, value] of Object.entries(values)) sessionStorage.setItem(key, value); },
+        }, onChanged: { addListener() {} } },
         permissions: { request: async () => true },
         downloads: { open: async id => managerCommands.push({ action: "open-native", id }) },
         runtime: { sendMessage: async (message) => {
@@ -285,6 +289,15 @@ async function verifyDownloadManager(client) {
         row.querySelector("[data-metric=percent]").hidden && row.querySelector("[data-metric=elapsed]").hidden &&
         row.querySelector("[data-metric=bytes]").textContent === "64 MiB" && row.querySelector("[data-metric=total]").hidden;
     })()`), true);
+    check("recent completion dates are relative and expose an exact date on focus", await run(`(() => {
+      const time = document.querySelector(".meta-completed time");
+      const exact = new Intl.DateTimeFormat("en", { calendar: "gregory", dateStyle: "medium" }).format(new Date(time.dateTime));
+      const relative = time.textContent;
+      time.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
+      const focus = time.textContent === exact;
+      time.dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
+      return [relative, focus, time.textContent].join("|");
+    })()`), "2 days ago|true|2 days ago");
     check("downloaded archives have an icon", await run('document.querySelector(".job .file-mark").dataset.icon'), "file-zip");
     await run('document.querySelector(".file-open").click()');
     check("the filename opens the completed browser download", await run('managerCommands.find(message => message.action === "open-native")?.id'), 11);
@@ -391,6 +404,27 @@ async function verifyDownloadManager(client) {
       return document.documentElement.dir === "rtl" && element.textContent === "64 MiB" &&
         getComputedStyle(element).fontVariantNumeric.includes("tabular-nums");
     })()`), true);
+    const calendarCheck = expected => `(() => {
+      const time = document.querySelector(".meta-date");
+      const format = new Intl.DateTimeFormat("fa", { calendar: "${expected}", dateStyle: "medium" });
+      return time.textContent === format.format(new Date(time.dateTime));
+    })()`;
+    await until('!document.querySelector("#date-calendar").disabled');
+    check("Auto uses Solar Hijri in Persian", await run(calendarCheck("persian")), true);
+    const selectCalendar = mode => run(`(() => {
+      document.querySelector("#settings-tab").click();
+      const select = document.querySelector("#date-calendar");
+      select.value = "${mode}";
+      select.dispatchEvent(new Event("change"));
+      document.querySelector("#queue-tab").click();
+    })()`);
+    await selectCalendar("gregory");
+    check("Gregorian changes the exact date without changing the language", await run(calendarCheck("gregory")), true);
+    await client.send("Page.reload");
+    await until('document.querySelector("#date-calendar")?.value === "gregory" && document.querySelector(".meta-date")');
+    check("Gregorian survives a reload", await run(calendarCheck("gregory")), true);
+    await selectCalendar("persian");
+    check("Solar Hijri can also be selected explicitly", await run(calendarCheck("persian")), true);
   } finally {
     await client.send("Page.removeScriptToEvaluateOnNewDocument", { identifier: result.identifier });
     await client.send("Emulation.clearDeviceMetricsOverride");

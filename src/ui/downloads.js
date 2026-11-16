@@ -12,7 +12,8 @@
   const percent = new Intl.NumberFormat("en", { style: "percent", maximumFractionDigits: 1 });
   const durations = Object.fromEntries(["hour", "minute", "second"].map(unit =>
     [unit, new Intl.NumberFormat(locale, { style: "unit", unit, unitDisplay: "short" })]));
-  const fileDates = new Intl.DateTimeFormat(locale === "fa" ? "fa-IR-u-ca-persian" : locale, { dateStyle: "medium" });
+  const calendarKey = "soft98DownloadDateCalendar";
+  const dates = Soft98DownloadView.dates(locale, text);
   const states = {
     active: new Set(["starting", "resuming", "downloading"]),
     waiting: new Set(["queued", "resume-queued", "paused"]),
@@ -28,6 +29,8 @@
   let inFlight;
   let busy = false;
   let timer;
+  let calendar = "auto";
+  let calendarRevision = 0;
 
   function text(key, values = {}) {
     return (catalog[locale][key] || catalog.en[key] || catalog[locale]["native-error"])
@@ -121,14 +124,15 @@
     const row = document.createElement("li");
     row.className = "job";
     row.dataset.id = job.id;
-    row.innerHTML = '<div class="job-shell"><article class="job-content"><div class="job-head"><span class="file-mark" aria-hidden="true"></span><strong><bdi></bdi><button class="file-open" type="button" data-action="open" hidden></button></strong><span class="state"></span><button class="job-menu icon-button" type="button" aria-haspopup="menu"></button></div><div class="source"><bdi dir="ltr"></bdi><a target="_blank" rel="noopener noreferrer" hidden></a><span class="meta-type" hidden></span><bdi class="meta-size" dir="ltr" hidden></bdi><time class="meta-date" hidden></time></div><progress hidden></progress><div class="job-footer"><div class="metrics"><bdi data-metric="percent" dir="ltr"></bdi><span data-metric="bytes"><bdi dir="ltr"></bdi></span><span data-metric="total"><span data-copy="total"></span><bdi dir="ltr"></bdi></span><bdi data-metric="speed" dir="ltr"></bdi><bdi data-metric="eta"></bdi><bdi data-metric="elapsed"></bdi></div><div class="actions"></div></div><small class="detail" hidden></small></article></div>';
+    row.innerHTML = '<div class="job-shell"><article class="job-content"><div class="job-head"><span class="file-mark" aria-hidden="true"></span><strong><bdi></bdi><button class="file-open" type="button" data-action="open" hidden></button></strong><span class="state"></span><button class="job-menu icon-button" type="button" aria-haspopup="menu"></button></div><div class="source"><bdi dir="ltr"></bdi><a target="_blank" rel="noopener noreferrer" hidden></a><span class="meta-type" hidden></span><bdi class="meta-size" dir="ltr" hidden></bdi><time class="meta-date" hidden></time><span class="meta-completed" hidden><span></span><time></time></span></div><progress hidden></progress><div class="job-footer"><div class="metrics"><bdi data-metric="percent" dir="ltr"></bdi><span data-metric="bytes"><bdi dir="ltr"></bdi></span><span data-metric="total"><span data-copy="total"></span><bdi dir="ltr"></bdi></span><bdi data-metric="speed" dir="ltr"></bdi><bdi data-metric="eta"></bdi><bdi data-metric="elapsed"></bdi></div><div class="actions"></div></div><small class="detail" hidden></small></article></div>';
     const nodes = Object.fromEntries(Object.entries({
       name: "strong > bdi", open: ".file-open", mark: ".file-mark", menu: ".job-menu", state: ".state",
-      source: ".source > bdi:first-child", origin: ".source a", type: ".meta-type", size: ".meta-size", date: ".meta-date",
+      source: ".source > bdi:first-child", origin: ".source a", type: ".meta-type", size: ".meta-size", date: ".meta-date", completed: ".meta-completed time",
       progress: "progress", metrics: ".metrics", actions: ".actions", detail: ".detail",
     }).map(([key, selector]) => [key, row.querySelector(selector)]));
     nodes.row = row;
     nodes.open.dataset.id = job.id;
+    nodes.completed.previousElementSibling.textContent = text("completedDate");
     nodes.metrics.querySelector("[data-copy]").textContent = text("total");
     nodes.menu.setAttribute("aria-label", text("actions"));
     buttonContent(nodes.menu, "actions", "dots");
@@ -169,9 +173,8 @@
     const meta = job.metadata;
     nodes.type.textContent = meta?.type || file.type || meta?.mime || "";
     nodes.size.textContent = meta?.size != null && meta.size !== job.total ? bytes(meta.size) : "";
-    nodes.date.textContent = meta?.date != null ? fileDates.format(meta.date) : "";
-    if (meta?.date != null) nodes.date.dateTime = new Date(meta.date).toISOString();
-    for (const field of [nodes.type, nodes.size, nodes.date]) field.hidden = !field.textContent;
+    paintRowDates(job, nodes);
+    for (const field of [nodes.type, nodes.size]) field.hidden = !field.textContent;
     const received = job.bytes || 0;
     const known = Number.isFinite(job.total) && job.total >= 0;
     updateMetrics(job, nodes);
@@ -201,6 +204,12 @@
       button.disabled = !allowed;
       button.setAttribute("aria-label", `${text(label)}: ${name}`);
     }
+  }
+
+  function paintRowDates(job, nodes) {
+    dates.paint(nodes.date, job.metadata?.date, text("column_date"));
+    nodes.completed.parentElement.hidden = !dates.paint(nodes.completed,
+      job.status === "complete" ? job.endedAt : undefined, text("completedDate"));
   }
 
   function placeRows(container, nodes) {
@@ -369,6 +378,42 @@
     });
   }
 
+  function dateStorage(method, value) {
+    const storage = api.storage.local;
+    if (usesPromises) return storage[method](value);
+    return new Promise((resolve, reject) => storage[method](value, result => {
+      const error = api.runtime.lastError;
+      if (error) reject(error);
+      else resolve(result);
+    }));
+  }
+
+  function refreshDates() {
+    for (const job of state?.jobs || []) {
+      const nodes = rows.get(job.id);
+      if (nodes) paintRowDates(job, nodes);
+    }
+    review.refreshDates();
+  }
+
+  function applyCalendar(value) {
+    calendar = dates.setCalendar(value);
+    $("date-calendar").value = calendar;
+    refreshDates();
+  }
+
+  async function initializeCalendar() {
+    const revision = calendarRevision;
+    try {
+      const settings = await dateStorage("get", calendarKey);
+      if (calendarRevision === revision) applyCalendar(settings?.[calendarKey]);
+    } catch (_error) {
+      // Keep Auto available if storage is temporarily unavailable.
+    } finally {
+      $("date-calendar").disabled = false;
+    }
+  }
+
   function refresh(immediate = false) {
     clearTimeout(timer);
     const pending = !state || state.jobs.some(job => states.active.has(job.status));
@@ -450,7 +495,22 @@
     },
     highlight(job) { focusedJob = job; if (state) render(); },
   });
-  const review = createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, buttonContent, setIcon, request, view, copyLink, externalLink });
+  const review = createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, buttonContent, setIcon, request, view, copyLink, externalLink, dates });
+  for (const [value, label] of [["auto", "calendarAuto"], ["persian", "calendarPersian"], ["gregory", "calendarGregorian"]]) {
+    $("date-calendar").append(option(value, text(label)));
+  }
+  $("date-calendar").addEventListener("change", async event => {
+    const previous = calendar;
+    const revision = ++calendarRevision;
+    applyCalendar(event.target.value);
+    try {
+      await dateStorage("set", { [calendarKey]: calendar });
+    } catch (_error) {
+      if (calendarRevision !== revision) return;
+      applyCalendar(previous);
+      report(text("calendarSaveFailed"), true);
+    }
+  });
   $("manager-nav").setAttribute("aria-label", text("managerPages"));
   for (const [id, label, icon] of [["queue-tab", "queue", "list-details"], ["settings-tab", "settings", "settings"], ["close-guide", "close", "x"]]) {
     buttonContent($(id), label, icon);
@@ -485,10 +545,20 @@
     if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) jobMenu(event);
   });
   api.storage.onChanged.addListener((changes, area) => {
-    if (area === "local" && changes.soft98DownloadQueue) refresh(true);
+    if (area !== "local") return;
+    if (changes.soft98DownloadQueue) refresh(true);
+    if (changes[calendarKey]) {
+      calendarRevision++;
+      if (changes[calendarKey].newValue !== calendar) applyCalendar(changes[calendarKey].newValue);
+    }
   });
-  document.addEventListener("visibilitychange", () => refresh());
+  document.addEventListener("visibilitychange", () => {
+    refresh();
+    if (!document.hidden) refreshDates();
+  });
+  setInterval(() => { if (!document.hidden) refreshDates(); }, 30000);
   async function initialize() {
+    void initializeCalendar();
     view.route();
     await request("list");
     refresh();

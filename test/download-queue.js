@@ -165,7 +165,11 @@ test("only accepts the extension's own top-level non-private manager page", () =
   const url = "moz-extension://test/downloads.html";
   const sender = { id: EXTENSION_ID, url, frameId: 0 };
   assert.equal(trustedSender(sender, EXTENSION_ID, url), true);
-  for (const change of [{ id: "other" }, { url: "https://soft98.ir/" }, { url: url + "?url=external" }, { frameId: 1 }, { tab: { incognito: true } }]) {
+  for (const fragment of ["#queue", "#settings", "#guide", "#import", "#job=105a3131-7143-4f92-8f36-a9b5103d4254"]) {
+    assert.equal(trustedSender({ ...sender, url: url + fragment }, EXTENSION_ID, url), true);
+  }
+  for (const change of [{ id: "other" }, { url: "https://soft98.ir/#settings" }, { url: url + "?url=external#settings" },
+    { url: url + "#unexpected" }, { frameId: 1 }, { tab: { incognito: true } }]) {
     assert.equal(trustedSender({ ...sender, ...change }, EXTENSION_ID, url), false);
   }
 });
@@ -418,17 +422,19 @@ async function verifyNativeQueue(browser, chromium) {
         origin = targetInfos.map(({ url }) => /^chrome-extension:\/\/[a-p]{32}(?=\/assets\/background\.js$)/.exec(url)?.[0]).find(Boolean);
         return origin;
       }, "unpacked Chromium extension registered");
-      await post("/url", { url: origin + "/downloads.html" });
+      await post("/url", { url: origin + "/downloads.html#settings" });
     } else {
       await post("/moz/addon/install", { path: path.join(DIST, "packages", `soft98-pro-firefox-${require("../package.json").version}.zip`), temporary: true });
-      const browserUrl = `moz-extension://${uuid}/downloads.html`;
+      const browserUrl = `moz-extension://${uuid}/downloads.html#settings`;
       await post("/moz/context", { context: "chrome" });
       await evaluate("gBrowser.loadURI(Services.io.newURI(arguments[0]), { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() });", browserUrl);
       await post("/moz/context", { context: "content" });
     }
     await until(() => evaluate("return document.getElementById('limit')?.disabled === false"), "manager ready");
     await evaluate("const limit = document.getElementById('limit'); limit.value = '2'; limit.dispatchEvent(new Event('change')); ");
-    await sleep(150);
+    await until(() => evaluate(`return (typeof browser !== "undefined" ? browser : chrome).storage.local.get("soft98DownloadQueue")
+      .then(({ soft98DownloadQueue }) => soft98DownloadQueue?.limit === 2)`), "configure works on the settings route");
+    await evaluate(`document.getElementById("queue-tab").click()`);
     const submit = (urls, filename = "") => evaluate(`
       if (!document.getElementById("import").open) document.getElementById("open-import").click();
       for (const url of arguments[0].split("\\n")) {

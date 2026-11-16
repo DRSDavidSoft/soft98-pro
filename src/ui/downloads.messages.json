@@ -1,6 +1,8 @@
 {
   "en": {
     "settings": "Settings", "history": "Download history", "managerPages": "Download Manager views", "actions": "Actions", "resetFilters": "Clear filters",
+    "dateCalendar": "Date calendar", "calendarAuto": "Auto (by language)", "calendarPersian": "Solar Hijri", "calendarGregorian": "Gregorian",
+    "dateNow": "just now", "completedDate": "Finished", "calendarSaveFailed": "Could not save the date calendar.",
     "open": "Open file", "openLink": "Open download link", "copyLink": "Copy download link", "linkCopied": "Download link copied.", "copyFailed": "Could not copy the download link.",
     "selectLink": "Select this link", "deselectLink": "Deselect this link", "total": "Total", "groupComplete": "All parts complete",
     "guideImport": "Paste links or choose a .txt file. Check the files you want before adding them to the queue.",
@@ -26,6 +28,8 @@
   },
   "fa": {
     "settings": "تنظیمات", "history": "سابقهٔ دانلودها", "managerPages": "بخش‌های مدیر دانلود", "actions": "گزینه‌ها", "resetFilters": "پاک کردن فیلترها",
+    "dateCalendar": "تقویم تاریخ‌ها", "calendarAuto": "خودکار (طبق زبان)", "calendarPersian": "شمسی", "calendarGregorian": "میلادی",
+    "dateNow": "همین الان", "completedDate": "پایان دانلود", "calendarSaveFailed": "تنظیم تقویم ذخیره نشد.",
     "open": "باز کردن فایل", "openLink": "باز کردن لینک دانلود", "copyLink": "کپی لینک دانلود", "linkCopied": "لینک دانلود کپی شد.", "copyFailed": "لینک دانلود کپی نشد.",
     "selectLink": "انتخاب این لینک", "deselectLink": "لغو انتخاب این لینک", "total": "حجم کل", "groupComplete": "دانلود همهٔ قسمت‌ها کامل شد.",
     "guideImport": "لینک‌ها رو بچسبون یا فایل متنی رو انتخاب کن. بعد فایل‌هایی رو که می‌خوای به صف اضافه کن.",

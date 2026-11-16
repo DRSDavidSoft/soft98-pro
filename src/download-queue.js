@@ -33,7 +33,10 @@ const Soft98DownloadQueue = (() => {
   }
 
   function trustedSender(sender, extensionId, pageUrl) {
-    return Boolean(sender && sender.id === extensionId && sender.url === pageUrl &&
+    const url = sender?.url;
+    const managerPage = typeof url === "string" && (url === pageUrl || (url.startsWith(pageUrl + "#") &&
+      /^#(?:queue|settings|guide|import|(?:job|import)=[a-f0-9-]{36})$/.test(url.slice(pageUrl.length))));
+    return Boolean(sender && sender.id === extensionId && managerPage &&
       (sender.frameId === undefined || sender.frameId === 0) && !sender.incognito && !sender.tab?.incognito);
   }
 

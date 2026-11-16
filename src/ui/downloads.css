@@ -82,7 +82,10 @@ button [data-icon], .manager-nav [data-icon] { display: inline-grid; flex: none;
 [data-state="review"] .state, [data-state="interrupted"] .state { color: var(--amber); }
 .source, .detail { overflow-wrap: anywhere; }
 .source { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 10px; font-size: 13px; }
-.source :is(.meta-type,.meta-size,.meta-date) { padding-inline: 6px; border-radius: 4px; background: var(--field); }
+.source :is(.meta-type,.meta-size,.meta-date,.meta-completed) { padding-inline: 6px; border-radius: 4px; background: var(--field); }
+.meta-completed { display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 0 6px; }
+.meta-completed time { color: var(--ink); }
+time[tabindex="0"] { text-decoration: underline dotted var(--edge); text-underline-offset: 3px; }
 .job-group details { display: block; border-block-start: 1px solid var(--line); }
 .job-group summary { padding: 11px 3px; min-width: 0; }
 .job-group summary bdi { font-weight: 700; overflow-wrap: anywhere; }
