@@ -58,7 +58,14 @@
     rgbMode: false,
     showLatest: true,
     hideAnnoyances: false,
+    downloadRowAction: "queue",
   };
+  const FILE_ACTIONS = {
+    queue: { label: "downloadQueueFile", icon: "downloadPlus" },
+    start: { label: "downloadStartFile", icon: "download" },
+    copy: { label: "downloadCopyFile", icon: "copy" },
+  };
+  let fileMenu;
   const savedHref = new WeakMap();
   const originalLogos = new Map();
   const hiddenPageDisplays = new WeakMap();
@@ -236,6 +243,7 @@
       } catch (_error) {}
     }
     installProStyle();
+    if (!settings.pro) closeFileMenu();
     syncNativeNightMode();
     renderControlPanel();
     syncSuccessEnhancements();
@@ -1106,16 +1114,29 @@
       :root.soft98-pro-theme article [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]::after{content:none!important;display:none!important;animation:none!important;transition:none!important}
       :root.soft98-pro-theme article [data-soft98-pro-download-group] > dd[data-soft98-pro-download-collapsed]{display:none!important}
       :root.soft98-pro-theme article [data-soft98-pro-download-group] [data-soft98-pro-download-row]{display:grid!important;grid-template-columns:28px minmax(0,1fr);align-items:center;gap:9px;width:100%!important;height:auto!important;min-height:42px;max-height:none!important;margin:0!important;padding:7px 14px!important;box-sizing:border-box;white-space:normal!important;line-height:1.5!important;overflow:visible!important;background-image:none!important;transition:background-color .16s,color .16s}
-      :root.soft98-pro-theme article [data-soft98-pro-download-group] [data-soft98-pro-download-row]:is(:hover,:focus-visible){background-color:var(--s98p-soft)!important}
-      :root.soft98-pro-theme article [data-soft98-pro-download-group] [data-soft98-pro-download-row]:active{background-color:color-mix(in srgb,var(--s98p-accent) 16%,var(--s98p-surface))!important}
+      :root.soft98-pro-theme article [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]{transition:background-color .16s ease}
+      :root.soft98-pro-theme article [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]:is(:hover,:focus-within){background:var(--s98p-soft)!important}
+      :root.soft98-pro-theme article [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]:has(>[data-soft98-pro-download-row]:active){background:color-mix(in srgb,var(--s98p-accent) 16%,var(--s98p-surface))!important}
+      :root.soft98-pro-theme article [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry] > [data-soft98-pro-download-row]{background:transparent!important}
       .soft98-pro-theme [data-soft98-pro-download-row] > *{pointer-events:none}
       .soft98-pro-theme [data-soft98-pro-download-row] > [data-soft98-pro-page-icon]{grid-column:1;grid-row:1;margin:0}
-      :root.soft98-pro-theme dd:has(> [data-soft98-pro-download-manager=file]){display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px}
-      :root.soft98-pro-theme dd[data-soft98-pro-download-collapsed]:has(> [data-soft98-pro-download-manager=file]){display:none!important}
-      :root:not(.soft98-pro-theme) [data-soft98-pro-download-manager]{display:none!important}
-      :root.soft98-pro-theme [data-soft98-pro-download-manager=file]{display:grid;place-items:center;width:34px;height:32px;padding:0;margin-inline-end:6px;border:1px solid var(--s98p-border);border-radius:6px;background:var(--s98p-surface-2);color:var(--s98p-text);cursor:pointer}
-      :root.soft98-pro-theme [data-soft98-pro-download-manager=file]:is(:hover,:focus-visible){border-color:var(--s98p-accent);color:var(--s98p-accent)}
-      [data-soft98-pro-download-manager=file] svg{width:17px;height:17px;pointer-events:none}
+      :root.soft98-pro-theme dd[data-soft98-pro-download-entry]:has(>.s98p-file-actions){display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:stretch}
+      :root.soft98-pro-theme dd[data-soft98-pro-download-collapsed]:has(>.s98p-file-actions){display:none!important}
+      :root:not(.soft98-pro-theme) :is([data-soft98-pro-download-manager],.s98p-file-actions,.s98p-file-menu){display:none!important}
+      .soft98-pro-theme .s98p-file-actions{display:inline-flex;align-self:stretch;align-items:center;margin-inline-end:8px;min-width:0}
+      :root.soft98-pro-theme .s98p-file-actions button{display:grid;place-items:center;min-width:0;width:36px;height:34px;padding:0;margin:0;border:1px solid var(--s98p-border)!important;border-start-start-radius:6px;border-end-start-radius:6px;border-start-end-radius:0;border-end-end-radius:0;background:transparent!important;color:var(--s98p-text)!important;cursor:pointer;transform:none!important}
+      :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-more]{width:28px;border-inline-start:0!important;border-radius:0;border-start-end-radius:6px;border-end-end-radius:6px}
+      :root.soft98-pro-theme .s98p-file-actions button:is(:hover,:focus-visible,[aria-expanded=true]){background:color-mix(in srgb,var(--s98p-accent) 15%,transparent)!important;color:var(--s98p-accent)!important}
+      .soft98-pro-theme .s98p-file-actions button:focus-visible{outline:2px solid var(--s98p-accent);outline-offset:-2px}
+      .soft98-pro-theme .s98p-file-actions svg,.soft98-pro-theme .s98p-file-menu svg{width:18px;height:18px;flex:none;pointer-events:none}
+      .soft98-pro-theme .s98p-file-actions [data-s98p-file-more] svg{width:14px;transform:rotate(-90deg)}
+      :root.soft98-pro-theme [data-soft98-pro-download-manager=file][aria-busy=true]{opacity:.6;cursor:progress}
+      .soft98-pro-theme .s98p-file-menu{position:fixed;z-index:2147483001;display:grid;overflow:auto;overscroll-behavior:contain;box-sizing:border-box;width:246px;padding:5px;border:1px solid var(--s98p-border);border-radius:8px;background:color-mix(in srgb,var(--s98p-elevated) 92%,transparent);backdrop-filter:blur(18px);box-shadow:0 12px 26px #0005;color:var(--s98p-text);font:inherit;text-align:start}
+      .soft98-pro-theme .s98p-file-menu [role=group]+[role=group]{margin-block-start:4px;padding-block-start:4px;border-block-start:1px solid var(--s98p-border)}
+      .soft98-pro-theme .s98p-file-menu [role=group]>span{display:block;padding:4px 9px;color:var(--s98p-muted);font-size:11px;font-weight:700}
+      :root.soft98-pro-theme .s98p-file-menu button{display:flex;width:100%;align-items:center;gap:8px;min-height:32px;padding:4px 8px;border:1px solid transparent!important;border-radius:5px;background:transparent!important;color:var(--s98p-text)!important;font:inherit;text-align:start;cursor:pointer;transform:none!important}
+      :root.soft98-pro-theme .s98p-file-menu button:is(:hover,:focus-visible){border-color:var(--s98p-border)!important;background:var(--s98p-soft)!important;outline:none}
+      .soft98-pro-theme .s98p-file-menu [aria-checked=true]::after{content:"";width:8px;height:8px;margin-inline-start:auto;border-radius:50%;background:var(--s98p-accent)}
       [data-soft98-pro-download-check]{display:none!important}
       .soft98-pro-theme [data-soft98-pro-download-activated] > [data-soft98-pro-page-icon]{--icon-color:var(--s98p-accent)}
       .soft98-pro-theme [data-soft98-pro-download-activated] > [data-soft98-pro-page-icon] > :not([data-soft98-pro-download-check]){display:none!important}
@@ -1177,7 +1198,7 @@
       :root.soft98-pro-theme [data-soft98-pro-latest] li a[data-soft98-pro-news-link]::before{color:var(--s98p-faint)!important;text-shadow:none!important}
       :root.soft98-pro-theme [data-soft98-pro-latest] li a[data-soft98-pro-news-link]:not(:hover,:focus-visible){color:var(--s98p-muted)!important}
       [data-soft98-pro-bidi]{direction:ltr!important;unicode-bidi:isolate!important}
-      .soft98-pro-theme a{color:var(--s98p-link)!important;text-decoration-color:color-mix(in srgb,var(--s98p-link) 42%,transparent);transition:color .16s ease,text-decoration-color .16s ease,background-color .16s ease,border-color .16s ease,transform .16s ease,box-shadow .2s ease}
+      .soft98-pro-theme a{color:var(--s98p-link)!important;text-decoration-color:color-mix(in srgb,var(--s98p-link) 42%,transparent);transition:color .16s ease,text-decoration-color .16s ease,background-color .16s ease,border-color .16s ease,box-shadow .2s ease}
       .soft98-pro-theme a:hover{color:#d4efff!important;text-decoration-color:var(--s98p-accent)}
       .soft98-pro-theme a:focus-visible,.soft98-pro-theme button:focus-visible,.soft98-pro-theme input:focus-visible,.soft98-pro-theme select:focus-visible,.soft98-pro-theme textarea:focus-visible{outline:2px solid var(--s98p-accent)!important;outline-offset:3px!important}
       :root.soft98-pro-theme hr{height:1px!important;min-height:1px!important;border:0!important;background:var(--s98p-border)!important;opacity:1!important;box-shadow:none!important}
@@ -1205,9 +1226,9 @@
       .soft98-pro-theme dt,.soft98-pro-theme dd{background:rgba(13,20,27,.72)!important;border-color:rgba(124,224,189,.16)!important;color:var(--s98p-text)!important}
       .soft98-pro-theme dd:nth-child(odd){background:rgba(23,38,49,.72)!important}
       .soft98-pro-theme [role=alert]{background:rgba(255,209,102,.12)!important;border-color:rgba(255,209,102,.36)!important;color:#ffe6a3!important}
-      .soft98-pro-theme button,.soft98-pro-theme [role=button],.soft98-pro-theme input[type=button],.soft98-pro-theme input[type=submit]{border-color:var(--s98p-border)!important;background:linear-gradient(180deg,var(--s98p-soft),#19272f)!important;color:var(--s98p-text)!important;transition:transform .15s ease,border-color .16s ease,background-color .16s ease,box-shadow .2s ease}
-      .soft98-pro-theme button:hover,.soft98-pro-theme [role=button]:hover{background:linear-gradient(180deg,#2a4149,#1d2f37)!important;border-color:rgba(124,224,189,.5)!important;color:#fff!important;transform:translateY(-1px)}
-      .soft98-pro-theme button:active,.soft98-pro-theme [role=button]:active{transform:translateY(0) scale(.98)}
+      .soft98-pro-theme button,.soft98-pro-theme [role=button],.soft98-pro-theme input[type=button],.soft98-pro-theme input[type=submit]{border-color:var(--s98p-border)!important;background:linear-gradient(180deg,var(--s98p-soft),#19272f)!important;color:var(--s98p-text)!important;transition:border-color .16s ease,background-color .16s ease,box-shadow .2s ease}
+      .soft98-pro-theme button:hover,.soft98-pro-theme [role=button]:hover{background:linear-gradient(180deg,#2a4149,#1d2f37)!important;border-color:rgba(124,224,189,.5)!important;color:#fff!important}
+      .soft98-pro-theme button:active,.soft98-pro-theme [role=button]:active{box-shadow:none}
       .soft98-pro-theme button *,.soft98-pro-theme [role=button] *,.soft98-pro-theme button:before,.soft98-pro-theme [role=button]:before{background-color:transparent!important;color:inherit!important}
       .soft98-pro-theme input,.soft98-pro-theme textarea,.soft98-pro-theme select{border-color:var(--s98p-border)!important;background:var(--s98p-bg-2)!important;color:var(--s98p-text)!important;transition:border-color .16s ease,box-shadow .16s ease,background-color .16s ease}
       .soft98-pro-theme table,.soft98-pro-theme thead,.soft98-pro-theme tbody,.soft98-pro-theme tr,.soft98-pro-theme th,.soft98-pro-theme td{background-color:transparent!important;border-color:var(--s98p-border-soft)!important;color:var(--s98p-text)!important}
@@ -2509,17 +2530,175 @@
     return button;
   }
 
+  function defaultFileAction() {
+    return Object.hasOwn(FILE_ACTIONS, settings.downloadRowAction) ? settings.downloadRowAction : "queue";
+  }
+
+  function createFileControls(link) {
+    const group = document.createElement("span");
+    group.className = "s98p-file-actions";
+    const action = downloadButton("downloadPlus");
+    do { action.id = `soft98-pro-file-${++downloadRowId}`; } while (document.getElementById(action.id));
+    action.dataset.soft98ProDownloadManager = "file";
+    action.setAttribute("aria-keyshortcuts", "Shift+F10 ContextMenu");
+    const more = downloadButton("chevron");
+    more.dataset.s98pFileMore = "";
+    more.title = text("downloadFileActions");
+    more.setAttribute("aria-label", more.title);
+    more.setAttribute("aria-haspopup", "menu");
+    more.setAttribute("aria-expanded", "false");
+    group.append(action, more);
+    link.after(group);
+    return group;
+  }
+
+  function closeFileMenu(restoreFocus = false) {
+    if (!fileMenu) return;
+    const { node, invoker, more } = fileMenu;
+    fileMenu = null;
+    more.setAttribute("aria-expanded", "false");
+    more.removeAttribute("aria-controls");
+    node.remove();
+    if (restoreFocus && invoker.isConnected) invoker.focus({ preventScroll: true });
+  }
+
+  function openFileMenu(group, invoker, point) {
+    if (fileMenu?.more === group.lastElementChild) return closeFileMenu(true);
+    closeFileMenu();
+    const [owner, more] = group.children;
+    const node = document.createElement("div");
+    node.id = "soft98-pro-file-menu";
+    node.dataset.owner = owner.id;
+    node.className = "s98p-file-menu";
+    localizeElement(node);
+    node.setAttribute("role", "menu");
+    node.setAttribute("aria-label", text("downloadFileActions"));
+    for (const [heading, defaults] of [["downloadRunAction", false], ["downloadDefaultAction", true]]) {
+      const section = document.createElement("div");
+      section.setAttribute("role", "group");
+      section.setAttribute("aria-label", text(heading));
+      const label = document.createElement("span");
+      label.textContent = text(heading);
+      label.setAttribute("aria-hidden", "true");
+      section.append(label);
+      for (const [key, { icon, label: actionLabel }] of Object.entries(FILE_ACTIONS)) {
+        const button = downloadButton(icon);
+        button.tabIndex = -1;
+        button.setAttribute("role", defaults ? "menuitemradio" : "menuitem");
+        if (defaults) {
+          button.dataset.s98pFileDefault = key;
+          button.setAttribute("aria-checked", String(key === defaultFileAction()));
+        } else button.dataset.s98pFileCommand = key;
+        button.append(text(actionLabel));
+        section.append(button);
+      }
+      node.append(section);
+    }
+    document.body.append(node);
+    fileMenu = { node, invoker, more };
+    more.setAttribute("aria-controls", node.id);
+    more.setAttribute("aria-expanded", "true");
+    const view = controlViewport();
+    const bounds = invoker.getBoundingClientRect();
+    node.style.maxHeight = `${Math.max(0, view.height - 16)}px`;
+    node.style.maxWidth = `${Math.max(0, view.width - 16)}px`;
+    const { width, height } = node.getBoundingClientRect();
+    const x = point?.clientX ?? (RTL ? bounds.left : bounds.right - width);
+    const y = point?.clientY ?? (bounds.bottom + height + 8 <= view.bottom ? bounds.bottom + 4 : bounds.top - height - 4);
+    node.style.left = `${Math.max(view.left + 8, Math.min(x, view.right - width - 8))}px`;
+    node.style.top = `${Math.max(view.top + 8, Math.min(y, view.bottom - height - 8))}px`;
+    node.querySelector('button[role="menuitem"]').focus({ preventScroll: true });
+  }
+
+  function installFileActions() {
+    document.addEventListener("contextmenu", (event) => {
+      const target = event.target.closest?.(".s98p-file-actions button");
+      if (!target || !settings.pro) return;
+      event.preventDefault();
+      openFileMenu(target.parentElement, target, event.clientX || event.clientY ? event : null);
+    });
+    document.addEventListener("click", async (event) => {
+      const target = event.target.closest?.("button");
+      if (!event.isTrusted || !target) return;
+      if (target.hasAttribute("data-s98p-file-more")) {
+        openFileMenu(target.parentElement, target);
+        return;
+      }
+      const inMenu = fileMenu?.node.contains(target);
+      const preset = inMenu && target.dataset.s98pFileDefault;
+      if (Object.hasOwn(FILE_ACTIONS, preset)) {
+        closeFileMenu(true);
+        writeSettings({ ...settings, downloadRowAction: preset });
+        showDownloadToast("downloadDefaultSaved");
+        return;
+      }
+      const group = inMenu ? fileMenu.more.parentElement : target.closest(".s98p-file-actions");
+      const command = group && target.dataset.s98pFileCommand;
+      if (!command) return;
+      const link = group.previousElementSibling;
+      if (inMenu) closeFileMenu(true);
+      if (command !== "copy") return;
+      const url = link?.matches("a[data-soft98-pro-download-row]") && downloadDestination(link);
+      if (!url) return showDownloadToast("downloadNoDirectLinks", true);
+      try {
+        await navigator.clipboard.writeText(url.href);
+        showDownloadToast("downloadFileCopied");
+      } catch (_error) { showDownloadToast("downloadCopyFailed", true); }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.defaultPrevented) return;
+      if (fileMenu?.node.contains(event.target)) {
+        if (event.key === "Escape" || event.key === "Tab") {
+          closeFileMenu(true);
+          if (event.key === "Escape") event.preventDefault();
+          return;
+        }
+        const items = [...fileMenu.node.querySelectorAll("button")];
+        const index = items.indexOf(event.target);
+        const next = { ArrowDown: (index + 1) % items.length, ArrowUp: (index - 1 + items.length) % items.length,
+          Home: 0, End: items.length - 1 }[event.key];
+        if (next === undefined) return;
+        items[next].focus();
+      } else {
+        const target = event.target.closest?.(".s98p-file-actions button");
+        if (!target || !(event.key === "ArrowDown" || event.key === "ContextMenu" || (event.shiftKey && event.key === "F10"))) return;
+        openFileMenu(target.parentElement, target);
+      }
+      event.preventDefault();
+    });
+    document.addEventListener("pointerdown", (event) => {
+      if (fileMenu && !fileMenu.node.contains(event.target) && !fileMenu.more.parentElement.contains(event.target)) closeFileMenu();
+    }, true);
+    window.addEventListener("scroll", (event) => {
+      if (fileMenu && !(event.target instanceof Node && fileMenu.node.contains(event.target))) closeFileMenu();
+    }, { capture: true, passive: true });
+    window.addEventListener("resize", () => closeFileMenu());
+    document.addEventListener("soft98-pro:file-result", () => {
+      const root = document.documentElement;
+      const result = root.getAttribute("data-soft98-pro-file-result");
+      root.removeAttribute("data-soft98-pro-file-result");
+      const message = { queued: "downloadFileQueued", starting: "downloadFileStarting", waiting: "downloadFileWaiting",
+        held: "downloadFileHeld", duplicate: "downloadFileDuplicate", failed: "downloadFileFailed" }[result];
+      if (message) showDownloadToast(message, result === "failed");
+    });
+  }
+
   function prepareDownloadRow(link, icon, url) {
     const previous = downloadRows.get(link);
     if (IS_EXTENSION) {
-      const existing = link.nextElementSibling?.matches('[data-soft98-pro-download-manager="file"]') && link.nextElementSibling;
-      if (url && !existing) {
-        const button = downloadButton("plus");
-        button.dataset.soft98ProDownloadManager = "file";
-        button.title = text("downloadQueueFile");
-        button.setAttribute("aria-label", button.title);
-        link.after(button);
-      } else if (!url && existing) existing.remove();
+      const existing = link.nextElementSibling?.matches(".s98p-file-actions") && link.nextElementSibling;
+      if (url?.protocol === "https:" && !url.port) {
+        const button = (existing || createFileControls(link)).firstElementChild;
+        const action = defaultFileAction();
+        if (button.dataset.s98pFileCommand !== action) {
+          button.dataset.s98pFileCommand = action;
+          const { icon: actionIcon, label } = FILE_ACTIONS[action];
+          button.innerHTML = PAGE_ICONS[actionIcon];
+          button.firstElementChild.setAttribute("aria-hidden", "true");
+          button.title = text(label);
+          button.setAttribute("aria-label", button.title);
+        }
+      } else if (existing) existing.remove();
     }
     const direct = url || /^(?:دانلود|download)/i.test(normalizedPersian(link.textContent || ""));
     decorateIcon(link, direct && icon === "link" ? "download" : icon);
@@ -3565,6 +3744,8 @@
       }
     }
     for (const input of wrap.querySelectorAll(".s98p-switch input")) input.checked = Boolean(settings[input.name]);
+    const action = wrap.querySelector('select[name="downloadRowAction"]');
+    if (action) action.value = defaultFileAction();
     refreshControlTelemetry();
   }
 
@@ -3677,6 +3858,12 @@
               </div>
               ${keys.map(controlOptionMarkup).join("")}
               ${group === "downloads" ? `
+              <label class="s98p-download-default">
+                <span><strong>${escapeHtml(text("downloadDefaultAction"))}</strong><small>${escapeHtml(text("downloadDefaultDetail"))}</small></span>
+                <select name="downloadRowAction">
+                  ${Object.entries(FILE_ACTIONS).map(([key, { label }]) => `<option value="${key}">${escapeHtml(text(label))}</option>`).join("")}
+                </select>
+              </label>
               <dl class="s98p-download-overview">
                 ${["active", "waiting", "finished"].map(key => `<div><dt>${escapeHtml(text("controlDownloadStates." + key))}</dt><dd data-queue-count="${key}">–</dd></div>`).join("")}
               </dl>
@@ -3720,7 +3907,7 @@
       #soft98-pro-control>[data-role=toggle] img{display:block;width:30px;height:30px;object-fit:contain;filter:none!important;pointer-events:none}
       #soft98-pro-control[data-dragging=true]{will-change:translate}
       #soft98-pro-control[data-dragging=true]>[data-role=toggle]{cursor:grabbing;transform:scale(1.04);transition:none;box-shadow:0 4px 12px #0004!important}
-      #soft98-pro-control>[data-role=toggle]:hover,#soft98-pro-control[data-open=true]>[data-role=toggle]{transform:translateY(-1px) scale(1.04);border-color:var(--c-accent)!important;background:var(--c-bg-raised)!important;box-shadow:0 14px 36px rgba(0,0,0,.38),0 0 0 4px var(--c-accent-soft)}
+      #soft98-pro-control>[data-role=toggle]:hover,#soft98-pro-control[data-open=true]>[data-role=toggle]{border-color:var(--c-accent)!important;background:var(--c-bg-raised)!important;box-shadow:0 14px 36px rgba(0,0,0,.38),0 0 0 4px var(--c-accent-soft)}
       #soft98-pro-control[data-theme=rgb]>[data-role=toggle]{border-color:transparent!important;background:linear-gradient(150deg,var(--c-bg-raised),var(--c-bg-soft)) padding-box,var(--s98p-neon-edge) border-box!important;box-shadow:0 14px 38px rgba(0,0,0,.55),0 0 26px var(--c-accent-soft)}
       #soft98-pro-control .s98p-dock-target{position:absolute;inset:-4px;box-sizing:border-box;border:2px dashed var(--c-accent);border-radius:50%;outline:3px solid var(--c-accent-soft);background:var(--c-accent-soft);pointer-events:none;z-index:-1;will-change:transform,opacity}
       #soft98-pro-control[data-gravity=true]>[data-role=toggle]{transform:none;scale:.9;border-color:var(--c-accent)!important;box-shadow:0 0 0 4px var(--c-accent-soft),0 4px 18px var(--c-accent-soft)!important}
@@ -3765,6 +3952,11 @@
       #soft98-pro-control .s98p-metrics dd{margin:0;background:transparent!important;color:var(--c-text)!important;font-size:18px;font-weight:750;line-height:1.15;font-variant-numeric:tabular-nums}
       #soft98-pro-control .s98p-tabs{display:grid;grid-template-columns:repeat(var(--tab-count,3),minmax(0,1fr));gap:3px;margin:11px 14px 0;padding:3px;border:1px solid var(--c-border-soft);border-radius:7px;background:var(--c-bg-soft)}
       #soft98-pro-control .s98p-download-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:4px 0}
+      #soft98-pro-control .s98p-download-default{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;padding:8px;border:1px solid var(--c-border-soft);border-radius:6px;background:var(--c-bg-soft)}
+      #soft98-pro-control .s98p-download-default span{display:grid;gap:2px}
+      #soft98-pro-control .s98p-download-default small{color:var(--c-muted)}
+      #soft98-pro-control .s98p-download-default select{width:100%;min-height:36px;padding:5px 8px;border:1px solid var(--c-border);border-radius:6px;background:var(--c-bg-raised);color:var(--c-text);font:inherit}
+      #soft98-pro-control .s98p-download-default select:focus-visible{outline:2px solid var(--c-accent);outline-offset:1px}
       #soft98-pro-control .s98p-download-overview>div{display:grid;gap:4px;padding:8px;border:1px solid var(--c-border-soft);border-radius:6px;background:var(--c-bg-soft);text-align:center}
       #soft98-pro-control .s98p-download-overview dt{font-size:11px;color:var(--c-muted)}
       #soft98-pro-control .s98p-download-overview dd{margin:0;font-weight:700;font-size:18px;color:var(--c-accent);font-variant-numeric:tabular-nums}
@@ -3782,8 +3974,8 @@
       #soft98-pro-control .s98p-panel-intro strong{color:var(--c-text)!important;font-size:12px}
       #soft98-pro-control .s98p-panel-intro small{color:var(--c-muted)!important;font-size:10.5px;line-height:1.5}
       #soft98-pro-control .s98p-panel-intro>b{padding:4px 7px;border:1px solid var(--c-border-soft);border-radius:5px;background:var(--c-bg-soft)!important;color:var(--c-muted)!important;font-size:9.5px;font-weight:650;white-space:nowrap}
-      #soft98-pro-control .s98p-option{display:grid;grid-template-columns:minmax(0,1fr) 38px;align-items:center;gap:12px;min-height:56px;margin:0;padding:10px 11px;border:1px solid var(--c-border-soft);border-radius:7px;background:color-mix(in srgb,var(--c-bg-raised) 78%,transparent);box-shadow:0 1px 0 rgba(255,255,255,.025) inset;cursor:pointer;transition:border-color .16s ease,background-color .16s ease,transform .16s ease,box-shadow .18s ease}
-      #soft98-pro-control .s98p-option:hover{border-color:color-mix(in srgb,var(--c-accent) 38%,var(--c-border));background:var(--c-bg-raised);box-shadow:0 8px 22px rgba(0,0,0,.14);transform:translateY(-1px)}
+      #soft98-pro-control .s98p-option{display:grid;grid-template-columns:minmax(0,1fr) 38px;align-items:center;gap:12px;min-height:56px;margin:0;padding:10px 11px;border:1px solid var(--c-border-soft);border-radius:7px;background:color-mix(in srgb,var(--c-bg-raised) 78%,transparent);box-shadow:0 1px 0 rgba(255,255,255,.025) inset;cursor:pointer;transition:border-color .16s ease,background-color .16s ease,box-shadow .18s ease}
+      #soft98-pro-control .s98p-option:hover{border-color:color-mix(in srgb,var(--c-accent) 38%,var(--c-border));background:var(--c-bg-raised);box-shadow:0 8px 22px rgba(0,0,0,.14)}
       #soft98-pro-control .s98p-option-copy{display:grid;min-width:0;gap:2px;direction:inherit;unicode-bidi:plaintext;text-align:start}
       #soft98-pro-control .s98p-option-copy strong{color:var(--c-text)!important;font-size:12px;line-height:1.35}
       #soft98-pro-control .s98p-option-copy small{color:var(--c-muted)!important;font-size:10.5px;line-height:1.5}
@@ -3802,8 +3994,8 @@
       #soft98-pro-control .s98p-option-preview [data-preview-kind][hidden]{display:none!important}
       #soft98-pro-control .s98p-option-preview img{display:block;width:100%;aspect-ratio:16/9;max-height:var(--c-preview-height);box-sizing:border-box;object-fit:contain;margin-top:5px;border:1px solid var(--c-border-soft);border-radius:4px;background:var(--c-bg-soft);filter:none!important}
       #soft98-pro-control footer{display:grid;grid-template-columns:1fr auto;gap:8px;padding:11px 14px;border-top:1px solid var(--c-border-soft);background:color-mix(in srgb,var(--c-bg-soft) 88%,var(--c-bg))}
-      #soft98-pro-control footer button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;margin:0;padding:7px 12px;border:1px solid var(--c-border);border-radius:7px;background:var(--c-bg-raised)!important;color:var(--c-text)!important;font-size:11px;font-weight:650;line-height:1.4;cursor:pointer;transition:border-color .16s ease,background-color .16s ease,transform .16s ease}
-      #soft98-pro-control footer button:hover{border-color:var(--c-accent);color:var(--c-accent)!important;transform:translateY(-1px)}
+      #soft98-pro-control footer button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;margin:0;padding:7px 12px;border:1px solid var(--c-border);border-radius:7px;background:var(--c-bg-raised)!important;color:var(--c-text)!important;font-size:11px;font-weight:650;line-height:1.4;cursor:pointer;transition:border-color .16s ease,background-color .16s ease}
+      #soft98-pro-control footer button:hover{border-color:var(--c-accent);color:var(--c-accent)!important}
       #soft98-pro-control[data-theme=rgb] :is(footer button,.s98p-tabs button[aria-selected=true]){border-color:transparent!important;background:linear-gradient(var(--c-bg-raised),var(--c-bg-soft)) padding-box,var(--s98p-neon-edge) border-box!important}
       #soft98-pro-control .s98p-command-icon{position:relative;display:inline-block;flex:0 0 15px;width:15px;height:15px;color:currentColor}
       #soft98-pro-control .s98p-command-scan{border:1.5px solid currentColor;border-radius:50%}
@@ -4219,6 +4411,10 @@
     }, { signal });
     wrap.addEventListener("change", (event) => {
       const input = event.target;
+      if (input?.matches('select[name="downloadRowAction"]') && Object.hasOwn(FILE_ACTIONS, input.value)) {
+        writeSettings({ ...settings, downloadRowAction: input.value });
+        return;
+      }
       if (!input?.matches(".s98p-switch input")) return;
       const next = { ...settings, [input.name]: input.checked };
       if (input.name === "darkDesign" && !input.checked) next.rgbMode = false;
@@ -4428,9 +4624,8 @@
       #soft98-pro-compatibility header small,#soft98-pro-compatibility [data-role=feedback]{color:var(--compat-muted)!important}
       #soft98-pro-compatibility code{display:block;overflow:hidden;padding:8px 10px;border:1px solid color-mix(in srgb,var(--compat-border) 42%,transparent);border-radius:6px;background:var(--compat-surface)!important;color:var(--compat-muted)!important;font:11px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;text-overflow:ellipsis;white-space:nowrap}
       #soft98-pro-compatibility [data-role=actions]{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
-      #soft98-pro-compatibility button{min-width:0;padding:8px;border:1px solid color-mix(in srgb,var(--compat-border) 34%,transparent);border-radius:6px;background:var(--compat-action)!important;color:var(--compat-text)!important;font:650 12px/1.35 system-ui;cursor:pointer;transition:transform .15s ease,border-color .15s ease,background-color .15s ease}
-      #soft98-pro-compatibility button:hover{border-color:var(--compat-border);transform:translateY(-1px)}
-      #soft98-pro-compatibility button:active{transform:translateY(0) scale(.98)}
+      #soft98-pro-compatibility button{min-width:0;padding:8px;border:1px solid color-mix(in srgb,var(--compat-border) 34%,transparent);border-radius:6px;background:var(--compat-action)!important;color:var(--compat-text)!important;font:650 12px/1.35 system-ui;cursor:pointer;transition:border-color .15s ease,background-color .15s ease}
+      #soft98-pro-compatibility button:hover{border-color:var(--compat-border)}
       #soft98-pro-compatibility button:focus-visible{outline:2px solid var(--compat-border);outline-offset:2px}
       @media(max-width:540px){#soft98-pro-compatibility [data-role=actions]{grid-template-columns:1fr}#soft98-pro-compatibility{inset-inline:12px;width:auto;bottom:12px}}
       @media(prefers-reduced-motion:reduce){#soft98-pro-compatibility,#soft98-pro-compatibility button{transition:none!important}}
@@ -4848,6 +5043,7 @@
     window.addEventListener("soft98-pro:compatibility", receiveExtensionCompatibility);
     window.addEventListener("soft98-pro:upstream-payload", receiveExtensionPatchedScript);
     if (IS_EXTENSION) {
+      installFileActions();
       window.__Soft98AdBlockerExtension = true;
       document.documentElement.setAttribute("data-soft98-ad-blocker", VERSION);
       window.dispatchEvent(new CustomEvent("soft98-ad-blocker:extension-ready", { detail: { version: VERSION } }));

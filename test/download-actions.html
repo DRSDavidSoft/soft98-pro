@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Download actions fixture</title>
+<main>
+  <article>
+    <ul role="tablist"><li><a role="tab" data-toggle="tab" href="#downloads" aria-selected="true">Downloads</a></li></ul>
+    <section id="downloads" role="tabpanel" class="active">
+      <dl>
+        <dt>Windows</dt>
+        <dd><a href="https://files.example.test/tool.zip?sig=A%2Fb">Download tool (64 MB)</a></dd>
+      </dl>
+    </section>
+  </article>
+</main>
+<script>
+  const fixture = window.fileActionsFixture = { messages: [], copied: [] };
+  Object.defineProperty(navigator, "clipboard", { value: { writeText: async (url) => fixture.copied.push(url) } });
+  window.browser = {
+    extension: { inIncognitoContext: false },
+    runtime: {
+      getManifest: () => ({ manifest_version: 3 }),
+      onMessage: { addListener() {} },
+      sendMessage: async (message) => {
+        fixture.messages.push(message);
+        if (message.type === "soft98:download-file") return { ok: true, result: message.action === "queue" ? "queued" : "starting" };
+      },
+    },
+    storage: {
+      local: {
+        get(defaults, callback) { callback(defaults); },
+        set(next) { fixture.settings = next.soft98AdBlockerSettings; },
+      },
+      onChanged: { addListener() {} },
+    },
+  };
+</script>
+<script src="/dist/chromium/assets/runtime.page.js"></script>
+<script src="/dist/chromium/assets/bridge.js"></script>
+</html>

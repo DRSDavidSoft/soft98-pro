@@ -9,11 +9,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Added
 
 - Added a Telegram community link for questions and support.
+- Added configurable download buttons that can queue a file, start it immediately, or copy the link, with one-time actions in the context menu.
 
 ### Fixed
 
 - Restored downloads in Chrome when the site left the list clipped to zero height.
 - Replaced legacy gray article callouts with the Pro palette.
+- Made download rows and their action buttons highlight together without moving on hover.
 
 ### Removed
 

@@ -298,9 +298,25 @@
   }
   api.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!message || typeof message !== "object") return false;
-    if (message.type === "soft98:open-downloads" || message.type === "soft98:downloads-summary") {
+    if (["soft98:open-downloads", "soft98:downloads-summary", "soft98:download-file"].includes(message.type)) {
       if (sender.id !== api.runtime.id || sender.frameId !== 0 || !Number.isInteger(sender.tab?.id) || sender.incognito || sender.tab.incognito ||
           !isProtectedPage(sender.url)) return false;
+      if (message.type === "soft98:download-file") {
+        const { action } = message;
+        if (action !== "queue" && action !== "start") return false;
+        let url;
+        try { url = Soft98DownloadQueue.articleFileUrl(message.url); }
+        catch (_error) { sendResponse({ ok: false }); return false; }
+        queue.request({ action: "add", urls: [url], defer: action === "queue", startExisting: action === "start" })
+          .then(({ jobs, added, scheduled, held }) => {
+            const job = jobs.findLast((entry) => entry.url === url);
+            const result = !added && !scheduled ? "duplicate" : action === "queue" ? "queued"
+              : held ? "held" : job?.status === "queued" ? "waiting"
+              : job?.status === "interrupted" ? "failed" : "starting";
+            sendResponse({ ok: result !== "failed", result });
+          }, () => sendResponse({ ok: false }));
+        return true;
+      }
       if (message.type === "soft98:downloads-summary") {
         queue.request({ action:"list" }).then(({ jobs }) => {
           const counts = { active:0, waiting:0, finished:0 };

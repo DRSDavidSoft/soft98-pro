@@ -21,6 +21,7 @@
     rgbMode: false,
     showLatest: true,
     hideAnnoyances: false,
+    downloadRowAction: "queue",
   };
   const SCRIPT_PATH = /^\/templates\/.*\/(?:application\.min\.packed|jquery(?:-v[^/]+)?(?:\.min\.packed)?)\.js$/i;
   const reportedScripts = new Set();
@@ -59,14 +60,14 @@
     try {
       if (typeof browser !== "undefined") {
         const result = api.runtime.sendMessage(message);
-        if (result && typeof result.then === "function") result.then((response) => callback && callback(response)).catch(() => {});
+        if (result && typeof result.then === "function") result.then((response) => callback?.(response), () => callback?.());
       } else {
         api.runtime.sendMessage(message, (response) => {
           void api.runtime.lastError;
           if (callback) callback(response);
         });
       }
-    } catch (_error) {}
+    } catch (_error) { callback?.(); }
   }
 
   function reportScript(script) {
@@ -151,11 +152,26 @@
     });
     document.addEventListener("click", (event) => {
       if (!event.isTrusted || event.button !== 0 || event.defaultPrevented) return;
-      const control = event.target instanceof Element && event.target.closest("button[data-soft98-pro-download-manager]");
-      if (!control || control.disabled) return;
-      const row = control.previousElementSibling;
-      if (control.dataset.soft98ProDownloadManager === "file" && !row?.matches("a[data-soft98-pro-download-row]")) return;
-      sendRuntime({ type: "soft98:open-downloads", url: row?.matches("a[data-soft98-pro-download-row]") ? row.href : "" });
+      const control = event.target instanceof Element && event.target.closest("button[data-soft98-pro-download-manager],button[data-s98p-file-command]");
+      if (!control || control.disabled || control.closest("[hidden]")) return;
+      if (control.dataset.soft98ProDownloadManager === "open") {
+        sendRuntime({ type: "soft98:open-downloads" });
+        return;
+      }
+      const action = control.dataset.s98pFileCommand;
+      if (action !== "queue" && action !== "start") return;
+      const menu = control.closest("#soft98-pro-file-menu");
+      const owner = menu ? document.getElementById(menu.dataset.owner || "") : control;
+      if (!owner?.matches('button[data-soft98-pro-download-manager="file"]')) return;
+      const row = owner.closest("article dd[data-soft98-pro-download-entry]");
+      const link = row?.querySelector(":scope > a[data-soft98-pro-download-row][href]");
+      if (!link || !row.getClientRects().length || owner.getAttribute("aria-busy") === "true") return;
+      owner.setAttribute("aria-busy", "true");
+      sendRuntime({ type: "soft98:download-file", action, url: link.href }, (response) => {
+        owner.removeAttribute("aria-busy");
+        document.documentElement.setAttribute("data-soft98-pro-file-result", response?.ok ? response.result : "failed");
+        document.dispatchEvent(new Event("soft98-pro:file-result"));
+      });
     }, true);
   }
 

@@ -25,6 +25,7 @@ test("both built extensions package the internal manager without exposing it to 
     assert.doesNotMatch(read("assets/bridge.js"), /["']soft98:downloads["']/);
     assert.match(read("assets/bridge.js"), /soft98:downloads-summary/);
     assert.match(read("assets/bridge.js"), /soft98:open-downloads/);
+    assert.match(read("assets/bridge.js"), /soft98:download-file/);
     assert.match(read("downloads.js"), /soft98:download-prefill/);
     assert.ok(read("downloads.css"));
     assert.ok(read("downloads-link.css"));
@@ -149,6 +150,31 @@ test("the queue and its limit survive background reload; unrelated native items 
   await again.request({ action: "list" }, jobs[0].browserId);
   await eventually(again, (all) => all[1].status === "downloading");
   assert.equal(starts.length, 2);
+});
+
+test("article downloads can wait for an explicit start without losing their place or duplicating a job", async () => {
+  const { q, restart, starts } = fixture();
+  const [parked] = (await add(q, ["article.zip?token=A%2Fb"], { defer: true })).jobs;
+  assert.equal(parked.status, "paused");
+  assert.equal(parked.manualStart, true);
+  assert.equal(starts.length, 0);
+  const restored = restart();
+  await configure(restored, { held: true });
+  assert.equal((await listing(restored)).jobs[0].manualStart, true);
+  const scheduled = await add(restored, ["article.zip?token=A%2Fb"], { startExisting: true });
+  assert.equal(scheduled.scheduled, 1);
+  assert.equal(scheduled.jobs[0].id, parked.id);
+  assert.equal(scheduled.jobs[0].status, "queued");
+  assert.equal(scheduled.jobs[0].manualStart, undefined);
+  assert.equal(starts.length, 0);
+  await configure(restored, { held: false });
+  await eventually(restored, ([job]) => job.status === "downloading");
+  assert.deepEqual(starts.map(({ url }) => url), [parked.url]);
+  assert.equal((await add(restored, ["article.zip?token=A%2Fb"], { startExisting: true })).duplicates, 1);
+  const parkedOther = (await add(restored, ["second.zip"], { defer: true })).jobs[1];
+  const startedFromManager = await action(restored, "resume", parkedOther);
+  assert.equal(startedFromManager.jobs[1].manualStart, undefined);
+  await eventually(restored, (jobs) => jobs[1].status === "downloading");
 });
 
 test("save prompts reserve a slot without blocking other actions or rewriting native request options", async () => {

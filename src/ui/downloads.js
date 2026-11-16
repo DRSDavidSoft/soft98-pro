@@ -124,7 +124,7 @@
     const status = job.status;
     nodes.row.dataset.state = status;
     nodes.name.textContent = name;
-    nodes.state.textContent = text(status);
+    nodes.state.textContent = text(job.manualStart ? "manual" : status);
     nodes.source.textContent = url.host;
     const received = job.bytes || 0;
     const known = Number.isFinite(job.total) && job.total >= 0;
@@ -147,10 +147,16 @@
       remove: states.finished.has(status) && !(status === "interrupted" && job.resumable),
     };
     for (const button of nodes.actions.children) {
-      const allowed = available[button.dataset.action];
+      const { action } = button.dataset;
+      const label = action === "resume" && job.manualStart ? "start" : action;
+      const allowed = available[action];
+      if (button.dataset.label !== label) {
+        button.dataset.label = label;
+        buttonContent(button, label, actionIcons[action]);
+      }
       button.hidden = !allowed;
       button.disabled = !allowed;
-      button.setAttribute("aria-label", `${text(button.dataset.action)}: ${name}`);
+      button.setAttribute("aria-label", `${text(label)}: ${name}`);
     }
   }
 

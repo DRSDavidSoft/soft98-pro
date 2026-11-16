@@ -216,7 +216,7 @@ const Soft98DownloadQueue = (() => {
     }
 
     function add(message) {
-      const { urls, filename, saveAs } = message;
+      const { urls, filename, saveAs, defer, startExisting } = message;
       if (!Array.isArray(urls) || !urls.length || urls.length > MAX_BATCH) fail("invalid-batch");
       const path = relativeFilename(filename);
       if (path && urls.length !== 1) fail("invalid-path");
@@ -224,9 +224,21 @@ const Soft98DownloadQueue = (() => {
       const existing = new Set(state.jobs.filter((job) => !TERMINAL.has(job.status) || job.resumable).map((job) => job.url));
       const newUrls = normalized.filter((url) => !existing.has(url));
       if (state.jobs.length + newUrls.length > MAX_JOBS) fail("queue-full");
+      let scheduled = 0;
+      if (startExisting === true && defer !== true) {
+        for (const job of state.jobs) {
+          if (!job.manualStart || job.status !== "paused" || !normalized.includes(job.url)) continue;
+          job.status = "queued";
+          delete job.manualStart;
+          scheduled++;
+        }
+      }
       const createdAt = now();
-      state.jobs.push(...newUrls.map((url) => ({ id: makeId(), url, filename: path, saveAs: saveAs === true, status: "queued", createdAt })));
-      return { added: newUrls.length, duplicates: urls.length - newUrls.length };
+      state.jobs.push(...newUrls.map((url) => ({
+        id: makeId(), url, filename: path, saveAs: saveAs === true, status: defer === true ? "paused" : "queued", createdAt,
+        ...(defer === true ? { manualStart: true } : {}),
+      })));
+      return { added: newUrls.length, duplicates: urls.length - newUrls.length - scheduled, ...(scheduled ? { scheduled } : {}) };
     }
 
     async function itemAction(action, id) {
@@ -248,6 +260,7 @@ const Soft98DownloadQueue = (() => {
         updateFromBrowser(job, item);
       } else if (action === "resume" && status === "paused" && !Number.isInteger(job.browserId)) {
         job.status = "queued";
+        delete job.manualStart;
       } else if (action === "resume" && ["paused", "interrupted"].includes(status) && job.resumable) {
         job.status = "resume-queued";
       } else if (action === "cancel" && (["queued", "resume-queued", "paused", "downloading"].includes(status) || (status === "interrupted" && job.resumable))) {
@@ -269,6 +282,7 @@ const Soft98DownloadQueue = (() => {
           delete job.browserId;
         }
         Object.assign(job, { status: "canceled", error: "", resumable: false });
+        delete job.manualStart;
       } else fail("not-allowed");
     }
 

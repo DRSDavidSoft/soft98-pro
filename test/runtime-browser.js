@@ -133,6 +133,86 @@ async function waitForResults(client) {
   throw new Error("Timed out waiting for Soft98 runtime results");
 }
 
+async function verifyFileActions(client) {
+  const selector = '[data-soft98-pro-download-manager="file"]';
+  const menu = "#soft98-pro-file-menu";
+  const destination = "https://files.example.test/tool.zip?sig=A%2Fb";
+  const check = (what, actual, expected) => assertEqual("download actions", what, actual, expected);
+  const run = (code) => evaluate(client, code);
+  const position = (target) => run(`(() => {
+    const node = document.querySelector(${JSON.stringify(target)});
+    node.scrollIntoView({ block: "nearest" });
+    const { x, y, width, height } = node.getBoundingClientRect();
+    return { x: x + width / 2, y: y + height / 2 };
+  })()`);
+  async function click(target, button = "left") {
+    const point = await position(target);
+    await client.send("Input.dispatchMouseEvent", { type: "mousePressed", button, clickCount: 1, ...point });
+    await client.send("Input.dispatchMouseEvent", { type: "mouseReleased", button, clickCount: 1, ...point });
+  }
+  async function press(key) {
+    for (const type of ["keyDown", "keyUp"]) await client.send("Input.dispatchKeyEvent", { type, key, code: key });
+  }
+  await client.send("Emulation.setDeviceMetricsOverride", { width: 375, height: 560, deviceScaleFactor: 1, mobile: false });
+  await client.send("Page.navigate", { url: `http://127.0.0.1:${PORT}/test/download-actions.html` });
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    if (await run(`document.querySelector(${JSON.stringify(selector)})?.dataset.s98pFileCommand`).catch(() => "") === "queue") break;
+    if (attempt === 39) throw new Error("Extension download action did not render");
+    await delay(100);
+  }
+  await client.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 1, y: 1 });
+  const button = `document.querySelector(${JSON.stringify(selector)})`;
+  const row = `${button}.closest("dd")`;
+  const background = () => run(`getComputedStyle(${row}).backgroundColor`);
+  const idle = await background();
+  const startPosition = await position(selector);
+  await client.send("Input.dispatchMouseEvent", { type: "mouseMoved", ...await position('[data-soft98-pro-download-row]') });
+  await delay(200);
+  const linkHover = await background();
+  if (linkHover === idle) throw new Error("The link hover did not highlight the download row");
+  check("button lets the row background show through", await run(`getComputedStyle(${button}).backgroundColor`), "rgba(0, 0, 0, 0)");
+  await client.send("Input.dispatchMouseEvent", { type: "mouseMoved", ...startPosition });
+  await delay(200);
+  check("hover shared across link and action", await background(), linkHover);
+  check("action remains stationary on hover", JSON.stringify(await position(selector)), JSON.stringify(startPosition));
+  check("default icon combines arrow and plus", await run(`${button}.querySelectorAll("svg path").length > 3`), true);
+  await run(`${button}.click()`);
+  const jobs = 'fileActionsFixture.messages.filter(message => message.type === "soft98:download-file")';
+  check("synthetic clicks do not start downloads", await run(`${jobs}.length`), 0);
+  await click(selector);
+  check("default action queues the link", await run(`${jobs}.at(-1).action`), "queue");
+  check("queue preserves typed URL", await run(`${jobs}.at(-1).url`), destination);
+  await click(selector, "right");
+  check("context menu stays inside mobile viewport", await run(`(() => {
+    const box = document.querySelector("${menu}").getBoundingClientRect();
+    return box.x >= 0 && box.y >= 0 && box.right <= innerWidth && box.bottom <= innerHeight;
+  })()`), true);
+  check("menu uses the page locale direction", await run(`getComputedStyle(document.querySelector("${menu}")).direction`), "rtl");
+  await press("ArrowDown");
+  check("arrow navigation advances to Start", await run("document.activeElement.dataset.s98pFileCommand"), "start");
+  await press("Escape");
+  check("Escape restores focus", await run(`document.activeElement === ${button}`), true);
+  await click("[data-s98p-file-more]");
+  await click(`${menu} [data-s98p-file-command="start"]`);
+  check("one-time Start reaches the queue", await run(`${jobs}.at(-1).action`), "start");
+  check("one-time Start keeps previous default", await run(`${button}.dataset.s98pFileCommand`), "queue");
+  await click("[data-s98p-file-more]");
+  await click(`${menu} [data-s98p-file-default="copy"]`);
+  check("menu persists the new default", await run("fileActionsFixture.settings.downloadRowAction"), "copy");
+  await delay(250);
+  await click(selector);
+  check("Copy preserves the signed destination", await run("fileActionsFixture.copied.at(-1)"), destination);
+  check("Copy did not submit a job", await run(`${jobs}.length`), 2);
+  check("control center reflects menu selection", await run('document.querySelector("select[name=downloadRowAction]").value'), "copy");
+  await run(`(() => {
+    const select = document.querySelector("select[name=downloadRowAction]");
+    select.value = "start";
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  })()`);
+  await delay(250);
+  check("control center persists and updates the default", await run(`${button}.dataset.s98pFileCommand`), "start");
+}
+
 async function faviconPixel(client) {
   const href = await evaluate(client, "document.getElementById('soft98-pro-favicon')?.href");
   if (!href?.startsWith("data:image/png;base64,")) throw new Error("Missing Soft98 Pro favicon PNG");
@@ -819,6 +899,7 @@ async function main() {
     } finally {
       await client.send("Page.removeScriptToEvaluateOnNewDocument", { identifier });
     }
+    await verifyFileActions(client);
     console.log("Soft98 runtime browser acceptance passed");
   } finally {
     if (client) client.close();
