@@ -392,7 +392,7 @@ async function verifyFileActions(client) {
   check("an expanded foreign OS section stays open after reload", await run('!document.querySelector("#linux-file").hasAttribute("data-soft98-pro-download-collapsed")'), true);
 }
 
-async function verifyDownloadManager(client) {
+async function verifyDownloadManager(client, { permissionsOnly = false } = {}) {
   const page = `http://127.0.0.1:${PORT}`;
   const fixtures = `${page}/test/download-fixture/`;
   const part = (partNumber) => `${fixtures}Artwork.part0${partNumber}.rar`;
@@ -447,6 +447,7 @@ async function verifyDownloadManager(client) {
           if (message.action === "configure" && message.limit) state.limit = message.limit;
           if (message.type === "soft98:download-details") {
             const url = new URL(message.url);
+            if (url.hostname === "no-headers.example.test") return { status: "unavailable" };
             if (url.hostname === "external.example.test" && !externalAllowed) return { status: "permission", origin: url.origin + "/*" };
             if (url.hostname === "external.example.test") return { status: "ok", size: 950, date: null, mime: "application/vnd.android.package-archive", type: "" };
             const response = await fetch(url, { method: "HEAD" });
@@ -480,6 +481,41 @@ async function verifyDownloadManager(client) {
   try {
     await client.send("Page.navigate", { url: page + "/dist/chromium/downloads.html" });
     await until('document.querySelectorAll(".job-group .job").length === 2');
+    if (permissionsOnly) {
+      const button = 'document.getElementById("probe-import")';
+      const row = hostname => `document.querySelector('#import-links tr[data-url*="${hostname}"]')`;
+      const add = url => run(`document.getElementById("import-url").value = ${JSON.stringify(url)}; document.getElementById("add-url").click()`);
+      const context = target => run(`${target}.dispatchEvent(new MouseEvent("contextmenu", { bubbles:true, cancelable:true }))`);
+      const menuAction = 'document.querySelector("#manager-menu:popover-open [data-label=allowDetails],#manager-menu:popover-open [data-label=fetchDetails]")';
+      await run('document.getElementById("open-import").click()');
+      check("empty review hides metadata access", await run(`${button}.hidden && !${button}.getClientRects().length`), true);
+      await add(part(1));
+      check("pending automatic metadata never requires a manual button", await run(`${button}.hidden`), true);
+      await until('document.querySelector("#import-links .import-size").textContent.includes("64 MiB")');
+      await add("https://no-headers.example.test/file.zip");
+      await until(`${row("no-headers")}.querySelector("[data-column=size]").title.includes("did not provide")`);
+      check("known or unavailable details do not request access", await run(`${button}.hidden`), true);
+      await context(row("Artwork"));
+      check("context menu omits unnecessary file-details actions", await run(`!${menuAction}`), true);
+      await run('document.activeElement.dispatchEvent(new KeyboardEvent("keydown", { key:"Escape", bubbles:true, cancelable:true }))');
+      await add("https://external.example.test/download");
+      await until(`!${button}.hidden && !${button}.disabled`);
+      await run(`${row("external")}.querySelector("input").click()`);
+      check("deselecting the blocked link removes the action and hint", await run(`${button}.hidden && !document.getElementById("import-notice").textContent`), true);
+      await context(row("external"));
+      check("the unchecked link cannot add the permission action to the menu", await run(`!${menuAction}`), true);
+      await run('document.activeElement.dispatchEvent(new KeyboardEvent("keydown", { key:"Escape", bubbles:true, cancelable:true }))');
+      await run(`${row("external")}.querySelector("input").click()`);
+      check("selecting the blocked link shows the access action", await run(`!${button}.hidden && !${button}.disabled`), true);
+      await context(row("external"));
+      check("context menu offers the same permission action", await run(`${menuAction}?.dataset.label`), "allowDetails");
+      await run(`${menuAction}.click()`);
+      await until(`${button}.hidden && ${row("external")}.querySelector(".import-size").textContent.includes("950 B")`);
+      check("grant requests only the missing origin", await run('managerCommands.find(m => m.action === "grant").origins.join()'), "https://external.example.test/*");
+      check("grant does not repeat unrelated probes", await run('managerCommands.filter(m => m.type === "soft98:download-details" && !m.url.includes("external.example.test")).length'), 2);
+      check("the focused acceptance test sends no audio or test notification requests", await run('!managerCommands.some(m => /audio|notification|sound/.test(m.type || ""))'), true);
+      return;
+    }
     check("idle queue omits the active counter and pause control", await run(`document.querySelector("#count-active").parentElement.hidden &&
       !document.querySelector("#count-waiting").parentElement.hidden && !document.querySelector("#count-finished").parentElement.hidden &&
       document.querySelector("#hold").hidden`), true);
@@ -744,9 +780,10 @@ async function verifyDownloadManager(client) {
     await run(`document.querySelector("#open-import").click();
       document.querySelector("#import-url").value = "https://external.example.test/download";
       document.querySelector("#add-url").click();`);
-    await until('document.querySelector("#probe-import").dataset.label === "allowDetails" && !document.querySelector("#probe-import").disabled');
+    await until('!document.querySelector("#probe-import").hidden && !document.querySelector("#probe-import").disabled');
     await run('document.querySelector("#probe-import").click()');
     await until('document.querySelector("#import-links [data-icon=device-mobile]") && document.querySelector("#import-links .import-size").textContent.includes("950 B")');
+    check("the permission button disappears after metadata loads", await run('document.querySelector("#probe-import").hidden'), true);
     await run('document.querySelector("#import-type-trigger").click()');
     check("review file-type popup follows the RTL dialog and its live options", await run(`(() => {
       const list = document.querySelector("#import-type-choices");
@@ -1797,6 +1834,11 @@ async function main() {
     if (process.argv.includes("--rgb-media-only")) {
       await verifyRgbMedia(client);
       console.log("Soft98 RGB media color and accent animation passed");
+      return;
+    }
+    if (process.argv.includes("--download-permissions-only")) {
+      await verifyDownloadManager(client, { permissionsOnly: true });
+      console.log("Soft98 contextual download permissions passed");
       return;
     }
     const badgeDark = "255,209,102";

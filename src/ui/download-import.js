@@ -5,6 +5,7 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
   const { MAX_BATCH, MAX_IMPORT, MAX_TEXT, describe, normalize, parse } = Soft98DownloadLinks;
   const dialog = $("import");
   const table = $("import-table");
+  const accessButton = $("probe-import");
   const headingRow = table.tHead.rows[0];
   const candidates = new Map();
   const rowNodes = new Map();
@@ -22,6 +23,7 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
   let probe;
   let autoTimer;
   let submitting = false;
+  let notice;
   try { columnOrder = readOrder(localStorage.getItem(layoutKey)); } catch (_error) {}
 
   function readOrder(value) {
@@ -67,11 +69,14 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
   }
 
   function notify(key, values) {
+    notice = key;
     $("import-notice").textContent = key ? text(key, values) : "";
   }
 
-  function needsFileAccess() {
-    return [...selected].some(url => candidates.get(url)?.probeStatus === "permission");
+  function selectedForDetails(askPermission) {
+    return [...selected].map(url => candidates.get(url)).filter(row => row && (
+      askPermission ? row.probeStatus === "permission" && row.permissionOrigin : !row.probeStatus
+    ));
   }
 
   function open() {
@@ -122,9 +127,12 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
     }
     $("import-count").textContent = text("selectionCount", { count: selected.size, total: candidates.size });
     $("add").disabled = !selected.size || submitting;
-    $("probe-import").disabled = !selected.size || Boolean(probe);
-    const needsAccess = needsFileAccess();
-    buttonContent($("probe-import"), needsAccess ? "allowDetails" : "fetchDetails", needsAccess ? "lock-open" : "list-details");
+    const needsAccess = selectedForDetails(true).length > 0;
+    const moveFocus = !needsAccess && document.activeElement === accessButton;
+    accessButton.hidden = !needsAccess;
+    accessButton.disabled = !needsAccess || Boolean(probe);
+    if (!needsAccess && (notice === "detailsNeedAccess" || notice === "permissionDeclined")) notify("");
+    if (moveFocus && dialog.open) ($("add").disabled ? $("import-search") : $("add")).focus({ preventScroll: true });
     $("select-import").disabled = selected.size >= MAX_BATCH || !visibleRows().some(({ url }) => !selected.has(url));
     $("clear-import").disabled = !selected.size;
     $("filename").disabled = selected.size !== 1;
@@ -357,14 +365,17 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
 
   async function fetchDetails(askPermission) {
     if (probe || !selected.size) return;
-    const entries = [...selected].map((url) => candidates.get(url)).filter((entry) => askPermission || !entry.probeStatus);
+    const entries = selectedForDetails(askPermission);
     if (!entries.length) return;
     const origins = [...new Set(entries.map(entry => entry.permissionOrigin).filter(Boolean))];
     const controller = new AbortController();
     probe = controller;
     updateSelection();
     try {
-      if (askPermission && origins.length && !await permissions(origins)) return notify("permissionDeclined");
+      if (askPermission && !await permissions(origins)) {
+        if (!controller.signal.aborted && selectedForDetails(true).length) notify("permissionDeclined");
+        return;
+      }
       if (controller.signal.aborted) return;
       if (askPermission) notify("fetchingDetails");
       let index = 0;
@@ -388,10 +399,12 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
       }));
       if (!controller.signal.aborted) {
         render();
-        if (entries.some(entry => entry.probeStatus === "permission")) notify("detailsNeedAccess");
+        if (selectedForDetails(true).length) notify("detailsNeedAccess");
         else if (askPermission || failed) notify(failed ? "detailsPartial" : "detailsDone", { count: failed });
       }
-    } catch (_error) { notify("permissionDeclined"); }
+    } catch (_error) {
+      if (askPermission && !controller.signal.aborted && selectedForDetails(true).length) notify("permissionDeclined");
+    }
     finally {
       if (probe === controller) probe = null;
       updateSelection();
@@ -426,9 +439,9 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
         { label: "copyLink", icon: "clipboard", group: "links", run: () => copyLink(url) },
         { label: "openLink", icon: "external-link", group: "links", run: () => externalLink(url) });
     }
-    const details = needsFileAccess() ? ["allowDetails", "lock-open"] : ["fetchDetails", "list-details"];
-    for (const [id, label, icon] of [["select-import", "selectVisible", "square-check"], ["clear-import", "deselectAll", "square"], ["probe-import", ...details]]) {
-      if (!$(id).disabled) items.push({ label, icon, group: "table", run: () => $(id).click() });
+    for (const [id, label, icon] of [["select-import", "selectVisible", "square-check"], ["clear-import", "deselectAll", "square"], ["probe-import", "allowDetails", "lock-open"]]) {
+      const button = $(id);
+      if (!button.hidden && !button.disabled) items.push({ label, icon, group: "table", run: () => button.click() });
     }
     view.showMenu(event, items, row?.querySelector("input") || event.target.closest("button") || dialog.querySelector(".import-grid"));
   }
@@ -475,7 +488,7 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
   });
   $("import-search").addEventListener("input", render);
   $("import-type").addEventListener("change", render);
-  $("probe-import").addEventListener("click", () => { void fetchDetails(true); });
+  accessButton.addEventListener("click", () => { void fetchDetails(true); });
   $("select-import").addEventListener("click", () => {
     for (const { url } of visibleRows()) {
       if (selected.size >= MAX_BATCH) break;
@@ -520,7 +533,7 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
   });
   for (const [id, key, icon] of [
     ["open-import", "importOpen", "plus"], ["add-url", "addLink", "plus"], ["paste-links", "pasteLinks", "clipboard"],
-    ["choose-file", "chooseFile", "file-upload"], ["probe-import", "fetchDetails", "list-details"], ["add", "add", "download"],
+    ["choose-file", "chooseFile", "file-upload"], ["probe-import", "allowDetails", "lock-open"], ["add", "add", "download"],
     ["save-options", "saveOptions", "chevron-down"],
   ]) buttonContent($(id), key, icon);
   buttonContent($("close-import"), "close", "x");

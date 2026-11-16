@@ -32,6 +32,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- The download review shows the file-details permission button only when a selected link needs access. File details still load automatically when access is already available.
+
 - Trimmed excess padding from the Pro logos. Turning off Pirate branding now uses transparent copies of the original header and navbar logos in both themes.
 
 - RGB mode no longer darkens or desaturates artwork. The animated accents stay active without dimming article text.
