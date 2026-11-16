@@ -100,7 +100,7 @@ html { scroll-padding-block-start: 95px; scrollbar-gutter: stable; }
 #counts { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 6px 0 0; }
 #counts div { display: flex; align-items: baseline; gap: 5px; padding: 1px 7px; border: 1px solid var(--line); border-radius: 20px; font-size: 12px; }
 #counts dd { margin: 0; color: var(--ink); font-variant-numeric: tabular-nums; }
-#counts div:first-child dd { color: var(--mint); }
+#counts div:first-child dd { color: var(--progress-color); }
 form, details[open] { display: grid; gap: 8px; }
 summary { padding-block: 4px; cursor: pointer; color: var(--sky); }
 details label { display: block; margin-block: 6px; }
@@ -148,8 +148,9 @@ button [data-icon], .manager-nav [data-icon] { display: inline-grid; flex: none;
 .file-mark:is([data-icon="music"],[data-icon="video"]) { color: var(--rose); }
 .state { display: inline-block; max-inline-size: 38%; padding: 1px 7px; border: 1px solid var(--line); border-radius: 20px; color: var(--muted); line-height: 1.45; font-size: 12px; }
 [data-state="complete"] .state { color: var(--success,var(--mint)); }
-[data-state="downloading"] .state { color: var(--mint); }
-[data-state="review"] .state, [data-state="interrupted"] .state { color: var(--amber); }
+[data-state="downloading"] .state { color: var(--progress-color); }
+[data-state="review"] .state { color: var(--amber); }
+[data-state="interrupted"] .state { color: var(--rose); }
 .source, .detail { overflow-wrap: anywhere; }
 .source { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 10px; font-size: 13px; }
 .source :is(.meta-type,.meta-size,.meta-date,.meta-completed) { padding-inline: 6px; border-radius: 4px; background: var(--field); }
@@ -166,13 +167,13 @@ time[tabindex="0"] { text-decoration: underline dotted var(--edge); text-underli
 .metrics > [data-metric] { display: inline-flex; gap: 5px; align-items: baseline; padding: 2px 7px; border: 1px solid var(--line); border-radius: 6px; }
 :is(.meta-size,.import-size,.group-facts,.metrics) { font-variant-numeric: tabular-nums; }
 :is(.meta-size,.import-size,.group-size,.group-total,.metrics [dir="ltr"]) { font-family: system-ui,sans-serif; font-variant-numeric: tabular-nums; }
-.metrics [data-metric="percent"] { color: var(--mint); font-weight: 700; }
+.metrics [data-metric="percent"] { color: var(--progress-color); font-weight: 700; }
 .metrics [data-metric="eta"] { color: var(--sky); }
 .detail { color: var(--amber); }
-progress { appearance: none; width: 100%; height: 7px; border: 0; border-radius: 4px; overflow: hidden; background: var(--line); accent-color: var(--mint); }
-progress::-moz-progress-bar { background: var(--mint); border-radius: 4px; }
+progress { appearance: none; width: 100%; height: 7px; border: 0; border-radius: 4px; overflow: hidden; background: var(--line); accent-color: var(--progress-color); }
+progress::-moz-progress-bar { background: var(--progress-color); border-radius: 4px; }
 progress::-webkit-progress-bar { background: var(--line); }
-progress::-webkit-progress-value { background: var(--mint); border-radius: 4px; }
+progress::-webkit-progress-value { background: var(--progress-color); border-radius: 4px; }
 progress:indeterminate { appearance: auto; }
 progress[hidden], .detail[hidden] { display: none; }
 .actions button { min-height: 30px; padding-inline: 7px; font-size: 13px; }

@@ -412,7 +412,7 @@
 
 :root.soft98-pro-theme [data-soft98-pro-nav-chrome] :is([data-s98p-topbar-toggle],[data-s98p-topbar-actions] > li > :is(a,button),
   [data-s98p-topbar-categories] > li > :is(a,button)):focus-visible {
-  outline: 2px solid var(--s98p-link) !important;
+  outline: 2px solid var(--s98p-focus,var(--s98p-link)) !important;
   outline-offset: -2px !important;
 }
 
@@ -1063,7 +1063,7 @@
 }
 :root.soft98-pro-theme dialog[data-s98p-download-confirm] button:hover { background: var(--s98p-soft) !important; }
 :root.soft98-pro-theme dialog[data-s98p-download-confirm] button:focus-visible {
-  outline: 2px solid var(--s98p-accent) !important;
+  outline: 2px solid var(--s98p-focus,var(--s98p-accent)) !important;
   outline-offset: 2px;
 }
 :root.soft98-pro-theme dialog[data-s98p-download-confirm] button[data-s98p-download-confirm-close] {
@@ -1080,12 +1080,17 @@
   color: var(--s98p-text) !important;
 }
 :root.soft98-pro-theme dialog[data-s98p-download-confirm] [data-s98p-download-confirm-start] {
-  background: color-mix(in srgb,var(--s98p-accent) 15%,var(--s98p-surface)) !important;
-  border-color: color-mix(in srgb,var(--s98p-accent) 55%,var(--s98p-border)) !important;
+  --download-start-ink: var(--s98p-accent);
+  background: color-mix(in srgb,var(--download-start-ink) 15%,var(--s98p-surface)) !important;
+  border-color: color-mix(in srgb,var(--download-start-ink) 55%,var(--s98p-border)) !important;
 }
 :root.soft98-pro-theme dialog[data-s98p-download-confirm] [data-s98p-download-confirm-start]:hover {
-  background: color-mix(in srgb,var(--s98p-accent) 24%,var(--s98p-surface)) !important;
-  border-color: var(--s98p-accent) !important;
+  background: color-mix(in srgb,var(--download-start-ink) 24%,var(--s98p-surface)) !important;
+  border-color: var(--download-start-ink) !important;
+}
+:root.soft98-pro-theme.soft98-pro-light dialog[data-s98p-download-confirm] [data-s98p-download-confirm-start] {
+  --download-start-ink: var(--s98p-day-success);
+  color: var(--download-start-ink) !important;
 }
 :root.soft98-pro-theme dialog[data-s98p-download-confirm] [data-s98p-download-confirm-start]:disabled {
   opacity: .5;
@@ -1616,6 +1621,7 @@
   --s98p-border-soft: var(--s98p-day-line);
   --s98p-accent: var(--s98p-day-action);
   --s98p-accent-2: var(--s98p-day-warning);
+  --s98p-focus: var(--s98p-choice-light,var(--s98p-day-focus));
   --s98p-link: var(--s98p-day-info);
   --s98p-danger: var(--s98p-day-danger);
   --s98p-control-bg: var(--s98p-surface);
@@ -1687,11 +1693,15 @@
 
 :root.soft98-pro-light article > :is([data-soft98-pro-article-header],[data-soft98-pro-article-meta]) {
   --s98p-article-band: var(--s98p-day-raised);
-  --s98p-heading-mark: var(--s98p-day-info);
+  --s98p-heading-mark: var(--s98p-faint);
 }
 
 :root.soft98-pro-light article > [data-soft98-pro-article-header] :is(h1,h2,h3,a) {
   color: var(--s98p-text) !important;
+}
+
+:root.soft98-pro-light article > [data-soft98-pro-article-meta] a[href]:not(:hover,:focus-visible) {
+  color: var(--s98p-muted) !important;
 }
 
 :root.soft98-pro-light [data-soft98-pro-heading-divider]::before {
@@ -1714,22 +1724,18 @@
 
 :root.soft98-pro-light [data-soft98-pro-surface="tab-list"] :is([role="tab"],[data-toggle="tab"]) {
   --tab-ink: var(--s98p-accent);
-  --tab-fill: color-mix(in srgb,var(--tab-ink) 12%,var(--s98p-surface));
 }
 
 :root.soft98-pro-light [data-soft98-pro-latest-tabs] [data-s98p-latest-topic="software"] {
   --tab-ink: var(--s98p-day-info);
-  --tab-fill: var(--s98p-day-info-wash);
 }
 
 :root.soft98-pro-light [data-soft98-pro-latest-tabs] [data-s98p-latest-topic="android"] {
   --tab-ink: var(--s98p-day-success);
-  --tab-fill: var(--s98p-day-success-wash);
 }
 
 :root.soft98-pro-light [data-soft98-pro-latest-tabs] [data-s98p-latest-topic="news"] {
   --tab-ink: var(--s98p-day-related);
-  --tab-fill: var(--s98p-day-related-wash);
 }
 
 :root.soft98-pro-light [data-soft98-pro-latest-tabs] [data-s98p-latest-topic] :is(i,svg) {
@@ -1737,9 +1743,9 @@
 }
 
 :root.soft98-pro-light [data-soft98-pro-surface="tab-list"] :is([role="tab"],[data-toggle="tab"]):is([aria-selected="true"],[aria-expanded="true"],.active,.active>[data-toggle="tab"],[data-soft98-pro-tab-active="true"]:not([aria-selected="false"],[aria-expanded="false"])) {
-  background: var(--tab-fill) !important;
-  color: var(--tab-ink) !important;
-  border-color: color-mix(in srgb,var(--tab-ink) 35%,var(--s98p-border-soft)) !important;
+  background: var(--s98p-soft) !important;
+  color: var(--s98p-text) !important;
+  border-color: var(--s98p-border-soft) !important;
   box-shadow: inset 0 -2px var(--tab-ink) !important;
 }
 

@@ -1109,14 +1109,14 @@ async function verifyAppearanceBridge(client) {
       const luminance = hex => rgb(hex).map(component => component / 255).map(channel =>
         channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4)
         .reduce((sum, channel, index) => sum + channel * [.2126, .7152, .0722][index], 0);
-      const neutral = ["canvas", "paper", "field", "raised", "hover", "line", "edge"].every(name => {
+      const neutral = ["canvas", "paper", "field", "raised", "hover", "line", "edge", "action", "action-wash"].every(name => {
         const channels = rgb(value(name));
         return Math.max(...channels) - Math.min(...channels) <= 12;
       });
       const roles = ["action", "info", "success", "warning", "danger", "related"];
       const contrast = roles.every(role => (luminance(value(role + "-wash")) + .05) / (luminance(value(role)) + .05) >= 4.5);
       const center = getComputedStyle(document.getElementById("soft98-pro-control"));
-      return neutral && contrast && new Set(roles.map(value)).size === roles.length &&
+      return neutral && contrast && value("focus") !== value("action") && new Set(roles.map(value)).size === roles.length &&
         center.getPropertyValue("--c-bg").trim() === value("field");
     })()`));
   } finally {
@@ -1264,12 +1264,12 @@ async function verifyThemeRestore(client) {
       check(mode + " keeps the page backdrop and cards white", await run(`
         getComputedStyle(document.body).backgroundColor === "rgb(255, 255, 255)" &&
         getComputedStyle(document.querySelector("article")).backgroundColor === "rgb(255, 255, 255)"`), true);
-      await until('getComputedStyle(document.querySelector("[data-soft98-pro-footer] .s98p-footer-brand button")).backgroundColor === "rgb(0, 118, 168)"');
-      check(mode + " gives the light footer a graphite rule and cyan-blue action", await run(`(() => {
+      await until('getComputedStyle(document.querySelector("[data-soft98-pro-footer] .s98p-footer-brand button")).backgroundColor === "rgb(48, 52, 58)"');
+      check(mode + " gives the light footer a graphite rule and neutral action", await run(`(() => {
         const footer = document.querySelector("[data-soft98-pro-footer]");
         return [getComputedStyle(footer.querySelector(".s98p-footer-frame")).borderTopColor,
           getComputedStyle(footer.querySelector(".s98p-footer-brand button")).backgroundColor].join("|");
-      })()`), "rgb(49, 58, 63)|rgb(0, 118, 168)");
+      })()`), "rgb(49, 58, 63)|rgb(48, 52, 58)");
       check(mode + " gives alert types distinct, readable colors", await run(`(() => {
         const styles = ["warning","danger","success"].map(kind => getComputedStyle(document.querySelector(".alert-" + kind)));
         const luminance = color => color.match(/[0-9]+/g).slice(0,3).map(Number)
@@ -1692,6 +1692,14 @@ async function verifyWideLayout(client) {
     await run("Soft98Pro.configure({darkDesign:false})");
     await until('document.documentElement.classList.contains("soft98-pro-light")');
     const lightCallouts = await run(callouts);
+    const activeTab = `(() => {
+      const tab = document.querySelector('[data-s98p-latest-topic][aria-selected="true"]');
+      const style = tab && getComputedStyle(tab);
+      return style?.backgroundColor === "rgb(235, 235, 239)" &&
+        style.boxShadow.includes("inset") && style.color === "rgb(36, 37, 43)" &&
+        style.getPropertyValue("--tab-ink").trim() === ({software:"#1e5a8a",android:"#0a6b46",news:"#32616a"})[tab.dataset.s98pLatestTopic];
+    })()`;
+    await until(activeTab);
     check("light mobile makes a different palette choice without clipping", lightCallouts.every((item, i) =>
       item.bg !== darkCallouts[i].bg && item.visible && item.placed && item.readable), true);
     check("FAQ check stays matched to the light accent", await run(faqChecks), true);

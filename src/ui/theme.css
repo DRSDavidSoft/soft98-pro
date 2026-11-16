@@ -13,6 +13,7 @@
   --mint: #74e5bb;
   --mint-on: #0b251c;
   --mint-hover: #a8f2d4;
+  --progress-color: var(--mint);
   --sky: #a5cfff;
   --amber: #ffd795;
   --rose: #ffa8b2;
@@ -34,6 +35,7 @@
   --mint-on: var(--s98p-day-paper);
   --mint-hover: var(--s98p-day-action-hover);
   --sky: var(--s98p-day-info);
+  --progress-color: var(--sky);
   --amber: var(--s98p-day-warning);
   --rose: var(--s98p-day-danger);
   --success: var(--s98p-day-success);

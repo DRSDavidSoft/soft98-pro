@@ -42,7 +42,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - The updates and technology news cards share one collapse button and remember their state. Hide both with the close button and bring them back from the Control Center.
 
-- Light mode uses a white backdrop and a cyan-blue accent for general controls. Downloads, warnings, and errors keep their separate colors.
+- Light mode keeps white surfaces and neutral controls. Color marks focus, links, downloads, warnings, errors, and progress rather than tinting entire tabs.
 
 ### Fixed
 

@@ -28,9 +28,10 @@
   --s98p-day-faint: #62646e;
   --s98p-day-line: #dedee4;
   --s98p-day-edge: #898a94;
-  --s98p-day-action: #0076a8;
-  --s98p-day-action-hover: #005a84;
-  --s98p-day-action-wash: #e8f7fc;
+  --s98p-day-action: #30343a;
+  --s98p-day-action-hover: #21242a;
+  --s98p-day-action-wash: #eef0f2;
+  --s98p-day-focus: #0076a8;
   --s98p-day-success: #0a6b46;
   --s98p-day-success-wash: #e5f5ec;
   --s98p-day-info: #1e5a8a;

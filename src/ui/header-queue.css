@@ -37,7 +37,7 @@ svg { display: block; inline-size: 17px; block-size: 17px; }
 .counts { display: flex; flex-wrap: wrap; gap: 3px 10px; margin-block-start: 3px; font-size: 11px; color: var(--muted); }
 .counts span { display: inline-flex; align-items: baseline; gap: 4px; }
 .counts strong { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
-.counts span[data-count=active] strong { color: var(--mint); }
+.counts span[data-count=active] strong { color: var(--progress-color); }
 main { position: relative; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
 #status {
   position: absolute;
@@ -74,14 +74,14 @@ main { position: relative; overflow: auto; overscroll-behavior: contain; scrollb
 .facts { display: flex; align-items: center; flex-wrap: wrap; column-gap: 8px; color: var(--muted); font-size: 11px; }
 .facts bdi { font-variant-numeric: tabular-nums; }
 .facts .transfer-state { color: var(--muted); }
-li[data-group=active] .transfer-state { color: var(--mint); }
+li[data-group=active] .transfer-state { color: var(--progress-color); }
 li[data-state=complete] .transfer-state { color: var(--success,var(--mint)); }
 li:is([data-state=interrupted],[data-state=review],[data-state=missing]) .transfer-state { color: var(--amber); }
-progress { display: block; inline-size: 100%; block-size: 5px; margin-block: 3px 2px; accent-color: var(--mint); }
+progress { display: block; inline-size: 100%; block-size: 5px; margin-block: 3px 2px; accent-color: var(--progress-color); }
 progress[value] { appearance: none; overflow: hidden; border: 0; border-radius: 5px; background: var(--line); }
 progress[value]::-webkit-progress-bar { background: var(--line); }
-progress[value]::-webkit-progress-value { border-radius: 5px; background: var(--mint); }
-progress[value]::-moz-progress-bar { border-radius: 5px; background: var(--mint); }
+progress[value]::-webkit-progress-value { border-radius: 5px; background: var(--progress-color); }
+progress[value]::-moz-progress-bar { border-radius: 5px; background: var(--progress-color); }
 footer { padding: 7px 8px 8px; border-block-start: 1px solid var(--line); }
 #full-manager {
   display: flex;
