@@ -16,7 +16,10 @@ const metadata = built.slice(0, offset);
 const production = built.slice(offset + boundary.length).trim();
 
 fs.mkdirSync(output, { recursive: true });
-for (const [mode, suffix] of [["active", "Soft98 Pro"], ["passive", "page only"]]) {
+const variants = process.argv.includes("--recovery")
+  ? [["recovery", "listing recovery"]]
+  : [["active", "Soft98 Pro"], ["passive", "page only"]];
+for (const [mode, suffix] of variants) {
   const meta = metadata
     .replace(/^\/\/ @name\s+.+$/m, `// @name         Soft98 reload check (${suffix})`)
     .replace(/^\/\/ @description\s+.+$/m, "// @description  Temporary reload diagnostics for Soft98 Pro issue 16")
@@ -25,5 +28,5 @@ for (const [mode, suffix] of [["active", "Soft98 Pro"], ["passive", "page only"]
     .replace(/^\/\/ @(?:updateURL|downloadURL)\s+.+\r?\n/gm, "");
   const payload = `${meta}// @updateURL    none\n// @noframes\n${boundary}\n\n${probe}("${mode}", "${base}");\n`;
   fs.writeFileSync(path.join(output, `soft98-reload-${mode}.user.js`),
-    payload + (mode === "active" ? production + "\n" : ""), "utf8");
+    payload + (mode === "passive" ? "" : production + "\n"), "utf8");
 }

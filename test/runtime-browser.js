@@ -861,6 +861,22 @@ async function verifyIssue16EarlyReload(client) {
         await until('document.querySelector(\'a[href="https://files.example.test/setup.exe"]\')');
       }
     }
+    for (const mode of ["listing", "listing-replacement"]) {
+      const listing = fixture.replace("issue16.html", "issue16-listing.html");
+      await client.send("Page.navigate", { url: listing + "?startup=" + mode });
+      await until(`location.search === "?startup=${mode}" && document.readyState === "complete" &&
+        document.querySelectorAll("main article").length === 2`);
+      await client.send("Page.reload", { ignoreCache: false });
+      await until('document.readyState === "complete" && document.documentElement.dataset.issue16Startup === "loading"');
+      await run('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+      if (mode === "listing") {
+        assertEqual("issue 16", "startup reset restores the original listing and post links", await run(
+          'document.querySelector("main") === window.issue16Original && document.querySelectorAll("main article h2 a[href]").length === 2 && Soft98Pro.stats.listingsRestored === 1'), true);
+      } else {
+        assertEqual("issue 16", "startup preserves genuine listing replacement", await run(
+          'document.querySelector("#startup-replacement")?.textContent === "New article content" && !window.issue16Original.isConnected && Soft98Pro.stats.listingsRestored === 0'), true);
+      }
+    }
   } finally {
     await client.send("Network.disable");
   }

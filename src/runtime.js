@@ -16,6 +16,7 @@
   const CONTROL_GRAVITY = 76;
   const MAX_ARTICLE_RESTORES = 3;
   const RECOVERABLE_ARTICLE = "article:has(h1):has(dl[data-json] dd a[data-key])";
+  const RECOVERABLE_LISTING = "main:has(article :is(h2,h3) a[href])";
   const ARTICLE_CONTAINERS = "body,main,div,section";
   const enqueueMicrotask = window.queueMicrotask ? window.queueMicrotask.bind(window) : (callback) => Promise.resolve().then(callback);
   const nativeEval = typeof window.eval === "function" ? window.eval : null;
@@ -146,6 +147,7 @@
     linksPreserved: 0,
     linksRestored: 0,
     articlesRestored: 0,
+    listingsRestored: 0,
     scrollDetectorsBlocked: 0,
     patches: [],
     patchFailures: [],
@@ -1065,9 +1067,15 @@
     if (IS_EXTENSION || !settings.blockAds || !settings.patchScripts || document.readyState === "loading") return;
     const url = location.pathname + location.search;
     if (articleSnapshot?.url === url && articleSnapshot.article.isConnected) return;
-    const articles = document.querySelectorAll("main " + RECOVERABLE_ARTICLE);
-    if (articles.length !== 1 || articleSnapshot?.url === url && articleSnapshot.restores) return;
-    articleSnapshot = captureArticleFrame(url, articles[0]);
+    if (articleSnapshot?.url === url && articleSnapshot.restores) return;
+    const frames = recoverableFrames(document, "main " + RECOVERABLE_ARTICLE);
+    if (frames.length === 1) articleSnapshot = captureArticleFrame(url, frames[0]);
+  }
+
+  function recoverableFrames(root, articleSelector) {
+    const matching = (selector) => root.matches?.(selector) ? [root] : root.querySelectorAll(selector);
+    const articles = matching(articleSelector);
+    return articles.length ? articles : matching(RECOVERABLE_LISTING);
   }
 
   function captureArticleFrame(url, article, detachedRoot, target) {
@@ -1091,7 +1099,7 @@
       for (const node of removedNodes) {
         if (node.nodeType !== Node.ELEMENT_NODE || node.isConnected) continue;
         const matches = insideMain || node.matches("main") ? RECOVERABLE_ARTICLE : "main " + RECOVERABLE_ARTICLE;
-        const articles = node.matches(matches) ? [node] : node.querySelectorAll(matches);
+        const articles = recoverableFrames(node, matches);
         if (articles.length > 1 || (articles.length && candidate)) return;
         if (articles.length === 1) candidate = { article: articles[0], node, target, nextSibling };
       }
@@ -1129,15 +1137,18 @@
     const { target, node, nextSibling } = snapshot.cleared;
     snapshot.cleared = null;
     // Check after this scan has cleared any transient notice, without replacing real content.
+    const listing = snapshot.article.matches("main");
     if (snapshot.restores >= MAX_ARTICLE_RESTORES || snapshot.article.isConnected || !settings.blockAds || !settings.patchScripts ||
-        snapshot.url !== location.pathname + location.search || !target.isConnected || document.querySelector("main article")) return;
+        snapshot.url !== location.pathname + location.search || !target.isConnected ||
+        document.querySelector(listing ? "main" : "main article")) return;
     const hasContent = [...target.childNodes].some(child =>
       child.nodeType === Node.TEXT_NODE ? child.textContent.trim() :
         child.nodeType === Node.ELEMENT_NODE && !child.matches("script,style,link,meta,template") && !isOwnedInterface(child));
     if (hasContent) return;
     target.insertBefore(node, nextSibling?.parentNode === target ? nextSibling : null);
     snapshot.restores++;
-    stats.articlesRestored++;
+    if (listing) stats.listingsRestored++;
+    else stats.articlesRestored++;
     schedule(document);
   }
 

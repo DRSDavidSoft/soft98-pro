@@ -99,8 +99,8 @@
     configurable: true,
     value() {
       const nav = performance.getEntriesByType("navigation")[0];
-      const stats = mode === "active" ? window.Soft98Pro?.stats : null;
-      const settings = mode === "active" ? window.Soft98Pro?.settings : null;
+      const stats = mode !== "passive" ? window.Soft98Pro?.stats : null;
+      const settings = mode !== "passive" ? window.Soft98Pro?.settings : null;
       return {
         schema: 1,
         mode,
@@ -126,6 +126,7 @@
           patches: stats.patches.length,
           patchFailures: stats.patchFailures.length,
           articlesRestored: stats.articlesRestored,
+          listingsRestored: stats.listingsRestored,
           scrollDetectorsBlocked: stats.scrollDetectorsBlocked,
         } : null,
         contentRemovals: [...changes],

@@ -101,20 +101,27 @@ http
         return;
       }
       if (requestUrl.pathname === "/test/issue16-startup.js") {
-        const etag = '"issue16-startup-v1"';
+        const etag = '"issue16-startup-v2"';
         const headers = { "content-type": "text/javascript; charset=utf-8", "cache-control": "public, max-age=600", etag };
         if (request.headers["if-none-match"] === etag) { response.writeHead(304, headers).end(); return; }
         response.writeHead(200, headers).end(`(() => {
           const mode = new URL(location.href).searchParams.get("startup");
           if (!mode || performance.getEntriesByType("navigation")[0]?.type !== "reload") return;
-          window.issue16Original = document.querySelector("main article");
+          const listing = mode.startsWith("listing");
+          window.issue16Original = document.querySelector(listing ? "main" : "main article");
           document.documentElement.dataset.issue16Startup = document.readyState;
-          const target = mode === "body" ? document.body : document.querySelector("main");
-          if (mode === "replacement") {
+          const target = listing ? document.getElementById("listing")
+            : mode === "body" ? document.body : document.querySelector("main");
+          if (mode.endsWith("replacement")) {
             const replacement = document.createElement("p");
             replacement.id = "startup-replacement";
             replacement.textContent = "New article content";
             target.replaceChildren(replacement);
+          } else if (listing) {
+            const notice = document.createElement("p");
+            notice.setAttribute("role", "alert");
+            notice.textContent = "Please disable ad-block";
+            target.replaceChildren(notice);
           } else {
             target.replaceChildren();
           }
