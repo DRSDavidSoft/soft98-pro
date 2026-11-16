@@ -1252,24 +1252,24 @@ async function verifyThemeRestore(client) {
       await run('window.sameDownload = document.querySelector("#downloads dd > a"); window.sameNav = document.getElementById("stock-nav")');
       await run('Soft98Pro.configure({darkDesign:false})');
       await until('document.documentElement.classList.contains("soft98-pro-light")');
-      await until(`${brand(true,"stockCompactLight")} && ${brand(false,"stockDark")}`);
+      await until(`${brand(true,"stockCompactLight")} && ${brand(false,"stockLight")}`);
       await run('Soft98Pro.configure({pirateLogo:true})');
-      await until(`${brand(true,"light")} && ${brand(false,"pirateDark")}`);
+      await until(`${brand(true,"light")} && ${brand(false,"light")}`);
       check(mode + " light mode does not reload", await run("fixtureVisit"), 1);
       check(mode + " uses one solid fill across the article title and metadata", await run(`(() => {
         const styles = ["[data-soft98-pro-article-header]","[data-soft98-pro-article-meta]"]
           .map(selector => getComputedStyle(document.querySelector(selector)));
         return styles.every(style => style.backgroundImage === "none" && style.backgroundColor === "rgb(245, 245, 247)");
       })()`), true);
-      check(mode + " restores the stock steel-blue backdrop without tinting the white cards", await run(`
-        getComputedStyle(document.body).backgroundColor === "rgb(67, 117, 147)" &&
+      check(mode + " keeps the page backdrop and cards white", await run(`
+        getComputedStyle(document.body).backgroundColor === "rgb(255, 255, 255)" &&
         getComputedStyle(document.querySelector("article")).backgroundColor === "rgb(255, 255, 255)"`), true);
-      await until('getComputedStyle(document.querySelector("[data-soft98-pro-footer] .s98p-footer-brand button")).backgroundColor === "rgb(49, 92, 118)"');
-      check(mode + " gives the light footer a graphite rule and steel-blue action", await run(`(() => {
+      await until('getComputedStyle(document.querySelector("[data-soft98-pro-footer] .s98p-footer-brand button")).backgroundColor === "rgb(0, 118, 168)"');
+      check(mode + " gives the light footer a graphite rule and cyan-blue action", await run(`(() => {
         const footer = document.querySelector("[data-soft98-pro-footer]");
         return [getComputedStyle(footer.querySelector(".s98p-footer-frame")).borderTopColor,
           getComputedStyle(footer.querySelector(".s98p-footer-brand button")).backgroundColor].join("|");
-      })()`), "rgb(49, 58, 63)|rgb(49, 92, 118)");
+      })()`), "rgb(49, 58, 63)|rgb(0, 118, 168)");
       check(mode + " gives alert types distinct, readable colors", await run(`(() => {
         const styles = ["warning","danger","success"].map(kind => getComputedStyle(document.querySelector(".alert-" + kind)));
         const luminance = color => color.match(/[0-9]+/g).slice(0,3).map(Number)
@@ -2300,7 +2300,7 @@ async function main() {
     const cases = [
       ["default-dark", "taunt=0&dark=1", { dark: true, rgb: false, tauntTheme: null, tauntBackground: null, logo: "pirateDark" }],
       ["taunt-dark", "taunt=1&dark=1", { dark: true, rgb: false, tauntTheme: "dark", tauntBackground: "rgb(16, 27, 36)", logo: "pirateDark" }],
-      ["taunt-light", "taunt=1&dark=0", { dark: false, rgb: false, tauntTheme: "light", tauntBackground: "rgb(247, 250, 252)", logo: "pirateDark" }],
+      ["taunt-light", "taunt=1&dark=0", { dark: false, rgb: false, tauntTheme: "light", tauntBackground: "rgb(247, 250, 252)", logo: "light" }],
       ["rgb", "taunt=0&dark=1&rgb=1", { dark: true, rgb: true, tauntTheme: null, tauntBackground: null, logo: "pirateDark" }],
     ];
     for (const [name, query, expected] of cases) {

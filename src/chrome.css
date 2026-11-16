@@ -12,7 +12,7 @@
 
 :root.soft98-pro-light {
   --s98p-topbar-bg: var(--s98p-day-paper);
-  --s98p-topbar-active: var(--s98p-day-hover);
+  --s98p-topbar-active: var(--s98p-day-action-wash);
   --s98p-topbar-shadow: var(--s98p-day-shadow);
 }
 

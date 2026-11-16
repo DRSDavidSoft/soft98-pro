@@ -340,7 +340,7 @@
             var brandedLogo = document.querySelector("[data-test='site-logo']");
             api.configure({ pirateLogo: false });
             var stockLogoSelected = brandedLogo.getAttribute("src").startsWith("data:image/png;base64,") &&
-              brandedLogo.getAttribute("data-soft98-brand-variant") === "stockDark" &&
+              brandedLogo.getAttribute("data-soft98-brand-variant") === (api.settings.darkDesign || api.settings.rgbMode ? "stockDark" : "stockLight") &&
               brandedLogo.getAttribute("alt") === "Soft98 logo";
             api.configure({ pirateLogo: true });
             return {

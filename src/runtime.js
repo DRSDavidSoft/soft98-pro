@@ -5330,8 +5330,7 @@
 
   function applyLogo(candidate) {
     const logo = candidate.node;
-    // The full masthead sits on the site's steel-blue backdrop even in light mode.
-    const darkBackdrop = !candidate.compact || settings.darkDesign || settings.rgbMode;
+    const darkBackdrop = settings.darkDesign || settings.rgbMode;
     const variant = settings.pirateLogo ? (darkBackdrop ? "pirateDark" : "light") :
       `stock${candidate.compact ? "Compact" : ""}${darkBackdrop ? "Dark" : "Light"}`;
     const source = BRAND_ASSETS[variant];
