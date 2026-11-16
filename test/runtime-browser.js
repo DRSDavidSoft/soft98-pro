@@ -375,6 +375,12 @@ async function verifyFileActions(client) {
   check("non-matching OS sections collapse but matching multi-OS sections stay open", await run(`
     document.querySelector("#linux-file").hasAttribute("data-soft98-pro-download-collapsed") &&
     !document.querySelector("#multi-file").hasAttribute("data-soft98-pro-download-collapsed")`), true);
+  const other = 'document.querySelector("#other-platforms [data-s98p-download-toggle]")';
+  check("the generic Other Platforms group starts collapsed on Windows", await run(`${other}.getAttribute("aria-expanded")`), "false");
+  await run(`${other}.click()`);
+  await until(`${other}.getAttribute("aria-expanded")==="true"`);
+  check("explicitly opening Other Platforms is saved", await run(`
+    JSON.parse(localStorage.getItem("soft98-pro.download-sections")).some(([key,value])=>key.includes("سایرپلتفرمها") && value===false)`), true);
   await run('document.querySelector("#linux-section button[data-s98p-download-toggle]").click()');
   await until('document.querySelector("#linux-file").getAnimations().length>0');
   await until('!document.querySelector("#linux-file").inert && document.querySelector("#linux-file").offsetHeight>0');
@@ -1457,6 +1463,12 @@ async function verifyWideLayout(client) {
       const copy = document.querySelector("[data-s98p-download-rail] [data-soft98-pro-download-row]");
       return link !== copy && link.href === copy.href && !copy.hasAttribute("data-key");
     })()`), true);
+    const infoToggle = (selector) => `[...document.querySelectorAll(${JSON.stringify(selector + " [data-s98p-download-heading-label]")})]
+      .find(label=>label.textContent.trim()==="اطلاعات بیشتر").parentElement.querySelector("[data-s98p-download-toggle]")`;
+    const mainInfo = infoToggle("#files");
+    const sideInfo = infoToggle("[data-s98p-download-rail]");
+    const infoStates = `[${mainInfo}.getAttribute("aria-expanded"),${sideInfo}.getAttribute("aria-expanded")].join(",")`;
+    check("More Information starts open only in the main box", await run(infoStates), "true,false");
     check("the sidebar scrollbar follows the Pro palette without changing the page scrollbar", await run(`(() => {
       const rail = getComputedStyle(document.querySelector("[data-s98p-download-rail]"));
       return rail.scrollbarWidth === "thin" && rail.scrollbarColor !== "auto" &&
@@ -1498,6 +1510,14 @@ async function verifyWideLayout(client) {
     const halfVisible = `downloadSourceAt(innerHeight-(${listHeight})/2)`;
     await run(far);
     await until(`${opacity}===1 && !${rail}.inert`);
+    await run(`${sideInfo}.click()`);
+    check("expanding More Information from the sidebar links both copies", await run(infoStates), "true,true");
+    await run(`${mainInfo}.click()`);
+    check("the main box then collapses both copies", await run(infoStates), "false,false");
+    check("the main box's More Information state is saved", await run(`
+      JSON.parse(localStorage.getItem("soft98-pro.download-sections")).some(([key,value])=>key.includes("اطلاعاتبیشتر") && value===true)`), true);
+    await run(`${mainInfo}.click()`);
+    await until('!document.querySelector("[data-s98p-download-row-motion]")');
     await run(`downloadSourceAt(innerHeight+(${lead})/2)`);
     await until(`Math.abs(${opacity}-.475)<.02 && !${rail}.inert`);
     check("the sidebar fades early but stays clickable on approach", await run(pointerEvents), "auto");

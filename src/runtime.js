@@ -3530,18 +3530,19 @@
       }
       heading.setAttribute("data-soft98-pro-download-heading", "");
       heading.append(controls, toggle);
-      state = { controls, toggle, copy, review, label, entries: [] };
+      state = { controls, toggle, copy, review, label, mirror, entries: [] };
       downloadHeadings.set(heading, state);
       toggle.addEventListener("click", (event) => {
         event.stopPropagation();
         const section = state.section;
         if (!section) return;
-        const collapsed = !section.collapsed;
+        const collapsed = !downloadViewCollapsed(state);
         const saved = savedDownloadSections();
         saved.delete(section.key);
         saved.set(section.key, collapsed);
         try { localStorage.setItem(DOWNLOAD_SECTIONS_KEY, JSON.stringify([...saved].slice(-250))); } catch (_error) {}
-        applyDownloadSectionState(section, collapsed, true);
+        section.preference = collapsed;
+        applyDownloadSectionState(section, collapsed, { animate: true, linkViews: true });
       });
       copy.addEventListener("click", async (event) => {
         event.stopPropagation();
@@ -3562,14 +3563,24 @@
       const occurrence = titles.get(normalized) || 0;
       titles.set(normalized, occurrence + 1);
       const key = JSON.stringify([location.pathname, "article", listIndex, normalized, occurrence]);
+      let targets = Soft98DownloadLinks.headingOS(title);
+      if (!targets.length) {
+        const labels = entries.flatMap(row => [...row.querySelectorAll(":scope > a:is([href],[data-key])")]
+          .map(link => linkLabel(link.querySelector("[data-soft98-pro-download-title]") || link)));
+        targets = Soft98DownloadLinks.groupedPlatformOS(title, labels);
+      }
+      const defaultCollapsed = Boolean(downloadDeviceOS && targets.length && !targets.includes(downloadDeviceOS));
       section = downloadSectionModels.get(heading);
       if (section?.key !== key) {
         const saved = savedDownloadSections();
         const legacyKey = listIndex === 0 ? JSON.stringify([location.pathname, "rail", 0, normalized, occurrence]) : null;
-        const targets = Soft98DownloadLinks.headingOS(title);
-        const defaultCollapsed = Boolean(downloadDeviceOS && targets.length && !targets.includes(downloadDeviceOS));
-        section = { key, legacyKey, defaultCollapsed, collapsed: saved.get(key) ?? saved.get(legacyKey) ?? defaultCollapsed, views: new Set() };
+        const preference = saved.get(key) ?? saved.get(legacyKey);
+        const sidebarStartsCollapsed = /^(?:اطلاعاتبیشتر|moreinfo(?:rmation)?|additionalinformation)$/i.test(normalized);
+        section = { key, legacyKey, preference, defaultCollapsed, sidebarStartsCollapsed, collapsed: preference ?? defaultCollapsed, views: new Set() };
         downloadSectionModels.set(heading, section);
+      } else if (section.defaultCollapsed !== defaultCollapsed) {
+        section.defaultCollapsed = defaultCollapsed;
+        if (section.preference === undefined) applyDownloadSectionState(section, defaultCollapsed);
       }
     }
     if (state.section !== section) {
@@ -3600,9 +3611,14 @@
     syncDownloadCollapse(state);
   }
 
-  function applyDownloadSectionState(section, collapsed, animate = false) {
-    if (section.collapsed === collapsed) return;
+  function downloadViewCollapsed(state) {
+    return state.section.collapsed || (state.mirror && state.section.sidebarStartsCollapsed);
+  }
+
+  function applyDownloadSectionState(section, collapsed, { animate = false, linkViews = false } = {}) {
+    if (section.collapsed === collapsed && !(linkViews && section.sidebarStartsCollapsed)) return;
     section.collapsed = collapsed;
+    if (linkViews) section.sidebarStartsCollapsed = false;
     for (const view of section.views) {
       if (view.toggle.isConnected) syncDownloadCollapse(view, animate);
       else section.views.delete(view);
@@ -3611,14 +3627,16 @@
   }
 
   function syncDownloadCollapse(state, animate = false) {
-    if (animate) animateDownloadRows(state);
+    const collapsed = downloadViewCollapsed(state);
+    const expanded = String(!collapsed);
+    const previous = state.toggle.getAttribute("aria-expanded");
+    if (animate && previous !== expanded) animateDownloadRows(state, collapsed);
     else for (const row of state.entries) {
-      if (!downloadRowMotion.has(row)) row.toggleAttribute("data-soft98-pro-download-collapsed", state.section.collapsed);
+      if (!downloadRowMotion.has(row)) row.toggleAttribute("data-soft98-pro-download-collapsed", collapsed);
     }
-    const expanded = String(!state.section.collapsed);
-    if (state.toggle.getAttribute("aria-expanded") === expanded) return;
-    const label = text(state.section.collapsed ? "downloadExpandGroup" : "downloadCollapseGroup");
-    const icon = state.section.collapsed ? "plus" : "minus";
+    if (previous === expanded) return;
+    const label = text(collapsed ? "downloadExpandGroup" : "downloadCollapseGroup");
+    const icon = collapsed ? "plus" : "minus";
     state.toggle.dataset.s98pDownloadToggle = icon;
     state.toggle.innerHTML = PAGE_ICONS[icon];
     state.toggle.firstElementChild.setAttribute("aria-hidden", "true");
@@ -3630,8 +3648,8 @@
   const downloadRowDimensions = ["block-size", "padding-block-start", "padding-block-end", "margin-block-start", "margin-block-end",
     "border-block-start-width", "border-block-end-width"];
 
-  function animateDownloadRows(state) {
-    const to = state.section.collapsed ? 0 : 1;
+  function animateDownloadRows(state, collapsed) {
+    const to = collapsed ? 0 : 1;
     const canAnimate = !matchMedia("(prefers-reduced-motion: reduce)").matches &&
       typeof CSS.registerProperty === "function" && typeof Element.prototype.animate === "function";
     const rows = state.entries.map(row => {
@@ -3649,7 +3667,7 @@
     });
     for (const { row, current, dimensions } of measured) {
       if (!dimensions) {
-        row.toggleAttribute("data-soft98-pro-download-collapsed", state.section.collapsed);
+        row.toggleAttribute("data-soft98-pro-download-collapsed", collapsed);
         continue;
       }
       const inert = row.inert;
@@ -3661,7 +3679,7 @@
       const finish = () => {
         if (downloadRowMotion.get(row)?.animation !== animation) return;
         downloadRowMotion.delete(row);
-        row.toggleAttribute("data-soft98-pro-download-collapsed", state.section.collapsed);
+        row.toggleAttribute("data-soft98-pro-download-collapsed", collapsed);
         row.removeAttribute("data-s98p-download-row-motion");
         row.inert = inert;
         for (const key of downloadRowDimensions) row.style.removeProperty("--s98p-row-" + key);
@@ -7127,7 +7145,9 @@
       const saved = savedDownloadSections();
       for (const heading of document.querySelectorAll("article dt[data-soft98-pro-download-heading]")) {
         const section = downloadSectionModels.get(heading);
-        if (section) applyDownloadSectionState(section, saved.get(section.key) ?? saved.get(section.legacyKey) ?? section.defaultCollapsed);
+        if (!section) continue;
+        section.preference = saved.get(section.key) ?? saved.get(section.legacyKey);
+        applyDownloadSectionState(section, section.preference ?? section.defaultCollapsed);
       }
     });
     window.setTimeout(exposePublicApi, 0);

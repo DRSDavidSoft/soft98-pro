@@ -167,7 +167,14 @@ const Soft98DownloadLinks = (() => {
     return [...targets];
   }
 
-  return { MAX_BATCH, MAX_IMPORT, MAX_TEXT, DEFAULT_REVIEW_MB, MAX_REVIEW_MB, reviewLimit, confirmedUrls, deviceOS, headingOS, normalize, describe, fileType, parse, headers, articleFile, declaredArticleLinks, metadata };
+  function groupedPlatformOS(title, labels) {
+    const key = String(title).normalize("NFKC").toLowerCase().replace(/[\s\u0640\u200c\u200d\p{P}]/gu, "");
+    if (!/^(?:(?:سایر|دیگر|بقیه)(?:پلتفرم(?:ها)?|سیستمعامل(?:ها)?|سیستمهایعامل)|(?:other|additional|alternate)(?:platforms?|operatingsystems?|os))$/u.test(key)) return [];
+    const platforms = labels.map(headingOS);
+    return platforms.every(targets => targets.length) ? [...new Set(platforms.flat())] : [];
+  }
+
+  return { MAX_BATCH, MAX_IMPORT, MAX_TEXT, DEFAULT_REVIEW_MB, MAX_REVIEW_MB, reviewLimit, confirmedUrls, deviceOS, headingOS, groupedPlatformOS, normalize, describe, fileType, parse, headers, articleFile, declaredArticleLinks, metadata };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = Soft98DownloadLinks;

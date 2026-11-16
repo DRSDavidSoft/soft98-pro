@@ -44,6 +44,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Collapsed groups of downloads for other platforms when none match the device. More Information starts collapsed only in the sidebar and follows the main box after either copy is toggled.
+
 - Matched the right-hand download sidebar scrollbar to the active theme.
 
 - Kept technology-news hover fills neutral and removed gradients from the contact menu and form controls.

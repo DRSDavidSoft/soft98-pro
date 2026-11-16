@@ -39,6 +39,11 @@ test("platform detection is conservative about generic and mixed download headin
   for (const title of ["Other platforms", "Windows / All others", "راهنمای نصب ویندوز", "دانلود Windows with updates", "سایر پلتفرم‌ها"]) {
     assert.deepEqual(links.headingOS(title), []);
   }
+  const platformLinks = ["دانلود نسخه Mac", "دانلود نسخه Linux", "دانلود نسخه iOS", "دانلود نسخه Android"];
+  assert.deepEqual(links.groupedPlatformOS("سایر پلتـفرم ها", platformLinks), ["mac", "linux", "ios", "android"]);
+  assert.deepEqual(links.groupedPlatformOS("Other platforms", ["Linux", "Windows"]), ["linux", "windows"]);
+  assert.deepEqual(links.groupedPlatformOS("سایر پلتفرم‌ها", ["Linux", "Installer"]), []);
+  assert.deepEqual(links.groupedPlatformOS("More information", ["Linux"]), []);
 });
 
 test("file probes are permission-scoped and preserve exact links without credentials", async () => {
