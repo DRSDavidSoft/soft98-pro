@@ -100,6 +100,27 @@ http
         response.writeHead(200, { "content-type": "text/javascript; charset=utf-8" }).end("");
         return;
       }
+      if (requestUrl.pathname === "/test/issue16-startup.js") {
+        const etag = '"issue16-startup-v1"';
+        const headers = { "content-type": "text/javascript; charset=utf-8", "cache-control": "public, max-age=600", etag };
+        if (request.headers["if-none-match"] === etag) { response.writeHead(304, headers).end(); return; }
+        response.writeHead(200, headers).end(`(() => {
+          const mode = new URL(location.href).searchParams.get("startup");
+          if (!mode || performance.getEntriesByType("navigation")[0]?.type !== "reload") return;
+          window.issue16Original = document.querySelector("main article");
+          document.documentElement.dataset.issue16Startup = document.readyState;
+          const target = mode === "body" ? document.body : document.querySelector("main");
+          if (mode === "replacement") {
+            const replacement = document.createElement("p");
+            replacement.id = "startup-replacement";
+            replacement.textContent = "New article content";
+            target.replaceChildren(replacement);
+          } else {
+            target.replaceChildren();
+          }
+        })()`);
+        return;
+      }
       if (requestUrl.pathname === "/page/3/") {
         response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
         response.end("<!doctype html><title>Archive native fallback</title><p>Archive loaded by the browser.</p>");

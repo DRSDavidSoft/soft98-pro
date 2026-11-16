@@ -832,6 +832,40 @@ async function verifyIssue16(client) {
   }
 }
 
+async function verifyIssue16EarlyReload(client) {
+  const run = (expression) => evaluate(client, expression);
+  const fixture = `http://127.0.0.1:${PORT}/test/issue16.html`;
+  const until = async (expression) => {
+    for (let attempt = 0; attempt < 40; attempt++) {
+      if (await run(expression).catch(() => false)) return;
+      await delay(100);
+    }
+    throw new Error("Warm reload timed out: " + expression);
+  };
+  await client.send("Network.enable");
+  await client.send("Network.setCacheDisabled", { cacheDisabled: false });
+  try {
+    for (const scope of ["main", "body", "replacement"]) {
+      await client.send("Page.navigate", { url: fixture + "?startup=" + scope });
+      await until(`location.search === "?startup=${scope}" && document.readyState === "complete" &&
+        document.querySelector('a[href="https://files.example.test/setup.exe"]')`);
+      await client.send("Page.reload", { ignoreCache: false });
+      await until('document.readyState === "complete" && document.documentElement.dataset.issue16Startup === "loading"');
+      await run('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))');
+      if (scope === "replacement") {
+        assertEqual("issue 16", "startup preserves genuine replacement content", await run(
+          'document.querySelector("#startup-replacement")?.textContent === "New article content" && !window.issue16Original.isConnected'), true);
+      } else {
+        assertEqual("issue 16", "early " + scope + " clear restores the same article", await run(
+          'document.querySelector("main article") === window.issue16Original && window.issue16Original.getClientRects().length > 0'), true);
+        await until('document.querySelector(\'a[href="https://files.example.test/setup.exe"]\')');
+      }
+    }
+  } finally {
+    await client.send("Network.disable");
+  }
+}
+
 async function verifyAppearanceBridge(client) {
   const runtime = fs.readFileSync(path.join(ROOT, "dist", "chromium", "assets", "runtime.page.js"), "utf8");
   const { identifier } = await client.send("Page.addScriptToEvaluateOnNewDocument", { source: runtime });
@@ -1623,6 +1657,12 @@ async function main() {
       console.log("Soft98 theme restoration and article layout passed");
       return;
     }
+    if (process.argv.includes("--issue16-only")) {
+      await verifyIssue16(client);
+      await verifyIssue16EarlyReload(client);
+      console.log("Soft98 ordinary reload recovery passed");
+      return;
+    }
     const badgeDark = "255,209,102";
     let idleDark;
     const cases = [
@@ -2218,6 +2258,7 @@ async function main() {
     await verifyFileActions(client);
     await verifyDownloadManager(client);
     await verifyIssue16(client);
+    await verifyIssue16EarlyReload(client);
     await verifyAppearanceBridge(client);
     await verifyThemeRestore(client);
     await verifyWideLayout(client);

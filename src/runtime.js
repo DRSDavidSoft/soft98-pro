@@ -15,6 +15,8 @@
   const CONTROL_MARGIN = 12;
   const CONTROL_GRAVITY = 76;
   const MAX_ARTICLE_RESTORES = 3;
+  const RECOVERABLE_ARTICLE = "article:has(h1):has(dl[data-json] dd a[data-key])";
+  const ARTICLE_CONTAINERS = "body,main,div,section";
   const enqueueMicrotask = window.queueMicrotask ? window.queueMicrotask.bind(window) : (callback) => Promise.resolve().then(callback);
   const nativeEval = typeof window.eval === "function" ? window.eval : null;
   const nativeFetch = window.fetch ? window.fetch.bind(window) : null;
@@ -143,6 +145,7 @@
     hostileBrandReplacements: 0,
     linksPreserved: 0,
     linksRestored: 0,
+    articlesRestored: 0,
     scrollDetectorsBlocked: 0,
     patches: [],
     patchFailures: [],
@@ -168,6 +171,7 @@
   let gridFrame = 0;
   let topbarNav, topbarBrand;
   let articleSnapshot;
+  const initialArticleUrl = location.pathname + location.search;
   let sidebarContentsDirty = true;
   const gridStyles = new WeakMap();
   let integrityScheduled = false;
@@ -1061,25 +1065,59 @@
     if (IS_EXTENSION || !settings.blockAds || !settings.patchScripts || document.readyState === "loading") return;
     const url = location.pathname + location.search;
     if (articleSnapshot?.url === url && articleSnapshot.article.isConnected) return;
-    const main = document.querySelector("main");
-    const articles = main?.querySelectorAll("article:has(h1):has(dl[data-json] dd a[data-key])");
-    if (articles?.length !== 1 || articleSnapshot?.url === url && articleSnapshot.restores) return;
-    const article = articles[0];
+    const articles = document.querySelectorAll("main " + RECOVERABLE_ARTICLE);
+    if (articles.length !== 1 || articleSnapshot?.url === url && articleSnapshot.restores) return;
+    articleSnapshot = captureArticleFrame(url, articles[0]);
+  }
+
+  function captureArticleFrame(url, article, detachedRoot, target) {
     const slots = new Map();
-    for (let node = article, depth = 0; node.parentElement?.matches("main,div,section") && depth < 6; depth++, node = node.parentElement) {
-      slots.set(node.parentElement, node);
+    for (let node = article, depth = 0; depth < 6; depth++) {
+      const parent = node === detachedRoot ? target : node.parentElement;
+      if (!parent?.matches(ARTICLE_CONTAINERS) || (parent === document.body && node !== detachedRoot)) break;
+      slots.set(parent, node);
+      if (parent === document.body) break;
+      node = parent;
     }
-    articleSnapshot = { url, article, slots, restores: 0 };
+    return { url, article, slots, restores: 0 };
+  }
+
+  function findEarlyArticleClear(mutations, url) {
+    if (url !== initialArticleUrl || document.readyState === "complete") return;
+    let candidate;
+    for (const { type, target, removedNodes, nextSibling } of mutations) {
+      if (type !== "childList" || !target.isConnected || !target.matches?.(ARTICLE_CONTAINERS) || isOwnedInterface(target)) continue;
+      const insideMain = target.closest("main");
+      for (const node of removedNodes) {
+        if (node.nodeType !== Node.ELEMENT_NODE || node.isConnected) continue;
+        const matches = insideMain || node.matches("main") ? RECOVERABLE_ARTICLE : "main " + RECOVERABLE_ARTICLE;
+        const articles = node.matches(matches) ? [node] : node.querySelectorAll(matches);
+        if (articles.length > 1 || (articles.length && candidate)) return;
+        if (articles.length === 1) candidate = { article: articles[0], node, target, nextSibling };
+      }
+    }
+    if (!candidate || document.querySelector("main article")) return;
+    const { article, node, target, nextSibling } = candidate;
+    const snapshot = captureArticleFrame(url, article, node, target);
+    if (snapshot.slots.get(target) !== node) return;
+    snapshot.cleared = { target, node, nextSibling };
+    return snapshot;
   }
 
   function noticeClearedArticle(mutations) {
+    if (IS_EXTENSION || !settings.blockAds || !settings.patchScripts) return;
+    const url = location.pathname + location.search;
+    if (!articleSnapshot) {
+      articleSnapshot = findEarlyArticleClear(mutations, url);
+      if (articleSnapshot) schedule(document);
+      return;
+    }
     const snapshot = articleSnapshot;
-    if (!snapshot || snapshot.restores >= MAX_ARTICLE_RESTORES || snapshot.article.isConnected || !settings.blockAds || !settings.patchScripts ||
-        snapshot.url !== location.pathname + location.search) return;
-    for (const { type, target, removedNodes } of mutations) {
+    if (snapshot.restores >= MAX_ARTICLE_RESTORES || snapshot.article.isConnected || snapshot.url !== url) return;
+    for (const { type, target, removedNodes, nextSibling } of mutations) {
       const node = type === "childList" && snapshot.slots.get(target);
       if (!node || !target.isConnected || ![...removedNodes].includes(node) || !node.contains(snapshot.article)) continue;
-      snapshot.cleared = { target, node };
+      snapshot.cleared = { target, node, nextSibling };
       schedule(document);
       break;
     }
@@ -1088,14 +1126,18 @@
   function restoreClearedArticle() {
     const snapshot = articleSnapshot;
     if (!snapshot?.cleared) return;
-    const { target, node } = snapshot.cleared;
+    const { target, node, nextSibling } = snapshot.cleared;
     snapshot.cleared = null;
     // Check after this scan has cleared any transient notice, without replacing real content.
     if (snapshot.restores >= MAX_ARTICLE_RESTORES || snapshot.article.isConnected || !settings.blockAds || !settings.patchScripts ||
-        snapshot.url !== location.pathname + location.search || !target.isConnected || target.childElementCount ||
-        target.textContent.trim() || document.querySelector("main article")) return;
+        snapshot.url !== location.pathname + location.search || !target.isConnected || document.querySelector("main article")) return;
+    const hasContent = [...target.childNodes].some(child =>
+      child.nodeType === Node.TEXT_NODE ? child.textContent.trim() :
+        child.nodeType === Node.ELEMENT_NODE && !child.matches("script,style,link,meta,template") && !isOwnedInterface(child));
+    if (hasContent) return;
+    target.insertBefore(node, nextSibling?.parentNode === target ? nextSibling : null);
     snapshot.restores++;
-    target.appendChild(node);
+    stats.articlesRestored++;
     schedule(document);
   }
 
