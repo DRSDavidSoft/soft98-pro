@@ -1562,7 +1562,7 @@
       if (node.hasAttribute("data-soft98-pro-menu")) {
         for (const key of ["surface", "menu", "mega-frame", "menu-column"]) node.removeAttribute("data-soft98-pro-" + key);
       }
-      if (name === "categories") markCategoryChevrons(node);
+      if (name === "categories") markCategoryControls(node);
     };
     const actions = nav.querySelector('[data-toggle="night-mode"],[data-toggle="search"]')?.closest("ul,ol");
     setStructure(actions, "actions");
@@ -1583,12 +1583,40 @@
     }
   }
 
-  function markCategoryChevrons(group) {
+  function categoryIcon(control) {
+    const label = normalizedPersian(control.textContent.trim()).toLowerCase();
+    const path = control.pathname?.split("/")[1];
+    const byPath = { os: "desktop", software: "apps", mobile: "phone", plugins: "headphones", learning: "book", android: "androidOutline" };
+    if (control.host === "forum.soft98.ir") return "forums";
+    if (control.pathname === "/" && !control.hash) return "home";
+    if (!control.hash && Object.hasOwn(byPath, path)) return byPath[path];
+    if (/رفع.*مشکل|پشتیبانی|troubleshoot|support/u.test(label)) return "support";
+    if (/سیستم.?عامل|^systems?$|operatingsystems?/u.test(label)) return "desktop";
+    if (/اندروید|android/u.test(label)) return "androidOutline";
+    if (/^نرمافزار|software|اپلیکیشن/u.test(label)) return "apps";
+    if (/موبایل|mobile/u.test(label)) return "phone";
+    if (/پلاگین|افزونه|plug-?ins?|headphones/u.test(label)) return "headphones";
+    if (/آموزش|راهنما|learning|guides?|tutorials?/u.test(label)) return "book";
+    if (/انجمن|forums?/u.test(label)) return "forums";
+    return null;
+  }
+
+  function markCategoryControls(group) {
     const dropdown = '[data-toggle="dropdown"],[aria-haspopup="menu"],[aria-haspopup="true"]';
     for (const item of group.children) {
-      if (!item.querySelector(`:scope > :is(${dropdown},[role="menu"])`)) continue;
+      const hasMenu = Boolean(item.querySelector(`:scope > :is(${dropdown},[role="menu"])`));
       // Some categories use a different trigger on desktop and in the compact drawer.
       for (const control of item.querySelectorAll(":scope > :is(a[href],button)")) {
+        const category = categoryIcon(control);
+        const existing = control.querySelector(":scope > [data-s98p-category-icon]");
+        if (category && existing?.getAttribute("data-s98p-category-icon") !== category) {
+          const icon = existing || document.createElement("span");
+          icon.setAttribute("data-s98p-category-icon", category);
+          icon.setAttribute("aria-hidden", "true");
+          icon.innerHTML = PAGE_ICONS[category];
+          if (!existing) control.prepend(icon);
+        }
+        if (!hasMenu) continue;
         const indicator = control.querySelector(":scope > [data-soft98-pro-nav-indicator]") || document.createElement("span");
         if (indicator.hasAttribute("data-s98p-topbar-chevron")) continue;
         indicator.setAttribute("data-soft98-pro-nav-indicator", "");

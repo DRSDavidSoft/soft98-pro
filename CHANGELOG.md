@@ -13,6 +13,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Added a review dialog for pasted links and text files, with file details, filters, sorting, and resizable columns.
 - Grouped multipart downloads, preserved their source pages, and added native download notifications and progress back on the article.
 - Added independently collapsible news panels and adaptive side columns for related posts and downloads.
+- Added category icons to the sticky header and redesigned its menus to match the rest of Soft98 Pro.
 
 ### Fixed
 

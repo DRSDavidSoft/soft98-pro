@@ -405,7 +405,7 @@ async function verifyTopbar(client) {
     check("plain and dropdown labels share the same baseline", await run(`(() => {
       const center = (selector) => {
         const range = document.createRange();
-        range.selectNodeContents(document.querySelector(selector).firstChild);
+        range.selectNodeContents([...document.querySelector(selector).childNodes].find(node => node.nodeType === 3 && node.textContent.trim()));
         const box = range.getBoundingClientRect();
         return (box.top + box.bottom) / 2;
       };
@@ -418,13 +418,23 @@ async function verifyTopbar(client) {
       const button = trigger.getBoundingClientRect();
       const glyph = icon.getBoundingClientRect();
       const range = document.createRange();
-      range.selectNodeContents(trigger.firstChild);
+      range.selectNodeContents([...trigger.childNodes].find(node => node.nodeType === 3 && node.textContent.trim()));
       const text = range.getBoundingClientRect();
       return glyph.width === 15 && Math.abs(glyph.top + glyph.bottom - button.top - button.bottom) < 2 &&
         (getComputedStyle(trigger).direction === "rtl" ? glyph.right <= text.left : glyph.left >= text.right) &&
         getComputedStyle(trigger, "::after").content === "none";
     })()`);
     check("desktop chevron is inline and replaces the stock pseudo-element", await chevronPosition(".desktop-dropdown"), true);
+    check("category icons follow the route or normalized label", await run(`(() => {
+      const find = (selector) => document.querySelector(selector)
+        .querySelector('[data-s98p-category-icon][aria-hidden="true"] svg')?.parentElement.dataset.s98pCategoryIcon;
+      return [find(".desktop-link"),find(".desktop-dropdown"),find('a[href="/mobile"]'),find('a[href="/help"]')].join(",");
+    })()`), "apps,desktop,phone,support");
+    check("topbar dropdown shares the header palette, without an edge stripe", await run(`(() => {
+      const shell = getComputedStyle(document.querySelector("[data-s98p-topbar-shell]"));
+      const menu = getComputedStyle(document.querySelector("[role=menu]"));
+      return menu.backgroundImage === shell.backgroundImage && menu.borderTopWidth === menu.borderBottomWidth;
+    })()`), true);
     check("desktop preserves the hidden mobile counterpart", await run('getComputedStyle(document.querySelector(".compact-link")).display'), "none");
     await resize(992, 780);
     check("mid-width desktop navigation does not run into the actions", await run(`(() => {
