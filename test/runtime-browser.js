@@ -1457,6 +1457,11 @@ async function verifyWideLayout(client) {
       const copy = document.querySelector("[data-s98p-download-rail] [data-soft98-pro-download-row]");
       return link !== copy && link.href === copy.href && !copy.hasAttribute("data-key");
     })()`), true);
+    check("the sidebar scrollbar follows the Pro palette without changing the page scrollbar", await run(`(() => {
+      const rail = getComputedStyle(document.querySelector("[data-s98p-download-rail]"));
+      return rail.scrollbarWidth === "thin" && rail.scrollbarColor !== "auto" &&
+        getComputedStyle(document.documentElement).scrollbarColor === "auto";
+    })()`), true);
     check("related posts and downloads share their header sizing", await run(`(() => {
       const left = document.querySelector("[data-s98p-related-rail] header").getBoundingClientRect();
       const right = document.querySelector("[data-s98p-download-rail] header").getBoundingClientRect();

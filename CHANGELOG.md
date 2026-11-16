@@ -44,6 +44,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Matched the right-hand download sidebar scrollbar to the active theme.
+
 - Kept technology-news hover fills neutral and removed gradients from the contact menu and form controls.
 
 - “Read more” now reveals actual download links next to the post on listing pages, including links published as structured data.

@@ -714,7 +714,15 @@
   margin: 0 0 18px !important;
   min-inline-size: 0;
   opacity: var(--s98p-download-rail-opacity,1);
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb,var(--s98p-text) 53%,var(--s98p-surface)) transparent;
   transition: none !important;
+}
+@media (forced-colors: active) {
+  :root.soft98-pro-theme [data-s98p-download-rail] {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
 }
 :root.soft98-pro-theme [data-s98p-download-rail-inactive] { pointer-events: none; }
 :root.soft98-pro-theme [data-s98p-download-rail-faded] { visibility: hidden; }
