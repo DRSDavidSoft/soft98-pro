@@ -34,12 +34,12 @@
       <ul role="tablist"><li><a id="files-tab" role="tab" data-toggle="tab" aria-controls="files" href="#files" aria-selected="true">Downloads</a></li><li><a id="requirements-tab" role="tab" data-toggle="tab" aria-controls="requirements" href="#requirements">Requirements</a></li></ul>
       <div>
         <div id="files" role="tabpanel">
-          <dl>
+          <dl data-json='{"record1":{"scheme":"https","server":"files.example.test","path":"/tool.zip"},"record3":{"path":"/mirror.zip","server":"files.example.test","scheme":"https"}}'>
             <dt id="hidden-heading" style="display:none">Internal marker</dt>
-            <dd><a data-key="package" href="https://files.example.test/tool.zip">Download archive</a></dd>
+            <dd><a data-key="package" href="#">Download archive</a></dd>
             <dd id="separator-a"><hr></dd>
             <dd id="separator-b"><hr></dd>
-            <dd><a href="https://files.example.test/mirror.zip">Official link</a></dd>
+            <dd><a data-key="mirror" href="https://files.example.test/mirror.zip">Official link</a></dd>
             <dd id="separator-edge"><hr></dd>
             <dt><span class="legacy-glyph">اطلاعات بیشتر</span></dt>
             <dd id="rating"><span>(۴٫۶/۵)</span></dd>

@@ -331,6 +331,8 @@ async function verifyWideLayout(client) {
   await client.send("Page.navigate", { url: fixture });
   try {
     await until('document.querySelector("#separator-a")?.dataset.s98pDownloadRule === "show"');
+    check("declared metadata restores an unresolved official link", await run('document.querySelector("#files a[data-key=package]").href'), "https://files.example.test/tool.zip");
+    check("already working link keeps its original address", await run('document.querySelector("#files a[data-key=mirror]").href'), "https://files.example.test/mirror.zip");
     check("adjacent duplicate separator hidden", await run('getComputedStyle(document.querySelector("#separator-b")).display'), "none");
     check("trailing separator hidden", await run('getComputedStyle(document.querySelector("#separator-edge")).display'), "none");
     check("separator is not a download row", await run('document.querySelector("#separator-a").hasAttribute("data-soft98-pro-download-entry")'), false);

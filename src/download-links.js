@@ -57,6 +57,39 @@ const Soft98DownloadLinks = (() => {
     return url.protocol === "https:" && !url.port && (FILE.test(url.pathname) || Boolean(describe(url.href).group));
   }
 
+  function declaredArticleLinks(raw, keys) {
+    if (typeof raw !== "string" || raw.length > MAX_TEXT || !keys.length || keys.length > MAX_IMPORT ||
+        keys.some(key => !key) || new Set(keys).size !== keys.length) return null;
+    let records;
+    try { records = JSON.parse(raw); } catch (_error) { return null; }
+    if (!records || typeof records !== "object" || Array.isArray(records) || Object.keys(records).length !== keys.length) return null;
+    let ordered;
+    if (keys.every(key => Object.hasOwn(records, key))) {
+      ordered = keys.map(key => records[key]);
+    } else {
+      // Soft98's numbered records are emitted in row order, even when platform sections leave gaps.
+      const numbered = Object.keys(records).map(key => /^([A-Za-z_][\w-]*?)([1-9]\d{0,3})$/.exec(key));
+      if (numbered.some(entry => !entry || entry[1] !== numbered[0][1])) return null;
+      const order = numbered.map(([, , number]) => Number(number));
+      if (order[0] !== 1 || order.some((number, index) => index > 0 && number <= order[index - 1])) return null;
+      ordered = numbered.map(([key]) => records[key]);
+    }
+    const urls = ordered.map((record) => {
+      if (!record || typeof record !== "object" || Array.isArray(record)) return "";
+      const values = Object.values(record);
+      if (values.length < 3 || values.length > 4 || values.some(value => typeof value !== "string")) return "";
+      const schemes = values.filter(value => value === "https" || value === "http");
+      const hosts = values.filter(value => /^(?:[a-z\d](?:[a-z\d-]*[a-z\d])?\.)+[a-z][a-z\d-]*$/i.test(value));
+      const paths = values.filter(value => /^\/(?!\/)/.test(value) && !/[?#]/.test(value));
+      if (schemes.length !== 1 || hosts.length !== 1 || paths.length !== 1) return "";
+      const [scheme] = schemes, [host] = hosts, [path] = paths;
+      const query = values.find(value => value !== scheme && value !== host && value !== path);
+      if (values.length === 4 && (!query || !/^(?:\?[^?]+|https?:\/\/)/i.test(query))) return "";
+      return normalize(`${scheme}://${host}${path}${query && (query.startsWith("?") ? query : "?" + query) || ""}`);
+    });
+    return urls.every(Boolean) ? urls : null;
+  }
+
   function metadata(value) {
     if (!value || typeof value !== "object") return undefined;
     const size = Number.isSafeInteger(value.size) && value.size >= 0 ? value.size : undefined;
@@ -66,7 +99,7 @@ const Soft98DownloadLinks = (() => {
     return size !== undefined || date !== undefined || mime || type ? { size, date, mime, type } : undefined;
   }
 
-  return { MAX_BATCH, MAX_IMPORT, MAX_TEXT, normalize, describe, parse, headers, articleFile, metadata };
+  return { MAX_BATCH, MAX_IMPORT, MAX_TEXT, normalize, describe, parse, headers, articleFile, declaredArticleLinks, metadata };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = Soft98DownloadLinks;

@@ -13,6 +13,21 @@ const EXTENSION_ID = "soft98-test";
 const PREFIX = "https://example.test/";
 const DIST = path.resolve(__dirname, "../dist");
 
+test("article download fallback accepts explicit row mappings and ordered numbered records only", () => {
+  const direct = { proto: "https", pathname: "/file.zip", domain: "files.example.test" };
+  const wrapped = { host: "href.li", a: "/", b: "https://example.test/linux?edition=desktop", c: "https" };
+  const records = { link1: direct, link9: wrapped };
+  const parse = (value, keys = ["rotating-id-a", "rotating-id-b"]) => links.declaredArticleLinks(JSON.stringify(value), keys);
+  assert.deepEqual(parse(records), ["https://files.example.test/file.zip", "https://href.li/?https://example.test/linux?edition=desktop"]);
+  assert.deepEqual(parse(records, ["link9", "link1"]), ["https://href.li/?https://example.test/linux?edition=desktop", "https://files.example.test/file.zip"]);
+  assert.equal(parse({ link9: wrapped, link1: direct }), null);
+  assert.equal(parse({ ...records, link10: wrapped }), null);
+  assert.equal(parse(records, ["same-key", "same-key"]), null);
+  assert.equal(parse({ link1: { ...direct, domain: "files.example.test@evil.test" }, link9: wrapped }), null);
+  assert.equal(parse({ link1: { ...direct, pathname: "//other.test/file.zip" }, link9: wrapped }), null);
+  assert.equal(parse({ link1: { ...direct, extra: "unknown" }, link9: wrapped }), null);
+});
+
 test("both built extensions package the internal manager without exposing it to web pages", { skip: !fs.existsSync(DIST) }, () => {
   for (const target of ["chromium", "firefox"]) {
     const read = (file) => fs.readFileSync(path.join(DIST, target, file), "utf8");

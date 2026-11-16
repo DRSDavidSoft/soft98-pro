@@ -2637,6 +2637,30 @@
     return current || directDownloadUrl(savedHref.get(link));
   }
 
+  function recoverDeclaredArticleLinks(list) {
+    if (document.readyState === "loading" || !list.hasAttribute("data-json")) return;
+    const links = [...list.querySelectorAll(":scope > dd > a[data-key]")];
+    if (!links.length) return;
+    const unresolved = links.map(link => !normalizeHref(link) || link.href === location.href);
+    if (!unresolved.some(Boolean)) return;
+    const declared = Soft98DownloadLinks.declaredArticleLinks(list.getAttribute("data-json"), links.map(link => link.dataset.key));
+    if (!declared) return;
+    const normalized = declared.map((href) => {
+      const url = new URL(href);
+      return unwrapReferrerLink(url) || url;
+    });
+    if (normalized.some(url => BLOCKED_URL.test(url.href) || url.href === location.href) ||
+        !normalized.some(url => Soft98DownloadLinks.articleFile(url)) ||
+        links.some((link, index) => !unresolved[index] && normalizeHref(link) !== normalized[index].href)) return;
+    links.forEach((link, index) => {
+      if (!unresolved[index]) return;
+      link.href = normalized[index].href;
+      if (normalized[index].href !== declared[index]) link.relList.add("noreferrer");
+      link.setAttribute(DATA_STATE, "restored");
+      stats.linksRestored++;
+    });
+  }
+
   function enhanceDownloadSections() {
     const panes = new Set();
     for (const list of document.querySelectorAll(":is(article [role=tabpanel],[data-s98p-download-rail]) dl:has(> dt):has(> dd > a:is([href],[data-key]))")) {
@@ -2645,6 +2669,7 @@
             (list.hasAttribute("data-json") && link.hasAttribute("data-key")) ||
             /^(?:دانلود|download)/i.test(normalizedPersian(link.textContent || "")))) continue;
       list.setAttribute("data-soft98-pro-download-group", "");
+      if (list.closest("article [role=tabpanel]")) recoverDeclaredArticleLinks(list);
       markDownloadDividers(list);
       const pane = list.closest("[role=tabpanel]");
       if (pane) panes.add(pane);

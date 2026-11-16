@@ -25,6 +25,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Made download rows and their action buttons highlight together without moving on hover.
 - Removed repeated download rules and separated the dialog backdrop fade from the panel entrance.
 - Matched the sidebar cards and updated download controls, tooltips, and user ratings.
+- Restored download links from the article's own data when the site leaves them unresolved after a reload.
 
 ### Removed
 
