@@ -2549,10 +2549,14 @@
         }
       }
       for (const link of nav.querySelectorAll('a[href]')) {
+        if (link.origin === location.origin && link.pathname === "/feedback.html") {
+          link.closest("[data-soft98-pro-menu]")?.setAttribute("data-s98p-contact-menu", "");
+        }
         if (normalizedPersian(link.textContent || "") === "تبلیغات") link.remove();
       }
     }
     if (location.pathname === "/feedback.html") {
+      document.querySelector("main form:has(textarea)")?.setAttribute("data-s98p-contact-form", "");
       for (const image of document.querySelectorAll("img[src]")) {
         const url = new URL(image.src, location.href);
         if (url.origin === location.origin && url.pathname === "/support.png") (image.closest("a") || image).remove();

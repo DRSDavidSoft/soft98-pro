@@ -1745,6 +1745,46 @@ async function verifyTopbar(client) {
   }
 }
 
+async function verifyNewsAndContactTones(client) {
+  await client.send("Page.navigate", { url: `http://127.0.0.1:${PORT}/feedback.html` });
+  const nodes = 'document.querySelector("[data-soft98-pro-news-story]") && document.querySelector("[data-s98p-contact-form]") && document.querySelector("[data-s98p-contact-menu]")';
+  for (let i = 0; i < 50 && !await evaluate(client, nodes); i++) await delay(60);
+  assertEqual("news and contact", "detects both surfaces", Boolean(await evaluate(client, nodes)), true);
+  const news = 'document.querySelector("[data-soft98-pro-news-story]")';
+  const snapshot = `(() => {
+    const [menu, button, heading] = ["[data-s98p-contact-menu]", "[data-s98p-contact-form] button[type=submit]",
+      "[data-s98p-contact-form] h4"].map(selector=>document.querySelector(selector));
+    return { menu:getComputedStyle(menu).backgroundImage, button:getComputedStyle(button).backgroundImage,
+      heading:getComputedStyle(heading,"::before").backgroundImage, news:getComputedStyle(${news}).backgroundColor };
+  })()`;
+  for (const [mode, settings] of [["light",{ darkDesign:false,rgbMode:false }],["dark",{ darkDesign:true,rgbMode:false }],["RGB",{ darkDesign:true,rgbMode:true }]]) {
+    await client.send("Input.dispatchMouseEvent", { type:"mouseMoved", x:1, y:1 });
+    await evaluate(client, `Soft98Pro.configure(${JSON.stringify(settings)}, {sync:false})`);
+    await delay(120);
+    const idle = await evaluate(client, snapshot);
+    const point = await evaluate(client, `(() => {
+      const row = ${news};
+      row.scrollIntoView({block:"center"});
+      const r = row.getBoundingClientRect();
+      return {x: r.right-16, y:r.top+r.height/2};
+    })()`);
+    await client.send("Input.dispatchMouseEvent", { type:"mouseMoved", ...point });
+    await delay(45);
+    const hover = await evaluate(client, snapshot);
+    const changedAccent = await evaluate(client, `(() => {
+      document.documentElement.style.setProperty("--s98p-accent","lime","important");
+      const result = getComputedStyle(${news}).backgroundColor;
+      document.documentElement.style.removeProperty("--s98p-accent");
+      return result;
+    })()`);
+    assertEqual(mode, "contact menu is flat", hover.menu, "none");
+    assertEqual(mode, "contact submit is flat", hover.button, "none");
+    assertEqual(mode, "contact heading marker is flat", hover.heading, "none");
+    assertEqual(mode, "news hover remains visible", hover.news !== idle.news, true);
+    assertEqual(mode, "news hover is independent of the green accent", changedAccent, hover.news);
+  }
+}
+
 async function verifyTopbarSearch(client) {
   const run = (source) => evaluate(client, source);
   const url = `http://127.0.0.1:${PORT}/test/topbar.html?search-fixture=1`;
@@ -2127,6 +2167,11 @@ async function main() {
       await verifySearchHint(client);
       await verifyTopbar(client);
       console.log("Soft98 site search and sticky navigation passed");
+      return;
+    }
+    if (process.argv.includes("--news-contact-tones-only")) {
+      await verifyNewsAndContactTones(client);
+      console.log("Soft98 technology news and contact colors passed");
       return;
     }
     if (process.argv.includes("--initial-content-scroll-only")) {
@@ -2729,6 +2774,7 @@ async function main() {
     await verifyTopbarSearch(client);
     await verifySearchHint(client);
     await verifyInitialContentScroll(client);
+    await verifyNewsAndContactTones(client);
     await verifyLinkdoni(client);
     console.log("Soft98 runtime browser acceptance passed");
   } finally {

@@ -42,6 +42,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Kept technology-news hover fills neutral and removed gradients from the contact menu and form controls.
+
 - “Read more” now reveals actual download links next to the post on listing pages, including links published as structured data.
 
 - Removed the extra scrollbar from the search field, kept suggestions inside the viewport, and improved keyboard focus and mixed-language input.

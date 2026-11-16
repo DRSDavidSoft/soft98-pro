@@ -80,6 +80,23 @@
   </form>
 </main>
 <script>
+  if (location.pathname === "/feedback.html") {
+    document.querySelector("nav #actions").insertAdjacentHTML("beforeend", `
+      <li><button type="button" data-toggle="dropdown" aria-expanded="true">Contact</button>
+      <div id="contact-fixture-menu" role="menu" style="position:absolute;inline-size:220px;min-height:65px;background:linear-gradient(green,black)">
+        <a href="/feedback.html?contact=1">تماس با مدیریت</a><a href="/support">Support</a>
+      </div></li>`);
+    document.querySelector("main").insertAdjacentHTML("beforebegin", `
+      <section><header><h4>خبرهای تکنولوژی</h4></header><div><ul>
+      <li><a href="/news/1">First story <small>12</small></a></li>
+      <li><a href="/news/2">Second story <small>22</small></a></li>
+      <li><a href="/news/3">Third story <small>33</small></a></li>
+      </ul></div></section>`);
+    document.querySelector("main").insertAdjacentHTML("beforeend", `
+      <form><h4 style="border-inline-start:4px solid green">تماس با مدیریت سایت</h4>
+      <textarea aria-label="Message"></textarea>
+      <button type="submit" style="background:linear-gradient(green,black)">Send</button></form>`);
+  }
   window.addEventListener("scroll", () => document.documentElement.toggleAttribute("data-fixture-scrolled", scrollY > 0), { passive: true });
   document.querySelector("button[aria-controls]").addEventListener("click", (event) => {
     const button = event.currentTarget;

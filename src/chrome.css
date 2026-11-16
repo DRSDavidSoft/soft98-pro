@@ -1361,7 +1361,7 @@
 }
 
 :root.soft98-pro-theme [data-soft98-pro-tech-news] {
-  --s98p-news-row-accent: color-mix(in srgb,var(--s98p-accent) 8%,var(--s98p-surface));
+  --s98p-news-hover: color-mix(in srgb,var(--s98p-text) 9%,var(--s98p-surface));
 }
 
 :root.soft98-pro-theme [data-soft98-pro-tech-news] [data-soft98-pro-latest-header="news"] {
@@ -1480,13 +1480,9 @@
 }
 
 :root.soft98-pro-theme [data-soft98-pro-news-actions] a[data-soft98-pro-news-link]:is(:hover,:focus-visible) {
-  background: var(--s98p-control-hover);
-  border-color: var(--s98p-control-edge);
-  color: var(--s98p-link) !important;
-}
-
-:root.soft98-pro-theme [data-soft98-pro-news-actions] a[data-soft98-pro-news-shortcut]:is(:hover,:focus-visible) {
-  background: var(--s98p-control-hover) !important;
+  background: var(--s98p-news-hover) !important;
+  border-color: var(--s98p-border-soft);
+  color: var(--s98p-text) !important;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-tech-news] [data-soft98-pro-news-body] {
@@ -1526,9 +1522,27 @@
 }
 
 :root.soft98-pro-theme [data-soft98-pro-latest][data-soft98-pro-tech-news] li > a[data-soft98-pro-news-link][data-soft98-pro-news-story]:is(:hover,:focus-visible) {
-  background-color: var(--s98p-news-row-accent) !important;
-  color: var(--s98p-link) !important;
+  background-color: var(--s98p-news-hover) !important;
+  color: var(--s98p-text) !important;
   outline-offset: -2px !important;
+}
+
+:root.soft98-pro-theme nav [data-soft98-pro-menu][data-s98p-contact-menu] {
+  background: var(--s98p-surface) !important;
+}
+
+:root.soft98-pro-theme [data-s98p-contact-form] :is(button,input)[type=submit] {
+  background: var(--s98p-surface-2) !important;
+  border-color: var(--s98p-border) !important;
+  color: var(--s98p-text) !important;
+}
+
+:root.soft98-pro-theme [data-s98p-contact-form] :is(button,input)[type=submit]:is(:hover,:focus-visible) {
+  background: var(--s98p-soft) !important;
+}
+
+:root.soft98-pro-theme [data-s98p-contact-form] [data-soft98-pro-heading-divider]::before {
+  background: var(--s98p-faint) !important;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-tech-news] a[data-soft98-pro-news-story]::before {
@@ -1686,10 +1700,6 @@
 
 :root.soft98-pro-light [data-soft98-pro-tech-news] [data-soft98-pro-news-title] > [data-soft98-pro-page-icon] {
   --icon-color: var(--s98p-day-warning);
-}
-
-:root.soft98-pro-light [data-soft98-pro-tech-news] {
-  --s98p-news-row-accent: var(--s98p-day-warning-wash);
 }
 
 :root.soft98-pro-light [data-soft98-pro-surface="tab-list"] :is([role="tab"],[data-toggle="tab"]) {

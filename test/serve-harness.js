@@ -71,6 +71,10 @@ http
   .createServer(async (request, response) => {
     try {
       const requestUrl = new URL(request.url, "http://127.0.0.1");
+      if (requestUrl.pathname === "/feedback.html") {
+        response.writeHead(200, { "content-type": "text/html; charset=utf-8" }).end(fs.readFileSync(path.join(ROOT, "test", "topbar.html")));
+        return;
+      }
       if (requestUrl.pathname === "/test/302-initial-scroll.html") {
         response.writeHead(200, { "content-type": "text/html; charset=utf-8" }).end(fs.readFileSync(path.join(ROOT, "test", "initial-content-scroll.html")));
         return;
