@@ -938,6 +938,87 @@ async function verifyPostArtwork(client) {
   }
 }
 
+async function verifyThemeRestore(client) {
+  const run = expression => evaluate(client, expression);
+  const fixture = `http://127.0.0.1:${PORT}/test/theme-restore.html`;
+  const until = async (expression) => {
+    for (let attempt = 0; attempt < 50; attempt++) {
+      if (await run(expression).catch(() => false)) return;
+      await delay(100);
+    }
+    throw new Error("Theme restoration did not settle: " + expression);
+  };
+  const check = (label, value, expected) => assertEqual("theme restoration", label, value, expected);
+  const active = 'document.documentElement.classList.contains("soft98-pro-theme")';
+  const ready = 'document.documentElement.hasAttribute("data-soft98-runtime-ready")';
+  const stock = `(() => {
+    const tools = document.getElementById("stock-tools");
+    const link = document.querySelector("#downloads dd > a");
+    return tools.children.length === 2 && getComputedStyle(tools).display === "flex" &&
+      !document.querySelector("[data-soft98-pro-download-row],[data-s98p-download-toggle],[data-s98p-category-icon],[data-soft98-brand-variant]") &&
+      document.getElementById("stock-logo").getAttribute("alt") === "Soft98 logo" &&
+      link.href === "https://files.example.test/AnyDesk.zip" && link.textContent === "دانلود 8.1 MiB (رایگان)" &&
+      document.getElementById("utility").contains(document.querySelector("#utility .tbdc")) &&
+      getComputedStyle(document.querySelector("#utility .tbdc")).display !== "none";
+  })()`;
+  const toggle = value => run(`(() => {
+    Soft98Pro.openPanel();
+    const input = document.querySelector('#soft98-pro-control input[name="pro"]');
+    input.checked = ${value};
+    const before = scrollY;
+    input.dispatchEvent(new Event("change", { bubbles:true }));
+    return before;
+  })()`);
+  await client.send("Page.navigate", { url: fixture + "?setup" });
+  await until('location.search === "?setup"');
+  const settingsKey = "soft98-ad-blocker.settings";
+  const original = await run(`localStorage.getItem(${JSON.stringify(settingsKey)})`);
+  try {
+    for (const [mode, width] of [["userscript", 390], ["extension", 1920]]) {
+      await client.send("Emulation.setDeviceMetricsOverride", { width, height: 820, deviceScaleFactor: 1, mobile: false });
+      await run(`sessionStorage.removeItem("theme-fixture:${mode}")`);
+      const url = fixture + "?mode=" + mode + "#downloads";
+      await client.send("Page.navigate", { url });
+      await until(`location.href === ${JSON.stringify(url)} && ${active} && document.querySelector("[data-soft98-pro-download-row]") &&
+        document.querySelector("dialog[aria-labelledby=soft98-pro-utility-title]") && document.querySelector("#stock-logo[data-soft98-brand-variant]")`);
+      await run('window.sameDownload = document.querySelector("#downloads dd > a"); window.sameNav = document.getElementById("stock-nav")');
+      await run('Soft98Pro.configure({darkDesign:false})');
+      await until('document.documentElement.classList.contains("soft98-pro-light")');
+      check(mode + " light mode does not reload", await run("fixtureVisit"), 1);
+      await run(`document.querySelector('[role=tab][href="#requirements"]').click(); document.getElementById("stock-draft").value = "Keep this draft";`);
+      await until('document.querySelector("#requirements").getAttribute("data-soft98-pro-content-pane") === "active"');
+      await run('scrollTo({top:420,behavior:"instant"})');
+      const scrollBefore = await toggle(false);
+      await until(`${ready} && !${active} && Soft98Pro.settings.pro === false`);
+      check(mode + " preserves the original live nodes without reloading", await run('fixtureVisit === 1 && window.sameDownload === document.querySelector("#downloads dd > a") && window.sameNav === document.getElementById("stock-nav")'), true);
+      check(mode + " restores stock navigation, labels, utilities, and controls", await run(stock), true);
+      check(mode + " preserves the article URL and tab fragment", await run("location.href"), url);
+      check(mode + " keeps the active tab and unsaved form text", await run('document.getElementById("stock-draft").value === "Keep this draft" && document.querySelector("#requirements").classList.contains("active")'), true);
+      const scrollAfter = await run("scrollY");
+      check(mode + " preserves the scroll position", scrollAfter, scrollBefore);
+      check(mode + " does not turn off ad blocking", await run(`(() => {
+        const ad = document.getElementById("kaprila_soft98_ir_related");
+        return Soft98Pro.settings.blockAds && (!ad || getComputedStyle(ad).display === "none");
+      })()`), true);
+      await until('!document.getElementById("mirrored-banner")');
+      if (mode === "extension") await until('JSON.parse(sessionStorage.getItem("theme-fixture:extension:saved"))?.pro === false');
+      await toggle(true);
+      await until(`${active} && document.querySelector("[data-soft98-pro-download-row]")`);
+      check(mode + " re-enables the theme without another reload", await run("fixtureVisit"), 1);
+      await run('document.querySelector("nav [aria-haspopup=dialog]:has([data-soft98-pro-page-icon=grid])").click()');
+      await until('location.hash === "#s98p-dialog=utility"');
+      await run('Soft98Pro.configure({pro:false})');
+      await until(`${ready} && !${active}`);
+      check(mode + " clears the Pro dialog fragment and restores the stock fragment", await run("location.hash"), "#downloads");
+      check(mode + " has no stale decorations or reload after toggling again", await run(`fixtureVisit === 1 && (${stock})`), true);
+    }
+  } finally {
+    await run(original === null ? `localStorage.removeItem(${JSON.stringify(settingsKey)})`
+      : `localStorage.setItem(${JSON.stringify(settingsKey)}, ${JSON.stringify(original)})`);
+    await client.send("Emulation.clearDeviceMetricsOverride");
+  }
+}
+
 async function verifyWideLayout(client) {
   const run = (expression) => evaluate(client, expression);
   const until = async (expression) => {
@@ -1536,6 +1617,12 @@ async function main() {
     await client.send("Runtime.enable");
     await client.send("Emulation.setTimezoneOverride", { timezoneId: "Asia/Tehran" });
     await client.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "no-preference" }] });
+    if (process.argv.includes("--theme-restore-only")) {
+      await verifyThemeRestore(client);
+      await verifyWideLayout(client);
+      console.log("Soft98 theme restoration and article layout passed");
+      return;
+    }
     const badgeDark = "255,209,102";
     let idleDark;
     const cases = [
@@ -2132,6 +2219,7 @@ async function main() {
     await verifyDownloadManager(client);
     await verifyIssue16(client);
     await verifyAppearanceBridge(client);
+    await verifyThemeRestore(client);
     await verifyWideLayout(client);
     await verifyPostArtwork(client);
     await verifyTopbar(client);

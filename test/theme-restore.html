@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Soft98 theme restoration fixture</title>
+<style>
+  body { margin: 0; min-block-size: 2200px; }
+  header { position: sticky; inset-block-start: 0; background: #eee; }
+  nav, nav ul { display: flex; align-items: center; gap: 4px; }
+  nav ul { list-style: none; margin: 0; padding: 0; }
+  #stock-tools { margin-inline-start: auto; }
+  #stock-tools button { inline-size: 40px; block-size: 36px; }
+  .tab-pane:not(.active) { display: none; }
+  .night-mode .quote { background: linear-gradient(45deg,#272727,#242424); }
+  .tbdc { display: block; }
+</style>
+<script>
+  const variant = new URLSearchParams(location.search).get("mode");
+  const key = "theme-fixture:" + variant;
+  const visit = Number(sessionStorage.getItem(key) || 0) + 1;
+  sessionStorage.setItem(key, visit);
+  window.fixtureVisit = visit;
+  const defaults = { pro: true, blockAds: true, patchScripts: false, darkDesign: true, controlCenter: true };
+  if ((variant === "extension" || variant === "userscript") && visit === 1) {
+    localStorage.setItem("soft98-ad-blocker.settings", JSON.stringify(defaults));
+    sessionStorage.removeItem(key + ":saved");
+  }
+  if (location.hash !== "#s98p-dialog=utility") history.replaceState({ stock: "original" }, "");
+  if (variant === "extension") {
+    window.browser = {
+      extension: { inIncognitoContext: false },
+      runtime: {
+        getURL: (path) => new URL("/dist/chromium/" + path, location.href).href,
+        getManifest: () => ({ manifest_version: 3 }),
+        onMessage: { addListener() {} },
+        sendMessage: async () => null,
+      },
+      storage: {
+        local: {
+          get(_defaults, cb) { cb({ soft98AdBlockerSettings: JSON.parse(sessionStorage.getItem(key + ":saved") || JSON.stringify(defaults)) }); },
+          set({ soft98AdBlockerSettings: settings }) {
+            return new Promise(resolve => setTimeout(() => {
+              sessionStorage.setItem(key + ":saved", JSON.stringify(settings));
+              resolve();
+            }, 250));
+          },
+        },
+        onChanged: { addListener() {} },
+      },
+    };
+  }
+</script>
+<header>
+  <nav id="stock-nav">
+    <a rel="home" href="/"><img id="stock-logo" src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="Soft98 logo" width="86" height="38"></a>
+    <ul id="stock-categories"><li><a href="/software/">نرم‌افزار</a></li><li><a href="/os/">سیستم عامل</a></li></ul>
+    <ul id="stock-tools">
+      <li><button data-toggle="night-mode" onclick="document.body.classList.toggle('night-mode')">Night</button></li>
+      <li><button data-toggle="search">Search</button></li>
+    </ul>
+  </nav>
+</header>
+<main>
+  <article>
+    <h1>AnyDesk</h1>
+    <blockquote class="quote">Native quote</blockquote>
+    <ul role="tablist">
+      <li><a role="tab" class="active" data-toggle="tab" href="#downloads" aria-selected="true">Downloads</a></li>
+      <li><a role="tab" data-toggle="tab" href="#requirements" aria-selected="false">Requirements</a></li>
+    </ul>
+    <div>
+      <section role="tabpanel" id="downloads" class="tab-pane active" aria-hidden="false">
+        <dl><dt>نسخه Windows</dt><dd><a href="https://files.example.test/AnyDesk.zip" download>دانلود 8.1 MiB (رایگان)</a></dd></dl>
+      </section>
+      <section role="tabpanel" id="requirements" class="tab-pane" aria-hidden="true">
+        System requirements <input id="stock-draft" aria-label="Draft">
+      </section>
+    </div>
+    <div id="mirrored-banner"><a href=""><img src="https://img.soft98.ir/8/fixture.gif" data-backup="https://file3.soft98.ir/fixture.gif" loading="lazy" alt=""></a></div>
+  </article>
+  <aside>
+    <section id="utility">
+      <header><h3>لیسـت نرم‌افزارهای کاربردی</h3></header>
+      <div class="tbdc"><ul>
+        <li><a href="/tags/browser/"><i></i><span>Firefox</span></a></li>
+        <li><a href="/tags/editor/"><i></i><span>Editor</span></a></li>
+        <li><a href="/tags/remote/"><i></i><span>Remote</span></a></li>
+      </ul></div>
+    </section>
+  </aside>
+  <div id="kaprila_soft98_ir_related">Ad slot</div>
+</main>
+<script>
+  const scripts = variant === "extension" ? ["/dist/chromium/assets/runtime.page.js", "/dist/chromium/assets/bridge.js"] : ["/soft98-pro.user.js"];
+  for (const url of scripts) document.write('<script src="' + url + '"><\/script>');
+</script>
+</html>

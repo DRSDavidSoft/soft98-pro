@@ -28,6 +28,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Turning off the Pro theme now restores Soft98's original header, layout, and download controls without reloading or disabling ad blocking.
+
 - Matched the useful-software dialog's Close button to both themes and removed the flash from its blurred backdrop.
 
 - Kept Persian userscript labels readable in legacy decoders, restored mixed download lists on reload, and removed leftover sidebar ad cards and neutral gray surfaces.

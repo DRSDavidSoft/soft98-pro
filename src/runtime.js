@@ -162,6 +162,7 @@
   let faviconTimer;
   let controlPanel = null;
   let controlSection = "protection";
+  const stockEdits = new Map();
   let settings = readSettings();
   let compatibilityState = null;
   let gridFrame = 0;
@@ -265,7 +266,98 @@
     }
   }
 
+  function undoWithTheme(node, undo, key = node) {
+    if (!stockEdits.has(key)) stockEdits.set(key, { node, undo });
+  }
+
+  function restoreStockAttributes(node, names) {
+    const attributes = names.map(name => [name, node.getAttribute(name)]);
+    return () => {
+      for (const [name, value] of attributes) {
+        if (value === null) node.removeAttribute(name);
+        else node.setAttribute(name, value);
+      }
+    };
+  }
+
+  function replaceStockText(node, value) {
+    const previous = node.data;
+    if (previous === value) return;
+    node.data = value;
+    undoWithTheme(node.parentElement || node, () => { if (node.data === value) node.data = previous; }, Symbol());
+  }
+
+  function removeWithTheme(node) {
+    const marker = document.createComment("Soft98 Pro stock position");
+    node.replaceWith(marker);
+    undoWithTheme(marker, () => marker.replaceWith(node));
+  }
+
+  function restoreStockLayout() {
+    if (!document.body) return;
+    const position = { left: scrollX, top: scrollY, behavior: "instant" };
+    closeFileMenu();
+    headerDownloads?.dispose();
+    headerDownloads = null;
+    syncWideLayout();
+    restoreUtilityPlacement();
+    for (const [footer, previous] of stockFooters) {
+      if (footer.isConnected) footer.style.setProperty("display", ...previous);
+    }
+    stockFooters.clear();
+    for (const { node, undo } of [...stockEdits.values()].reverse()) {
+      if (node.isConnected) undo();
+    }
+    stockEdits.clear();
+    const injected = [
+      "[data-soft98-pro-page-icon]", "[data-s98p-category-icon]", "[data-soft98-pro-nav-indicator]", "[data-s98p-menu-arrow]",
+      "[data-s98p-download-toggle]", "[data-soft98-pro-download-actions]", ".s98p-file-actions", "[data-s98p-download-transfer]",
+      "[data-soft98-pro-download-meta]", "[data-s98p-rating-display]", "[data-s98p-download-heading-fallback]",
+      "[data-soft98-pro-footer]", "[data-soft98-pro-copy-toast]",
+    ];
+    for (const node of document.querySelectorAll(injected.join(","))) {
+      if (!node.closest("#soft98-pro-control")) node.remove();
+    }
+    for (const node of document.querySelectorAll("[data-soft98-pro-download-copy],[data-soft98-pro-download-title],[data-s98p-hidden-download-heading],[data-s98p-rating-original],[data-s98p-related-copy],[data-soft98-pro-bidi]")) {
+      node.replaceWith(...node.childNodes);
+    }
+    for (const row of document.querySelectorAll("[data-soft98-pro-download-row]")) {
+      downloadRows.delete(row);
+      for (const name of ["data-soft98-pro-download-row", "data-soft98-pro-inline-size", "data-s98p-managed-size", "data-s98p-file-url"]) row.removeAttribute(name);
+    }
+    for (const row of document.querySelectorAll("[data-s98p-download-row-motion],[data-soft98-pro-download-collapsed]")) {
+      downloadRowMotion.get(row)?.finish();
+      row.removeAttribute("data-soft98-pro-download-collapsed");
+    }
+    for (const faq of document.querySelectorAll("details[data-soft98-pro-faq-motion]")) {
+      faqAnimations.get(faq)?.cancel();
+      faqAnimations.delete(faq);
+      if (faq.hasAttribute("data-soft98-pro-closing")) faq.open = false;
+      faq.removeAttribute("data-soft98-pro-closing");
+      faq.removeAttribute("data-soft98-pro-faq-motion");
+    }
+    for (const item of document.querySelectorAll("[data-soft98-pro-download-heading],[data-s98p-rating],[data-soft98-pro-icon-host]")) {
+      downloadHeadings.delete(item);
+      downloadSectionModels.delete(item);
+      for (const name of ["data-soft98-pro-download-heading", "data-s98p-rating", "data-soft98-pro-icon-host"]) item.removeAttribute(name);
+    }
+    for (const [tile] of pendingArtwork) discardPostArtwork(tile);
+    document.documentElement.removeAttribute("data-soft98-pro-chrome");
+    if (location.hash.startsWith("#s98p-dialog=")) {
+      const { soft98ProDialog, soft98ProReturn, ...rest } = history.state || {};
+      const fragment = typeof soft98ProReturn === "string" && soft98ProReturn.startsWith("#") &&
+        !soft98ProReturn.startsWith("#s98p-dialog=") ? soft98ProReturn : "";
+      history.replaceState(rest, "", location.pathname + location.search + fragment);
+    }
+    currentDialogKey = "";
+    // Layout and stock CSS change in the same task, before the browser paints.
+    return () => {
+      if (!settings.pro) scrollTo(position);
+    };
+  }
+
   function writeSettings(next, { sync = true } = {}) {
+    const wasPro = settings.pro;
     settings = { ...DEFAULT_SETTINGS, ...next };
     document.documentElement.toggleAttribute("data-soft98-pro-ads-off", !settings.blockAds);
     try {
@@ -279,6 +371,7 @@
         document.dispatchEvent(new CustomEvent("soft98-pro:settings-changed"));
       } catch (_error) {}
     }
+    const restoreScroll = wasPro && !settings.pro ? restoreStockLayout() : null;
     installProStyle();
     if (!settings.pro) {
       closeFileMenu();
@@ -287,6 +380,7 @@
     syncNativeNightMode();
     renderControlPanel();
     syncSuccessEnhancements();
+    restoreScroll?.();
     schedule(document);
   }
 
@@ -595,10 +689,14 @@
     const box = visibleBox(image);
     const size = `${box.width}x${box.height}`;
     const firstPartyAdAsset = /img\.soft98\.ir\/(?:ads?|[0-9]+)\//i.test(src);
-    const adSized = AD_SIZE.test(size) || (box.width === 728 && Math.abs(box.height - 90) <= 2);
+    const naturalSize = `${image.naturalWidth}x${image.naturalHeight}`;
+    const adSized = AD_SIZE.test(size) || (firstPartyAdAsset && AD_SIZE.test(naturalSize)) || (box.width === 728 && Math.abs(box.height - 90) <= 2);
     const backup = image.getAttribute("data-backup") || "";
     const backupMedia = backup && /\.(?:avif|gif|png|webp|jpe?g)(?:[?#]|$)/i.test(backup);
-    return (adSized && (firstPartyAdAsset || isExternalAdHref(href) || (backupMedia && Boolean(link)))) || isGeneratedAdFamily(link, image);
+    const mirroredBanner = firstPartyAdAsset && backupMedia && /\.gif(?:[?#]|$)/i.test(src) &&
+      link?.closest("article") && image.parentElement === link && link.childElementCount === 1 && !link.textContent.trim();
+    return Boolean(mirroredBanner || (adSized && (firstPartyAdAsset || isExternalAdHref(href) || (backupMedia && Boolean(link)))) ||
+      isGeneratedAdFamily(link, image));
   }
 
   function tokenList(node) {
@@ -1027,6 +1125,7 @@
         applyPagePreferences();
         applySiteChrome();
       } else if (!settings.pro) {
+        repairStockDownloadLists();
         headerDownloads?.close();
         document.documentElement.removeAttribute("data-soft98-pro-chrome");
         syncWideLayout();
@@ -1122,7 +1221,7 @@
     setPersistentStyle("soft98-ad-blocker-style", `
       #kaprila_soft98_ir_related,[id^="kaprila"],[id*="kaprila"],[class*="kaprila"],
       .download-list-item-buysellads,[class*="buysellads"],#footer-bitcoin,iframe[src*="kaprila.com"],
-      .tbd_ibd,.tbdc,.trk_irk,.alert-warning,[role="alert"],
+      .tbd_ibd,.trk_irk,.alert-warning,[role="alert"],
       #soft98-ad-blocker-taunt,#soft98-extension-recommendation{display:none!important}
       :root[data-soft98-pro-chrome] [data-soft98-pro-stock-footer]{display:none!important}
       :root:not([data-soft98-pro-chrome]) [data-soft98-pro-footer]{display:none!important}
@@ -1139,6 +1238,11 @@
       :root:not(.soft98-pro-theme) [data-soft98-pro-password-shell]{display:contents}
       :root:not(.soft98-pro-theme) :is([data-soft98-pro-download-actions],[data-soft98-pro-copy-toast]){display:none!important}
       :root:not(.soft98-pro-theme) [data-soft98-pro-download-meta]{display:none!important}
+      :root:not(.soft98-pro-theme) article [role=tabpanel][data-s98p-stock-download-pane] [data-soft98-pro-download-recovery]{
+        height:auto!important;max-height:none!important;overflow:visible!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;content-visibility:visible!important
+      }
+      :root:not(.soft98-pro-theme) article [role=tabpanel][data-s98p-stock-download-pane] [data-soft98-pro-download-recovery="frame"]{display:block!important}
+      :root:not(.soft98-pro-theme) article [role=tabpanel][data-s98p-stock-download-pane] [data-soft98-pro-download-recovery="row"]{display:flex!important;flex-wrap:wrap}
       a[${DATA_HREF}]{pointer-events:auto}
       a[data-soft98-brand-compact]{min-height:36px!important;min-width:86px;background-size:86px auto!important;background-repeat:no-repeat!important;background-position:center!important}
       img[data-soft98-brand-compact]{width:86px!important;max-width:100%!important;height:38px!important;object-fit:cover!important}
@@ -1815,12 +1919,17 @@
     if (!tail.every((node, i) => i % 2 === 0 ? node.nodeType === Node.ELEMENT_NODE && node.matches("a[href]") :
       node.nodeType === Node.TEXT_NODE && node.data.trim() === "|")) return;
     const links = document.createElement("span");
+    const stock = [...row.childNodes];
     links.setAttribute("data-soft98-pro-platform-links", "");
     row.setAttribute("data-soft98-pro-platform-row", "");
-    label.data = label.data.replace(/\s*\(\s*$/, " ");
+    replaceStockText(label, label.data.replace(/\s*\(\s*$/, " "));
     label.after(links);
     links.append("(", ...tail, end);
-    end.data = ")";
+    replaceStockText(end, ")");
+    undoWithTheme(links, () => {
+      row.replaceChildren(...stock);
+      row.removeAttribute("data-soft98-pro-platform-row");
+    });
   }
 
   function tabTarget(trigger) {
@@ -2233,6 +2342,21 @@
     const button = trigger?.querySelector("button");
     if (!list?.matches("ul,ol") || !card.contains(list) || !button) return;
 
+    const listeners = new AbortController();
+    const restoreTrigger = restoreStockAttributes(trigger, ["aria-expanded"]);
+    const restoreButton = restoreStockAttributes(button, ["aria-expanded", "aria-controls", "aria-label"]);
+    const inert = list.inert;
+    undoWithTheme(list, () => {
+      listeners.abort();
+      disclosureAnimations.get(list)?.cancel();
+      disclosureAnimations.delete(list);
+      list.inert = inert;
+      list.removeAttribute("data-soft98-pro-utility-extra");
+      list.removeAttribute("data-soft98-pro-utility-motion");
+      restoreTrigger();
+      restoreButton();
+      utilityDisclosures.delete(card);
+    });
     const setExpanded = (open) => {
       trigger.setAttribute("aria-expanded", String(open));
       button.setAttribute("aria-expanded", String(open));
@@ -2258,7 +2382,7 @@
       });
       trigger.setAttribute("aria-expanded", String(open));
       button.setAttribute("aria-expanded", String(open));
-    }, true);
+    }, { capture: true, signal: listeners.signal });
   }
 
   function syncNativeNightMode() {
@@ -2303,6 +2427,9 @@
           toggle === "dropdown" && button.closest("li")?.querySelector('a[href*="feedback"]') ? "mail" :
           button.parentElement === nav && button.hasAttribute("aria-controls") ? "menu" : null;
         if (!kind) continue;
+        if (!stockEdits.has(button)) {
+          undoWithTheme(button, restoreStockAttributes(button, ["aria-label", "aria-pressed", "title", "data-html", "data-placement"]));
+        }
         decorateIcon(button, kind);
         button.setAttribute("data-soft98-pro-header-icon", "");
         if (toggle === "night-mode" || !button.hasAttribute("aria-label")) button.setAttribute("aria-label", text("navLabels." + (kind === "sun" ? "moon" : kind)));
@@ -2335,23 +2462,10 @@
     for (const list of document.querySelectorAll("aside, [data-soft98-pro-column=secondary]")) {
       for (const card of list.querySelectorAll(":scope > section:has(> header)")) {
         const content = [...card.children].filter((node) => !node.matches("header,hr,script,style"));
-        if (content.length && content.every((node) => !isLiveSidebarCard(node))) card.remove();
+        if (content.length && content.every((node) => !isLiveSidebarCard(node))) removeWithTheme(card);
       }
       for (const rule of list.querySelectorAll(":scope > hr")) {
-        if (!isLiveSidebarCard(rule.previousElementSibling) || !isLiveSidebarCard(rule.nextElementSibling)) rule.remove();
-      }
-    }
-    for (const image of document.querySelectorAll("[data-soft98-pro-search] img")) {
-      const label = ((image.alt || "") + " " + (image.closest("a")?.pathname || "") + " " + image.src).toLowerCase();
-      const kind = /firefox/.test(label) ? "firefox" : /google[- ]?chrome/.test(label) ? "chrome" :
-        /microsoft[- ]?edge/.test(label) ? "edge" : /winrar/.test(label) ? "winrar" :
-        /revo[- ]?uninstaller/.test(label) ? "revo" : /free[- ]?download[- ]?manager/.test(label) ? "freedownloadmanager" : "";
-      if (kind && !image.hasAttribute("data-soft98-pro-search-art")) {
-        const template = document.createElement("template");
-        template.innerHTML = PAGE_ICONS[kind];
-        image.src = template.content.firstElementChild.src;
-        image.removeAttribute("srcset");
-        image.setAttribute("data-soft98-pro-search-art", "");
+        if (!isLiveSidebarCard(rule.previousElementSibling) || !isLiveSidebarCard(rule.nextElementSibling)) removeWithTheme(rule);
       }
     }
     for (const node of document.querySelectorAll("nav a, nav button, nav i, aside a, main :is(a,button,[role=button],mark)")) {
@@ -2948,6 +3062,37 @@
     });
   }
 
+  function markDownloadRecovery(list, pane) {
+    const row = list.parentElement;
+    const frame = row?.parentElement;
+    // Match only the site's self-referencing download gate, never general hidden content.
+    if (!pane || !list.hasAttribute("data-json") || !list.querySelector("dd a[data-key]") || !frame?.id ||
+        row.getAttribute("data-target") !== "#" + frame.id || frame === pane || !pane.contains(frame)) return;
+    for (const [node, type] of [[frame, "frame"], [row, "row"]]) {
+      if (node.hasAttribute("data-soft98-pro-download-recovery")) continue;
+      const style = getComputedStyle(node);
+      if (style.display === "none" || style.contentVisibility === "hidden" || style.pointerEvents === "none" ||
+          style.visibility === "hidden" || Number(style.opacity) === 0 ||
+          (/^(?:hidden|clip)$/.test(style.overflowY) && (style.height === "0px" || style.maxHeight === "0px"))) {
+        node.setAttribute("data-soft98-pro-download-recovery", type);
+      }
+    }
+  }
+
+  function repairStockDownloadLists() {
+    const active = new Set([...document.querySelectorAll('article :is([role=tab],[data-toggle=tab])[aria-selected=true]')].map(tabTarget));
+    for (const pane of document.querySelectorAll('article [role=tabpanel]:has(dl[data-json] a[data-key])')) {
+      const enabled = settings.blockAds && settings.patchScripts && pane.getAttribute("aria-hidden") !== "true" &&
+        (active.has(pane) || pane.matches('.active,[aria-hidden="false"]'));
+      pane.toggleAttribute("data-s98p-stock-download-pane", enabled);
+      if (!enabled) continue;
+      for (const list of pane.querySelectorAll("dl[data-json]:has(> dd > a[data-key])")) {
+        recoverDeclaredArticleLinks(list);
+        markDownloadRecovery(list, pane);
+      }
+    }
+  }
+
   function enhanceDownloadSections() {
     const panes = new Set();
     let sourceIndex = 0;
@@ -2964,21 +3109,7 @@
       markDownloadDividers(list);
       const pane = list.closest("[role=tabpanel]");
       if (pane) panes.add(pane);
-      const row = list.parentElement;
-      const frame = row?.parentElement;
-      // Soft98 wraps its keyed list in a self-referencing gate. Do not touch unrelated hidden content.
-      if (pane && list.hasAttribute("data-json") && list.querySelector("dd a[data-key]") && frame?.id &&
-          row.getAttribute("data-target") === "#" + frame.id && frame !== pane && pane.contains(frame)) {
-        for (const [node, type] of [[frame, "frame"], [row, "row"]]) {
-          if (node.hasAttribute("data-soft98-pro-download-recovery")) continue;
-          const style = getComputedStyle(node);
-          if (style.display === "none" || style.contentVisibility === "hidden" || style.pointerEvents === "none" ||
-              style.visibility === "hidden" || Number(style.opacity) === 0 ||
-              (/^(?:hidden|clip)$/.test(style.overflowY) && (style.height === "0px" || style.maxHeight === "0px"))) {
-            node.setAttribute("data-soft98-pro-download-recovery", type);
-          }
-        }
-      }
+      markDownloadRecovery(list, pane);
       let heading;
       let entries = [];
       const mirror = Boolean(list.closest("[data-s98p-download-rail]"));
@@ -3120,6 +3251,8 @@
         label = document.createElement("span");
         label.append(...heading.childNodes);
         heading.append(label);
+        const created = label;
+        undoWithTheme(created, () => created.replaceWith(...created.childNodes));
       }
       label.setAttribute("data-s98p-download-heading-label", "");
       const controls = localizeElement(document.createElement("span"));
@@ -3806,7 +3939,7 @@
       const value = node.data;
       const from = Math.max(0, start - offset);
       const to = Math.min(value.length, end - offset);
-      if (to > from) node.deleteData(from, to - from);
+      if (to > from) replaceStockText(node, value.slice(0, from) + value.slice(to));
       offset += value.length;
     }
     return match[2];
@@ -4003,6 +4136,7 @@
     for (const node of newsPanels.keys()) if (!node.isConnected) newsPanels.delete(node);
     let header = card.querySelector(":scope > [data-soft98-pro-latest-header]");
     if (!header || !header.nextElementSibling) return;
+    const stockHeader = header;
     const kind = header.getAttribute("data-soft98-pro-latest-header");
     if (header.matches("[role=tablist],ul,ol")) {
       const toolbar = document.createElement("div");
@@ -4027,6 +4161,16 @@
     header.append(toggle);
     const key = `soft98-pro.news-collapsed.${kind}`;
     const state = { card, toggle, reveal, collapsed: false };
+    const listeners = new AbortController();
+    undoWithTheme(reveal, () => {
+      listeners.abort();
+      toggle.remove();
+      reveal.replaceWith(...content.childNodes);
+      if (stockHeader !== header) header.replaceWith(stockHeader);
+      else header.removeAttribute("data-s98p-news-toolbar");
+      card.removeAttribute("data-s98p-news-collapsed");
+      newsPanels.delete(card);
+    });
     try { state.collapsed = localStorage.getItem(key) === "true"; } catch (_error) {}
     const set = (value) => {
       state.collapsed = value;
@@ -4036,7 +4180,7 @@
     toggle.addEventListener("click", () => set(!state.collapsed));
     header.addEventListener("click", (event) => {
       if (state.collapsed && event.target.closest?.("[role=tab],[data-toggle=tab]")) set(false);
-    }, true);
+    }, { capture: true, signal: listeners.signal });
     newsPanels.set(card, state);
     syncNewsPanel(state);
   }
@@ -4127,17 +4271,24 @@
       if (settings.pro && list.isConnected && tabs.every((tab) => list.contains(tab)) &&
           panes.every((pane, i) => tabTarget(tabs[i]) === pane)) continue;
       listeners.abort();
+      const selected = !settings.pro && list.isConnected
+        ? panes.findIndex(pane => pane.getAttribute("data-soft98-pro-content-pane") === "active") : -1;
+      const paneActive = selected >= 0 && panes.some(pane => pane.classList.contains("active"));
+      const paneShow = paneActive && panes.some(pane => pane.classList.contains("show"));
+      const tabActive = selected >= 0 && original.some(tab => tab.active);
       panes.forEach((pane, i) => {
         pane.removeAttribute("data-soft98-pro-content-pane");
-        if (originalPaneHidden[i] !== null) pane.setAttribute("aria-hidden", originalPaneHidden[i]);
+        if (originalPaneHidden[i] !== null) pane.setAttribute("aria-hidden", selected >= 0 ? String(i !== selected) : originalPaneHidden[i]);
+        if (paneActive) pane.classList.toggle("active", i === selected);
+        if (paneShow) pane.classList.toggle("show", i === selected);
       });
       tabs.forEach((tab, i) => {
-        const { selected, tabIndex, active } = original[i];
-        for (const [attr, value] of [["aria-selected", selected], ["tabindex", tabIndex]]) {
+        const { selected: originalSelection, tabIndex, active } = original[i];
+        for (const [attr, value] of [["aria-selected", selected >= 0 && originalSelection !== null ? String(i === selected) : originalSelection], ["tabindex", tabIndex]]) {
           if (value === null) tab.removeAttribute(attr);
           else tab.setAttribute(attr, value);
         }
-        tab.classList.toggle("active", active);
+        tab.classList.toggle("active", tabActive ? i === selected : active);
       });
       contentTabs.delete(list);
     }
@@ -4232,6 +4383,12 @@
     } else shell.querySelectorAll(":scope > [data-soft98-pro-password-actions]").forEach((node) => node.remove());
     shell.append(controls);
     passwordActions.set(container, { input, controls, listeners });
+    undoWithTheme(shell, () => {
+      passwordActions.get(container)?.listeners.abort();
+      passwordActions.delete(container);
+      shell.querySelectorAll(":scope > [data-soft98-pro-password-actions]").forEach(node => node.remove());
+      shell.replaceWith(...shell.childNodes);
+    });
   }
 
   function showPasswordCopied(container) {
@@ -4342,7 +4499,7 @@
         /\((?=[^()\p{Script=Arabic}]*[A-Za-z])[^()\p{Script=Arabic}]+\)|[A-Za-z][A-Za-z0-9]*(?:(?:[ .+/_-]+|, +)[A-Za-z0-9]+)*/gu
       )] : [];
       if (!runs.length) {
-        if (value !== original) textNode.nodeValue = value;
+        replaceStockText(textNode, value);
         continue;
       }
       const fragment = document.createDocumentFragment();
@@ -4357,7 +4514,15 @@
         cursor = run.index + run[0].length;
       }
       fragment.append(value.slice(cursor));
+      const parts = [...fragment.childNodes];
+      const expected = parts.map(part => part.textContent);
       textNode.replaceWith(fragment);
+      undoWithTheme(parts[0], () => {
+        if (!parts.every((part, index) => part.textContent === expected[index] &&
+            (!index || parts[index - 1].nextSibling === part))) return;
+        parts[0].replaceWith(textNode);
+        for (const part of parts.slice(1)) part.remove();
+      });
     }
   }
 
@@ -4396,7 +4561,9 @@
           bindUtilityDisclosure(card);
           heading.closest("header").setAttribute("data-soft98-pro-utility-header", "");
           const clean = (heading.textContent || "").normalize("NFKC").replace(/\u0640/g, "").replace(/\s+/gu, " ").trim();
-          if (clean !== heading.textContent) heading.textContent = clean;
+          if (clean !== heading.textContent && heading.childNodes.length === 1 && heading.firstChild.nodeType === Node.TEXT_NODE) {
+            replaceStockText(heading.firstChild, clean);
+          }
         }
         for (const row of rows) {
           row.link.setAttribute("data-soft98-pro-list-row", "true");
@@ -4432,6 +4599,12 @@
     if (original) original.before(tile);
     else link.prepend(tile);
     artworkRows.set(link, { destination, original, tile });
+    undoWithTheme(tile, () => {
+      discardPostArtwork(tile);
+      tile.remove();
+      original?.removeAttribute("data-s98p-stock-utility-art");
+      artworkRows.delete(link);
+    });
     if (destination) {
       pendingArtwork.set(tile, destination);
       artworkObserver?.observe(tile);
@@ -4656,7 +4829,7 @@
 
   function enhanceLogo() {
     if (linkdoni) return;
-    if ((!successAnnounced && !settings.pro) || !settings.pirateLogo) return restoreOriginalLogo();
+    if (!settings.pro || !settings.pirateLogo) return restoreOriginalLogo();
     for (const logo of originalLogos.keys()) {
       if (!logo.isConnected) originalLogos.delete(logo);
     }
@@ -6288,7 +6461,11 @@
       fetchPage: nativeFetch,
       label: text,
       locale: LOCALE,
-      afterRender: (title) => { originalTitle = title; schedule(document); },
+      afterRender: (title) => {
+        originalTitle = title;
+        for (const [key, { node }] of stockEdits) if (!node.isConnected) stockEdits.delete(key);
+        schedule(document);
+      },
     });
     schedule(document);
     installObserver();
