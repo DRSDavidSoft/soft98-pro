@@ -213,13 +213,30 @@ async function verifyFileActions(client) {
   check("control center persists and updates the default", await run(`${button}.dataset.s98pFileCommand`), "start");
   await run(`(() => {
     const url = ${JSON.stringify(destination)};
-    document.documentElement.setAttribute("data-soft98-pro-article-downloads", JSON.stringify([{ url, percent: 42, status: "downloading" }]));
-    document.dispatchEvent(new Event("soft98-pro:article-downloads"));
+    document.documentElement.setAttribute("data-soft98-pro-download-snapshot", JSON.stringify({
+      files: [{ url, bytes: 42, total: 100, eta: 17, status: "downloading" }],
+      counts: { active: 1, waiting: 0, finished: 0, attention: 0 }, transfer: { bytes: 42, total: 100 }
+    }));
+    document.dispatchEvent(new Event("soft98-pro:download-snapshot"));
   })()`);
   check("article badges show real progress", await run('document.querySelector("[data-s98p-file-status]").dataset.s98pFileStatus'), "downloading");
+  check("article progress includes byte counts and an ETA", await run(`(() => {
+    const transfer = document.querySelector("[data-soft98-pro-download-copy] [data-s98p-download-transfer]");
+    return transfer.querySelector("progress").value === 42 && transfer.textContent.includes("42 B") &&
+      transfer.textContent.includes("100 B") && !transfer.querySelector("small").hidden;
+  })()`), true);
+  check("Control Center shows both total activity and this article's file", await run(`(() => {
+    const panel = document.querySelector('[data-panel="downloads"]');
+    return panel.querySelector("[data-queue-overall] progress").value === 42 &&
+      panel.querySelector("[data-queue-files] progress").value === 42 &&
+      panel.querySelector("[data-queue-files] button").dataset.s98pManagedUrl === ${JSON.stringify(destination)};
+  })()`), true);
   check("completion badge is not a generic Ready badge", await run(`(() => {
-    document.documentElement.setAttribute("data-soft98-pro-article-downloads", JSON.stringify([{ url: ${JSON.stringify(destination)}, status: "complete" }]));
-    document.dispatchEvent(new Event("soft98-pro:article-downloads"));
+    document.documentElement.setAttribute("data-soft98-pro-download-snapshot", JSON.stringify({
+      files: [{ url: ${JSON.stringify(destination)}, status: "complete", bytes: 100, total: 100 }],
+      counts: { active: 0, waiting: 0, finished: 1, attention: 0 }
+    }));
+    document.dispatchEvent(new Event("soft98-pro:download-snapshot"));
     return document.querySelector("[data-s98p-file-status]").dataset.s98pFileStatus;
   })()`), "complete");
 }

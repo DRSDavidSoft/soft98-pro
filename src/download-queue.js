@@ -46,6 +46,46 @@ const Soft98DownloadQueue = (() => {
     return url.href;
   }
 
+  function articleKey(value) {
+    const normalized = links.normalize(value);
+    if (!normalized) return "";
+    const url = new URL(normalized);
+    return url.origin + url.pathname.replace(/-a\.html$/i, ".html");
+  }
+
+  function articleJobs(jobs, page) {
+    const key = articleKey(page);
+    return key ? jobs.filter(job => job.source && articleKey(job.source) === key) : [];
+  }
+
+  function pageSnapshot({ jobs, held }, page, now = Date.now()) {
+    const counts = { active: 0, waiting: 0, finished: 0, attention: 0 };
+    const transfer = { bytes: 0, total: 0 };
+    const bytesOf = value => Number.isSafeInteger(value) && value >= 0 ? value : null;
+    for (const job of jobs) {
+      if (ACTIVE.has(job.status)) {
+        counts.active++;
+        transfer.bytes += bytesOf(job.bytes) || 0;
+        const total = bytesOf(job.total);
+        transfer.total = transfer.total === null || total === null ? null : transfer.total + total;
+      } else if (TERMINAL.has(job.status)) {
+        counts.finished++;
+        if (["review", "interrupted", "missing"].includes(job.status)) counts.attention++;
+      } else counts.waiting++;
+    }
+    const files = new Map();
+    for (const job of articleJobs(jobs, page)) {
+      let url;
+      try { url = articleFileUrl(job.url); } catch (_error) { continue; }
+      const bytes = bytesOf(job.bytes) || 0;
+      const total = bytesOf(job.total ?? job.metadata?.size);
+      const eta = job.status === "downloading" && Number.isFinite(job.estimatedEndAt) && job.estimatedEndAt > now
+        ? Math.ceil((job.estimatedEndAt - now) / 1000) : null;
+      files.set(url, { url, status: job.manualStart ? "manual" : job.status, bytes, total, eta });
+    }
+    return { counts, transfer, held: held === true, files: [...files.values()] };
+  }
+
   function applyNative(job, item) {
     if (!item) {
       if (!TERMINAL.has(job.status)) Object.assign(job, { status: "missing", error: "missing", resumable: false });
@@ -340,7 +380,7 @@ const Soft98DownloadQueue = (() => {
     return { request };
   }
 
-  return { CHANNEL, STORAGE_KEY, directUrl, articleFileUrl, relativeFilename, trustedSender, create };
+  return { CHANNEL, STORAGE_KEY, directUrl, articleFileUrl, articleJobs, pageSnapshot, relativeFilename, trustedSender, create };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = Soft98DownloadQueue;

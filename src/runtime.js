@@ -75,6 +75,8 @@
   };
   let fileMenu;
   let fileStates = new Map();
+  let downloadSnapshot;
+  const FILE_STATES = new Set(["manual", "queued", "starting", "resuming", "downloading", "paused", "resume-queued", "complete", "interrupted", "canceled", "review", "missing"]);
   const wideLayouts = new Map();
   const newsPanels = new Map();
   const relatedViewport = matchMedia("(min-width: 1280px)");
@@ -1152,6 +1154,12 @@
       :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status][hidden]{display:none!important}
       :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status=complete]{--file-status-color:var(--s98p-accent)}
       :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status]:is([data-s98p-file-status=interrupted],[data-s98p-file-status=review]){--file-status-color:var(--s98p-text)}
+      :root.soft98-pro-theme [data-soft98-pro-download-copy] [data-s98p-download-transfer]{display:grid;gap:4px;margin-block-start:3px;color:var(--s98p-muted);font-size:11px;font-variant-numeric:tabular-nums}
+      :root.soft98-pro-theme [data-s98p-download-transfer] > span{display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px}
+      :root.soft98-pro-theme [data-s98p-download-transfer] [data-transfer-total]{display:inline-flex;gap:4px}
+      :root.soft98-pro-theme [data-s98p-download-transfer] bdi{font-family:system-ui,sans-serif;font-variant-numeric:tabular-nums}
+      :root.soft98-pro-theme [data-s98p-download-transfer] progress{inline-size:100%;block-size:4px;border:0;border-radius:3px;accent-color:var(--s98p-accent)}
+      :root.soft98-pro-theme [data-s98p-download-transfer][hidden],:root.soft98-pro-theme [data-s98p-download-transfer] [hidden]{display:none!important}
       :root.soft98-pro-theme [data-soft98-pro-download-manager=file][aria-busy=true]{opacity:.6;cursor:progress}
       .soft98-pro-theme .s98p-file-menu{position:fixed;z-index:2147483001;display:grid;overflow:auto;overscroll-behavior:contain;box-sizing:border-box;width:246px;padding:5px;border:1px solid var(--s98p-border);border-radius:8px;background:color-mix(in srgb,var(--s98p-elevated) 92%,transparent);backdrop-filter:blur(18px);box-shadow:0 12px 26px #0005;color:var(--s98p-text);font:inherit;text-align:start}
       .soft98-pro-theme .s98p-file-menu [role=group]+[role=group]{margin-block-start:4px;padding-block-start:4px;border-block-start:1px solid var(--s98p-border)}
@@ -1168,6 +1176,7 @@
       .soft98-pro-theme [data-soft98-pro-download-meta]{display:flex;flex-wrap:wrap;gap:2px 10px;min-width:0;color:var(--s98p-muted)!important;font-size:.82em;font-weight:400;font-variant-numeric:tabular-nums}
       .soft98-pro-theme [data-soft98-pro-download-meta] bdi{font-family:system-ui,sans-serif;font-variant-numeric:tabular-nums}
       .soft98-pro-theme [data-soft98-pro-download-meta]:empty{display:none}
+      :root.soft98-pro-theme [data-s98p-managed-size] [data-soft98-pro-download-meta]:not(:has(time)),:root.soft98-pro-theme [data-s98p-managed-size] [data-soft98-pro-download-meta] bdi{display:none!important}
       .soft98-pro-theme [data-soft98-pro-password-shell]{display:grid;grid-template-columns:auto minmax(max-content,1fr) auto;align-items:center;gap:6px;padding:8px;background:var(--s98p-surface-2)!important;border:1px solid var(--s98p-border);border-radius:8px}
       :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-password-shell]>[data-soft98-pro-password]{display:contents!important;color:var(--s98p-text)!important;text-shadow:none!important}
       .soft98-pro-theme [data-soft98-pro-password] span:not([aria-hidden=true]){color:inherit!important}
@@ -2996,20 +3005,129 @@
     return group;
   }
 
+  function downloadByteLabel(size) {
+    const units = ["B", "KiB", "MiB", "GiB", "TiB"];
+    const power = size >= 1 ? Math.min(units.length - 1, Math.floor(Math.log(size) / Math.log(1024))) : 0;
+    return `${Intl.NumberFormat("en", { maximumFractionDigits: 1 }).format(size / 1024 ** power)} ${units[power]}`;
+  }
+
+  function managedPercent(state) {
+    return Number.isSafeInteger(state?.total) && state.total > 0 && Number.isSafeInteger(state.bytes)
+      ? Math.round(Math.min(1, Math.max(0, state.bytes / state.total)) * 100) : null;
+  }
+
+  function createManagedTransfer() {
+    const node = document.createElement("span");
+    node.setAttribute("data-s98p-download-transfer", "");
+    node.innerHTML = '<progress></progress><span><bdi dir="ltr"></bdi><span data-transfer-total><span></span><bdi dir="ltr"></bdi></span><small></small></span>';
+    const nodes = node.lastElementChild.children;
+    nodes[1].firstElementChild.textContent = text("downloadTransferTotal");
+    return { node, bar: node.firstElementChild, bytes: nodes[0], total: nodes[1], eta: nodes[2] };
+  }
+
+  function paintManagedTransfer(ui, state, active) {
+    const received = Number.isSafeInteger(state?.bytes) && state.bytes >= 0 ? state.bytes : null;
+    const total = Number.isSafeInteger(state?.total) && state.total >= 0 ? state.total : null;
+    const completed = state?.status === "complete";
+    const hasSize = received !== null && (received > 0 || active || completed || total > 0);
+    const progress = managedPercent(state);
+    ui.node.hidden = !hasSize && !active;
+    ui.bar.hidden = completed || (!active && (progress === null || !received));
+    ui.bar.setAttribute("aria-label", text("downloadTransferProgress"));
+    ui.bar.max = 100;
+    if (progress === null) ui.bar.removeAttribute("value");
+    else if (ui.bar.value !== progress) ui.bar.value = progress;
+    const receivedLabel = hasSize ? downloadByteLabel(received) : "";
+    if (ui.bytes.textContent !== receivedLabel) ui.bytes.textContent = receivedLabel;
+    ui.bytes.hidden = !hasSize;
+    ui.total.hidden = !hasSize || total === null || completed || total === received;
+    const totalLabel = ui.total.hidden ? "" : downloadByteLabel(total);
+    if (ui.total.lastElementChild.textContent !== totalLabel) ui.total.lastElementChild.textContent = totalLabel;
+    const eta = active && Number.isSafeInteger(state?.eta) && state.eta > 0 ? state.eta : null;
+    const duration = eta === null ? "" : eta >= 3600 ? new Intl.NumberFormat(LOCALE, { style: "unit", unit: "hour", maximumFractionDigits: 1 }).format(eta / 3600) :
+      eta >= 60 ? new Intl.NumberFormat(LOCALE, { style: "unit", unit: "minute" }).format(Math.ceil(eta / 60)) :
+        new Intl.NumberFormat(LOCALE, { style: "unit", unit: "second" }).format(eta);
+    const etaLabel = duration ? text("downloadTransferEta", { duration }) : "";
+    if (ui.eta.textContent !== etaLabel) ui.eta.textContent = etaLabel;
+    ui.eta.hidden = !duration;
+  }
+
+  function isActiveTransfer(state) {
+    return ["starting", "resuming", "downloading"].includes(state?.status);
+  }
+
   function renderFileBadge(link, group) {
     const badge = group.querySelector("[data-s98p-file-status]");
+    if (!link?.dataset || !badge) return;
     const state = fileStates.get(link.dataset.s98pFileUrl);
-    const key = state && ["queued", "starting", "resuming", "downloading", "paused", "complete", "interrupted", "review"].includes(state.status)
-      ? state.status : "";
+    const key = FILE_STATES.has(state?.status) ? state.status : "";
+    const row = downloadRows.get(link);
+    if (row && (row.transfer || key)) {
+      if (!row.transfer) {
+        row.transfer = createManagedTransfer();
+        row.copy.append(row.transfer.node);
+      }
+      paintManagedTransfer(row.transfer, key ? state : null, isActiveTransfer(state));
+      row.copy.toggleAttribute("data-s98p-managed-size", Boolean(key && !row.transfer.node.hidden));
+    }
     if (badge.hidden !== !key) badge.hidden = !key;
     if (!key) return;
-    const numeric = key === "downloading" && typeof state.percent === "number";
+    badge.dataset.s98pManagedUrl = link.dataset.s98pFileUrl;
+    const progress = isActiveTransfer(state) ? managedPercent(state) : null;
     const label = text("downloadBadge." + key);
-    const value = numeric ? new Intl.NumberFormat(LOCALE, { style: "percent" }).format(state.percent / 100) : label;
+    const value = progress !== null ? `${progress}%` : label;
     if (badge.textContent !== value) badge.textContent = value;
     if (badge.dataset.s98pFileStatus !== key) badge.dataset.s98pFileStatus = key;
-    const title = numeric ? `${label} · ${value}` : label;
-    setDownloadHint(badge, `${title} · ${text("controlOpenDownloads")}`, true);
+    const title = progress !== null ? `${label} (${value})` : label;
+    setDownloadHint(badge, `${title}: ${text("controlOpenDownloads")}`, true);
+  }
+
+  function renderControlDownloads() {
+    const panel = document.querySelector('#soft98-pro-control [data-panel="downloads"]');
+    if (!panel || !downloadSnapshot) return;
+    const { counts, transfer, held } = downloadSnapshot;
+    const number = new Intl.NumberFormat(LOCALE);
+    for (const value of panel.querySelectorAll("[data-queue-count]")) {
+      const count = counts?.[value.dataset.queueCount];
+      if (Number.isInteger(count) && count >= 0 && count <= 160) value.textContent = number.format(count);
+    }
+    panel.querySelector("[data-queue-held]").hidden = held !== true;
+    const overview = panel.querySelector("[data-queue-overall]");
+    if (!overview.transfer) {
+      overview.transfer = createManagedTransfer();
+      overview.append(overview.transfer.node);
+    }
+    overview.hidden = !counts?.active;
+    paintManagedTransfer(overview.transfer, transfer, Boolean(counts?.active));
+    const list = panel.querySelector("[data-queue-files]");
+    const old = new Map([...list.children].map(item => [item.button.dataset.s98pManagedUrl, item]));
+    for (const [url, state] of fileStates) {
+      let entry = old.get(url);
+      old.delete(url);
+      if (!entry) {
+        entry = document.createElement("li");
+        entry.button = downloadButton("download");
+        entry.button.dataset.soft98ProDownloadManager = "open";
+        entry.button.dataset.s98pManagedUrl = url;
+        const name = document.createElement("bdi");
+        try {
+          const path = new URL(url).pathname.split("/").pop();
+          name.textContent = decodeURIComponent(path);
+        } catch (_error) { name.textContent = text("articlePreview"); }
+        entry.label = document.createElement("small");
+        entry.button.append(name, entry.label);
+        entry.transfer = createManagedTransfer();
+        entry.append(entry.button, entry.transfer.node);
+        list.append(entry);
+      }
+      const label = text("downloadBadge." + state.status);
+      const progress = isActiveTransfer(state) ? managedPercent(state) : null;
+      const value = progress !== null ? `${label} (${progress}%)` : label;
+      if (entry.label.textContent !== value) entry.label.textContent = value;
+      paintManagedTransfer(entry.transfer, state, isActiveTransfer(state));
+    }
+    for (const entry of old.values()) entry.remove();
+    panel.querySelector("[data-queue-empty]").hidden = fileStates.size > 0;
   }
 
   function closeFileMenu(restoreFocus = false) {
@@ -3142,12 +3260,18 @@
       if (fileMenu && !(event.target instanceof Node && fileMenu.node.contains(event.target))) closeFileMenu();
     }, { capture: true, passive: true });
     window.addEventListener("resize", () => closeFileMenu());
-    document.addEventListener("soft98-pro:article-downloads", () => {
+    document.addEventListener("soft98-pro:download-snapshot", () => {
       try {
         const root = document.documentElement;
-        fileStates = new Map(JSON.parse(root.getAttribute("data-soft98-pro-article-downloads") || "[]").map((item) => [item.url, item]));
-        root.removeAttribute("data-soft98-pro-article-downloads");
+        const raw = root.getAttribute("data-soft98-pro-download-snapshot");
+        root.removeAttribute("data-soft98-pro-download-snapshot");
+        const snapshot = JSON.parse(raw);
+        if (!Array.isArray(snapshot?.files)) return;
+        downloadSnapshot = snapshot;
+        fileStates = new Map(snapshot.files.slice(0, 160).filter(state =>
+          typeof state?.url === "string" && state.url.startsWith("https://") && FILE_STATES.has(state.status)).map(state => [state.url, state]));
         for (const group of document.querySelectorAll(".s98p-file-actions")) renderFileBadge(group.previousElementSibling, group);
+        renderControlDownloads();
       } catch (_error) {}
     });
     document.addEventListener("soft98-pro:file-result", () => {
@@ -3169,7 +3293,7 @@
         const group = existing || createFileControls(link);
         const button = group.querySelector("[data-soft98-pro-download-manager=file]");
         renderFileBadge(link, group);
-        if (!existing) document.dispatchEvent(new Event("soft98-pro:article-downloads-request"));
+        if (!existing) document.dispatchEvent(new Event("soft98-pro:download-snapshot-request"));
         const action = defaultFileAction();
         if (button.dataset.s98pFileCommand !== action) {
           button.dataset.s98pFileCommand = action;
@@ -3197,6 +3321,7 @@
     const originalSize = link.getAttribute("data-soft98-pro-inline-size");
     if (previous) {
       previous.meta.remove();
+      previous.transfer?.node.remove();
       if (link.contains(previous.title)) previous.title.replaceWith(...previous.title.childNodes);
       if (link.contains(previous.copy)) previous.copy.replaceWith(...previous.copy.childNodes);
     }
@@ -3222,6 +3347,7 @@
     copy.append(title, meta);
     link.append(copy);
     downloadRows.set(link, { copy, title, meta, url: url?.href, inlineSize });
+    if (link.nextElementSibling?.matches(".s98p-file-actions")) renderFileBadge(link, link.nextElementSibling);
     if (url && !url.search && (url.origin === location.origin || url.hostname.endsWith(".soft98.ir")) && "IntersectionObserver" in window) {
       downloadObserver ||= new IntersectionObserver((entries) => {
         for (const entry of entries) {
@@ -4406,16 +4532,23 @@
               </div>
               ${keys.map(controlOptionMarkup).join("")}
               ${group === "downloads" ? `
+              <dl class="s98p-download-overview">
+                ${["active", "waiting", "finished", "attention"].map(key => `<div><dt>${escapeHtml(text("controlDownloadStates." + key))}</dt><dd data-queue-count="${key}">–</dd></div>`).join("")}
+              </dl>
+              <small data-queue-held hidden>${escapeHtml(text("controlDownloadHeld"))}</small>
+              <div data-queue-overall hidden></div>
+              <div class="s98p-download-page">
+                <strong>${escapeHtml(text("controlDownloadsOnPage"))}</strong>
+                <small data-queue-empty>${escapeHtml(text("controlDownloadsEmpty"))}</small>
+                <ul data-queue-files></ul>
+              </div>
+              <button class="s98p-download-open" type="button" data-soft98-pro-download-manager="open">${PAGE_ICONS.download}${escapeHtml(text("controlOpenDownloads"))}</button>
               <label class="s98p-download-default">
                 <span><strong>${escapeHtml(text("downloadDefaultAction"))}</strong><small>${escapeHtml(text("downloadDefaultDetail"))}</small></span>
                 <select name="downloadRowAction">
                   ${Object.entries(FILE_ACTIONS).map(([key, { label }]) => `<option value="${key}">${escapeHtml(text(label))}</option>`).join("")}
                 </select>
               </label>
-              <dl class="s98p-download-overview">
-                ${["active", "waiting", "finished"].map(key => `<div><dt>${escapeHtml(text("controlDownloadStates." + key))}</dt><dd data-queue-count="${key}">–</dd></div>`).join("")}
-              </dl>
-              <button class="s98p-download-open" type="button" data-soft98-pro-download-manager="open">${PAGE_ICONS.download}${escapeHtml(text("controlOpenDownloads"))}</button>
               ` : ""}
             </section>`)
             .join("")}
@@ -4499,14 +4632,31 @@
       #soft98-pro-control .s98p-metrics dt{margin:0;background:transparent!important;color:var(--c-muted)!important;font-size:10px;font-weight:500;white-space:normal}
       #soft98-pro-control .s98p-metrics dd{margin:0;background:transparent!important;color:var(--c-text)!important;font-size:18px;font-weight:750;line-height:1.15;font-variant-numeric:tabular-nums}
       #soft98-pro-control .s98p-tabs{display:grid;grid-template-columns:repeat(var(--tab-count,3),minmax(0,1fr));gap:3px;margin:11px 14px 0;padding:3px;border:1px solid var(--c-border-soft);border-radius:7px;background:var(--c-bg-soft)}
-      #soft98-pro-control .s98p-download-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:4px 0}
+      #soft98-pro-control .s98p-download-overview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:4px 0}
+      #soft98-pro-control [data-queue-overall]{padding:5px 0}
+      #soft98-pro-control [data-queue-held]{color:var(--c-accent-2)}
+      #soft98-pro-control .s98p-download-page{display:grid;gap:4px;margin-block:6px;color:var(--c-text)}
+      #soft98-pro-control .s98p-download-page > small{color:var(--c-muted)}
+      #soft98-pro-control [data-queue-files]{display:grid;list-style:none;margin:0!important;padding:0!important}
+      #soft98-pro-control [data-queue-files] li{display:grid;gap:4px;margin:0;padding:7px 0;border-block-start:1px solid var(--c-border-soft)}
+      #soft98-pro-control [data-queue-files] button{display:grid;grid-template-columns:18px minmax(0,1fr);gap:2px 7px;padding:4px!important;text-align:start;background:transparent!important;border:0!important;color:var(--c-text)!important}
+      #soft98-pro-control [data-queue-files] button:hover{color:var(--c-accent)!important}
+      #soft98-pro-control [data-queue-files] button svg{width:17px;height:17px}
+      #soft98-pro-control [data-queue-files] bdi{overflow-wrap:anywhere}
+      #soft98-pro-control [data-queue-files] button small{grid-column:2;color:var(--c-muted)}
+      #soft98-pro-control [data-s98p-download-transfer]{display:grid;gap:3px;font-size:11px;color:var(--c-muted)}
+      #soft98-pro-control [data-s98p-download-transfer] progress{width:100%;height:4px;accent-color:var(--c-accent)}
+      #soft98-pro-control [data-s98p-download-transfer] > span{display:flex;flex-wrap:wrap;gap:4px 8px}
+      #soft98-pro-control [data-transfer-total]{display:inline-flex;gap:4px}
+      #soft98-pro-control [data-s98p-download-transfer] bdi{font-family:system-ui,sans-serif!important;font-variant-numeric:tabular-nums}
+      #soft98-pro-control :is([data-queue-overall],[data-queue-held],[data-queue-empty],[data-s98p-download-transfer],[data-s98p-download-transfer] *)[hidden]{display:none!important}
       #soft98-pro-control .s98p-download-default{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;padding:8px;border:1px solid var(--c-border-soft);border-radius:6px;background:var(--c-bg-soft)}
       #soft98-pro-control .s98p-download-default span{display:grid;gap:2px}
       #soft98-pro-control .s98p-download-default small{color:var(--c-muted)}
       #soft98-pro-control .s98p-download-default select{width:100%;min-height:36px;padding:5px 8px;border:1px solid var(--c-border);border-radius:6px;background:var(--c-bg-raised);color:var(--c-text);font:inherit}
       #soft98-pro-control .s98p-download-default select:focus-visible{outline:2px solid var(--c-accent);outline-offset:1px}
       #soft98-pro-control .s98p-download-overview>div{display:grid;gap:4px;padding:8px;border:1px solid var(--c-border-soft);border-radius:6px;background:var(--c-bg-soft);text-align:center}
-      #soft98-pro-control .s98p-download-overview dt{font-size:11px;color:var(--c-muted)}
+      #soft98-pro-control .s98p-download-overview dt{font-size:11px;line-height:1.35;min-height:2.7em;display:grid;place-items:center;overflow-wrap:anywhere;color:var(--c-muted)}
       #soft98-pro-control .s98p-download-overview dd{margin:0;font-weight:700;font-size:18px;color:var(--c-accent);font-variant-numeric:tabular-nums}
       #soft98-pro-control .s98p-download-open{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:7px;border:1px solid var(--c-border);border-radius:6px;background:var(--c-bg-raised)!important;color:var(--c-text)!important;cursor:pointer}
       #soft98-pro-control .s98p-download-open svg{width:18px;height:18px;pointer-events:none}
@@ -4724,7 +4874,10 @@
         panelDeadline = setTimeout(finishClose, open ? 330 : 270);
       } else if (!open) finishClose();
       if (open) {
-        if (controlSection === "downloads") document.dispatchEvent(new Event("soft98-pro:download-summary-request"));
+        if (controlSection === "downloads") {
+          renderControlDownloads();
+          document.dispatchEvent(new Event("soft98-pro:download-snapshot-request"));
+        }
         if (moveFocus) form.querySelector('[role="tab"][aria-selected="true"]').focus({ preventScroll: true });
         refreshControlTelemetry();
       }
@@ -4767,18 +4920,11 @@
       }
       for (const panel of form.querySelectorAll('[role="tabpanel"]')) panel.hidden = panel.getAttribute("data-panel") !== section;
       if (changed) scroller.scrollTop = sectionScroll.get(section) || 0;
-      if (section === "downloads") document.dispatchEvent(new Event("soft98-pro:download-summary-request"));
+      if (section === "downloads") {
+        renderControlDownloads();
+        document.dispatchEvent(new Event("soft98-pro:download-snapshot-request"));
+      }
     };
-    if (IS_EXTENSION) document.addEventListener("soft98-pro:download-summary", () => {
-      try {
-        const counts = JSON.parse(document.documentElement.getAttribute("data-soft98-pro-download-summary"));
-        const number = new Intl.NumberFormat(LOCALE);
-        for (const value of form.querySelectorAll("[data-queue-count]")) {
-          const count = counts?.[value.dataset.queueCount];
-          if (Number.isInteger(count) && count >= 0 && count <= 160) value.textContent = number.format(count);
-        }
-      } catch (_error) {}
-    }, { signal });
     form.addEventListener("submit", (event) => event.preventDefault(), { signal });
     toggle.addEventListener("pointerdown", (event) => {
       if (event.button !== 0 || !event.isPrimary || drag) return;

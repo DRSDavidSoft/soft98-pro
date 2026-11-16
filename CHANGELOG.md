@@ -19,6 +19,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Added collapsible dates, a link-count badge, and Persian page numbers to Linkdoni. Archive pages now load without a full refresh and support Back and Forward. The Control Center stays visible while scrolling.
 - Added Download Manager settings, file-type icons, context menus, and a built-in guide. Completed files open from their names. The sticky header shows queue progress, and F2 focuses search.
 - Added relative dates for recent downloads and file updates, with an automatic, Solar Hijri, or Gregorian calendar setting.
+- Added the Download Manager to the extension toolbar. Article rows and the Control Center now show live progress, file sizes, and queue state.
 
 ### Fixed
 

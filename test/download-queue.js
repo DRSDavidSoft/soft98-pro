@@ -8,7 +8,7 @@ const { Script } = require("node:vm");
 const { once } = require("node:events");
 const { setTimeout: sleep } = require("node:timers/promises");
 const { test } = require("node:test");
-const { create, directUrl, articleFileUrl, relativeFilename, trustedSender } = require("../src/download-queue");
+const { create, directUrl, articleFileUrl, relativeFilename, trustedSender, pageSnapshot } = require("../src/download-queue");
 const links = require("../src/download-links");
 
 const EXTENSION_ID = "soft98-test";
@@ -40,6 +40,7 @@ test("both built extensions package the internal manager without exposing it to 
     assert.ok((manifest.optional_host_permissions || manifest.optional_permissions).includes("https://*/*"));
     assert.ok(!JSON.stringify(manifest.web_accessible_resources || []).includes("downloads"));
     assert.match(read("popup.html"), /href="downloads\.html"/);
+    assert.match(read("popup.html"), /data-compact-popup[\s\S]+src="downloads\.js"/);
     assert.match(read("options.html"), /href="downloads\.html"/);
     assert.match(read("downloads.html"), /src="downloads\.js"/);
     assert.doesNotMatch(read("downloads.html"), /<textarea/i);
@@ -47,7 +48,7 @@ test("both built extensions package the internal manager without exposing it to 
     assert.doesNotMatch(read("downloads.js"), /__SOFT98_DOWNLOAD_(MESSAGES|ICONS)__/);
     assert.match(read("assets/background.js"), /soft98:downloads/);
     assert.doesNotMatch(read("assets/bridge.js"), /["']soft98:downloads["']/);
-    assert.match(read("assets/bridge.js"), /soft98:downloads-summary/);
+    assert.match(read("assets/bridge.js"), /soft98:download-snapshot/);
     assert.match(read("assets/bridge.js"), /soft98:open-downloads/);
     assert.match(read("assets/bridge.js"), /soft98:download-file/);
     assert.match(read("downloads.js"), /soft98:download-prefill/);
@@ -172,6 +173,24 @@ test("only accepts the extension's own top-level non-private manager page", () =
     { url: url + "#unexpected" }, { frameId: 1 }, { tab: { incognito: true } }]) {
     assert.equal(trustedSender({ ...sender, ...change }, EXTENSION_ID, url), false);
   }
+});
+
+test("the page snapshot returns article-scoped transfer details and only aggregate data elsewhere", () => {
+  const page = "https://soft98.ir/tools/story.html";
+  const url = PREFIX + "article.zip?sig=example";
+  const other = PREFIX + "other.zip";
+  const foreign = PREFIX + "unrelated.zip";
+  const snapshot = pageSnapshot({ held: true, jobs: [
+    { url, status: "downloading", source: page.replace(".html", "-a.html?x=1"), bytes: 42, total: 100,
+      estimatedEndAt: 6000, browserId: 123, filename: "PrivateFolder/article.zip" },
+    { url: other, status: "downloading", source: page.replace("story", "other-page"), bytes: 8, total: null },
+    { url: foreign, status: "review" },
+  ] }, page, 1000);
+  assert.deepEqual(snapshot, {
+    counts: { active: 2, waiting: 0, finished: 1, attention: 1 }, transfer: { bytes: 50, total: null }, held: true,
+    files: [{ url, status: "downloading", bytes: 42, total: 100, eta: 5 }],
+  });
+  assert.ok(!JSON.stringify(snapshot).includes("PrivateFolder"));
 });
 
 test("limits transfers, frees a slot on pause, and resumes in the next available slot", async () => {
@@ -415,17 +434,18 @@ async function verifyNativeQueue(browser, chromium) {
       }
       assert.fail(`${label}: ${JSON.stringify(await inspect())}`);
     }
+    let managerOrigin;
     if (chromium) {
-      let origin;
       await until(async () => {
         const { targetInfos } = await post("/goog/cdp/execute", { cmd: "Target.getTargets", params: {} });
-        origin = targetInfos.map(({ url }) => /^chrome-extension:\/\/[a-p]{32}(?=\/assets\/background\.js$)/.exec(url)?.[0]).find(Boolean);
-        return origin;
+        managerOrigin = targetInfos.map(({ url }) => /^chrome-extension:\/\/[a-p]{32}(?=\/assets\/background\.js$)/.exec(url)?.[0]).find(Boolean);
+        return managerOrigin;
       }, "unpacked Chromium extension registered");
-      await post("/url", { url: origin + "/downloads.html#settings" });
+      await post("/url", { url: managerOrigin + "/downloads.html#settings" });
     } else {
       await post("/moz/addon/install", { path: path.join(DIST, "packages", `soft98-pro-firefox-${require("../package.json").version}.zip`), temporary: true });
-      const browserUrl = `moz-extension://${uuid}/downloads.html#settings`;
+      managerOrigin = `moz-extension://${uuid}`;
+      const browserUrl = managerOrigin + "/downloads.html#settings";
       await post("/moz/context", { context: "chrome" });
       await evaluate("gBrowser.loadURI(Services.io.newURI(arguments[0]), { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() });", browserUrl);
       await post("/moz/context", { context: "content" });
@@ -467,6 +487,11 @@ async function verifyNativeQueue(browser, chromium) {
     assert.equal(await evaluate("return document.querySelector('.job:last-child [data-action=retry]').hidden"), true);
     await post("/window/rect", { width: 490, height: 700 });
     assert.equal(await evaluate("return innerWidth <= 600 && document.documentElement.scrollWidth <= innerWidth"), true);
+    await post("/url", { url: managerOrigin + "/popup.html" });
+    await until(async () => (await inspect()).filter(item => item.status === "complete").length === 3, "the popup reads the same native queue");
+    assert.equal(await evaluate(`return document.documentElement.hasAttribute("data-compact-popup") &&
+      document.querySelector("#expand-manager").getClientRects().length === 1 &&
+      document.documentElement.scrollWidth <= innerWidth`), true);
     console.log(`${browser} ${capabilities.browserVersion}: native queue, file bytes, HTML handling, and narrow layout verified`);
   } finally {
     if (session) await webdriver("DELETE", session).catch(() => {});

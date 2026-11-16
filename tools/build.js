@@ -321,7 +321,7 @@ function copyUi(target) {
   if (JSON.stringify(Object.keys(catalog.en).sort()) !== JSON.stringify(Object.keys(catalog.fa).sort())) throw new Error("Download catalogs must have identical keys");
   const icons = Object.fromEntries(["download", "plus", "player-play", "player-pause", "x", "rotate-clockwise", "folder-open", "trash", "file-upload", "clipboard", "list-details", "settings", "dots", "external-link", "file", "file-zip", "file-text", "photo", "video", "music", "package", "link", "square-check", "square"].map((name) => [name,
     fs.readFileSync(path.join(TABLER_ROOT, "icons", "outline", `${name}.svg`), "utf8")]));
-  for (const file of ["popup.html", "options.html", "options.js", "styles.css"]) {
+  for (const file of ["options.html", "options.js", "styles.css"]) {
     const from = path.join(SRC, "ui", file);
     const to = path.join(target, file);
     if (file.endsWith(".js")) {
@@ -339,6 +339,8 @@ function copyUi(target) {
   for (const file of ["downloads.html", "downloads.css", "downloads-link.css", "download-import.js", "download-view.js", "download-manager.svg", "typography.css", "theme.js", "theme.css"]) {
     copyFile(path.join(SRC, "ui", file), path.join(target, file));
   }
+  const managerPage = fs.readFileSync(path.join(SRC, "ui", "downloads.html"), "utf8");
+  fs.writeFileSync(path.join(target, "popup.html"), managerPage.replace('<html lang="en">', '<html lang="en" data-compact-popup>'), "utf8");
   copyFile(path.join(SRC, "download-links.js"), path.join(target, "download-links.js"));
   const previewDir = path.join(target, "assets", "previews");
   mkdir(previewDir);

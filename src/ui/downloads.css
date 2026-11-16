@@ -23,6 +23,15 @@ html { scroll-padding-block-start: 95px; }
 .manager-nav a:hover { color: var(--ink); background: var(--button); }
 .manager-nav a[aria-current] { color: var(--mint); border-color: var(--edge); background: var(--button); font-weight: 650; }
 .manager-nav svg { width: 17px; height: 17px; }
+#expand-manager { display: none; }
+:root[data-compact-popup] { width: 464px; max-width: 100%; }
+:root[data-compact-popup] body { min-height: 370px; }
+:root[data-compact-popup] .masthead-inner { gap: 7px; padding: 9px 12px; }
+:root[data-compact-popup] .manager-nav a { padding-inline: 7px; }
+:root[data-compact-popup] #expand-manager { display: inline-flex; font-size: 0; gap: 0; }
+:root[data-compact-popup] .workspace { padding: 10px 12px; gap: 9px; }
+:root[data-compact-popup] .queue-header { row-gap: 10px; }
+:root[data-compact-popup] .manager-footer { gap: 5px 12px; }
 .queue, .settings { min-width: 0; padding: 18px; border-block: 1px solid var(--line); background: var(--panel); }
 .settings h2 { margin-block-end: 12px; }
 .setting-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; min-height: 54px; padding-block: 8px; border-block-start: 1px solid var(--line); }

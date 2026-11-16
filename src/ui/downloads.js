@@ -512,6 +512,10 @@
     }
   });
   $("manager-nav").setAttribute("aria-label", text("managerPages"));
+  $("pro-settings-link").title = text("proSettings");
+  buttonContent($("expand-manager"), "openFullManager", "external-link");
+  $("expand-manager").title = text("openFullManager");
+  $("expand-manager").setAttribute("aria-label", text("openFullManager"));
   for (const [id, label, icon] of [["queue-tab", "queue", "list-details"], ["settings-tab", "settings", "settings"], ["close-guide", "close", "x"]]) {
     buttonContent($(id), label, icon);
     if (id === "close-guide") $(id).setAttribute("aria-label", text(label));

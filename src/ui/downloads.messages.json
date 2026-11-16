@@ -1,6 +1,7 @@
 {
   "en": {
     "settings": "Settings", "history": "Download history", "managerPages": "Download Manager views", "actions": "Actions", "resetFilters": "Clear filters",
+    "openFullManager": "Open in a tab", "proSettings": "Soft98 Pro settings",
     "dateCalendar": "Date calendar", "calendarAuto": "Auto (by language)", "calendarPersian": "Solar Hijri", "calendarGregorian": "Gregorian",
     "dateNow": "just now", "completedDate": "Finished", "calendarSaveFailed": "Could not save the date calendar.",
     "open": "Open file", "openLink": "Open download link", "copyLink": "Copy download link", "linkCopied": "Download link copied.", "copyFailed": "Could not copy the download link.",
@@ -28,6 +29,7 @@
   },
   "fa": {
     "settings": "تنظیمات", "history": "سابقهٔ دانلودها", "managerPages": "بخش‌های مدیر دانلود", "actions": "گزینه‌ها", "resetFilters": "پاک کردن فیلترها",
+    "openFullManager": "باز کردن در تب", "proSettings": "تنظیمات سافت‌۹۸ پرو",
     "dateCalendar": "تقویم تاریخ‌ها", "calendarAuto": "خودکار (طبق زبان)", "calendarPersian": "شمسی", "calendarGregorian": "میلادی",
     "dateNow": "همین الان", "completedDate": "پایان دانلود", "calendarSaveFailed": "تنظیم تقویم ذخیره نشد.",
     "open": "باز کردن فایل", "openLink": "باز کردن لینک دانلود", "copyLink": "کپی لینک دانلود", "linkCopied": "لینک دانلود کپی شد.", "copyFailed": "لینک دانلود کپی نشد.",

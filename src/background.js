@@ -19,6 +19,7 @@
   const pendingSources = new Map();
   const downloadImports = new Map();
   const downloadPage = api.runtime.getURL("downloads.html");
+  const downloadPopup = api.runtime.getURL("popup.html");
   let releaseStatus = null;
   let compatibilityStatus = null;
   let modificationEngineEnabled = true;
@@ -75,11 +76,6 @@
     } catch (_error) {
       return false;
     }
-  }
-
-  function articleKey(url) {
-    const parsed = new URL(url);
-    return parsed.origin + parsed.pathname.replace(/-a\.html$/i, ".html");
   }
 
   function supportedScriptUrl(value) {
@@ -314,7 +310,7 @@
   }
   api.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!message || typeof message !== "object") return false;
-    if (["soft98:open-downloads", "soft98:downloads-summary", "soft98:download-file", "soft98:article-downloads"].includes(message.type)) {
+    if (["soft98:open-downloads", "soft98:download-file", "soft98:download-snapshot"].includes(message.type)) {
       if (sender.id !== api.runtime.id || sender.frameId !== 0 || !Number.isInteger(sender.tab?.id) || sender.incognito || sender.tab.incognito ||
           !isProtectedPage(sender.url)) return false;
       if (message.type === "soft98:download-file") {
@@ -333,28 +329,19 @@
           }, () => sendResponse({ ok: false }));
         return true;
       }
-      if (message.type === "soft98:article-downloads") {
-        const key = articleKey(sender.url);
-        queue.request({ action: "list" }).then(({ jobs }) => {
-          const files = new Map();
-          for (const { url, source, status, bytes, total, manualStart } of jobs) {
-            if (!source || articleKey(source) !== key) continue;
-            files.set(url, { url, status: manualStart ? "queued" : status, percent: total > 0 ? Math.min(100, Math.round((bytes || 0) / total * 100)) : null });
-          }
-          sendResponse({ files: [...files.values()] });
-        }, () => sendResponse(null));
+      if (message.type === "soft98:download-snapshot") {
+        queue.request({ action: "list" }).then(state => sendResponse(Soft98DownloadQueue.pageSnapshot(state, sender.url)),
+          () => sendResponse(null));
         return true;
       }
-      if (message.type === "soft98:downloads-summary") {
-        queue.request({ action:"list" }).then(({ jobs }) => {
-          const counts = { active:0, waiting:0, finished:0 };
-          for (const { status } of jobs) {
-            if (["starting", "resuming", "downloading"].includes(status)) counts.active++;
-            else if (["queued", "resume-queued", "paused"].includes(status)) counts.waiting++;
-            else counts.finished++;
-          }
-          sendResponse(counts);
-        }, () => sendResponse(null));
+      if (message.file) {
+        let file;
+        try { file = Soft98DownloadQueue.articleFileUrl(message.file); }
+        catch (_error) { sendResponse({ ok: false }); return false; }
+        queue.request({ action: "list" }).then(({ jobs }) => {
+          const job = Soft98DownloadQueue.articleJobs(jobs, sender.url).findLast(item => item.url === file);
+          return call(api.tabs, "create", { url: downloadPage + (job ? "#job=" + job.id : ""), openerTabId: sender.tab.id });
+        }).then(() => sendResponse({ ok: true }), () => sendResponse({ ok: false }));
         return true;
       }
       let target = downloadPage;
@@ -382,7 +369,8 @@
       return false;
     }
     if (message.type === Soft98DownloadQueue.CHANNEL) {
-      if (!Soft98DownloadQueue.trustedSender(sender, api.runtime.id, downloadPage)) return false;
+      if (!Soft98DownloadQueue.trustedSender(sender, api.runtime.id, downloadPage) &&
+          !Soft98DownloadQueue.trustedSender(sender, api.runtime.id, downloadPopup)) return false;
       queue.request(message).then((state) => sendResponse({ ok: true, state }))
         .catch((error) => sendResponse({ ok: false, error: error.queueCode || "native-error" }));
       return true;

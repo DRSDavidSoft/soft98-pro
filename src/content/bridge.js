@@ -136,40 +136,34 @@
   }
 
   if (!(api.extension && api.extension.inIncognitoContext)) {
-    let fileTimer;
-    let filesPending = false;
-    function refreshFiles() {
-      if (filesPending || document.hidden || !document.querySelector("[data-soft98-pro-download-manager=file]")) return;
-      filesPending = true;
-      sendRuntime({ type: "soft98:article-downloads" }, (response) => {
-        filesPending = false;
-        clearTimeout(fileTimer);
-        if (!response?.files) return;
-        document.documentElement.setAttribute("data-soft98-pro-article-downloads", JSON.stringify(response.files));
-        document.dispatchEvent(new Event("soft98-pro:article-downloads"));
-        if (response.files.some(({ status }) => ["starting", "resuming", "downloading"].includes(status))) {
-          fileTimer = setTimeout(refreshFiles, 1250);
+    const panelVisible = () => document.querySelector('#soft98-pro-control[data-open="true"] [data-panel="downloads"]:not([hidden])');
+    let snapshotTimer, snapshotPending = false, snapshotDirty = false;
+    function refreshDownloads() {
+      clearTimeout(snapshotTimer);
+      if (document.hidden || (!panelVisible() && !document.querySelector("[data-soft98-pro-download-manager=file]"))) return;
+      if (snapshotPending) { snapshotDirty = true; return; }
+      snapshotPending = true;
+      const page = location.pathname + location.search;
+      sendRuntime({ type: "soft98:download-snapshot" }, (snapshot) => {
+        snapshotPending = false;
+        if (page === location.pathname + location.search && snapshot?.files && !document.hidden) {
+          document.documentElement.setAttribute("data-soft98-pro-download-snapshot", JSON.stringify(snapshot));
+          document.dispatchEvent(new Event("soft98-pro:download-snapshot"));
+        }
+        if (snapshotDirty || page !== location.pathname + location.search) {
+          snapshotDirty = false;
+          snapshotTimer = setTimeout(refreshDownloads, 100);
+        } else if (snapshot?.files?.some(({ status }) => ["starting", "resuming", "downloading"].includes(status)) ||
+            (snapshot?.counts?.active && panelVisible())) {
+          snapshotTimer = setTimeout(refreshDownloads, 900);
         }
       });
     }
-    document.addEventListener("soft98-pro:article-downloads-request", refreshFiles);
-    document.addEventListener("visibilitychange", refreshFiles);
-    let summaryPending = false;
-    const refreshSummary = () => {
-      if (summaryPending || !document.querySelector('#soft98-pro-control[data-open="true"] [data-panel="downloads"]:not([hidden])')) return;
-      summaryPending = true;
-      setTimeout(() => { summaryPending = false; }, 750);
-      sendRuntime({ type: "soft98:downloads-summary" }, (counts) => {
-        if (!counts) return;
-        document.documentElement.setAttribute("data-soft98-pro-download-summary", JSON.stringify(counts));
-        document.dispatchEvent(new Event("soft98-pro:download-summary"));
-      });
-    };
-    document.addEventListener("soft98-pro:download-summary-request", refreshSummary);
+    document.addEventListener("soft98-pro:download-snapshot-request", refreshDownloads);
+    document.addEventListener("visibilitychange", refreshDownloads);
     api.storage.onChanged.addListener((changes, area) => {
       if (area === "local" && changes.soft98DownloadQueue) {
-        refreshSummary();
-        refreshFiles();
+        refreshDownloads();
       }
     });
     document.addEventListener("click", (event) => {
@@ -177,7 +171,7 @@
       const control = event.target instanceof Element && event.target.closest("button[data-soft98-pro-download-manager],button[data-s98p-file-command]");
       if (!control || control.disabled || control.closest("[hidden]")) return;
       if (control.dataset.soft98ProDownloadManager === "open") {
-        sendRuntime({ type: "soft98:open-downloads" });
+        sendRuntime({ type: "soft98:open-downloads", file: control.dataset.s98pManagedUrl });
         return;
       }
       if (control.dataset.soft98ProDownloadManager === "section") {
@@ -206,7 +200,7 @@
         owner.removeAttribute("aria-busy");
         document.documentElement.setAttribute("data-soft98-pro-file-result", response?.ok ? response.result : "failed");
         document.dispatchEvent(new Event("soft98-pro:file-result"));
-        refreshFiles();
+        refreshDownloads();
       });
     }, true);
   }
