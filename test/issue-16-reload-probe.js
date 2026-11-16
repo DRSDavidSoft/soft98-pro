@@ -2,6 +2,7 @@
   "use strict";
 
   const changes = [];
+  const removalCalls = [];
   const failures = [];
   const milestones = ["entry"];
   const started = Math.round(performance.now());
@@ -52,6 +53,64 @@
       return "unknown";
     }
   }
+
+  function traceRemovals() {
+    const nativeStack = Error.captureStackTrace;
+    const stop = [];
+    const upstreamName = /(?:application\.min\.packed\.js|jquery(?:\.min\.packed)?\.js|\/js)(?=[?:#)\s]|$)/i;
+
+    function caller(wrapper) {
+      const trace = {};
+      nativeStack?.(trace, wrapper);
+      for (const frame of String(trace.stack || "").split("\n").slice(1)) {
+        const script = frame.match(upstreamName);
+        if (script && (frame.includes(location.origin + "/") || frame.includes("soft98.ir/"))) {
+          return "upstream:" + script[0].split("/").pop();
+        }
+        if (/soft98(?:[-+_% ]|%20)*reload|soft98AdBlocker/i.test(frame)) return "diagnostic-userscript";
+        if (/chrome-extension:|moz-extension:/.test(frame)) return "browser-extension";
+        if (frame.includes(location.origin + "/")) return "same-origin-script";
+      }
+      return "unclassified";
+    }
+
+    function hook(prototype, property, method, affected) {
+      const descriptor = Object.getOwnPropertyDescriptor(prototype, property);
+      const original = descriptor?.[method];
+      if (!descriptor?.configurable || typeof original !== "function") return;
+      function recordRemoval(...args) {
+        const candidate = affected(this, args);
+        const witness = removalCalls.length < 12 && candidate instanceof Element && candidate.isConnected &&
+          (candidate.matches(mainContent) ? candidate : candidate.querySelector(mainContent));
+        const source = witness ? caller(recordRemoval) : null;
+        const result = Reflect.apply(original, this, args);
+        if (witness && !witness.isConnected) {
+          removalCalls.push({ ms: elapsed(), operation: property, source });
+        }
+        return result;
+      }
+      Object.defineProperty(prototype, property, { ...descriptor, [method]: recordRemoval });
+      stop.push(() => {
+        if (Object.getOwnPropertyDescriptor(prototype, property)?.[method] === recordRemoval) {
+          Object.defineProperty(prototype, property, descriptor);
+        }
+      });
+    }
+
+    const receiver = (target) => target;
+    const descendant = (target) => target instanceof Element ? target.querySelector(mainContent) : null;
+    const argument = (_target, args) => args[0];
+    hook(Element.prototype, "innerHTML", "set", descendant);
+    hook(Element.prototype, "outerHTML", "set", receiver);
+    hook(Node.prototype, "textContent", "set", descendant);
+    hook(Element.prototype, "replaceChildren", "value", descendant);
+    hook(Element.prototype, "remove", "value", receiver);
+    hook(Node.prototype, "removeChild", "value", argument);
+    hook(Node.prototype, "replaceChild", "value", (_target, args) => args[1]);
+    window.setTimeout(() => stop.forEach(restore => restore()), 12000);
+  }
+
+  if (mode === "trace") traceRemovals();
 
   window.addEventListener("error", (event) => {
     if (event.target instanceof HTMLScriptElement) {
@@ -131,6 +190,7 @@
         } : null,
         contentRemovals: [...changes],
         failures: [...failures],
+        ...(mode === "trace" && { removalCalls: [...removalCalls] }),
       };
     },
   });

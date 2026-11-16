@@ -16,7 +16,9 @@ const metadata = built.slice(0, offset);
 const production = built.slice(offset + boundary.length).trim();
 
 fs.mkdirSync(output, { recursive: true });
-const variants = process.argv.includes("--recovery")
+const variants = process.argv.includes("--trace")
+  ? [["trace", "removal trace"]]
+  : process.argv.includes("--recovery")
   ? [["recovery", "listing recovery"]]
   : [["active", "Soft98 Pro"], ["passive", "page only"]];
 for (const [mode, suffix] of variants) {
