@@ -377,6 +377,82 @@ async function verifyWideLayout(client) {
   }
 }
 
+async function verifyTopbar(client) {
+  const check = (label, actual, expected) => assertEqual("sticky header", label, actual, expected);
+  const run = (expression) => evaluate(client, expression);
+  const resize = (width, height) => client.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: false });
+  await resize(1600, 900);
+  await client.send("Page.navigate", { url: `http://127.0.0.1:${PORT}/test/topbar.html` });
+  try {
+    for (let i = 0; i < 40; i++) {
+      if (await run('Boolean(document.querySelector("[data-s98p-topbar-shell]"))').catch(() => false)) break;
+      if (i === 39) throw new Error("Test header was not styled");
+      await delay(75);
+    }
+    await run("scrollTo(0, 600)");
+    check("shell stays fixed at the top", await run('document.querySelector("[data-s98p-topbar-shell]").getBoundingClientRect().top'), 0);
+    check("shell has no top border", await run('getComputedStyle(document.querySelector("[data-s98p-topbar-shell]")).borderTopWidth'), "0px");
+    check("inner navigation has no independent background or shadow", await run(`(() => {
+      const style = getComputedStyle(document.querySelector("nav"));
+      return style.backgroundImage === "none" && style.backgroundColor === "rgba(0, 0, 0, 0)" && style.boxShadow === "none";
+    })()`), true);
+    check("real dropdown is still styled", await run('document.querySelector("[role=menu]").getAttribute("data-soft98-pro-menu")'), "true");
+    check("plain and dropdown labels share the same baseline", await run(`(() => {
+      const center = (selector) => {
+        const range = document.createRange();
+        range.selectNodeContents(document.querySelector(selector));
+        const box = range.getBoundingClientRect();
+        return (box.top + box.bottom) / 2;
+      };
+      return Math.abs(center(".desktop-link") - center("#category-bar button")) < 2;
+    })()`), true);
+    check("desktop preserves the hidden mobile counterpart", await run('getComputedStyle(document.querySelector(".compact-link")).display'), "none");
+    await resize(992, 780);
+    check("mid-width desktop navigation does not run into the actions", await run(`(() => {
+      const actions = document.querySelector("#actions").getBoundingClientRect();
+      const nav = document.querySelector("nav").getBoundingClientRect();
+      return [...document.querySelectorAll("#category-bar > ul > li > :is(a,button)")]
+        .filter((node) => node.getClientRects().length)
+        .every((node) => {
+          const box = node.getBoundingClientRect();
+          return box.left >= actions.right && box.top >= nav.top && box.bottom <= nav.bottom;
+        });
+    })()`), true);
+    await resize(375, 780);
+    await run('document.querySelector("[data-s98p-topbar-toggle]").click(); window.Soft98Pro.scan()');
+    await delay(200);
+    check("drawer is not styled as a megamenu", await run('document.querySelector("#category-bar").hasAttribute("data-soft98-pro-menu")'), false);
+    const controls = `(() => {
+      const elements = [document.querySelector("[data-s98p-topbar-toggle]"), document.querySelector("[data-s98p-topbar-brand]"),
+        ...document.querySelectorAll("#actions button")];
+      return elements.map((node) => { const box = node.getBoundingClientRect(); return [box.left, box.right, (box.top + box.bottom) / 2, box.width]; });
+    })()`;
+    const rectangles = await run(controls);
+    check("all actions stay aligned, within the mobile viewport", rectangles.every(([left, right, y, width]) => width > 20 && left >= -1 && right <= 376 && Math.abs(y - rectangles[0][2]) < 3), true);
+    const [, , , width] = rectangles[3];
+    const [left, right, y] = rectangles[3];
+    await client.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: (left + right) / 2, y });
+    await delay(180);
+    check("hover does not move or resize a control", JSON.stringify(await run(controls)), JSON.stringify(rectangles));
+    check("action hit target has usable width", width >= 25, true);
+    await resize(320, 780);
+    const shellWidth = await run('document.querySelector("[data-s98p-topbar-shell]").clientWidth');
+    check("small phones fit even with a classic scrollbar", (await run(controls)).every(([left, right]) => left >= 0 && right <= shellWidth), true);
+    await run("window.Soft98Pro.configure({darkDesign:false})");
+    await delay(120);
+    check("light mode preserves the single header surface", await run(`(() => {
+      const shade = getComputedStyle(document.querySelector("[data-s98p-topbar-shell]"));
+      return shade.borderTopWidth === "0px" && getComputedStyle(document.querySelector("nav")).backgroundImage === "none";
+    })()`), true);
+    check("idle toolbar action has no separate light tile", await run(`(() => {
+      const style = getComputedStyle(document.querySelector("#actions li:last-child button"));
+      return style.backgroundImage === "none" && style.backgroundColor === "rgba(0, 0, 0, 0)" && style.boxShadow === "none";
+    })()`), true);
+  } finally {
+    await client.send("Emulation.clearDeviceMetricsOverride");
+  }
+}
+
 async function faviconPixel(client) {
   const href = await evaluate(client, "document.getElementById('soft98-pro-favicon')?.href");
   if (!href?.startsWith("data:image/png;base64,")) throw new Error("Missing Soft98 Pro favicon PNG");
@@ -1066,6 +1142,7 @@ async function main() {
     await verifyFileActions(client);
     await verifyDownloadManager(client);
     await verifyWideLayout(client);
+    await verifyTopbar(client);
     console.log("Soft98 runtime browser acceptance passed");
   } finally {
     if (client) client.close();

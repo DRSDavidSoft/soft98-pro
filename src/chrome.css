@@ -1,3 +1,272 @@
+:root.soft98-pro-theme {
+  --s98p-topbar-height: 58px;
+  --s98p-topbar-bg: color-mix(in srgb,#14232a 96%,transparent);
+  --s98p-topbar-line: #2c4249;
+  --s98p-topbar-hover: #233840;
+  --s98p-topbar-active: #29443f;
+  --s98p-topbar-shadow: 0 7px 20px #0004;
+}
+
+:root.soft98-pro-light {
+  --s98p-topbar-bg: color-mix(in srgb,#f7fbff 96%,transparent);
+  --s98p-topbar-line: #c4d9e6;
+  --s98p-topbar-hover: #e8f2fb;
+  --s98p-topbar-active: #d8eee9;
+  --s98p-topbar-shadow: 0 6px 18px #24476018;
+}
+
+:root.soft98-pro-rgb {
+  --s98p-topbar-bg: color-mix(in srgb,#101518 96%,transparent);
+  --s98p-topbar-line: #323c3e;
+  --s98p-topbar-hover: #242a2e;
+  --s98p-topbar-active: #252e2d;
+  --s98p-topbar-shadow: 0 7px 20px #0007;
+}
+
+:root.soft98-pro-theme [data-s98p-topbar-shell] {
+  background: var(--s98p-topbar-bg) !important;
+  border: 0 !important;
+  border-block-end: 1px solid var(--s98p-topbar-line) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--s98p-topbar-shadow) !important;
+  backdrop-filter: blur(16px) saturate(120%);
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] {
+  box-sizing: border-box;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px;
+  min-block-size: var(--s98p-topbar-height);
+  padding: 0 12px !important;
+  margin-inline: auto !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome]:not([data-s98p-topbar-shell]) {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] > [data-s98p-topbar-brand] {
+  flex: 0 0 96px !important;
+  inline-size: 96px !important;
+  min-inline-size: 0 !important;
+  max-inline-size: none !important;
+  margin: 0 !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-drawer],
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] :is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) {
+  box-sizing: border-box;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  min-inline-size: 0;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] > [data-s98p-topbar-drawer] {
+  flex: 1 1 auto;
+  align-items: center;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-actions] {
+  --s98p-topbar-icon-size: 40px;
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 1px !important;
+  align-self: center !important;
+  margin-inline-start: auto !important;
+  border-inline-start: 1px solid var(--s98p-topbar-line) !important;
+  padding-inline-start: 8px !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-categories] {
+  align-items: center;
+  gap: 2px !important;
+  border: 0 !important;
+  list-style: none;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] :is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] :is(
+  [data-s98p-topbar-toggle],
+  [data-s98p-topbar-actions] > li > :is(a,button),
+  [data-s98p-topbar-categories] > li > :is(a,button)
+) {
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 40px;
+  padding-block: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: var(--s98p-text) !important;
+  -webkit-text-fill-color: currentColor !important;
+  font-weight: 600;
+  text-shadow: none !important;
+  transform: none !important;
+  transition: background-color .15s ease, color .15s ease !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] :is([data-s98p-topbar-toggle],[data-s98p-topbar-actions] > li > :is(a,button)) {
+  inline-size: var(--s98p-topbar-icon-size,40px);
+  block-size: 40px;
+  flex: none;
+  padding-inline: 0 !important;
+  text-align: center;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-categories] > li > :is(a,button) {
+  position: relative;
+  padding-inline: 9px !important;
+  font-family: inherit;
+  font-size: .875rem;
+  line-height: 40px !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-actions] > li > :is(a,button) svg {
+  inline-size: 19px;
+  block-size: 19px;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] :is(
+  [data-s98p-topbar-toggle], [data-s98p-topbar-actions] > li > :is(a,button), [data-s98p-topbar-categories] > li > :is(a,button)
+):is(:hover,:focus-visible) {
+  background: var(--s98p-topbar-hover) !important;
+  color: var(--s98p-text) !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] :is(
+  [data-s98p-topbar-toggle], [data-s98p-topbar-actions] > li > :is(a,button), [data-s98p-topbar-categories] > li > :is(a,button)
+):is([aria-expanded=true],[aria-current=page],:active) {
+  background: var(--s98p-topbar-active) !important;
+  box-shadow: inset 0 -2px var(--s98p-accent) !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] :is([data-s98p-topbar-toggle],[data-s98p-topbar-actions] > li > :is(a,button),
+  [data-s98p-topbar-categories] > li > :is(a,button)):focus-visible {
+  outline: 2px solid var(--s98p-link) !important;
+  outline-offset: -2px !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-soft98-pro-nav-indicator] {
+  inset-block-end: 3px;
+  inset-inline-start: calc(50% - 3px);
+  inline-size: 6px;
+  block-size: 2px;
+}
+
+:root.soft98-pro-theme [data-s98p-topbar-categories] > li > :is(a,button) > [data-soft98-pro-nav-indicator] {
+  display: none !important;
+}
+
+:root.soft98-pro-theme [data-s98p-topbar-categories] > li:has(> :is([data-soft98-pro-nav-dropdown],[data-toggle="dropdown"],[aria-haspopup="menu"])) > :is(a,button)::after {
+  content: "" !important;
+  position: absolute;
+  display: block !important;
+  inset: auto 0 4px !important;
+  inline-size: 5px;
+  block-size: 5px;
+  margin: 0 auto !important;
+  border: 0 !important;
+  border-right: 1px solid var(--s98p-faint) !important;
+  border-bottom: 1px solid var(--s98p-faint) !important;
+  background: none !important;
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+:root.soft98-pro-rgb [data-soft98-pro-nav-chrome] :is([data-s98p-topbar-toggle],[data-s98p-topbar-actions] > li > :is(a,button),
+  [data-s98p-topbar-categories] > li > :is(a,button)):is([aria-expanded=true],[aria-current=page],:active) {
+  background: var(--s98p-neon-line) center bottom / 100% 2px no-repeat,var(--s98p-topbar-active) !important;
+  box-shadow: none !important;
+}
+
+@media (min-width: 992px) {
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] > [data-s98p-topbar-toggle] { display: none !important; }
+}
+
+@media (min-width: 992px) and (max-width: 1199px) {
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-categories] {
+    flex-wrap: wrap;
+    row-gap: 0 !important;
+  }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-categories] > li > :is(a,button) {
+    min-block-size: 27px;
+    block-size: 27px;
+    line-height: 27px !important;
+  }
+  :root.soft98-pro-theme [data-s98p-topbar-categories] > li:has(> :is([data-soft98-pro-nav-dropdown],[data-toggle="dropdown"],[aria-haspopup="menu"])) > :is(a,button) {
+    padding-inline-end: 17px !important;
+  }
+  :root.soft98-pro-theme [data-s98p-topbar-categories] > li:has(> :is([data-soft98-pro-nav-dropdown],[data-toggle="dropdown"],[aria-haspopup="menu"])) > :is(a,button)::after {
+    inset: calc(50% - 4px) auto auto !important;
+    inset-inline-end: 6px !important;
+    margin: 0 !important;
+  }
+}
+
+@media (max-width: 991px) {
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] { max-inline-size: none !important; }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] > [data-s98p-topbar-drawer] {
+    background: var(--s98p-topbar-bg) !important;
+    border-block-start: 0 !important;
+    box-shadow: var(--s98p-topbar-shadow) !important;
+  }
+  :root.soft98-pro-theme [data-s98p-topbar-drawer] [data-s98p-topbar-categories] { padding: 6px 8px !important; }
+  :root.soft98-pro-theme [data-s98p-topbar-drawer] [data-s98p-topbar-categories] > li > :is(a,button) {
+    justify-content: flex-start;
+    text-align: start !important;
+  }
+}
+
+@media (max-width: 560px) {
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] { gap: 4px; padding-inline: 6px !important; }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] > [data-s98p-topbar-brand] {
+    flex-basis: 68px !important;
+    inline-size: 68px !important;
+    background-size: contain !important;
+  }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-actions] {
+    --s98p-topbar-icon-size: clamp(25px,calc((100vw - 151px) / 7),38px);
+    gap: 0 !important;
+    padding-inline-start: 4px !important;
+  }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-toggle] { inline-size: 34px; }
+}
+
+@media (max-width: 350px) {
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] { gap: 3px; padding-inline: 4px !important; }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] > [data-s98p-topbar-brand] {
+    flex-basis: 62px !important;
+    inline-size: 62px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] :is([data-s98p-topbar-toggle],[data-soft98-pro-nav-item]) { transition: none !important; }
+}
+
 :root.soft98-pro-theme [data-soft98-pro-latest] {
   --s98p-latest-header-size: 3.5rem;
   align-self: start;
@@ -434,7 +703,7 @@
   background-attachment: fixed !important;
 }
 
-:root.soft98-pro-light [data-soft98-pro-surface="nav-shell"] {
+:root.soft98-pro-light [data-soft98-pro-surface="nav-shell"]:not([data-s98p-topbar-shell]) {
   background: #f8fbfff2 !important;
   border-block-end: 1px solid #c9dcf5 !important;
   box-shadow: 0 8px 28px #2b61af22 !important;
@@ -444,15 +713,15 @@
   border-color: #d6e5fa;
 }
 
-:root.soft98-pro-light nav :is([data-soft98-pro-nav-item],[data-soft98-pro-mega-trigger],[data-toggle="dropdown"])[aria-expanded="true"],
-:root.soft98-pro-light nav li:has(> [data-soft98-pro-mega-trigger][aria-expanded="true"]) > :is(a,button),
-:root.soft98-pro-light nav li:has(> [data-soft98-pro-mega-trigger][aria-expanded="true"]) > :is(a,button) > :is(span,b,strong,i,svg) {
+:root.soft98-pro-light nav :is([data-soft98-pro-nav-item],[data-soft98-pro-mega-trigger],[data-toggle="dropdown"])[aria-expanded="true"]:not(:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li > :is(a,button)),
+:root.soft98-pro-light nav li:has(> [data-soft98-pro-mega-trigger][aria-expanded="true"]):not(:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li) > :is(a,button),
+:root.soft98-pro-light nav li:has(> [data-soft98-pro-mega-trigger][aria-expanded="true"]):not(:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li) > :is(a,button) > :is(span,b,strong,i,svg) {
   color: #123f92 !important;
   -webkit-text-fill-color: #123f92 !important;
 }
 
-:root.soft98-pro-light nav :is([data-soft98-pro-nav-item],[data-soft98-pro-mega-trigger],[data-toggle="dropdown"])[aria-expanded="true"]:not(#soft98-pro-control *),
-:root.soft98-pro-light nav li:has(> [data-soft98-pro-mega-trigger][aria-expanded="true"]) > :is(a,button):not(#soft98-pro-control *) {
+:root.soft98-pro-light nav :is([data-soft98-pro-nav-item],[data-soft98-pro-mega-trigger],[data-toggle="dropdown"])[aria-expanded="true"]:not(#soft98-pro-control *,:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li > :is(a,button)),
+:root.soft98-pro-light nav li:has(> [data-soft98-pro-mega-trigger][aria-expanded="true"]):not(:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li) > :is(a,button):not(#soft98-pro-control *) {
   background: #d6e7ff !important;
   background-image: none !important;
   border-color: #8bb5f1 !important;

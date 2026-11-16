@@ -16,6 +16,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Unified the sticky header across screen sizes and themes, and stopped the category drawer from receiving megamenu styling.
+
 - Restored downloads in Chrome when the site left the list clipped to zero height.
 - Replaced legacy gray article callouts with the Pro palette.
 - Made download rows and their action buttons highlight together without moving on hover.

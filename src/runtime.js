@@ -1341,7 +1341,6 @@
       :root.soft98-pro-theme [data-soft98-pro-article-meta] a:not(:hover,:focus-visible){color:var(--s98p-link)!important}
       :root.soft98-pro-theme article:has(>[data-soft98-pro-article-header]){--s98p-article-band:linear-gradient(90deg,var(--s98p-elevated),var(--s98p-surface))}
       :root.soft98-pro-theme article > :is([data-soft98-pro-article-header],[data-soft98-pro-article-meta]){background:var(--s98p-article-band)!important}
-      :root.soft98-pro-theme [data-soft98-pro-nav-chrome]{background:linear-gradient(165deg,color-mix(in srgb,var(--s98p-elevated) 92%,transparent),color-mix(in srgb,var(--s98p-nav) 85%,transparent))!important;box-shadow:0 1px #ffffff17 inset,0 10px 28px #0006!important;backdrop-filter:blur(18px) saturate(135%)}
       :root.soft98-pro-theme [data-soft98-pro-nav-item]{transition:background .16s ease,box-shadow .16s ease,color .16s ease!important}
       :root.soft98-pro-theme [data-soft98-pro-nav-item]:is(:hover,:focus-visible,[aria-expanded=true]){box-shadow:0 1px #ffffff24 inset,0 -2px color-mix(in srgb,var(--s98p-accent) 64%,transparent) inset!important}
       :root.soft98-pro-theme [data-soft98-pro-header-icon] > :not([data-soft98-pro-page-icon]):not([data-soft98-pro-nav-indicator]){display:none!important}
@@ -1410,11 +1409,10 @@
       :root.soft98-pro-light [data-soft98-pro-surface=tab-list]{background:var(--s98p-bg-2)!important}
       :root.soft98-pro-light :is([role=tab][aria-selected=true],[data-toggle=tab][aria-expanded=true],[data-soft98-pro-tab-active=true],[aria-current=page]){background:var(--s98p-surface-2)!important;color:var(--s98p-text)!important;border-color:var(--s98p-control-edge)!important}
       :root.soft98-pro-light [data-soft98-pro-surface=nav-shell]{background:#f1f8f7ed!important;box-shadow:0 7px 22px #153d4d20!important}
-      :root.soft98-pro-light [data-soft98-pro-nav-chrome]{box-shadow:0 1px #fffb inset,0 6px 22px #18343e18!important}
       :root.soft98-pro-light :is([data-soft98-pro-surface=menu],[data-soft98-pro-surface=megamenu]){background:linear-gradient(145deg,#fffffff5,#e9f3f3f2)!important;border-color:var(--s98p-border-soft)!important;box-shadow:0 16px 38px #16334229,0 1px #fff inset!important}
       :root.soft98-pro-light :is([data-soft98-pro-surface=menu],[data-soft98-pro-surface=megamenu]) :is(a,button):is(:hover,:focus-visible){background:var(--s98p-soft)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border-soft)!important}
-      :root.soft98-pro-light :is(button,[role=button],input[type=button],input[type=submit]):not(#soft98-pro-control *,[data-soft98-pro-footer] *,.list-group-item-light,[data-soft98-pro-help-action]){background:var(--s98p-control-bg)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border)!important}
-      :root.soft98-pro-light :is(button,[role=button]):not(#soft98-pro-control *,[data-soft98-pro-footer] *,.list-group-item-light,[data-soft98-pro-help-action]):is(:hover,:focus-visible){background:var(--s98p-control-hover)!important;color:var(--s98p-text)!important;border-color:var(--s98p-control-edge)!important}
+      :root.soft98-pro-light :is(button,[role=button],input[type=button],input[type=submit]):not(#soft98-pro-control *,[data-soft98-pro-footer] *,.list-group-item-light,[data-soft98-pro-help-action],[data-s98p-topbar-toggle],:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li > :is(a,button)){background:var(--s98p-control-bg)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border)!important}
+      :root.soft98-pro-light :is(button,[role=button]):not(#soft98-pro-control *,[data-soft98-pro-footer] *,.list-group-item-light,[data-soft98-pro-help-action],[data-s98p-topbar-toggle],:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li > :is(a,button)):is(:hover,:focus-visible){background:var(--s98p-control-hover)!important;color:var(--s98p-text)!important;border-color:var(--s98p-control-edge)!important}
       :root.soft98-pro-light :is(dt,dd){background:var(--s98p-bg-2)!important;border-color:var(--s98p-border-soft)!important}
       :root.soft98-pro-light dd:nth-child(odd){background:var(--s98p-surface-2)!important}
       :root.soft98-pro-light [data-soft98-pro-download-group] a[data-soft98-pro-icon-host=download]:is(:hover,:focus-visible){color:#06554e!important}
@@ -1488,6 +1486,8 @@
 
   function applyInteractiveSurfaceHeuristics() {
     const candidates = new Set();
+    const topbar = document.querySelector('nav:has([data-toggle="night-mode"]),header nav');
+    if (topbar) markTopbar(topbar);
     for (const navigation of document.querySelectorAll("nav,[role=navigation]")) {
       const shell = navigation.parentElement;
       if (!shell || shell === document.body) continue;
@@ -1528,7 +1528,8 @@
       for (const candidate of owner.querySelectorAll("div,ul,ol,section")) candidates.add(candidate);
     }
     for (const candidate of candidates) {
-      if (candidate.closest("#soft98-pro-control")) continue;
+      if (candidate.matches("[data-s98p-topbar-shell],[data-s98p-topbar-drawer],[data-s98p-topbar-actions],[data-s98p-topbar-categories]") ||
+          candidate.closest("#soft98-pro-control")) continue;
       const style = getComputedStyle(candidate);
       if (!/absolute|fixed/.test(style.position) && !candidate.matches("[role=menu],[role=listbox]")) continue;
       const interactive = candidate.querySelectorAll("a[href],button,[role=menuitem]").length;
@@ -1546,6 +1547,39 @@
       }
     }
     applyTabSurfaceHeuristics();
+  }
+
+  function markTopbar(nav) {
+    nav.setAttribute("data-soft98-pro-nav-chrome", "");
+    nav.setAttribute("data-soft98-pro-wide-nav", "");
+    const shell = [nav, nav.parentElement].find((node) => node && /^(?:fixed|sticky)$/.test(getComputedStyle(node).position)) || nav;
+    shell.setAttribute("data-s98p-topbar-shell", "");
+    const brand = nav.querySelector(':scope > a[rel~="home"], :scope > [data-soft98-brand-compact]');
+    brand?.setAttribute("data-s98p-topbar-brand", "");
+    const setStructure = (node, name) => {
+      if (!node) return;
+      node.setAttribute("data-s98p-topbar-" + name, "");
+      if (node.hasAttribute("data-soft98-pro-menu")) {
+        for (const key of ["surface", "menu", "mega-frame", "menu-column"]) node.removeAttribute("data-soft98-pro-" + key);
+      }
+    };
+    const actions = nav.querySelector('[data-toggle="night-mode"],[data-toggle="search"]')?.closest("ul,ol");
+    setStructure(actions, "actions");
+    for (const toggle of nav.querySelectorAll(":scope > button[aria-controls], :scope > button[data-target]")) {
+      const id = toggle.getAttribute("aria-controls") || toggle.getAttribute("data-target")?.replace(/^#/, "");
+      const panel = id && document.getElementById(id);
+      if (panel?.parentElement !== nav) continue;
+      const categories = [...panel.querySelectorAll("ul,ol")].find((group) => group !== actions &&
+        [...group.children].filter((item) => item.querySelector(":scope > a[href], :scope > button")).length >= 2);
+      if (!categories) continue;
+      setStructure(panel, "drawer");
+      setStructure(categories, "categories");
+      toggle.setAttribute("data-s98p-topbar-toggle", "");
+    }
+    for (const group of nav.querySelectorAll(":scope > ul,:scope > ol")) {
+      if (group === actions || group.childElementCount < 2 || !group.querySelector(":scope > li > a[href]")) continue;
+      setStructure(group, "categories");
+    }
   }
 
   function organizeMegamenu(menu) {
