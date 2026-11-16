@@ -392,6 +392,11 @@ async function verifyTopbar(client) {
     await run("scrollTo(0, 600)");
     check("shell stays fixed at the top", await run('document.querySelector("[data-s98p-topbar-shell]").getBoundingClientRect().top'), 0);
     check("shell has no top border", await run('getComputedStyle(document.querySelector("[data-s98p-topbar-shell]")).borderTopWidth'), "0px");
+    check("shell uses the established dark palette without tinting the page underneath", await run(`(() => {
+      const style = getComputedStyle(document.querySelector("[data-s98p-topbar-shell]"));
+      return style.backgroundImage.startsWith("linear-gradient(165deg,") &&
+        style.getPropertyValue("--s98p-topbar-base").trim() === "#0a1116" && style.backdropFilter === "none";
+    })()`), true);
     check("inner navigation has no independent background or shadow", await run(`(() => {
       const style = getComputedStyle(document.querySelector("nav"));
       return style.backgroundImage === "none" && style.backgroundColor === "rgba(0, 0, 0, 0)" && style.boxShadow === "none";
@@ -400,12 +405,26 @@ async function verifyTopbar(client) {
     check("plain and dropdown labels share the same baseline", await run(`(() => {
       const center = (selector) => {
         const range = document.createRange();
-        range.selectNodeContents(document.querySelector(selector));
+        range.selectNodeContents(document.querySelector(selector).firstChild);
         const box = range.getBoundingClientRect();
         return (box.top + box.bottom) / 2;
       };
-      return Math.abs(center(".desktop-link") - center("#category-bar button")) < 2;
+      return Math.abs(center(".desktop-link") - center(".desktop-dropdown")) < 2;
     })()`), true);
+    const chevronPosition = (selector) => run(`(() => {
+      const trigger = document.querySelector(${JSON.stringify(selector)});
+      const icon = trigger.querySelector("[data-s98p-topbar-chevron][aria-hidden=true] svg");
+      if (!icon) return false;
+      const button = trigger.getBoundingClientRect();
+      const glyph = icon.getBoundingClientRect();
+      const range = document.createRange();
+      range.selectNodeContents(trigger.firstChild);
+      const text = range.getBoundingClientRect();
+      return glyph.width === 15 && Math.abs(glyph.top + glyph.bottom - button.top - button.bottom) < 2 &&
+        (getComputedStyle(trigger).direction === "rtl" ? glyph.right <= text.left : glyph.left >= text.right) &&
+        getComputedStyle(trigger, "::after").content === "none";
+    })()`);
+    check("desktop chevron is inline and replaces the stock pseudo-element", await chevronPosition(".desktop-dropdown"), true);
     check("desktop preserves the hidden mobile counterpart", await run('getComputedStyle(document.querySelector(".compact-link")).display'), "none");
     await resize(992, 780);
     check("mid-width desktop navigation does not run into the actions", await run(`(() => {
@@ -422,6 +441,7 @@ async function verifyTopbar(client) {
     await run('document.querySelector("[data-s98p-topbar-toggle]").click(); window.Soft98Pro.scan()');
     await delay(200);
     check("drawer is not styled as a megamenu", await run('document.querySelector("#category-bar").hasAttribute("data-soft98-pro-menu")'), false);
+    check("compact chevron is inline even when the menu is expanded", await chevronPosition(".compact-dropdown"), true);
     const controls = `(() => {
       const elements = [document.querySelector("[data-s98p-topbar-toggle]"), document.querySelector("[data-s98p-topbar-brand]"),
         ...document.querySelectorAll("#actions button")];

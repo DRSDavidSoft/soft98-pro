@@ -1,26 +1,23 @@
 :root.soft98-pro-theme {
   --s98p-topbar-height: 58px;
-  --s98p-topbar-bg: color-mix(in srgb,#14232a 96%,transparent);
-  --s98p-topbar-line: #2c4249;
-  --s98p-topbar-hover: #233840;
-  --s98p-topbar-active: #29443f;
-  --s98p-topbar-shadow: 0 7px 20px #0004;
+  --s98p-topbar-base: #0a1116;
+  --s98p-topbar-bg: linear-gradient(165deg,
+    color-mix(in srgb,var(--s98p-elevated) 92%,var(--s98p-topbar-base)),
+    color-mix(in srgb,var(--s98p-nav) 85%,var(--s98p-topbar-base)));
+  --s98p-topbar-line: var(--s98p-border-soft);
+  --s98p-topbar-hover: var(--s98p-soft);
+  --s98p-topbar-active: var(--s98p-elevated);
+  --s98p-topbar-shadow: 0 10px 28px #0006;
 }
 
 :root.soft98-pro-light {
-  --s98p-topbar-bg: color-mix(in srgb,#f7fbff 96%,transparent);
-  --s98p-topbar-line: #c4d9e6;
-  --s98p-topbar-hover: #e8f2fb;
-  --s98p-topbar-active: #d8eee9;
-  --s98p-topbar-shadow: 0 6px 18px #24476018;
+  --s98p-topbar-base: #f8fbff;
+  --s98p-topbar-shadow: 0 8px 28px #2b61af22;
 }
 
 :root.soft98-pro-rgb {
-  --s98p-topbar-bg: color-mix(in srgb,#101518 96%,transparent);
-  --s98p-topbar-line: #323c3e;
-  --s98p-topbar-hover: #242a2e;
-  --s98p-topbar-active: #252e2d;
-  --s98p-topbar-shadow: 0 7px 20px #0007;
+  --s98p-topbar-base: #060708;
+  --s98p-topbar-shadow: 0 16px 46px #0009;
 }
 
 :root.soft98-pro-theme [data-s98p-topbar-shell] {
@@ -29,7 +26,7 @@
   border-block-end: 1px solid var(--s98p-topbar-line) !important;
   border-radius: 0 !important;
   box-shadow: var(--s98p-topbar-shadow) !important;
-  backdrop-filter: blur(16px) saturate(120%);
+  backdrop-filter: none !important;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-nav-chrome] {
@@ -93,6 +90,7 @@
 }
 
 :root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-categories] {
+  --s98p-topbar-label-height: 40px;
   align-items: center;
   gap: 2px !important;
   border: 0 !important;
@@ -141,7 +139,9 @@
   padding-inline: 9px !important;
   font-family: inherit;
   font-size: .875rem;
-  line-height: 40px !important;
+  min-block-size: var(--s98p-topbar-label-height);
+  block-size: var(--s98p-topbar-label-height);
+  line-height: var(--s98p-topbar-label-height) !important;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-actions] > li > :is(a,button) svg {
@@ -176,24 +176,40 @@
   block-size: 2px;
 }
 
-:root.soft98-pro-theme [data-s98p-topbar-categories] > li > :is(a,button) > [data-soft98-pro-nav-indicator] {
-  display: none !important;
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-categories] > li > :is(a,button):has(> [data-s98p-topbar-chevron]) {
+  padding-inline-end: 25px !important;
 }
 
-:root.soft98-pro-theme [data-s98p-topbar-categories] > li:has(> :is([data-soft98-pro-nav-dropdown],[data-toggle="dropdown"],[aria-haspopup="menu"])) > :is(a,button)::after {
-  content: "" !important;
+:root.soft98-pro-theme [data-s98p-topbar-categories] > li > :is(a,button):has(> [data-s98p-topbar-chevron])::after {
+  content: none !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-categories] > li > :is(a,button) > [data-s98p-topbar-chevron] {
   position: absolute;
-  display: block !important;
-  inset: auto 0 4px !important;
-  inline-size: 5px;
-  block-size: 5px;
-  margin: 0 auto !important;
-  border: 0 !important;
-  border-right: 1px solid var(--s98p-faint) !important;
-  border-bottom: 1px solid var(--s98p-faint) !important;
-  background: none !important;
-  transform: rotate(45deg);
+  display: grid;
+  place-items: center;
+  inset-block: 0;
+  inset-inline: auto 7px;
+  inline-size: 15px;
+  block-size: 15px;
+  margin-block: auto;
+  color: var(--s98p-faint);
+  background: transparent !important;
   pointer-events: none;
+}
+
+[data-s98p-topbar-chevron] svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+:root.soft98-pro-theme [data-s98p-topbar-categories] > li > :is(a,button):is(:hover,:focus-visible,[aria-expanded=true]) > [data-s98p-topbar-chevron] {
+  color: var(--s98p-text);
+}
+
+:root.soft98-pro-theme [data-s98p-topbar-categories] > li > [aria-expanded=true] > [data-s98p-topbar-chevron] {
+  rotate: 180deg;
 }
 
 :root.soft98-pro-rgb [data-soft98-pro-nav-chrome] :is([data-s98p-topbar-toggle],[data-s98p-topbar-actions] > li > :is(a,button),
@@ -208,21 +224,9 @@
 
 @media (min-width: 992px) and (max-width: 1199px) {
   :root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-categories] {
+    --s98p-topbar-label-height: 27px;
     flex-wrap: wrap;
     row-gap: 0 !important;
-  }
-  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-categories] > li > :is(a,button) {
-    min-block-size: 27px;
-    block-size: 27px;
-    line-height: 27px !important;
-  }
-  :root.soft98-pro-theme [data-s98p-topbar-categories] > li:has(> :is([data-soft98-pro-nav-dropdown],[data-toggle="dropdown"],[aria-haspopup="menu"])) > :is(a,button) {
-    padding-inline-end: 17px !important;
-  }
-  :root.soft98-pro-theme [data-s98p-topbar-categories] > li:has(> :is([data-soft98-pro-nav-dropdown],[data-toggle="dropdown"],[aria-haspopup="menu"])) > :is(a,button)::after {
-    inset: calc(50% - 4px) auto auto !important;
-    inset-inline-end: 6px !important;
-    margin: 0 !important;
   }
 }
 

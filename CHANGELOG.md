@@ -16,7 +16,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
-- Unified the sticky header across screen sizes and themes, and stopped the category drawer from receiving megamenu styling.
+- Unified the sticky header without changing the previous palette, aligned the navigation labels with the new inline chevrons, and kept the category drawer separate from megamenus.
 
 - Restored downloads in Chrome when the site left the list clipped to zero height.
 - Replaced legacy gray article callouts with the Pro palette.

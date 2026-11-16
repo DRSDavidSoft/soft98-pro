@@ -1562,6 +1562,7 @@
       if (node.hasAttribute("data-soft98-pro-menu")) {
         for (const key of ["surface", "menu", "mega-frame", "menu-column"]) node.removeAttribute("data-soft98-pro-" + key);
       }
+      if (name === "categories") markCategoryChevrons(node);
     };
     const actions = nav.querySelector('[data-toggle="night-mode"],[data-toggle="search"]')?.closest("ul,ol");
     setStructure(actions, "actions");
@@ -1579,6 +1580,23 @@
     for (const group of nav.querySelectorAll(":scope > ul,:scope > ol")) {
       if (group === actions || group.childElementCount < 2 || !group.querySelector(":scope > li > a[href]")) continue;
       setStructure(group, "categories");
+    }
+  }
+
+  function markCategoryChevrons(group) {
+    const dropdown = '[data-toggle="dropdown"],[aria-haspopup="menu"],[aria-haspopup="true"]';
+    for (const item of group.children) {
+      if (!item.querySelector(`:scope > :is(${dropdown},[role="menu"])`)) continue;
+      // Some categories use a different trigger on desktop and in the compact drawer.
+      for (const control of item.querySelectorAll(":scope > :is(a[href],button)")) {
+        const indicator = control.querySelector(":scope > [data-soft98-pro-nav-indicator]") || document.createElement("span");
+        if (indicator.hasAttribute("data-s98p-topbar-chevron")) continue;
+        indicator.setAttribute("data-soft98-pro-nav-indicator", "");
+        indicator.setAttribute("data-s98p-topbar-chevron", "");
+        indicator.setAttribute("aria-hidden", "true");
+        indicator.innerHTML = PAGE_ICONS.chevronDown;
+        if (!indicator.parentElement) control.append(indicator);
+      }
     }
   }
 

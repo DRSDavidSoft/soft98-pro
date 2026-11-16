@@ -9,16 +9,17 @@
   nav ul { display: flex; list-style: none; padding: 0; }
   nav > button { display: none; }
   nav li > a, nav li > button { display: inline-flex; align-items: center; }
-  #category-bar .desktop-link { display: block; }
-  #category-bar .compact-link { display: none; }
+  #category-bar :is(.desktop-link,.desktop-dropdown) { display: block; }
+  #category-bar :is(.compact-link,.compact-dropdown) { display: none; }
+  #category-bar .desktop-dropdown::after { content: "legacy triangle"; }
   #category-bar [role=menu] { position: absolute; inset-block-start: 100%; inline-size: 270px; min-height: 55px; }
   nav .brand { min-inline-size: 85px; }
   @media (max-width: 991px) {
     nav > button { display: inline-flex; }
     #category-bar { position: fixed; inset-block-start: 59px; inset-inline-start: 0; width: 280px; min-height: 200px; }
     #category-bar > ul { display: grid; }
-    #category-bar .desktop-link { display: none; }
-    #category-bar .compact-link { display: block; }
+    #category-bar :is(.desktop-link,.desktop-dropdown) { display: none; }
+    #category-bar :is(.compact-link,.compact-dropdown) { display: block; }
     nav > button[aria-expanded=false] ~ #category-bar { visibility: hidden; pointer-events: none; }
   }
 </style>
@@ -29,7 +30,8 @@
       <a class="brand" rel="home" href="/">Soft98</a>
       <div id="category-bar"><ul>
         <li><a class="desktop-link" href="/software">Software</a><a class="compact-link" href="/software">Software</a></li>
-        <li><button type="button" data-toggle="dropdown" aria-haspopup="menu" aria-expanded="true">Systems</button>
+        <li><a class="desktop-dropdown" href="/systems">Systems</a>
+          <button class="compact-dropdown" type="button" data-toggle="dropdown" aria-haspopup="menu" aria-expanded="true">Systems</button>
           <div role="menu"><a href="/windows">Windows</a> <a href="/mac">macOS</a></div>
         </li>
         <li><a href="/mobile">Mobile</a></li>
