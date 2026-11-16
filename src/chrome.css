@@ -519,7 +519,8 @@
 
 :root.soft98-pro-theme dialog[data-s98p-download-confirm] {
   inset: 0;
-  inline-size: min(400px, calc(100vw - 28px));
+  box-sizing: border-box;
+  inline-size: min(420px, calc(100vw - 28px));
   max-block-size: calc(100dvh - 28px);
   margin: auto;
   padding: 0;
@@ -530,9 +531,44 @@
   box-shadow: 0 18px 56px #0005;
 }
 :root.soft98-pro-theme dialog[data-s98p-download-confirm]::backdrop { background: #08101869; backdrop-filter: blur(6px); }
-:root.soft98-pro-theme dialog[data-s98p-download-confirm] form { padding: 18px; }
-:root.soft98-pro-theme dialog[data-s98p-download-confirm] h2 { margin: 0 0 10px; font-size: 1.1rem; }
-:root.soft98-pro-theme dialog[data-s98p-download-confirm] p { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 0; }
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] > form { margin: 0; padding: 0; }
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] > form > header {
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  border-block-end: 1px solid var(--s98p-border-soft);
+  background: linear-gradient(180deg,var(--s98p-elevated),var(--s98p-surface-2)) !important;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] [data-s98p-download-confirm-mark] {
+  display: grid;
+  place-items: center;
+  inline-size: 34px;
+  block-size: 34px;
+  border: 1px solid color-mix(in srgb,var(--s98p-link) 32%,var(--s98p-border-soft));
+  border-radius: 6px;
+  background: color-mix(in srgb,var(--s98p-link) 9%,var(--s98p-surface-2));
+  color: var(--s98p-link) !important;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] h2 {
+  min-inline-size: 0;
+  margin: 0;
+  color: var(--s98p-text) !important;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] p {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 14px 16px;
+  color: var(--s98p-text) !important;
+}
 :root.soft98-pro-theme dialog[data-s98p-download-confirm] bdi {
   padding: 3px 8px;
   border: 1px solid var(--s98p-border-soft);
@@ -540,14 +576,24 @@
   background: var(--s98p-surface-2);
   font-variant-numeric: tabular-nums;
 }
-:root.soft98-pro-theme dialog[data-s98p-download-confirm] footer { display: flex; flex-wrap: wrap; justify-content: end; gap: 8px; margin-block-start: 16px; }
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] > form > footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 16px;
+  border-block-start: 1px solid var(--s98p-border-soft);
+  background: color-mix(in srgb,var(--s98p-surface-2) 56%,var(--s98p-surface)) !important;
+}
 :root.soft98-pro-theme dialog[data-s98p-download-confirm] button {
+  appearance: none !important;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
   min-inline-size: 58px;
-  min-block-size: 36px;
+  min-block-size: 38px;
   margin: 0 !important;
   padding: 6px 12px;
   border: 1px solid var(--s98p-border) !important;
@@ -555,17 +601,45 @@
   background: var(--s98p-surface-2) !important;
   color: var(--s98p-text) !important;
   box-shadow: none !important;
+  text-shadow: none !important;
   font: inherit;
+  font-weight: 650;
+  line-height: 1.35;
+  cursor: pointer;
 }
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] button:hover { background: var(--s98p-soft) !important; }
 :root.soft98-pro-theme dialog[data-s98p-download-confirm] button:focus-visible {
   outline: 2px solid var(--s98p-accent) !important;
   outline-offset: 2px;
 }
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] button[data-s98p-download-confirm-close] {
+  display: grid;
+  place-items: center;
+  min-inline-size: 0;
+  min-block-size: 0;
+  inline-size: 38px;
+  block-size: 38px;
+  padding: 0;
+  color: var(--s98p-muted) !important;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] button[data-s98p-download-confirm-close]:is(:hover,:focus-visible) {
+  color: var(--s98p-text) !important;
+}
 :root.soft98-pro-theme dialog[data-s98p-download-confirm] [data-s98p-download-confirm-start] {
-  background: color-mix(in srgb, var(--s98p-accent) 18%, var(--s98p-surface)) !important;
+  background: color-mix(in srgb,var(--s98p-accent) 15%,var(--s98p-surface)) !important;
+  border-color: color-mix(in srgb,var(--s98p-accent) 55%,var(--s98p-border)) !important;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] [data-s98p-download-confirm-start]:hover {
+  background: color-mix(in srgb,var(--s98p-accent) 24%,var(--s98p-surface)) !important;
   border-color: var(--s98p-accent) !important;
 }
-:root.soft98-pro-theme dialog[data-s98p-download-confirm] button svg { inline-size: 16px; block-size: 16px; }
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] :is(button,[data-s98p-download-confirm-mark]) svg {
+  display: block;
+  inline-size: 17px;
+  block-size: 17px;
+  flex: none;
+  pointer-events: none;
+}
 
 :root.soft98-pro-theme [data-soft98-pro-download-group] > [data-s98p-rating] {
   display: block !important;

@@ -42,6 +42,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Restyled article quotes, warnings, and secondary notices to match the Pro themes.
 - Fixed FAQ expand arrows and themed the answer checkmark.
 - Put download section actions beside their titles, with adjustable layouts and button labels, remembered collapse state, and confirmation before starting small bulk downloads.
+- Styled the Download All confirmation header and action buttons and added a close control.
 
 ### Removed
 

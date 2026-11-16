@@ -269,6 +269,40 @@ async function verifyFileActions(client) {
   await until('document.querySelector("dialog[data-s98p-download-confirm][open]")');
   const confirmed = 'fileActionsFixture.messages.filter(message=>message.type==="soft98:confirm-download-all")';
   check("small Download All waits for explicit approval", await run(`${confirmed}.length`), 0);
+  check("the dialog has a labeled header, centered close icon, and matching action buttons", await run(`(() => {
+    const dialog=document.querySelector("dialog[data-s98p-download-confirm]");
+    const title=dialog.querySelector("header h2"), close=dialog.querySelector("header button");
+    const bounds=close.getBoundingClientRect(), glyph=close.querySelector("svg").getBoundingClientRect();
+    const footer=[...dialog.querySelectorAll("footer button")].map(button=>getComputedStyle(button));
+    const rect=dialog.getBoundingClientRect();
+    const center=(a,b,start,size)=>Math.abs(a[start]+a[size]/2-b[start]-b[size]/2)<.75;
+    const correctSide=()=>dialog.dir==="rtl" ? close.getBoundingClientRect().right<title.getBoundingClientRect().left :
+      close.getBoundingClientRect().left>title.getBoundingClientRect().right;
+    const rtl=correctSide();
+    const direction=dialog.dir;
+    dialog.dir="ltr";
+    const ltr=correctSide();
+    dialog.dir=direction;
+    return dialog.getAttribute("aria-labelledby")===title.id && getComputedStyle(title.parentElement).borderBottomWidth==="1px" &&
+      close.type==="button" && Boolean(close.getAttribute("aria-label")) && center(bounds,glyph,"left","width") &&
+      center(bounds,glyph,"top","height") && rtl && ltr && rect.left>=0 && rect.right<=innerWidth &&
+      footer.every(style=>style.appearance==="none" && style.boxShadow==="none" && style.backgroundColor!=="rgb(39, 39, 39)") &&
+      footer[0].height===footer[1].height && footer[0].backgroundColor!==footer[1].backgroundColor &&
+      document.activeElement.value==="cancel";
+  })()`), true);
+  await run('Soft98Pro.configure({darkDesign:false},{sync:false})');
+  await until('document.documentElement.classList.contains("soft98-pro-light")');
+  check("light mode does not override the dialog's action hierarchy", await run(`(() => {
+    const [cancel,start]=[...document.querySelectorAll("dialog[data-s98p-download-confirm] footer button")].map(n=>getComputedStyle(n));
+    return cancel.backgroundImage==="none" && start.backgroundImage==="none" && cancel.backgroundColor!==start.backgroundColor &&
+      cancel.borderColor!==start.borderColor;
+  })()`), true);
+  await run('Soft98Pro.configure({darkDesign:true},{sync:false})');
+  await click('[data-s98p-download-confirm-close]');
+  await until('!document.querySelector("dialog[data-s98p-download-confirm]")');
+  check("closing from the header does not start the download", await run(`${confirmed}.length`), 0);
+  await click(section);
+  await until('document.querySelector("dialog[data-s98p-download-confirm][open]")');
   await click('dialog[data-s98p-download-confirm] button[value="cancel"]');
   await until('!document.querySelector("dialog[data-s98p-download-confirm]")');
   check("cancelling never sends a start request", await run(`${confirmed}.length`), 0);

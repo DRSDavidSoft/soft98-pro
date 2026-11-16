@@ -1431,8 +1431,8 @@
       :root.soft98-pro-light [data-soft98-pro-surface=nav-shell]{background:#f1f8f7ed!important;box-shadow:0 7px 22px #153d4d20!important}
       :root.soft98-pro-light :is([data-soft98-pro-surface=menu],[data-soft98-pro-surface=megamenu]){background:linear-gradient(145deg,#fffffff5,#e9f3f3f2)!important;border-color:var(--s98p-border-soft)!important;box-shadow:0 16px 38px #16334229,0 1px #fff inset!important}
       :root.soft98-pro-light :is([data-soft98-pro-surface=menu],[data-soft98-pro-surface=megamenu]) :is(a,button):is(:hover,:focus-visible){background:var(--s98p-soft)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border-soft)!important}
-      :root.soft98-pro-light:not([data-s98p-ld-page]) :is(button,[role=button],input[type=button],input[type=submit]):not(#soft98-pro-control *,[data-soft98-pro-footer] *,.list-group-item-light,[data-soft98-pro-help-action],[data-s98p-topbar-toggle],:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li > :is(a,button)){background:var(--s98p-control-bg)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border)!important}
-      :root.soft98-pro-light:not([data-s98p-ld-page]) :is(button,[role=button]):not(#soft98-pro-control *,[data-soft98-pro-footer] *,.list-group-item-light,[data-soft98-pro-help-action],[data-s98p-topbar-toggle],:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li > :is(a,button)):is(:hover,:focus-visible){background:var(--s98p-control-hover)!important;color:var(--s98p-text)!important;border-color:var(--s98p-control-edge)!important}
+      :root.soft98-pro-light:not([data-s98p-ld-page]) :is(button,[role=button],input[type=button],input[type=submit]):not(#soft98-pro-control *,[data-soft98-pro-footer] *,[data-s98p-download-confirm] *,.list-group-item-light,[data-soft98-pro-help-action],[data-s98p-topbar-toggle],:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li > :is(a,button)){background:var(--s98p-control-bg)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border)!important}
+      :root.soft98-pro-light:not([data-s98p-ld-page]) :is(button,[role=button]):not(#soft98-pro-control *,[data-soft98-pro-footer] *,[data-s98p-download-confirm] *,.list-group-item-light,[data-soft98-pro-help-action],[data-s98p-topbar-toggle],:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li > :is(a,button)):is(:hover,:focus-visible){background:var(--s98p-control-hover)!important;color:var(--s98p-text)!important;border-color:var(--s98p-control-edge)!important}
       :root.soft98-pro-light :is(dt,dd){background:var(--s98p-bg-2)!important;border-color:var(--s98p-border-soft)!important}
       :root.soft98-pro-light dd:nth-child(odd){background:var(--s98p-surface-2)!important}
       :root.soft98-pro-light [data-soft98-pro-download-group] a[data-soft98-pro-icon-host=download]:is(:hover,:focus-visible){color:#06554e!important}
@@ -3327,13 +3327,23 @@
       dialog.setAttribute("aria-describedby", "soft98-pro-download-confirm-summary");
       const values = { count: new Intl.NumberFormat(LOCALE).format(count) };
       dialog.innerHTML = `<form method="dialog">
-        <h2 id="soft98-pro-download-confirm-title">${escapeHtml(text("downloadConfirmTitle"))}</h2>
-        <p id="soft98-pro-download-confirm-summary">${escapeHtml(text(count === 1 ? "downloadConfirmSingle" : "downloadConfirmCount", values))}
+        <header>
+          <span data-s98p-download-confirm-mark aria-hidden="true">${PAGE_ICONS.folder}</span>
+          <h2 id="soft98-pro-download-confirm-title">${escapeHtml(text("downloadConfirmTitle"))}</h2>
+          <button type="button" data-s98p-download-confirm-close aria-label="${escapeHtml(text("close"))}">${PAGE_ICONS.close}</button>
+        </header>
+        <p id="soft98-pro-download-confirm-summary"><span>${escapeHtml(text(count === 1 ? "downloadConfirmSingle" : "downloadConfirmCount", values))}</span>
           <bdi dir="ltr">${escapeHtml(downloadByteLabel(total))}</bdi>
         </p>
-        <footer><button value="cancel" autofocus>${escapeHtml(text("downloadConfirmCancel"))}</button>
-          <button value="start" data-s98p-download-confirm-start>${PAGE_ICONS.download}${escapeHtml(text("downloadConfirmStart"))}</button></footer>
+        <footer>
+          <button type="submit" value="cancel" autofocus>${escapeHtml(text("downloadConfirmCancel"))}</button>
+          <button type="submit" value="start" data-s98p-download-confirm-start>${PAGE_ICONS.download}${escapeHtml(text("downloadConfirmStart"))}</button>
+        </footer>
       </form>`;
+      const close = dialog.querySelector("[data-s98p-download-confirm-close]");
+      close.firstElementChild.setAttribute("aria-hidden", "true");
+      close.addEventListener("click", () => dialog.close("cancel"));
+      dialog.querySelector("[data-s98p-download-confirm-start] svg").setAttribute("aria-hidden", "true");
       dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
       dialog.addEventListener("close", () => dialog.remove(), { once: true });
       document.body.append(dialog);
