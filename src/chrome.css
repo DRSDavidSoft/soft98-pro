@@ -12,7 +12,7 @@
 
 :root.soft98-pro-light {
   --s98p-topbar-bg: var(--s98p-day-paper);
-  --s98p-topbar-active: var(--s98p-day-action-wash);
+  --s98p-topbar-active: var(--s98p-day-hover);
   --s98p-topbar-shadow: var(--s98p-day-shadow);
 }
 
@@ -1246,7 +1246,7 @@
   transition: none !important;
   animation: s98p-dialog-tint-in .18s ease-out both;
 }
-:root.soft98-pro-light { --s98p-dialog-shade: #21342759; }
+:root.soft98-pro-light { --s98p-dialog-shade: #22222659; }
 /* Keep the backdrop's blurred layer fully composited; fade only its tint. */
 @keyframes s98p-dialog-tint-in {
   from { background-color: color-mix(in srgb,var(--s98p-dialog-shade,#060a1080) 42%,transparent); }
@@ -1621,7 +1621,7 @@
   --s98p-control-bg: var(--s98p-surface);
   --s98p-control-hover: var(--s98p-soft);
   --s98p-control-edge: var(--s98p-border);
-  --s98p-control-shadow: 0 1px 2px #21372012;
+  --s98p-control-shadow: 0 1px 2px #22222612;
 }
 
 :root.soft98-pro-light [data-soft98-pro-surface="nav-shell"]:not([data-s98p-topbar-shell]) {
@@ -1686,12 +1686,12 @@
 }
 
 :root.soft98-pro-light article > :is([data-soft98-pro-article-header],[data-soft98-pro-article-meta]) {
-  --s98p-article-band: var(--s98p-day-action-wash);
-  --s98p-heading-mark: var(--s98p-day-action);
+  --s98p-article-band: var(--s98p-day-raised);
+  --s98p-heading-mark: var(--s98p-day-info);
 }
 
 :root.soft98-pro-light article > [data-soft98-pro-article-header] :is(h1,h2,h3,a) {
-  color: var(--s98p-day-action-hover) !important;
+  color: var(--s98p-text) !important;
 }
 
 :root.soft98-pro-light [data-soft98-pro-heading-divider]::before {
@@ -1700,12 +1700,12 @@
 }
 
 :root.soft98-pro-light [data-soft98-pro-utility-card] > [data-soft98-pro-utility-header] {
-  background: var(--s98p-day-action-wash) !important;
+  background: var(--s98p-day-raised) !important;
   border-color: var(--s98p-border-soft) !important;
 }
 
 :root.soft98-pro-light [data-soft98-pro-tech-news] [data-soft98-pro-latest-header="news"] {
-  background: var(--s98p-day-warning-wash) !important;
+  background: var(--s98p-day-raised) !important;
 }
 
 :root.soft98-pro-light [data-soft98-pro-tech-news] [data-soft98-pro-news-title] > [data-soft98-pro-page-icon] {
@@ -2238,12 +2238,12 @@
 
 :root.soft98-pro-light [data-soft98-pro-related] > header {
   --s98p-heading-mark: var(--s98p-day-related);
-  background: var(--s98p-day-related-wash) !important;
+  background: var(--s98p-day-raised) !important;
 }
 
 :root.soft98-pro-light [data-s98p-download-rail] > header {
   --s98p-heading-mark: var(--s98p-day-success);
-  background: var(--s98p-day-success-wash) !important;
+  background: var(--s98p-day-raised) !important;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-related] > :is(ul,ol) {

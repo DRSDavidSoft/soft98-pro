@@ -1655,7 +1655,7 @@
       :root.soft98-pro-light [data-soft98-pro-latest] li a[data-soft98-pro-news-link] [data-soft98-pro-news-counter]{color:var(--s98p-faint)!important}
       :root.soft98-pro-light :is(pre,code){background:var(--s98p-bg-2)!important;color:var(--s98p-text)!important}
       :root.soft98-pro-light ::selection{background:var(--s98p-day-action-wash);color:var(--s98p-text)}
-      :root.soft98-pro-light [data-soft98-pro-dialog-panel]{box-shadow:0 20px 60px #20352036,0 1px #fff inset!important}
+      :root.soft98-pro-light [data-soft98-pro-dialog-panel]{box-shadow:0 20px 60px #22222636,0 1px #fff inset!important}
       @media(max-width:560px){:root.soft98-pro-theme [data-soft98-pro-nav-item=icon]{width:clamp(32px,9vw,40px);margin-inline:1px}}
       @media(max-width:560px){:root.soft98-pro-theme [data-soft98-pro-surface=tab-list]{gap:2px 4px;padding-inline:6px!important}:root.soft98-pro-theme [data-soft98-pro-surface=tab-list]>:is(li,div){flex:1 1 calc(50% - 4px)!important}:root.soft98-pro-theme [data-soft98-pro-surface=tab-list] :is([role=tab],[data-toggle=tab]){width:100%!important;padding-inline:7px!important}}
       @keyframes soft98-pro-neon{to{--s98p-neon-hue:515deg}}

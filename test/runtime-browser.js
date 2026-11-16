@@ -1102,6 +1102,23 @@ async function verifyAppearanceBridge(client) {
     check("the default palette and light theme can be restored", await evaluate(client, `
       !document.documentElement.hasAttribute("data-s98p-accent") &&
       document.documentElement.classList.contains("soft98-pro-light")`));
+    check("light surfaces stay neutral while semantic colors remain distinct and readable", await evaluate(client, `(() => {
+      const style = getComputedStyle(document.documentElement);
+      const value = name => style.getPropertyValue("--s98p-day-" + name).trim();
+      const rgb = hex => hex.slice(1).match(/../g).map(component => parseInt(component, 16));
+      const luminance = hex => rgb(hex).map(component => component / 255).map(channel =>
+        channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4)
+        .reduce((sum, channel, index) => sum + channel * [.2126, .7152, .0722][index], 0);
+      const neutral = ["canvas", "paper", "field", "raised", "hover", "line", "edge"].every(name => {
+        const channels = rgb(value(name));
+        return Math.max(...channels) - Math.min(...channels) <= 12;
+      });
+      const roles = ["action", "info", "success", "warning", "danger", "related"];
+      const contrast = roles.every(role => (luminance(value(role + "-wash")) + .05) / (luminance(value(role)) + .05) >= 4.5);
+      const center = getComputedStyle(document.getElementById("soft98-pro-control"));
+      return neutral && contrast && new Set(roles.map(value)).size === roles.length &&
+        center.getPropertyValue("--c-bg").trim() === value("field");
+    })()`));
   } finally {
     if (previous !== undefined) await evaluate(client, previous === null ? 'localStorage.removeItem("soft98-ad-blocker.settings")' :
       `localStorage.setItem("soft98-ad-blocker.settings", ${JSON.stringify(previous)})`);
@@ -1242,7 +1259,7 @@ async function verifyThemeRestore(client) {
       check(mode + " uses one solid fill across the article title and metadata", await run(`(() => {
         const styles = ["[data-soft98-pro-article-header]","[data-soft98-pro-article-meta]"]
           .map(selector => getComputedStyle(document.querySelector(selector)));
-        return styles.every(style => style.backgroundImage === "none" && style.backgroundColor === "rgb(227, 241, 219)");
+        return styles.every(style => style.backgroundImage === "none" && style.backgroundColor === "rgb(245, 245, 247)");
       })()`), true);
       check(mode + " gives alert types distinct, readable colors", await run(`(() => {
         const styles = ["warning","danger","success"].map(kind => getComputedStyle(document.querySelector(".alert-" + kind)));
@@ -1250,14 +1267,14 @@ async function verifyThemeRestore(client) {
           .map(channel => channel / 255).map(level => level <= .04045 ? level / 12.92 : ((level + .055) / 1.055) ** 2.4)
           .reduce((total, level, index) => total + level * [.2126,.7152,.0722][index], 0);
         const colors = styles.map(style => style.color);
-        return colors.join("|") === "rgb(137, 80, 10)|rgb(164, 51, 63)|rgb(8, 112, 66)" &&
+        return colors.join("|") === "rgb(137, 80, 10)|rgb(165, 46, 69)|rgb(10, 107, 70)" &&
           new Set(styles.map(style => style.backgroundColor)).size === 3 &&
           styles.every(style => (luminance(style.backgroundColor) + .05) / (luminance(style.color) + .05) >= 4.5);
       })()`), true);
       await until(`(() => {
         const link = document.querySelector("#downloads dd > a");
         const label = link?.querySelector("[data-soft98-pro-download-title]");
-        return label && getComputedStyle(label).color === "rgb(8, 112, 66)";
+        return label && getComputedStyle(label).color === "rgb(10, 107, 70)";
       })()`);
       check(mode + " retains the download URL", await run('document.querySelector("#downloads dd > a").href'), "https://files.example.test/AnyDesk.zip");
       await run(`document.querySelector('[role=tab][href="#requirements"]').click(); document.getElementById("stock-draft").value = "Keep this draft";`);
