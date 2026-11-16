@@ -2354,8 +2354,8 @@
 :root.soft98-pro-light [data-soft98-pro-footer] {
   --foot-action: var(--s98p-day-action);
   --foot-action-ink: var(--s98p-day-paper);
-  --foot-crest: var(--s98p-day-action-wash);
-  --foot-crest-ink: var(--s98p-day-action);
+  --foot-crest: var(--s98p-day-raised);
+  --foot-crest-ink: #313a3f;
 }
 
 :root.soft98-pro-rgb [data-soft98-pro-footer] {

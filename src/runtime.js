@@ -1639,6 +1639,7 @@
       :root.soft98-pro-theme [data-soft98-pro-heading-divider]::before{content:""!important;position:absolute!important;inset-inline-start:0!important;inset-block-start:50%!important;transform:translateY(-50%)!important;width:4px!important;height:1.15em!important;border:0!important;border-radius:3px!important;background:linear-gradient(180deg,var(--s98p-link),color-mix(in srgb,var(--s98p-link) 40%,var(--s98p-border)))!important;box-shadow:0 0 8px color-mix(in srgb,var(--s98p-link) 15%,transparent)!important;pointer-events:none!important}
       :root.soft98-pro-light{background:var(--s98p-bg)!important}
       :root.soft98-pro-light body{background:var(--s98p-bg)!important}
+      :root.soft98-pro-light:not([data-s98p-ld-page]),:root.soft98-pro-light:not([data-s98p-ld-page]) body{background:var(--s98p-day-site-backdrop)!important}
       :root.soft98-pro-light :is(h1,h2,h3,h4,h5,h6,strong){color:var(--s98p-text)!important}
       :root.soft98-pro-light a:hover{color:var(--s98p-day-info-hover)!important}
       :root.soft98-pro-light :is(article,aside,[role=dialog],[role=menu],[role=listbox],[data-soft98-pro-surface=raised]){background:var(--s98p-surface)!important;box-shadow:var(--s98p-day-shadow)}
@@ -5329,9 +5330,10 @@
 
   function applyLogo(candidate) {
     const logo = candidate.node;
-    const dark = settings.pro && (settings.darkDesign || settings.rgbMode);
-    const variant = settings.pirateLogo ? (dark ? "pirateDark" : "light") :
-      `stock${candidate.compact ? "Compact" : ""}${dark ? "Dark" : "Light"}`;
+    // The full masthead sits on the site's steel-blue backdrop even in light mode.
+    const darkBackdrop = !candidate.compact || settings.darkDesign || settings.rgbMode;
+    const variant = settings.pirateLogo ? (darkBackdrop ? "pirateDark" : "light") :
+      `stock${candidate.compact ? "Compact" : ""}${darkBackdrop ? "Dark" : "Light"}`;
     const source = BRAND_ASSETS[variant];
     if (!source) return;
     const branded = logo.getAttribute("data-soft98-brand-variant") === variant;

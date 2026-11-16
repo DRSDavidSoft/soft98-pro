@@ -17,6 +17,7 @@
 :root[data-s98p-accent] #soft98-pro-control[data-theme="light"] { --c-accent: var(--s98p-choice-light); }
 [data-theme="light"]:is(:root,#soft98-pro-control),
 :root.soft98-pro-light {
+  --s98p-day-site-backdrop: #437593;
   --s98p-day-canvas: #f1f1f3;
   --s98p-day-paper: #ffffff;
   --s98p-day-field: #fafafb;
@@ -27,9 +28,9 @@
   --s98p-day-faint: #62646e;
   --s98p-day-line: #dedee4;
   --s98p-day-edge: #898a94;
-  --s98p-day-action: #52399c;
-  --s98p-day-action-hover: #402781;
-  --s98p-day-action-wash: #eeeafa;
+  --s98p-day-action: #315c76;
+  --s98p-day-action-hover: #23475d;
+  --s98p-day-action-wash: #e7f0f5;
   --s98p-day-success: #0a6b46;
   --s98p-day-success-wash: #e5f5ec;
   --s98p-day-info: #1e5a8a;
@@ -39,7 +40,7 @@
   --s98p-day-warning-wash: #fff0d6;
   --s98p-day-danger: #a52e45;
   --s98p-day-danger-wash: #fcebef;
-  --s98p-day-related: #764668;
-  --s98p-day-related-wash: #f6edf4;
+  --s98p-day-related: #32616a;
+  --s98p-day-related-wash: #e8f2f3;
   --s98p-day-shadow: 0 8px 24px #2222260d, 0 1px 3px #22222612;
 }
