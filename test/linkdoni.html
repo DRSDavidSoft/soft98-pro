@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<meta charset="utf-8">
+<title>Linkdoni test</title>
+<link rel="stylesheet" href="/src/linkdoni.css">
+<style>
+  #old-site { max-width: 1100px; margin: 0 auto; background: white; }
+  #banner { height: 265px; background: url("/stock-banner.png"); }
+  #banner h1 a { display: block; text-indent: -9999px; }
+</style>
+<div id="old-site"><div class="changing-shell"><div class="changing-frame">
+  <header id="banner">
+    <h1><a href="/">Stock Linkdoni</a></h1>
+    <div><form action="/test/linkdoni.html">
+      <input name="story" value="Search words" title="Search words"><input type="submit" value="">
+      <input type="hidden" name="do" value="search">
+    </form></div>
+  </header>
+  <div>
+    <section><ul>
+      <li><a href="/link-42.html" target="_blank">بررسی دستگاه جدید با پردازنده Core Ultra</a><span>1405-08-23</span></li>
+      <li><a href="/link-41.html">خبر دیگری از Firefox</a><span>1405-08-23</span></li>
+      <li><a href="/link-40.html">Android به‌روز شد</a><span>1405-08-22</span></li>
+    </ul></section>
+    <div><div><span>1</span><a href="/page/2/">2</a><a href="/page/3/">3</a></div></div>
+  </div>
+</div></div></div>
+<script src="/src/linkdoni.js"></script>
+<script>
+  let dark = true;
+  const icon = '<svg viewBox="0 0 24 24"><path d="M1 1h10"/></svg>';
+  const icons = Object.fromEntries(["rss","search","external","home","moon","sun","chevron","chevronRight"].map(name => [name, icon]));
+  const fixture = Soft98Linkdoni.create(document, {
+    icons, locale: "fa", text: (key, values) => values ? values.count + " لینک" : key,
+    changeTheme: () => {
+      dark = !dark;
+      document.documentElement.classList.toggle("soft98-pro-light", !dark);
+      fixture.sync({ enabled: true, dark });
+    },
+  });
+  fixture.sync({ enabled: true, dark });
+  window.restoreLinkdoni = () => fixture.sync({ enabled: false, dark });
+</script>
+</html>

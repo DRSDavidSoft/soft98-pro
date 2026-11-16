@@ -535,6 +535,53 @@ async function verifyTopbar(client) {
   }
 }
 
+async function verifyLinkdoni(client) {
+  const run = expression => evaluate(client, expression);
+  await client.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 850, deviceScaleFactor: 1, mobile: false });
+  await client.send("Page.navigate", { url: `http://127.0.0.1:${PORT}/test/linkdoni.html` });
+  try {
+    for (let attempt = 0; attempt < 35; attempt++) {
+      if (await run('Boolean(document.querySelector("[data-s98p-ld-story]"))').catch(() => false)) break;
+      if (attempt === 34) throw new Error("Linkdoni fixture did not load");
+      await delay(80);
+    }
+    const check = (label, actual) => assertEqual("Linkdoni", label, actual, true);
+    check("preserves original story links, targets, and ordered dates", await run(`(() => {
+      const links = [...document.querySelectorAll("[data-s98p-ld-story]")];
+      return links.map(a => a.getAttribute("href")).join(",") === "/link-42.html,/link-41.html,/link-40.html" &&
+        links[0].target === "_blank" && document.querySelectorAll("[data-s98p-ld-date-group]").length === 2;
+    })()`));
+    check("preserves the searchable form and real page links", await run(`(() => {
+      const input = document.querySelector("[data-s98p-ld-query]");
+      input.value = "Linux";
+      const values = new FormData(input.form);
+      return values.get("story") === "Linux" && values.get("do") === "search" &&
+        input.form.getAttribute("action") === "/test/linkdoni.html" &&
+        document.querySelector("[data-s98p-ld-pages] a").getAttribute("href") === "/page/2/";
+    })()`));
+    check("centers the feed independently of the original wrapper width", await run(`(() => {
+      const box = document.querySelector("[data-s98p-ld-frame]").getBoundingClientRect();
+      return Math.abs(box.left + box.right - document.documentElement.clientWidth) < 2;
+    })()`));
+    const storyBackground = 'getComputedStyle(document.querySelector("[data-s98p-ld-story]")).backgroundColor';
+    const darkBackground = await run(storyBackground);
+    await run('document.querySelector("[data-s98p-ld-actions] button").click()');
+    await delay(210);
+    check("theme toggle changes the visible feed color", await run(storyBackground) !== darkBackground &&
+      await run('document.documentElement.classList.contains("soft98-pro-light")'));
+    await client.send("Emulation.setDeviceMetricsOverride", { width: 375, height: 780, deviceScaleFactor: 1, mobile: false });
+    check("search and story rows fit on mobile", await run(`(() => {
+      const nodes = [...document.querySelectorAll("[data-s98p-ld-story],[data-s98p-ld-query],[data-s98p-ld-action]")];
+      return nodes.every(e => { const r=e.getBoundingClientRect();return r.width > 0 && r.left >= 0 && r.right <= innerWidth; });
+    })()`));
+    await run('restoreLinkdoni()');
+    check("stock branding is restored when disabled", await run(`getComputedStyle(document.querySelector("[data-s98p-ld-brand-original]")).display !== "none" &&
+      getComputedStyle(document.querySelector("[data-s98p-ld-identity]")).display === "none"`));
+  } finally {
+    await client.send("Emulation.clearDeviceMetricsOverride");
+  }
+}
+
 async function faviconPixel(client) {
   const href = await evaluate(client, "document.getElementById('soft98-pro-favicon')?.href");
   if (!href?.startsWith("data:image/png;base64,")) throw new Error("Missing Soft98 Pro favicon PNG");
@@ -828,7 +875,10 @@ async function main() {
               return b.width >= 15 && Math.abs(a.left+a.width/2-b.left-b.width/2) < 1 &&
                 Math.abs(a.top+a.height/2-b.top-b.height/2) < 1;
             });
-            return { initial, click, rtl, focused, home, centered, shortcuts:shortcuts.length };
+            const actions = shortcuts[0].closest("[data-soft98-pro-news-actions]");
+            const toolbar = actions.closest('[data-soft98-pro-latest-header="news"]');
+            const leftAligned = actions.getBoundingClientRect().left - toolbar.getBoundingClientRect().left < 16;
+            return { initial, click, rtl, focused, home, centered, leftAligned, shortcuts:shortcuts.length };
           })()
         `);
         for (const [step, index] of [["initial", 0], ["click", 1], ["rtl", 2], ["home", 0]]) {
@@ -837,6 +887,7 @@ async function main() {
         assertEqual("latest-tabs", "keyboard focus", latest.focused, true);
         assertEqual("news", "shortcut count", latest.shortcuts, 5);
         assertEqual("news", "shortcut SVG centers", latest.centered, true);
+        assertEqual("news", "shortcut group is left-aligned", latest.leftAligned, true);
         const previewLinks = await evaluate(client, `
           (async () => {
             const trigger = document.querySelector('[data-test=article-preview-trigger]');
@@ -1225,6 +1276,7 @@ async function main() {
     await verifyDownloadManager(client);
     await verifyWideLayout(client);
     await verifyTopbar(client);
+    await verifyLinkdoni(client);
     console.log("Soft98 runtime browser acceptance passed");
   } finally {
     if (client) client.close();

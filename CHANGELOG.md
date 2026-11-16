@@ -15,6 +15,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Added independently collapsible news panels and adaptive side columns for related posts and downloads.
 - Added category icons to the sticky header and redesigned its menus to match the rest of Soft98 Pro.
 - Kept the full download box in the article even when a second copy appears in the sidebar.
+- Redesigned Linkdoni with light and dark themes and a date-grouped archive, retaining its original search and article links.
 
 ### Fixed
 
@@ -26,6 +27,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Removed repeated download rules and separated the dialog backdrop fade from the panel entrance.
 - Matched the sidebar cards and updated download controls, tooltips, and user ratings.
 - Restored download links from the article's own data when the site leaves them unresolved after a reload.
+- Left-aligned the technology news share buttons.
 
 ### Removed
 

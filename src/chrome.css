@@ -693,12 +693,18 @@
 }
 
 :root.soft98-pro-theme [data-soft98-pro-tech-news] [data-soft98-pro-latest-header="news"] {
-  justify-content: space-between;
+  display: grid !important;
+  grid-template-columns: auto auto minmax(0,1fr);
+  grid-template-areas: "shares collapse title";
+  direction: ltr;
   gap: 8px;
   padding-inline: 10px !important;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-tech-news] [data-soft98-pro-news-title] {
+  grid-area: title;
+  justify-self: end;
+  direction: rtl;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -720,13 +726,20 @@
 }
 
 :root.soft98-pro-theme [data-soft98-pro-tech-news] [data-soft98-pro-news-actions] {
+  grid-area: shares;
+  justify-self: start;
   display: flex !important;
   flex-wrap: wrap;
-  justify-content: end;
+  justify-content: flex-start;
   gap: 3px;
   padding: 0 !important;
   margin: 0 !important;
   list-style: none;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-tech-news] [data-s98p-news-toggle] {
+  grid-area: collapse;
+  margin-inline: 0 !important;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-news-actions] li {

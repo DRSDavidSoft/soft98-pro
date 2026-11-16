@@ -1,0 +1,393 @@
+@font-face {
+  font-family: "Linkdoni Vazirmatn";
+  src: url("__SOFT98_LINKDONI_FONT__") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+  unicode-range: U+0600-06FF,U+0750-077F,U+0870-08FF,U+200C-200F,U+FB50-FDFF,U+FE70-FEFF;
+}
+
+:root[data-s98p-ld-page] {
+  --ld-bg: #0c1219;
+  --ld-panel: #141e28;
+  --ld-field: #101923;
+  --ld-hover: #1a2c36;
+  --ld-ink: #ecf2f8;
+  --ld-muted: #adbac9;
+  --ld-line: #30414d;
+  --ld-accent: #79dfbb;
+  --ld-mark: #f9ba7c;
+  --ld-mark-bg: #322a29;
+}
+
+:root[data-s98p-ld-page].soft98-pro-light {
+  --ld-bg: #edf5f5;
+  --ld-panel: #fff;
+  --ld-field: #f6fafb;
+  --ld-hover: #eef8f6;
+  --ld-ink: #142933;
+  --ld-muted: #4e6470;
+  --ld-line: #cbdde1;
+  --ld-accent: #087b65;
+  --ld-mark: #9a4d0d;
+  --ld-mark-bg: #ffefd9;
+}
+
+:root[data-s98p-ld-page].soft98-pro-rgb { --ld-accent: var(--s98p-accent); }
+
+:root[data-s98p-ld-page] body {
+  background: var(--ld-bg) !important;
+  color: var(--ld-ink) !important;
+  font: 400 15px/1.6 "Linkdoni Vazirmatn",system-ui,Tahoma,sans-serif !important;
+  margin: 0 !important;
+}
+
+:root[data-s98p-ld-page] :is([data-s98p-ld-wrap],[data-s98p-ld-frame],[data-s98p-ld-feed],[data-s98p-ld-entry-wrap]) {
+  box-sizing: border-box;
+  display: block;
+  float: none !important;
+  inline-size: auto;
+  min-inline-size: 0;
+  max-inline-size: none;
+  block-size: auto !important;
+  min-block-size: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+}
+
+:root[data-s98p-ld-page] [data-s98p-ld-wrap] {
+  inline-size: 100% !important;
+  max-inline-size: none !important;
+}
+
+:root[data-s98p-ld-page] [data-s98p-ld-frame] {
+  inline-size: min(1120px,calc(100% - 48px)) !important;
+  margin-inline: auto !important;
+  padding-block-end: 55px !important;
+}
+
+:root[data-s98p-ld-page] [data-s98p-ld-header] {
+  display: grid !important;
+  grid-template-columns: minmax(220px,1fr) minmax(0,320px) auto;
+  grid-template-areas: "brand search actions";
+  gap: 18px;
+  align-items: center;
+  position: relative;
+  block-size: auto !important;
+  min-block-size: 0 !important;
+  background: none !important;
+  border: 0 !important;
+  border-block-end: 1px solid var(--ld-line) !important;
+  padding: 24px 0 !important;
+  margin: 0 !important;
+}
+
+:root[data-s98p-ld-page] [data-s98p-ld-brand],
+:root[data-s98p-ld-page] [data-s98p-ld-search-host] {
+  position: static !important;
+  float: none !important;
+  inline-size: auto !important;
+  block-size: auto !important;
+  min-inline-size: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: none !important;
+}
+
+:root[data-s98p-ld-page] [data-s98p-ld-brand] { grid-area: brand; text-align: start !important; }
+
+:root[data-s98p-ld-page] [data-s98p-ld-brand] > a {
+  position: static !important;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 12px;
+  inline-size: auto !important;
+  block-size: auto !important;
+  background: none !important;
+  border: 0 !important;
+  color: var(--ld-ink) !important;
+  text-indent: 0 !important;
+  text-decoration: none;
+  overflow: visible !important;
+}
+
+:root[data-s98p-ld-page] [data-s98p-ld-brand] > a::before,
+:root[data-s98p-ld-page] [data-s98p-ld-brand] > a::after { content: none !important; }
+
+:root[data-s98p-ld-page] :is([data-s98p-ld-brand-original],[data-s98p-ld-empty]) { display: none !important; }
+
+[data-s98p-ld-mark] {
+  display: grid;
+  place-items: center;
+  inline-size: 50px;
+  block-size: 50px;
+  flex: none;
+  border-radius: 8px;
+  background: var(--ld-mark-bg);
+  color: var(--ld-mark) !important;
+}
+
+[data-s98p-ld-mark] svg { inline-size: 24px; block-size: 24px; }
+[data-s98p-ld-identity] { display: grid; gap: 1px; }
+[data-s98p-ld-brand-title] { color: var(--ld-ink) !important; font: 800 29px/1.17 "Linkdoni Vazirmatn",system-ui,sans-serif; }
+[data-s98p-ld-brand-caption] { color: var(--ld-accent) !important; font: 650 11px/1.5 system-ui,sans-serif; text-align: start; }
+
+:root[data-s98p-ld-page] [data-s98p-ld-search-host] { grid-area: search; display: block !important; }
+
+:root[data-s98p-ld-page] [data-s98p-ld-search] {
+  position: relative;
+  display: grid !important;
+  grid-template-columns: minmax(0,1fr) 42px;
+  gap: 0;
+  margin: 0 !important;
+}
+
+:root[data-s98p-ld-page] [data-s98p-ld-search] > div { display: none !important; }
+
+:root[data-s98p-ld-page] :is([data-s98p-ld-query],[data-s98p-ld-submit]) {
+  box-sizing: border-box;
+  float: none !important;
+  inline-size: 100% !important;
+  min-inline-size: 0 !important;
+  max-inline-size: 100% !important;
+  block-size: 42px !important;
+  margin: 0 !important;
+  border: 1px solid var(--ld-line) !important;
+  background: var(--ld-field) !important;
+  color: var(--ld-ink) !important;
+  font: inherit !important;
+}
+
+:root[data-s98p-ld-page] [data-s98p-ld-query] { border-radius: 0; border-start-start-radius: 7px; border-end-start-radius: 7px; padding-inline: 12px !important; }
+[data-s98p-ld-query]::placeholder { color: var(--ld-muted); opacity: 1; }
+:root[data-s98p-ld-page] [data-s98p-ld-submit] {
+  padding: 0 !important;
+  border-radius: 0;
+  border-start-end-radius: 7px;
+  border-end-end-radius: 7px;
+  border-inline-start: 0 !important;
+  background: var(--ld-hover) !important;
+  cursor: pointer;
+}
+[data-s98p-ld-submit-glyph] {
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-start: 0;
+  display: grid;
+  place-items: center;
+  inline-size: 42px;
+  block-size: 42px;
+  color: var(--ld-accent) !important;
+  pointer-events: none;
+}
+
+[data-s98p-ld-actions] { grid-area: actions; display: flex; align-items: center; gap: 6px; }
+[data-s98p-ld-icon], [data-s98p-ld-story-arrow] { display: inline-grid; place-items: center; flex: none; }
+[data-s98p-ld-icon] svg, [data-s98p-ld-submit-glyph] svg, [data-s98p-ld-story-arrow] svg { inline-size: 18px; block-size: 18px; }
+
+:root[data-s98p-ld-page] [data-s98p-ld-action] {
+  box-sizing: border-box;
+  display: grid !important;
+  place-items: center;
+  inline-size: 39px !important;
+  min-inline-size: 39px !important;
+  max-inline-size: 39px !important;
+  block-size: 39px !important;
+  padding: 0;
+  border: 1px solid var(--ld-line) !important;
+  border-radius: 7px;
+  background: var(--ld-panel) !important;
+  color: var(--ld-muted) !important;
+  cursor: pointer;
+}
+:root[data-s98p-ld-page] :is([data-s98p-ld-action],[data-s98p-ld-submit]):hover {
+  background: var(--ld-hover) !important;
+  color: var(--ld-accent) !important;
+}
+
+[data-s98p-ld-feed-heading] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 12px;
+  margin-block: 24px 12px;
+}
+:root[data-s98p-ld-page] [data-s98p-ld-feed-title] { margin: 0; color: var(--ld-ink) !important; font: 750 20px/1.45 "Linkdoni Vazirmatn",system-ui,sans-serif; }
+[data-s98p-ld-count] { color: var(--ld-muted) !important; font-size: 12px; }
+
+:root[data-s98p-ld-page] [data-s98p-ld-entry] {
+  display: block;
+  position: relative;
+  inline-size: auto;
+  block-size: auto !important;
+  float: none;
+  list-style: none;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: none !important;
+}
+
+:root[data-s98p-ld-page] [data-s98p-ld-entry]::before,
+:root[data-s98p-ld-page] [data-s98p-ld-story]::before { content: none !important; display: none !important; }
+
+[data-s98p-ld-date-group] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-block: 17px 8px;
+  color: var(--ld-accent) !important;
+  font-size: 12px;
+  font-weight: 760;
+}
+[data-s98p-ld-date-group]::after { content: ""; flex: 1; block-size: 1px; background: var(--ld-line); }
+
+:root[data-s98p-ld-page] [data-s98p-ld-story] {
+  box-sizing: border-box;
+  display: grid !important;
+  grid-template-columns: minmax(0,1fr) 24px;
+  align-items: center;
+  gap: 10px;
+  float: none !important;
+  inline-size: 100% !important;
+  block-size: auto !important;
+  min-block-size: 49px;
+  margin: 0 !important;
+  padding: 10px 14px !important;
+  border: 0 !important;
+  border-block-end: 1px solid var(--ld-line) !important;
+  border-radius: 0 !important;
+  background: var(--ld-panel) !important;
+  color: var(--ld-ink) !important;
+  font: 510 15px/1.65 "Linkdoni Vazirmatn",system-ui,Tahoma,sans-serif !important;
+  text-align: start !important;
+  text-decoration: none !important;
+  transition: background-color .16s ease,border-color .16s ease,color .16s ease;
+}
+[data-s98p-ld-story-title] { color: inherit !important; unicode-bidi: isolate; overflow-wrap: anywhere; }
+[data-s98p-ld-story-arrow] { color: var(--ld-muted) !important; }
+:root[data-s98p-ld-page] [data-s98p-ld-story]:is(:hover,:focus-visible) {
+  background: var(--ld-hover) !important;
+}
+[data-s98p-ld-story]:is(:hover,:focus-visible) [data-s98p-ld-story-arrow] { color: var(--ld-accent) !important; }
+:root[data-s98p-ld-page] [data-s98p-ld-date] {
+  position: absolute !important;
+  inline-size: 1px !important;
+  block-size: 1px !important;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+:root[data-s98p-ld-page] [data-s98p-ld-pagination] {
+  display: flex !important;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-block-start: 22px !important;
+  padding: 12px !important;
+  border: 1px solid var(--ld-line) !important;
+  border-radius: 8px;
+  background: var(--ld-panel) !important;
+}
+
+:root[data-s98p-ld-page] :is([data-s98p-ld-pages],[data-s98p-ld-arrows]) { display: flex !important; flex-wrap: wrap; align-items: center; float: none !important; gap: 4px; }
+:root[data-s98p-ld-page] :is([data-s98p-ld-pages],[data-s98p-ld-arrows]) :is(a,[aria-current]) {
+  display: inline-grid !important;
+  place-items: center;
+  min-inline-size: 34px;
+  min-block-size: 34px;
+  padding-inline: 7px;
+  border: 1px solid transparent !important;
+  border-radius: 6px;
+  color: var(--ld-ink) !important;
+  font: inherit;
+}
+:root[data-s98p-ld-page] [data-s98p-ld-arrows] > span,
+:root[data-s98p-ld-page] :is([data-s98p-ld-pages],[data-s98p-ld-arrows]) a { background: transparent !important; }
+:root[data-s98p-ld-page] [data-s98p-ld-arrows] :is(a > svg,span:not(:has(a))) { display: none !important; }
+:root[data-s98p-ld-page] [data-s98p-ld-arrows] [data-s98p-ld-icon] { display: inline-grid !important; }
+:root[data-s98p-ld-page] :is([data-s98p-ld-pages],[data-s98p-ld-arrows]) :is([aria-current],a:hover) {
+  border-color: var(--ld-line) !important;
+  background: var(--ld-hover) !important;
+  color: var(--ld-accent) !important;
+}
+
+:root[data-s98p-ld-page] [data-s98p-ld-details] > article {
+  margin: 0 0 16px !important;
+  padding: 0 !important;
+  background: var(--ld-panel) !important;
+  border: 1px solid var(--ld-line) !important;
+  border-radius: 8px;
+  color: var(--ld-ink) !important;
+  box-shadow: none !important;
+}
+:root[data-s98p-ld-page] [data-s98p-ld-details] > article > div { padding: 14px 16px !important; }
+:root[data-s98p-ld-page] [data-s98p-ld-details] :is(h2,h3,h4) {
+  margin: 0 0 10px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  font: 650 14px/1.5 "Linkdoni Vazirmatn",system-ui,sans-serif !important;
+}
+:root[data-s98p-ld-page] [data-s98p-ld-details] :is(table,td) {
+  max-inline-size: 100%;
+  padding: 0 !important;
+  border: 0 !important;
+}
+:root[data-s98p-ld-page] [data-s98p-ld-details] div:has(> input[name="story"]) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 !important;
+}
+[data-s98p-ld-details] div:has(> input[name="story"]) > br { display: none; }
+:root[data-s98p-ld-page] [data-s98p-ld-details] :is(input:not([type="hidden"]),button,select) {
+  box-sizing: border-box;
+  max-inline-size: 100%;
+  min-block-size: 36px;
+  min-inline-size: 0 !important;
+  padding-inline: 9px !important;
+  border: 1px solid var(--ld-line) !important;
+  border-radius: 6px;
+  background: var(--ld-field) !important;
+  color: var(--ld-ink) !important;
+  font: inherit !important;
+}
+:root[data-s98p-ld-page] [data-s98p-ld-details] :is(input[type="button"],button) { cursor: pointer; }
+:root[data-s98p-ld-page] [data-s98p-ld-result-summary] {
+  margin: 8px 0 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  color: var(--ld-muted) !important;
+}
+
+:root[data-s98p-ld-page] #soft98-pro-control [data-role="toggle"] { min-inline-size: 0 !important; max-inline-size: 42px !important; }
+
+:root[data-s98p-ld-page] [data-s98p-ld-frame] :is(a,button,input,select):focus-visible {
+  outline: 2px solid var(--ld-accent) !important;
+  outline-offset: 2px !important;
+}
+
+:root:not([data-s98p-ld-page]) :is([data-s98p-ld-mark],[data-s98p-ld-identity],[data-s98p-ld-actions],[data-s98p-ld-submit-glyph],[data-s98p-ld-feed-heading],[data-s98p-ld-date-group],[data-s98p-ld-story-arrow],[data-s98p-ld-icon]) { display: none !important; }
+
+@media (max-width: 720px) {
+  :root[data-s98p-ld-page] [data-s98p-ld-frame] { inline-size: calc(100% - 28px) !important; }
+  :root[data-s98p-ld-page] [data-s98p-ld-header] {
+    grid-template-columns: minmax(0,1fr) auto;
+    grid-template-areas: "brand actions" "search search";
+    gap: 10px;
+    padding-block: 13px !important;
+  }
+  [data-s98p-ld-mark] { inline-size: 42px; block-size: 42px; }
+  [data-s98p-ld-brand-title] { font-size: 23px; }
+  [data-s98p-ld-feed-heading] { margin-block-start: 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-s98p-ld-story] { transition: none !important; }
+}

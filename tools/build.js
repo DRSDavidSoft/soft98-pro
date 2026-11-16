@@ -55,12 +55,14 @@ Java Duke by Sun Microsystems (BSD-3-Clause); LeoMoon ParsiNegar artwork by LeoM
 Sources and license: https://github.com/DRSDavidSoft/soft98-pro/tree/main/src/assets/utility
 ${UTILITY_NOTICES.slice(1).map((file) => fs.readFileSync(path.join(UTILITY_ASSETS, file), "utf8").trim()).join("\n\n")}
 Platform marks belong to their respective owners.
+
+${fs.readFileSync(path.join(VAZIRMATN_ROOT, "LICENSE"), "utf8").trim().replace(/\r\n/g, "\n")}
 */`;
 const PAGE_ICONS = Object.fromEntries(Object.entries({
   windows: "filled/brand-windows", apple: "filled/brand-apple",
   devices: "outline/devices", download: "outline/download", link: "outline/link",
   info: "outline/info-circle", help: "outline/help-circle", lock: "outline/lock", check: "outline/check", close: "outline/x", plus: "outline/plus", minus: "outline/minus", star: "outline/star", starFill: "filled/star",
-  chevron: "outline/chevron-left", chevronDown: "outline/chevron-down", copy: "outline/copy", select: "outline/select-all", eye: "outline/eye",
+  chevron: "outline/chevron-left", chevronRight: "outline/chevron-right", chevronDown: "outline/chevron-down", copy: "outline/copy", select: "outline/select-all", eye: "outline/eye",
   archive: "outline/archive", web: "outline/world-www", remove: "outline/file-x",
   photo: "outline/photo", document: "outline/file-text", shield: "outline/shield",
   play: "outline/player-play", music: "outline/music", desktop: "outline/device-desktop",
@@ -167,6 +169,9 @@ function sourceReplacements(target) {
     __SOFT98_LISTING_NAVIGATION_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "listing-navigation.css"), "utf8")),
     __SOFT98_COMMENTS_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "comments.css"), "utf8")),
     __SOFT98_CHROME_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "chrome.css"), "utf8")),
+    __SOFT98_LINKDONI_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "linkdoni.css"), "utf8").replace(
+      "__SOFT98_LINKDONI_FONT__", "data:font/woff2;base64," +
+      fs.readFileSync(path.join(VAZIRMATN_ROOT, "files", "vazirmatn-arabic-wght-normal.woff2")).toString("base64"))),
     __SOFT98_EARLY_ADS_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "early-ads.css"), "utf8")),
     __SOFT98_NAME__: MESSAGES.locales.en.manifest.name,
     __SOFT98_DESCRIPTION__: MESSAGES.locales.en.manifest.description,
@@ -195,7 +200,7 @@ function copyFile(from, to) {
 }
 
 function runtimeSource(target) {
-  const modules = [PATCH_ENGINE, path.join(SRC, "listing-navigation.js"), path.join(SRC, "comments.js"), path.join(SRC, "download-links.js"), RUNTIME];
+  const modules = [PATCH_ENGINE, ...["listing-navigation", "comments", "download-links", "linkdoni"].map(name => path.join(SRC, name + ".js")), RUNTIME];
   return modules.map((file) => applyReplacements(fs.readFileSync(file, "utf8"), target)).join("\n");
 }
 

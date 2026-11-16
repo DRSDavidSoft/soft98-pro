@@ -32,6 +32,7 @@
   const LISTING_NAVIGATION_CSS = __SOFT98_LISTING_NAVIGATION_CSS__;
   const COMMENTS_CSS = __SOFT98_COMMENTS_CSS__;
   const CHROME_CSS = __SOFT98_CHROME_CSS__;
+  const LINKDONI_CSS = __SOFT98_LINKDONI_CSS__;
   const EARLY_ADS_CSS = __SOFT98_EARLY_ADS_CSS__;
   const comments = Soft98Comments.create(document);
   const SUCCESS_NOTICE_MS = 6000;
@@ -40,6 +41,10 @@
   const PatchEngine = globalThis.__Soft98PatchEngine;
   const LOCALE = preferredLocale();
   const RTL = LOCALE === "fa";
+  const linkdoni = location.hostname === "linkdoni.soft98.ir" ? Soft98Linkdoni.create(document, {
+    text, icons: PAGE_ICONS, locale: LOCALE,
+    changeTheme: () => writeSettings({ ...settings, darkDesign: !(settings.darkDesign || settings.rgbMode), rgbMode: false }),
+  }) : null;
   const STRINGS = CATALOG.locales;
   const DEFAULT_SETTINGS = {
     blockAds: true,
@@ -925,14 +930,15 @@
       ensureStyleIntegrity();
       for (const item of unique) processRoot(item);
       comments.sync({ enabled: settings.pro, text });
-      if (settings.pro) {
+      if (linkdoni) linkdoni.sync({ enabled: settings.pro, dark: settings.darkDesign || settings.rgbMode });
+      if (settings.pro && !linkdoni) {
         applyInteractiveSurfaceHeuristics();
         applyProLayoutHeuristics();
       }
-      if (settings.pro) {
+      if (settings.pro && !linkdoni) {
         applyPagePreferences();
         applySiteChrome();
-      } else {
+      } else if (!settings.pro) {
         document.documentElement.removeAttribute("data-soft98-pro-chrome");
         syncWideLayout();
         for (const state of newsPanels.values()) syncNewsPanel(state);
@@ -1406,8 +1412,8 @@
       :root.soft98-pro-light [data-soft98-pro-surface=nav-shell]{background:#f1f8f7ed!important;box-shadow:0 7px 22px #153d4d20!important}
       :root.soft98-pro-light :is([data-soft98-pro-surface=menu],[data-soft98-pro-surface=megamenu]){background:linear-gradient(145deg,#fffffff5,#e9f3f3f2)!important;border-color:var(--s98p-border-soft)!important;box-shadow:0 16px 38px #16334229,0 1px #fff inset!important}
       :root.soft98-pro-light :is([data-soft98-pro-surface=menu],[data-soft98-pro-surface=megamenu]) :is(a,button):is(:hover,:focus-visible){background:var(--s98p-soft)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border-soft)!important}
-      :root.soft98-pro-light :is(button,[role=button],input[type=button],input[type=submit]):not(#soft98-pro-control *,[data-soft98-pro-footer] *,.list-group-item-light,[data-soft98-pro-help-action],[data-s98p-topbar-toggle],:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li > :is(a,button)){background:var(--s98p-control-bg)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border)!important}
-      :root.soft98-pro-light :is(button,[role=button]):not(#soft98-pro-control *,[data-soft98-pro-footer] *,.list-group-item-light,[data-soft98-pro-help-action],[data-s98p-topbar-toggle],:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li > :is(a,button)):is(:hover,:focus-visible){background:var(--s98p-control-hover)!important;color:var(--s98p-text)!important;border-color:var(--s98p-control-edge)!important}
+      :root.soft98-pro-light:not([data-s98p-ld-page]) :is(button,[role=button],input[type=button],input[type=submit]):not(#soft98-pro-control *,[data-soft98-pro-footer] *,.list-group-item-light,[data-soft98-pro-help-action],[data-s98p-topbar-toggle],:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li > :is(a,button)){background:var(--s98p-control-bg)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border)!important}
+      :root.soft98-pro-light:not([data-s98p-ld-page]) :is(button,[role=button]):not(#soft98-pro-control *,[data-soft98-pro-footer] *,.list-group-item-light,[data-soft98-pro-help-action],[data-s98p-topbar-toggle],:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li > :is(a,button)):is(:hover,:focus-visible){background:var(--s98p-control-hover)!important;color:var(--s98p-text)!important;border-color:var(--s98p-control-edge)!important}
       :root.soft98-pro-light :is(dt,dd){background:var(--s98p-bg-2)!important;border-color:var(--s98p-border-soft)!important}
       :root.soft98-pro-light dd:nth-child(odd){background:var(--s98p-surface-2)!important}
       :root.soft98-pro-light [data-soft98-pro-download-group] a[data-soft98-pro-icon-host=download]:is(:hover,:focus-visible){color:#06554e!important}
@@ -4029,6 +4035,7 @@
   }
 
   function enhanceLogo() {
+    if (linkdoni) return;
     if ((!successAnnounced && !settings.pro) || !settings.pirateLogo) return restoreOriginalLogo();
     for (const logo of originalLogos.keys()) {
       if (!logo.isConnected) originalLogos.delete(logo);
@@ -5591,6 +5598,7 @@
     document.addEventListener("auxclick", showDownloadActivation, true);
     setPersistentStyle("soft98-pro-listing-style", LISTING_NAVIGATION_CSS);
     setPersistentStyle("soft98-pro-comments-style", COMMENTS_CSS);
+    if (linkdoni) setPersistentStyle("soft98-pro-linkdoni-style", LINKDONI_CSS);
     installSoft98ListingNavigation({
       enabled: () => settings.pro && settings.quickNavigation,
       fetchPage: nativeFetch,
