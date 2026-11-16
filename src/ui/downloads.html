@@ -54,7 +54,13 @@
       <section id="settings-view" class="settings" aria-labelledby="settings-title" hidden>
         <h2 id="settings-title" data-copy="settings"></h2>
         <div class="setting-row"><label for="limit" data-copy="parallel"></label><select id="limit" disabled></select></div>
-        <div class="setting-row"><label for="native-notifications" data-copy="nativeNotifications"></label><input id="native-notifications" type="checkbox" disabled></div>
+        <div class="setting-row">
+          <label for="native-notifications" data-copy="nativeNotifications"></label>
+          <div class="setting-actions">
+            <input id="native-notifications" type="checkbox" disabled>
+            <button id="test-notification" type="button"></button>
+          </div>
+        </div>
         <div class="setting-row"><label for="date-calendar" data-copy="dateCalendar"></label><select id="date-calendar" disabled></select></div>
         <div class="setting-row"><label for="table-direction" data-copy="tableDirection"></label><select id="table-direction" disabled></select></div>
         <div class="setting-row"><span data-copy="history"></span><button id="clear" type="button" disabled></button></div>

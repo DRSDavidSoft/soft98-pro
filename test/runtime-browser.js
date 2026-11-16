@@ -409,6 +409,7 @@ async function verifyDownloadManager(client) {
           metadata: { date: Date.UTC(2024, 10, 16) } },
       ] };
       window.managerCommands = [];
+      window.notificationReply = { ok: true };
       let externalAllowed = false;
       window.setManagerJob = (id, changes) => {
         Object.assign(state.jobs.find(job => job.id === id), changes);
@@ -429,6 +430,7 @@ async function verifyDownloadManager(client) {
         downloads: { open: async id => managerCommands.push({ action: "open-native", id }) },
         runtime: { sendMessage: async (message) => {
           managerCommands.push(message);
+          if (message.type === "soft98:test-download-notification") return notificationReply;
           if (message.type === "soft98:download-details") {
             const url = new URL(message.url);
             if (url.hostname === "external.example.test" && !externalAllowed) return { status: "permission", origin: url.origin + "/*" };
@@ -499,6 +501,15 @@ async function verifyDownloadManager(client) {
     check("Escape returns focus to the menu button", await run('document.activeElement.matches(".job-menu")'), true);
     await run('document.querySelector("#settings-tab").click()');
     check("settings are routed and separated from the queue", await run('location.hash === "#settings" && document.querySelector("#queue-view").hidden && document.querySelector("#settings-view #limit") !== null'), true);
+    const alertFeedback = 'document.getElementById("feedback")';
+    const sendTestAlert = 'document.getElementById("test-notification").click()';
+    await run(`${sendTestAlert}; ${sendTestAlert}`);
+    await until(`${alertFeedback}.textContent.startsWith("Test notification sent.")`);
+    check("only one test is sent while its request is pending", await run(
+      'managerCommands.filter(message => message.type === "soft98:test-download-notification").length'), 1);
+    check("a test does not change automatic alerts", await run('document.getElementById("native-notifications").checked'), true);
+    await run(`notificationReply = { ok: false, error: "notificationBlocked" }; ${sendTestAlert}`);
+    await until(`${alertFeedback}.textContent.startsWith("The browser is blocking notifications.") && ${alertFeedback}.dataset.error === "true"`);
     check("Help is in the sticky header and Telegram is not in the manager", await run(`Boolean(document.querySelector(".masthead button#open-guide svg")) &&
       !document.querySelector('a[href*="t.me/"]')`), true);
     await run('document.querySelector("#open-guide").click()');

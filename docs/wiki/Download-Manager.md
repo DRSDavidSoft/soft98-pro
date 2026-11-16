@@ -40,6 +40,6 @@ Tracked rows show the current state, transfer size, and remaining time when avai
 
 The **Wide-screen columns** setting is on by default. From 1280 CSS pixels, related posts can move to the left. On ultrawide screens (at least 1720 pixels and a 2:1 viewport, or 2200 pixels regardless of aspect ratio), a second download box appears on the right once Soft98 supplies its links. It fades in proportion to how much of the original is visible. Either box's **−** and **+** buttons update both copies. Narrowing the window or turning off Wide-screen columns removes the extra box.
 
-**Browser notifications** cover completion and downloads that need attention. They use the extension's background worker, so the manager does not need to stay open. Click a notification to open the corresponding queue entry. Turn them off in the manager, or control their delivery in your browser and system settings.
+**Browser notifications** cover completion and downloads that need attention. They use the extension's background worker, so the manager does not need to stay open. Click a notification to open the corresponding queue entry. Use **Settings → Send test notification** to check delivery even if automatic alerts are off. If no banner appears, check your browser and system notification settings.
 
 The screenshots show the actual packaged interface with sample files and local HEAD responses. To regenerate them in PowerShell, set `$env:SOFT98_DOWNLOAD_SCREENSHOTS='1'`, then run `npm run build` and `node test/runtime-browser.js`.

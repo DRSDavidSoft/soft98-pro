@@ -20,6 +20,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Added Download Manager settings, file-type icons, context menus, and a built-in guide. Completed files open from their names. The sticky header shows queue progress, and F2 focuses search.
 - Added relative dates for recent downloads and file updates, with an automatic, Solar Hijri, or Gregorian calendar setting.
 - Added the Download Manager to the extension toolbar. Article rows and the Control Center now show live progress, file sizes, and queue state.
+- Added a test button for browser notifications in Download Manager settings.
 
 ### Fixed
 

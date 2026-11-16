@@ -323,7 +323,7 @@ function copyUi(target) {
   if (JSON.stringify(Object.keys(catalog.en).sort()) !== JSON.stringify(Object.keys(catalog.fa).sort())) throw new Error("Download catalogs must have identical keys");
   const icons = Object.fromEntries(["download", "plus", "player-play", "player-pause", "x", "rotate-clockwise", "folder-open", "trash", "file-upload", "clipboard", "list-details", "settings", "dots", "external-link", "file", "file-zip", "file-text", "photo", "video", "music", "package", "link", "square-check", "square", "help-circle",
     "chevron-down", "tag", "database", "calendar", "grip-vertical", "sort-ascending", "sort-descending", "arrow-left", "arrow-right",
-    "file-type-pdf", "table", "presentation", "terminal-2", "disc", "code", "device-mobile", "lock-open"].map((name) => [name,
+    "file-type-pdf", "table", "presentation", "terminal-2", "disc", "code", "device-mobile", "lock-open", "bell"].map((name) => [name,
     fs.readFileSync(path.join(TABLER_ROOT, "icons", "outline", `${name}.svg`), "utf8")]));
   for (const file of ["options.html", "options.js", "styles.css"]) {
     const from = path.join(SRC, "ui", file);

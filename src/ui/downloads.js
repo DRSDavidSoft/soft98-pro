@@ -569,12 +569,26 @@
   }
   buttonContent($("hold"), "hold", "player-pause");
   buttonContent($("clear"), "clear", "trash");
+  buttonContent($("test-notification"), "testNotification", "bell");
   $("hold").addEventListener("click", event => {
     if (!event.currentTarget.hidden) void request("configure", { held: !state?.held });
   });
   $("limit").addEventListener("change", () => request("configure", { limit: Number($("limit").value) }));
   $("native-notifications").addEventListener("change", async (event) => {
     if (!await request("configure", { notifications: event.target.checked })) render();
+  });
+  $("test-notification").addEventListener("click", async ({ currentTarget: button }) => {
+    if (button.disabled) return;
+    button.disabled = true;
+    report(text("notificationSending"));
+    try {
+      const result = await send({ type: "soft98:test-download-notification" });
+      report(text(result?.ok ? "notificationSent" : result?.error || "notificationFailed"), !result?.ok);
+    } catch (_error) {
+      report(text("notificationFailed"), true);
+    } finally {
+      button.disabled = false;
+    }
   });
   $("clear").addEventListener("click", () => request("clear"));
   $("empty-action").addEventListener("click", () => {

@@ -87,13 +87,25 @@
       write: (state) => call(api.storage.local, "set", { [Soft98DownloadQueue.STORAGE_KEY]: state }),
     },
     downloads: Object.fromEntries(["search", "download", "pause", "resume", "cancel"].map((method) => [method, (...args) => call(api.downloads, method, ...args)])),
-    notify: (job) => call(api.notifications, "create", `soft98-download-${job.id}`, {
-      type: "basic",
-      iconUrl: api.runtime.getURL("assets/icon-128.png"),
-      title: text(job.status === "complete" ? "downloadNotificationComplete" : "downloadNotificationReview"),
-      message: (job.name || Soft98DownloadLinks.describe(job.url).name).slice(0, 160),
-    }),
+    notify: (job) => createDownloadNotification(`soft98-download-${job.id}`,
+      text(job.status === "complete" ? "downloadNotificationComplete" : "downloadNotificationReview"),
+      (job.name || Soft98DownloadLinks.describe(job.url).name).slice(0, 160)),
   });
+
+  function createDownloadNotification(id, title, message) {
+    return call(api.notifications, "create", id, {
+      type: "basic", iconUrl: api.runtime.getURL("assets/icon-128.png"), title, message,
+    });
+  }
+
+  async function testDownloadNotification() {
+    if (api.notifications.getPermissionLevel &&
+        await call(api.notifications, "getPermissionLevel") === "denied") {
+      return { ok: false, error: "notificationBlocked" };
+    }
+    await createDownloadNotification("soft98-download-test", text("downloadNotificationTestTitle"), text("downloadNotificationTestBody"));
+    return { ok: true };
+  }
 
   api.notifications.onClicked.addListener((id) => {
     const job = /^soft98-download-([a-f0-9-]{36})$/.exec(id)?.[1];
@@ -400,9 +412,13 @@
       sendResponse(pending && pending.expires > Date.now() ? { urls: pending.urls, source: pending.source } : null);
       return false;
     }
-    if (message.type === "soft98:download-details" || message.type === Soft98DownloadQueue.CHANNEL) {
+    if (["soft98:download-details", "soft98:test-download-notification", Soft98DownloadQueue.CHANNEL].includes(message.type)) {
       if (!Soft98DownloadQueue.trustedSender(sender, api.runtime.id, downloadPage) &&
           !Soft98DownloadQueue.trustedSender(sender, api.runtime.id, downloadPopup)) return false;
+      if (message.type === "soft98:test-download-notification") {
+        testDownloadNotification().then(sendResponse, () => sendResponse({ ok: false, error: "notificationFailed" }));
+        return true;
+      }
       if (message.type === "soft98:download-details") {
         inspectDownload(message.url).then(sendResponse, () => sendResponse({ status: "unavailable" }));
         return true;

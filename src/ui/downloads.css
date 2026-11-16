@@ -41,6 +41,7 @@ html { scroll-padding-block-start: 95px; }
 .setting-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; min-height: 54px; padding-block: 8px; border-block-start: 1px solid var(--line); }
 .setting-row select { min-width: 68px; }
 .setting-row input { width: 19px; height: 19px; }
+.setting-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .queue-header { margin-block-end: 14px; }
 #counts { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 6px 0 0; }
 #counts div { display: flex; align-items: baseline; gap: 5px; padding: 1px 7px; border: 1px solid var(--line); border-radius: 20px; font-size: 12px; }

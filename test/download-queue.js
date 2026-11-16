@@ -520,6 +520,18 @@ async function verifyNativeQueue(browser, chromium) {
     await evaluate("const limit = document.getElementById('limit'); limit.value = '2'; limit.dispatchEvent(new Event('change')); ");
     await until(() => evaluate(`return (typeof browser !== "undefined" ? browser : chrome).storage.local.get("soft98DownloadQueue")
       .then(({ soft98DownloadQueue }) => soft98DownloadQueue?.limit === 2)`), "configure works on the settings route");
+    await evaluate(`document.getElementById("native-notifications").click()`);
+    const automaticAlertsOff = () => evaluate(`return (typeof browser !== "undefined" ? browser : chrome).storage.local.get("soft98DownloadQueue")
+      .then(({ soft98DownloadQueue }) => soft98DownloadQueue?.notifications === false)`);
+    await until(automaticAlertsOff, "automatic alerts disabled");
+    await evaluate(`document.getElementById("test-notification").click()`);
+    await until(() => evaluate(`return (typeof browser !== "undefined" ? browser : chrome).notifications.getAll()
+      .then(active => Object.hasOwn(active, "soft98-download-test"))`), "native test notification registered while automatic alerts are off");
+    assert.equal(await automaticAlertsOff(), true);
+    assert.equal((await inspect()).length, 0, "test alerts must not create a download job");
+    await evaluate(`return (typeof browser !== "undefined" ? browser : chrome).notifications.clear("soft98-download-test")`);
+    await evaluate(`document.getElementById("native-notifications").click()`);
+    await until(async () => !await automaticAlertsOff(), "automatic alerts re-enabled");
     await evaluate(`document.getElementById("queue-tab").click()`);
     const submit = (urls, filename = "") => evaluate(`
       if (!document.getElementById("import").open) document.getElementById("open-import").click();
