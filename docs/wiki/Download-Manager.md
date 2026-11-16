@@ -22,6 +22,8 @@ Files such as `Artwork.part01.rar` and `Artwork.part02.rar` appear under one exp
 
 On a Soft98 article, use the row menu to queue, start, copy, or review one link, or the download icon beside a section heading to review the whole section. The original site link is unchanged. An article only shows a status badge when a file is actually tracked; the badge can show progress, completion, or a problem and opens the manager.
 
+The **Wide-screen columns** setting is on by default. From 1280 CSS pixels, related posts can move to the left. On ultrawide screens (at least 1720 pixels and a 2:1 viewport, or 2200 pixels regardless of aspect ratio), a supported download list moves to the right once Soft98 supplies its links. Use **Go to downloads** on the original tab to reach it. Narrowing the window or switching off Wide-screen columns restores the original placement.
+
 **Browser notifications** cover completion and downloads that need attention. They use the extension's background worker, so the manager does not need to stay open. Click a notification to open the corresponding queue entry. Turn them off in the manager, or control their delivery in your browser and system settings.
 
 The screenshots show the actual packaged interface with sample files and local HEAD responses. To regenerate them in PowerShell, set `$env:SOFT98_DOWNLOAD_SCREENSHOTS='1'`, then run `npm run build` and `node test/runtime-browser.js`.

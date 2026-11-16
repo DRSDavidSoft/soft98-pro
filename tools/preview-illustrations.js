@@ -21,6 +21,8 @@ const scenes = {
   pro: (on) => article(36, 53, on ? 133 : 184) + (on ? box(179, 53, 41, 63, "#235a51") + check(190, 80) + line("M186 101h27", colors.mint, 3) : ""),
   compactLayout: (on) => on ? article(36, 50, 112, 70) + box(156, 50, 64, 31) + box(156, 89, 64, 31) :
     box(36, 50, 129, 23) + box(73, 79, 147, 22) + box(36, 108, 103, 15),
+  wideColumns: (on) => on ? article(82, 50, 92, 70) + box(36, 50, 39, 48, colors.surface, colors.sky) +
+    box(181, 50, 39, 57, colors.surface, colors.mint) : article(61, 50, 134, 70),
   expandMain: (on) => article(36, 51, on ? 184 : 112, 71) +
     (on ? line("M169 111h36m-8-7 8 7-8 7", colors.mint, 2.5) : box(156, 51, 64, 71, "none", colors.border)),
   quickNavigation: (on) => on ? article(38, 54, 180, 65) + box(77, 70, 102, 34, "#163d47") +

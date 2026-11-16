@@ -14,6 +14,10 @@
         "darkDesign": "Modern dark design",
         "compactLayout": "Refined layout",
         "expandMain": "Widen article on scroll",
+        "wideRelated": "Related posts",
+        "wideDownloadsJump": "Go to downloads",
+        "expandNews": "Expand news",
+        "collapseNews": "Collapse news",
         "utilityTitle": "Useful software",
         "routeLoading": "Loading the software list…",
         "comments": {"title":"Discussion","empty":"No comments yet.","editorLabel":"Write your comment"},
@@ -108,6 +112,7 @@
             "title": "Refined content layout",
             "detail": "Reorganize primary content and supporting information responsively."
           },
+          "wideColumns": { "title": "Wide-screen columns", "detail": "Move related posts and downloads into side columns when there is room." },
           "expandMain": {
             "title": "Widen article on scroll",
             "detail": "Widen the article as you scroll past the sidebar."
@@ -222,6 +227,7 @@
           "pro": ["Soft98 Pro", "Enable the enhanced experience layer."],
           "darkDesign": ["Dark theme", "Switch between the Pro light and dark palettes. Pro tools stay on."],
           "compactLayout": ["Refined layout", "Organize semantic content and controls into a calmer responsive layout."],
+          "wideColumns": ["Wide-screen columns", "Use side columns for related posts and downloads on wider screens."],
           "expandMain": ["Widen article on scroll", "Widen the article as you scroll past the sidebar."],
           "utilityInHeader": ["Useful software in the top bar", "Move the utility list out of the sidebar and open it from the top bar."],
           "quickNavigation": ["Quick browsing", "Load software lists without reloading the page. Articles still open normally."],
@@ -248,6 +254,10 @@
         "darkDesign": "طراحی تیره مدرن",
         "compactLayout": "چیدمان بهبودیافته",
         "expandMain": "عریض‌شدن مطلب هنگام پیمایش",
+        "wideRelated": "مطالب مشابه",
+        "wideDownloadsJump": "رفتن به لیست دانلود",
+        "expandNews": "باز کردن اخبار",
+        "collapseNews": "جمع کردن اخبار",
         "utilityTitle": "لیست نرم‌افزارهای کاربردی",
         "routeLoading": "در حال بارگیری لیست نرم‌افزارها…",
         "comments": {"title":"گفت‌وگو","empty":"هنوز نظری ثبت نشده.","editorLabel":"نظرت رو بنویس"},
@@ -342,6 +352,7 @@
             "title": "چیدمان بهتر محتوا",
             "detail": "محتوای اصلی و اطلاعات جانبی را متناسب با اندازه صفحه مرتب می‌کند."
           },
+          "wideColumns": { "title": "ستون‌های نمایشگر عریض", "detail": "وقتی جا باشه، مطالب مشابه و دانلودها می‌رن توی ستون‌های کناری." },
           "expandMain": {
             "title": "عریض‌شدن مطلب هنگام پیمایش",
             "detail": "وقتی از ستون کناری رد شدی، مطلب از فضای خالی آن استفاده کند."
@@ -456,6 +467,7 @@
           "pro": ["امکانات پرو", "ظاهر و ابزارهای اضافهٔ سافت‌۹۸ پرو"],
           "darkDesign": ["دارک‌مود", "بین ظاهر روشن و تیره جابه‌جا شو. امکانات پرو فعال می‌مونن."],
           "compactLayout": ["چیدمان مرتب‌تر", "چیدمان تازه برای منوها، مطالب و دکمه‌ها"],
+          "wideColumns": ["ستون‌های نمایشگر عریض", "نمایش مطالب مشابه و دانلودها در ستون‌های کناری وقتی جا هست"],
           "expandMain": ["مطلب عریض‌تر با اسکرول", "وقتی از ستون کناری رد می‌شی، مطلب فضای خالی کنارش رو پر می‌کنه."],
           "utilityInHeader": ["نرم‌افزارهای کاربردی در نوار بالا", "لیست رو به‌جای ستون کناری از نوار بالا باز کن."],
           "quickNavigation": ["مرور سریع", "لیست نرم‌افزارها بدون بارگیری دوبارهٔ صفحه باز می‌شه. مطالب مثل قبل باز می‌شن."],

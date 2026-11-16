@@ -48,6 +48,7 @@
     darkDesign: true,
     compactLayout: true,
     expandMain: false,
+    wideColumns: true,
     utilityInHeader: true,
     quickNavigation: false,
     soundFeedback: false,
@@ -67,6 +68,10 @@
   };
   let fileMenu;
   let fileStates = new Map();
+  const wideLayouts = new Map();
+  const newsPanels = new Map();
+  const relatedViewport = matchMedia("(min-width: 1280px)");
+  const downloadsViewport = matchMedia("(min-width: 2200px), (min-width: 1720px) and (min-aspect-ratio: 2/1)");
   const savedHref = new WeakMap();
   const originalLogos = new Map();
   const hiddenPageDisplays = new WeakMap();
@@ -929,6 +934,8 @@
         applySiteChrome();
       } else {
         document.documentElement.removeAttribute("data-soft98-pro-chrome");
+        syncWideLayout();
+        for (const state of newsPanels.values()) syncNewsPanel(state);
         restoreUtilityPlacement();
         for (const [footer, previous] of stockFooters) {
           if (footer.isConnected) footer.style.setProperty("display", ...previous);
@@ -1110,15 +1117,14 @@
       .soft98-pro-theme [data-soft98-pro-download-group] a[data-soft98-pro-icon-host]:is(:hover,:focus-visible){color:var(--s98p-link)!important}
       .soft98-pro-theme [data-soft98-pro-download-group] a[data-soft98-pro-icon-host=download]{color:var(--s98p-accent)!important;font-weight:700}
       .soft98-pro-theme [data-soft98-pro-download-group] a[data-soft98-pro-icon-host=download]:is(:hover,:focus-visible){background:color-mix(in srgb,var(--s98p-accent) 10%,var(--s98p-bg-2))!important;color:#b2ffe1!important}
-      :root.soft98-pro-theme article [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]{height:auto!important;max-height:none!important;padding:0!important;overflow:visible!important}
-      :root.soft98-pro-theme article [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]::before,
-      :root.soft98-pro-theme article [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]::after{content:none!important;display:none!important;animation:none!important;transition:none!important}
-      :root.soft98-pro-theme article [data-soft98-pro-download-group] > dd[data-soft98-pro-download-collapsed]{display:none!important}
-      :root.soft98-pro-theme article [data-soft98-pro-download-group] [data-soft98-pro-download-row]{display:grid!important;grid-template-columns:28px minmax(0,1fr);align-items:center;gap:9px;width:100%!important;height:auto!important;min-height:42px;max-height:none!important;margin:0!important;padding:7px 14px!important;box-sizing:border-box;white-space:normal!important;line-height:1.5!important;overflow:visible!important;background-image:none!important;transition:background-color .16s,color .16s}
-      :root.soft98-pro-theme article [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]{transition:background-color .16s ease}
-      :root.soft98-pro-theme article [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]:is(:hover,:focus-within){background:var(--s98p-soft)!important}
-      :root.soft98-pro-theme article [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]:has(>[data-soft98-pro-download-row]:active){background:color-mix(in srgb,var(--s98p-accent) 16%,var(--s98p-surface))!important}
-      :root.soft98-pro-theme article [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry] > [data-soft98-pro-download-row]{background:transparent!important}
+      :root.soft98-pro-theme :is(article,[data-s98p-download-rail]) [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]{height:auto!important;max-height:none!important;padding:0!important;overflow:visible!important;transition:background-color .16s ease}
+      :root.soft98-pro-theme :is(article,[data-s98p-download-rail]) [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]::before,
+      :root.soft98-pro-theme :is(article,[data-s98p-download-rail]) [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]::after{content:none!important;display:none!important;animation:none!important;transition:none!important}
+      :root.soft98-pro-theme :is(article,[data-s98p-download-rail]) [data-soft98-pro-download-group] > dd[data-soft98-pro-download-collapsed]{display:none!important}
+      :root.soft98-pro-theme :is(article,[data-s98p-download-rail]) [data-soft98-pro-download-group] [data-soft98-pro-download-row]{display:grid!important;grid-template-columns:28px minmax(0,1fr);align-items:center;gap:9px;width:100%!important;height:auto!important;min-height:42px;max-height:none!important;margin:0!important;padding:7px 14px!important;box-sizing:border-box;white-space:normal!important;line-height:1.5!important;overflow:visible!important;background-image:none!important;transition:background-color .16s,color .16s}
+      :root.soft98-pro-theme :is(article,[data-s98p-download-rail]) [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]:is(:hover,:focus-within){background:var(--s98p-soft)!important}
+      :root.soft98-pro-theme :is(article,[data-s98p-download-rail]) [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]:has(>[data-soft98-pro-download-row]:active){background:color-mix(in srgb,var(--s98p-accent) 16%,var(--s98p-surface))!important}
+      :root.soft98-pro-theme :is(article,[data-s98p-download-rail]) [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry] > [data-soft98-pro-download-row]{background:transparent!important}
       .soft98-pro-theme [data-soft98-pro-download-row] > *{pointer-events:none}
       .soft98-pro-theme [data-soft98-pro-download-row] > [data-soft98-pro-page-icon]{grid-column:1;grid-row:1;margin:0}
       :root.soft98-pro-theme dd[data-soft98-pro-download-entry]:has(>.s98p-file-actions){display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:stretch}
@@ -1449,7 +1455,9 @@
       if (box.width < 120 || box.height < 28 || box.width * box.height < 4200) continue;
       const backgroundColor = getComputedStyle(node).backgroundColor;
       const background = colorMetrics(backgroundColor);
-      if (/^rgb\((37|38), \1, \1\)$/.test(backgroundColor) && node.matches("main,article,article :is(div,section,blockquote), main > section")) {
+      if (/^rgb\((37|38|39), \1, \1\)$/.test(backgroundColor) &&
+          (node.matches("main,aside,article,section,blockquote,:is(main,article,[role=dialog]) :is(div,footer),[role=tabpanel]") ||
+            (backgroundColor === "rgb(39, 39, 39)" && node.matches("div:not([role=dialog])")))) {
         if (!node.hasAttribute("data-soft98-pro-surface")) node.setAttribute("data-soft98-pro-surface", "raised");
         continue;
       }
@@ -1666,7 +1674,7 @@
       if (main.closest("#soft98-pro-control,#soft98-extension-recommendation,#soft98-ad-blocker-taunt")) continue;
       let container = main.parentElement;
       for (let depth = 0; container && depth < 3; depth += 1, container = container.parentElement) {
-        const children = [...container.children];
+        const children = [...container.children].filter((child) => !child.hasAttribute("data-s98p-related-rail"));
         const primary = children.find((child) => child === main || child.contains(main));
         const secondary = children.find((child) => child !== primary && (child.matches("aside") || child.querySelector("aside")));
         if (children.length !== 2 || !primary || !secondary) continue;
@@ -1698,6 +1706,94 @@
     return [...sidebar.querySelectorAll("header,a[href],button,form,img,iframe")].some((node) => isLiveSidebarCard(node, sidebar));
   }
 
+  function restoreDock(item) {
+    if (!item) return;
+    if (item.anchor.isConnected && item.node.parentNode === item.rail) item.anchor.replaceWith(item.node);
+    else item.anchor.remove();
+    item.jump?.remove();
+    item.rail.remove();
+  }
+
+  function dockContent(node, rail) {
+    const anchor = document.createComment("Soft98 Pro original position");
+    node.before(anchor);
+    rail.append(node);
+    return { node, anchor, rail };
+  }
+
+  function syncWideLayout() {
+    const enabled = settings.pro && settings.compactLayout && settings.wideColumns && relatedViewport.matches;
+    for (const [grid, state] of wideLayouts) {
+      if (enabled && grid.isConnected) continue;
+      restoreDock(state.related);
+      restoreDock(state.download);
+      grid.removeAttribute("data-s98p-wide-layout");
+      wideLayouts.delete(grid);
+    }
+    if (!enabled) return;
+    for (const [grid, sidebar] of contentGrids) {
+      const primary = grid.querySelector(':scope > [data-soft98-pro-column="primary"]');
+      if (!primary || !grid.isConnected || sidebar.parentElement !== grid) continue;
+      const state = wideLayouts.get(grid) || {};
+      if (state.related && (!state.related.anchor.isConnected || state.related.node.parentNode !== state.related.rail)) {
+        restoreDock(state.related);
+        state.related = null;
+      }
+      if (state.download && (!downloadsViewport.matches || !state.download.anchor.isConnected || state.download.node.parentNode !== state.download.rail)) {
+        restoreDock(state.download);
+        state.download = null;
+      }
+      if (!state.related) {
+        const related = primary.querySelector("[data-soft98-pro-related]");
+        if (related) {
+          const rail = document.createElement("aside");
+          rail.setAttribute("data-s98p-related-rail", "");
+          rail.setAttribute("aria-label", text("wideRelated"));
+          grid.append(rail);
+          state.related = dockContent(related, rail);
+        }
+      }
+      if (downloadsViewport.matches && !state.download) {
+        const lists = [...primary.querySelectorAll("article [role=tabpanel] dl[data-soft98-pro-download-group]")]
+          .filter((list) => list.querySelector("dd a[data-soft98-pro-download-row]") &&
+            [...list.querySelectorAll("dd > a[href]")].some((link) => downloadDestination(link)));
+        const list = lists.length === 1 && lists[0];
+        if (list) {
+          const pane = list.closest("[role=tabpanel]");
+          const rail = document.createElement("section");
+          rail.setAttribute("data-s98p-download-rail", "");
+          rail.tabIndex = -1;
+          const header = document.createElement("header");
+          const title = document.createElement("h2");
+          title.textContent = text("articlePreview");
+          header.append(title);
+          rail.append(header);
+          rail.setAttribute("aria-label", title.textContent);
+          sidebar.prepend(rail);
+          state.download = dockContent(list, rail);
+          const jump = downloadButton("download");
+          jump.setAttribute("data-s98p-download-jump", "");
+          jump.append(text("wideDownloadsJump"));
+          jump.addEventListener("click", () => {
+            rail.focus({ preventScroll: true });
+            rail.scrollIntoView({ block: "nearest", behavior: "instant" });
+          });
+          pane.prepend(jump);
+          state.download.jump = jump;
+        }
+      }
+      const right = state.download || hasSidebarContent(sidebar);
+      const mode = state.related ? (right ? "three" : "left") : state.download ? "right" : "";
+      if (mode) {
+        grid.setAttribute("data-s98p-wide-layout", mode);
+        wideLayouts.set(grid, state);
+      } else {
+        grid.removeAttribute("data-s98p-wide-layout");
+        wideLayouts.delete(grid);
+      }
+    }
+  }
+
   function scheduleContentGridUpdate() {
     if (gridFrame) return;
     gridFrame = requestAnimationFrame(() => {
@@ -1713,7 +1809,7 @@
         }
         if (checkContents) grid.toggleAttribute("data-soft98-pro-sidebar-empty", !hasSidebarContent(sidebar));
         const empty = grid.hasAttribute("data-soft98-pro-sidebar-empty");
-        if (empty) {
+        if (empty || grid.hasAttribute("data-s98p-wide-layout")) {
           grid.removeAttribute("data-soft98-pro-main-wide");
           continue;
         }
@@ -1858,6 +1954,7 @@
       const card = heading.parentElement.parentElement;
       if (card.querySelector(":scope > :is(ul,ol) > li > a[href]")) card.setAttribute("data-soft98-pro-related", "");
     }
+    syncWideLayout();
     const nav = document.querySelector('nav:has([data-toggle="night-mode"]),header nav');
     if (nav) {
       nav.setAttribute("data-soft98-pro-nav-chrome", "");
@@ -2297,6 +2394,17 @@
       getComputedStyle(node).display !== "none" && node.getAttribute("aria-hidden") !== "true" && node.getClientRects().length));
   }
 
+  function styleDialogPanel(content) {
+    content.setAttribute("data-soft98-pro-dialog-panel", "");
+    const heading = content.querySelector("h1,h2,h3,h4,h5,h6");
+    if (heading && heading.parentElement !== content) heading.parentElement.setAttribute("data-soft98-pro-dialog-header", "");
+    const tail = content.lastElementChild;
+    if (tail && heading && !tail.contains(heading) && (tail.matches("footer") ||
+        (tail.childElementCount && [...tail.children].every((node) => node.matches("button,a[href],[role=button]"))))) {
+      tail.setAttribute("data-s98p-dialog-footer", "");
+    }
+  }
+
   function styleSiteDialogs() {
     const active = new Map(proDialogs);
     siteReadOnlyDialogs.clear();
@@ -2308,9 +2416,7 @@
       const panel = frame?.firstElementChild;
       if (!panel) continue;
       target.setAttribute("data-soft98-pro-dialog", "");
-      panel.setAttribute("data-soft98-pro-dialog-panel", "");
-      const heading = panel.querySelector("h1,h2,h3,h4,h5,h6");
-      if (heading && heading.parentElement !== panel) heading.parentElement.setAttribute("data-soft98-pro-dialog-header", "");
+      styleDialogPanel(panel);
       if (trigger.querySelector('[data-soft98-pro-page-icon="bell"]')) {
         target.setAttribute("data-soft98-pro-dialog", "notice");
         active.set("download-notice", target);
@@ -2327,8 +2433,21 @@
       const heading = content?.querySelector("h1,h2,h3,h4,h5,h6");
       if (!heading) continue;
       if (!target.hasAttribute("data-soft98-pro-dialog")) target.setAttribute("data-soft98-pro-dialog", "");
-      content.setAttribute("data-soft98-pro-dialog-panel", "");
-      if (heading.parentElement !== content) heading.parentElement.setAttribute("data-soft98-pro-dialog-header", "");
+      styleDialogPanel(content);
+    }
+    const openModal = [...document.querySelectorAll('[role=dialog][data-soft98-pro-dialog]:not([aria-hidden=true])')].find(dialogVisible);
+    if (openModal) {
+      const level = Number.parseInt(getComputedStyle(openModal).zIndex, 10);
+      for (const backdrop of document.body.children) {
+        if (backdrop.id || backdrop.childElementCount || backdrop.textContent.trim() || backdrop === openModal) continue;
+        const style = getComputedStyle(backdrop);
+        const z = Number.parseInt(style.zIndex, 10);
+        if (style.position !== "fixed" || !(z < level && z >= level - 30)) continue;
+        const box = backdrop.getBoundingClientRect();
+        if (box.width >= document.documentElement.clientWidth * .95 && box.height >= innerHeight * .95) {
+          backdrop.setAttribute("data-s98p-site-backdrop", "");
+        }
+      }
     }
     const hash = /^#s98p-dialog=(utility|download-notice|help-[a-z\d-]{2,47})$/.exec(location.hash)?.[1] || "";
     const open = [...active].find(([key, node]) => (key !== "download-notice" || dialogRequested || hash) && dialogVisible(node))?.[0] || "";
@@ -2399,18 +2518,19 @@
 
   function enhanceDownloadSections() {
     const panes = new Set();
-    for (const list of document.querySelectorAll("article [role=tabpanel] dl:has(> dt):has(> dd > a:is([href],[data-key]))")) {
+    for (const list of document.querySelectorAll(":is(article [role=tabpanel],[data-s98p-download-rail]) dl:has(> dt):has(> dd > a:is([href],[data-key]))")) {
       if (!list.hasAttribute("data-soft98-pro-download-group") &&
           ![...list.querySelectorAll(":scope > dd > a:is([href],[data-key])")].some((link) => directDownloadUrl(link.getAttribute("href")) ||
             (list.hasAttribute("data-json") && link.hasAttribute("data-key")) ||
             /^(?:دانلود|download)/i.test(normalizedPersian(link.textContent || "")))) continue;
       list.setAttribute("data-soft98-pro-download-group", "");
+      markDownloadDividers(list);
       const pane = list.closest("[role=tabpanel]");
-      panes.add(pane);
+      if (pane) panes.add(pane);
       const row = list.parentElement;
       const frame = row?.parentElement;
       // Soft98 wraps its keyed list in a self-referencing gate. Do not touch unrelated hidden content.
-      if (list.hasAttribute("data-json") && list.querySelector("dd a[data-key]") && frame?.id &&
+      if (pane && list.hasAttribute("data-json") && list.querySelector("dd a[data-key]") && frame?.id &&
           row.getAttribute("data-target") === "#" + frame.id && frame !== pane && pane.contains(frame)) {
         for (const [node, type] of [[frame, "frame"], [row, "row"]]) {
           if (node.hasAttribute("data-soft98-pro-download-recovery")) continue;
@@ -2461,6 +2581,26 @@
     }
   }
 
+  function markDownloadDividers(list) {
+    let previousContent = false;
+    let pending;
+    for (const item of list.children) {
+      const separator = item.matches("dd") && item.children.length === 1 &&
+        item.firstElementChild.matches('hr,[role="separator"]:not([aria-orientation="vertical"])') && !item.textContent.trim();
+      if (separator) {
+        item.setAttribute("data-s98p-download-rule", "skip");
+        if (previousContent && !pending) pending = item;
+      } else if (item.matches("dt")) {
+        previousContent = Boolean(item.textContent.trim());
+        pending = null;
+      } else if (item.matches("dd") && (item.textContent.trim() || item.querySelector("a,button,input,img"))) {
+        if (pending) pending.setAttribute("data-s98p-download-rule", "show");
+        previousContent = true;
+        pending = null;
+      }
+    }
+  }
+
   function directSectionLinks(entries) {
     const urls = new Set();
     for (const item of entries) {
@@ -2477,6 +2617,15 @@
     let state = downloadHeadings.get(heading);
     if (!state?.controls.isConnected) {
       heading.querySelectorAll(":scope > [data-soft98-pro-download-actions]").forEach((node) => node.remove());
+      if (!heading.hasAttribute("data-soft98-pro-download-heading") && getComputedStyle(heading).display === "none") {
+        const stock = document.createElement("span");
+        stock.setAttribute("data-s98p-hidden-download-heading", "");
+        stock.append(...heading.childNodes);
+        const title = document.createElement("span");
+        title.setAttribute("data-s98p-download-heading-fallback", "");
+        title.textContent = text("articlePreview");
+        heading.append(stock, title);
+      }
       const controls = localizeElement(document.createElement("span"));
       controls.setAttribute("data-soft98-pro-download-actions", "");
       const toggle = downloadButton("chevron");
@@ -2514,7 +2663,7 @@
       });
     }
     state.entries = entries;
-    const ids = entries.map((row) => {
+    const ids = entries.filter((row) => !row.hasAttribute("data-s98p-download-rule")).map((row) => {
       if (!row.id) {
         let id;
         do { id = `soft98-pro-download-row-${++downloadRowId}`; } while (document.getElementById(id));
@@ -2895,7 +3044,8 @@
       if (!tab) continue;
       const card = list.closest("section,article,[data-soft98-pro-surface=tab-card]") || list.parentElement?.parentElement;
       if (!card || card.closest("main,aside,#soft98-pro-control")) continue;
-      const header = list.parentElement?.matches("[data-soft98-pro-tab-header]") ? list.parentElement : list;
+      let header = list;
+      while (header.parentElement && header.parentElement !== card) header = header.parentElement;
       header.setAttribute("data-soft98-pro-latest-header", "tabs");
       list.setAttribute("data-soft98-pro-latest-tabs", "");
       bindContentTabs(list);
@@ -2928,7 +3078,7 @@
             decorateIcon(link, icon);
           }
           for (const section of panel.children) {
-            if (section !== header && section.querySelectorAll("li a[href]").length >= 3) {
+            if (section !== header && !section.hasAttribute("data-s98p-news-reveal") && section.querySelectorAll("li a[href]").length >= 3) {
               section.setAttribute("data-soft98-pro-news-body", "");
             }
           }
@@ -2939,6 +3089,7 @@
     }
     for (const card of latestCards) {
       card.setAttribute("data-soft98-pro-latest", "");
+      bindNewsCollapse(card);
       for (const row of card.querySelectorAll("li a[href]")) {
         if (row.matches("[role=tab]")) continue;
         row.setAttribute("data-soft98-pro-news-link", "");
@@ -2999,6 +3150,59 @@
       normalizeLabel(node, rtlPage);
     }
     syncPageVisibility();
+  }
+
+  function syncNewsPanel(state) {
+    const collapsed = settings.pro && state.collapsed;
+    state.card.toggleAttribute("data-s98p-news-collapsed", collapsed);
+    state.reveal.inert = collapsed;
+    state.toggle.setAttribute("aria-expanded", String(!collapsed));
+    const label = text(collapsed ? "expandNews" : "collapseNews");
+    state.toggle.setAttribute("aria-label", label);
+    state.toggle.title = label;
+  }
+
+  function bindNewsCollapse(card) {
+    if (newsPanels.has(card)) return syncNewsPanel(newsPanels.get(card));
+    for (const node of newsPanels.keys()) if (!node.isConnected) newsPanels.delete(node);
+    let header = card.querySelector(":scope > [data-soft98-pro-latest-header]");
+    if (!header || !header.nextElementSibling) return;
+    const kind = header.getAttribute("data-soft98-pro-latest-header");
+    if (header.matches("[role=tablist],ul,ol")) {
+      const toolbar = document.createElement("div");
+      toolbar.setAttribute("data-s98p-news-toolbar", "");
+      toolbar.setAttribute("data-soft98-pro-latest-header", kind);
+      header.before(toolbar);
+      toolbar.append(header);
+      header = toolbar;
+    }
+    header.setAttribute("data-s98p-news-toolbar", "");
+    const reveal = document.createElement("div");
+    reveal.setAttribute("data-s98p-news-reveal", "");
+    do { reveal.id = `soft98-pro-news-panel-${++downloadRowId}`; } while (document.getElementById(reveal.id));
+    const content = document.createElement("div");
+    content.setAttribute("data-s98p-news-content", "");
+    while (header.nextSibling) content.append(header.nextSibling);
+    reveal.append(content);
+    header.after(reveal);
+    const toggle = downloadButton("chevronDown");
+    toggle.setAttribute("data-s98p-news-toggle", "");
+    toggle.setAttribute("aria-controls", reveal.id);
+    header.append(toggle);
+    const key = `soft98-pro.news-collapsed.${kind}`;
+    const state = { card, toggle, reveal, collapsed: false };
+    try { state.collapsed = localStorage.getItem(key) === "true"; } catch (_error) {}
+    const set = (value) => {
+      state.collapsed = value;
+      try { localStorage.setItem(key, String(value)); } catch (_error) {}
+      syncNewsPanel(state);
+    };
+    toggle.addEventListener("click", () => set(!state.collapsed));
+    header.addEventListener("click", (event) => {
+      if (state.collapsed && event.target.closest?.("[role=tab],[data-toggle=tab]")) set(false);
+    }, true);
+    newsPanels.set(card, state);
+    syncNewsPanel(state);
   }
 
   function newsShortcutIcon(link) {
@@ -3863,7 +4067,7 @@
     wrap.dataset.open = "false";
     const groups = {
       protection: ["blockAds", "patchScripts"],
-      experience: ["pro", "darkDesign", "rgbMode", "compactLayout", "expandMain", "quickNavigation", "showLatest", "hideAnnoyances", "utilityInHeader", "pirateLogo"],
+      experience: ["pro", "darkDesign", "rgbMode", "compactLayout", "wideColumns", "expandMain", "quickNavigation", "showLatest", "hideAnnoyances", "utilityInHeader", "pirateLogo"],
       advanced: ["taunt", "soundFeedback", "diagnostics", "recommendExtension"],
       ...(IS_EXTENSION ? { downloads: [] } : {}),
     };
@@ -5115,6 +5319,7 @@
       window.dispatchEvent(new CustomEvent("soft98-ad-blocker:extension-ready", { detail: { version: VERSION } }));
     }
     installStyle();
+    for (const viewport of [relatedViewport, downloadsViewport]) viewport.addEventListener("change", () => schedule(document));
     installScrollDetectorFirewall();
     resetDocumentHandles();
     installEvalHijack();

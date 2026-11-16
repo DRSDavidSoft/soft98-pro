@@ -11,6 +11,7 @@
     darkDesign: true,
     compactLayout: true,
     expandMain: false,
+    wideColumns: true,
     utilityInHeader: true,
     quickNavigation: false,
     soundFeedback: false,
@@ -193,7 +194,7 @@
       const menu = control.closest("#soft98-pro-file-menu");
       const owner = menu ? document.getElementById(menu.dataset.owner || "") : control;
       if (!owner?.matches('button[data-soft98-pro-download-manager="file"]')) return;
-      const row = owner.closest("article dd[data-soft98-pro-download-entry]");
+      const row = owner.closest(":is(article,[data-s98p-download-rail]) dd[data-soft98-pro-download-entry]");
       const link = row?.querySelector(":scope > a[data-soft98-pro-download-row][href][data-s98p-file-url]");
       if (!link || !row.getClientRects().length || owner.getAttribute("aria-busy") === "true") return;
       if (action === "review") {

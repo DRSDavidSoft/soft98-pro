@@ -12,12 +12,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Added configurable download buttons that can queue a file, start it immediately, or copy the link, with one-time actions in the context menu.
 - Added a review dialog for pasted links and text files, with file details, filters, sorting, and resizable columns.
 - Grouped multipart downloads, preserved their source pages, and added native download notifications and progress back on the article.
+- Added independently collapsible news panels and adaptive side columns for related posts and downloads.
 
 ### Fixed
 
 - Restored downloads in Chrome when the site left the list clipped to zero height.
 - Replaced legacy gray article callouts with the Pro palette.
 - Made download rows and their action buttons highlight together without moving on hover.
+- Removed repeated download rules and separated the dialog backdrop fade from the panel entrance.
 
 ### Removed
 

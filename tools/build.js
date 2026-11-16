@@ -60,7 +60,7 @@ const PAGE_ICONS = Object.fromEntries(Object.entries({
   windows: "filled/brand-windows", apple: "filled/brand-apple",
   devices: "outline/devices", download: "outline/download", link: "outline/link",
   info: "outline/info-circle", help: "outline/help-circle", lock: "outline/lock", check: "outline/check", close: "outline/x", plus: "outline/plus",
-  chevron: "outline/chevron-left", copy: "outline/copy", select: "outline/select-all", eye: "outline/eye",
+  chevron: "outline/chevron-left", chevronDown: "outline/chevron-down", copy: "outline/copy", select: "outline/select-all", eye: "outline/eye",
   archive: "outline/archive", web: "outline/world-www", remove: "outline/file-x",
   photo: "outline/photo", document: "outline/file-text", shield: "outline/shield",
   play: "outline/player-play", music: "outline/music", desktop: "outline/device-desktop",

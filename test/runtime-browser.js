@@ -315,6 +315,68 @@ async function verifyDownloadManager(client) {
   }
 }
 
+async function verifyWideLayout(client) {
+  const run = (expression) => evaluate(client, expression);
+  const until = async (expression) => {
+    for (let attempt = 0; attempt < 40; attempt++) {
+      if (await run(expression).catch(() => false)) return;
+      await delay(70);
+    }
+    throw new Error(`Layout did not settle: ${expression}`);
+  };
+  const resize = (width, height) => client.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: false });
+  const check = (label, value, expected) => assertEqual("article layout", label, value, expected);
+  const fixture = `http://127.0.0.1:${PORT}/test/wide-layout.html`;
+  await resize(1050, 850);
+  await client.send("Page.navigate", { url: fixture });
+  try {
+    await until('document.querySelector("#separator-a")?.dataset.s98pDownloadRule === "show"');
+    check("adjacent duplicate separator hidden", await run('getComputedStyle(document.querySelector("#separator-b")).display'), "none");
+    check("trailing separator hidden", await run('getComputedStyle(document.querySelector("#separator-edge")).display'), "none");
+    check("separator is not a download row", await run('document.querySelector("#separator-a").hasAttribute("data-soft98-pro-download-entry")'), false);
+    check("stock hidden section title remains hidden", await run('getComputedStyle(document.querySelector("#hidden-heading [data-s98p-hidden-download-heading]")).display'), "none");
+    await until('document.querySelectorAll("[data-s98p-news-toggle]").length === 2');
+    const news = 'document.querySelector("[data-soft98-pro-tech-news]")';
+    const control = `${news}.querySelector("[data-s98p-news-toggle]")`;
+    const pane = `${news}.querySelector("[data-s98p-news-reveal]")`;
+    const openHeight = await run(`${pane}.getBoundingClientRect().height`);
+    if (openHeight < 20) throw new Error("News body is clipped while open");
+    await run(`${control}.click()`);
+    check("collapsing takes hidden links out of the tab order", await run(`${pane}.inert`), true);
+    await until(`${pane}.getBoundingClientRect().height === 0`);
+    check("the software card remains expanded", await run('document.querySelector("[data-soft98-pro-latest-tabs]").closest("[data-soft98-pro-latest]").hasAttribute("data-s98p-news-collapsed")'), false);
+    await client.send("Page.reload");
+    await until(`!${pane} || ${pane}.inert`);
+    await until(`${control}.getAttribute("aria-expanded") === "false"`);
+    await run(`${control}.click()`);
+    await until(`${pane}.getBoundingClientRect().height >= ${openHeight - 1}`);
+    await resize(1440, 900);
+    await until('document.querySelector("[data-s98p-related-rail] [data-soft98-pro-related]")');
+    check("downloads stay inline at normal desktop ratios", await run('!document.querySelector("[data-s98p-download-rail]")'), true);
+    await resize(2560, 1080);
+    await until('document.querySelector("[data-s98p-download-rail] a[data-key]")');
+    check("related left, article center, downloads right in RTL", await run(`(() => {
+      const left = document.querySelector("[data-s98p-related-rail]").getBoundingClientRect();
+      const main = document.querySelector("main").getBoundingClientRect();
+      const right = document.querySelector("[data-s98p-download-rail]").getBoundingClientRect();
+      return left.right <= main.left && main.right <= right.left && document.documentElement.scrollWidth <= innerWidth;
+    })()`), true);
+    check("download destination remains unchanged", await run('document.querySelector("[data-s98p-download-rail] a[data-key]").href'), "https://files.example.test/tool.zip");
+    await run('document.querySelector("#requirements-tab").click()');
+    await until('document.querySelector("#requirements").dataset.soft98ProContentPane === "active"');
+    await resize(740, 880);
+    await until('document.querySelector("#files dl") && document.querySelector("main [data-soft98-pro-related]")');
+    check("phone grid is a single track", await run('getComputedStyle(document.querySelector("#workspace")).gridTemplateColumns.trim().split(" ").length'), 1);
+    await run('document.querySelector("#files-tab").click(); document.querySelector("#open-legacy").click()');
+    await until('document.querySelector("#legacy footer").hasAttribute("data-s98p-dialog-footer")');
+    check("legacy modal shell does not scale its shade", await run('getComputedStyle(document.querySelector("#legacy")).transform'), "none");
+    check("modal footer uses the Pro palette", await run('getComputedStyle(document.querySelector("#legacy footer")).backgroundColor !== "rgb(39, 39, 39)"'), true);
+    check("backdrop fades independently", await run('getComputedStyle(document.querySelector("#legacy"), "::before").animationName'), "s98p-shade-in");
+  } finally {
+    await client.send("Emulation.clearDeviceMetricsOverride");
+  }
+}
+
 async function faviconPixel(client) {
   const href = await evaluate(client, "document.getElementById('soft98-pro-favicon')?.href");
   if (!href?.startsWith("data:image/png;base64,")) throw new Error("Missing Soft98 Pro favicon PNG");
@@ -1003,6 +1065,7 @@ async function main() {
     }
     await verifyFileActions(client);
     await verifyDownloadManager(client);
+    await verifyWideLayout(client);
     console.log("Soft98 runtime browser acceptance passed");
   } finally {
     if (client) client.close();

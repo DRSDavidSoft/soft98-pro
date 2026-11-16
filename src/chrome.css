@@ -1,5 +1,130 @@
 :root.soft98-pro-theme [data-soft98-pro-latest] {
   --s98p-latest-header-size: 3.5rem;
+  align-self: start;
+}
+
+:root.soft98-pro-theme [data-s98p-news-toolbar] {
+  display: flex !important;
+  align-items: center;
+  gap: 5px;
+}
+
+:root.soft98-pro-theme [data-s98p-news-toolbar] > [data-soft98-pro-latest-tabs] {
+  flex: 1;
+  min-inline-size: 0;
+  inline-size: auto !important;
+}
+
+:root.soft98-pro-theme button[data-s98p-news-toggle] {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 32px;
+  block-size: 32px;
+  margin-inline-end: 6px;
+  padding: 0;
+  border: 1px solid var(--s98p-border) !important;
+  border-radius: 6px;
+  background: var(--s98p-control-bg) !important;
+  color: var(--s98p-text) !important;
+}
+
+:root:not(.soft98-pro-theme) [data-s98p-news-toggle] { display: none !important; }
+:root.soft98-pro-theme button[data-s98p-news-toggle]:is(:hover,:focus-visible) { background: var(--s98p-control-hover) !important; color: var(--s98p-accent) !important; }
+[data-s98p-news-toggle] svg { inline-size: 17px; block-size: 17px; transition: rotate .24s ease; pointer-events: none; }
+[data-s98p-news-toggle][aria-expanded="true"] svg { rotate: 180deg; }
+
+:root.soft98-pro-theme [data-s98p-news-reveal] {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows .26s cubic-bezier(.22,.65,.27,1);
+}
+
+:root.soft98-pro-theme [data-s98p-news-collapsed] > [data-s98p-news-reveal] { grid-template-rows: 0fr; }
+:root.soft98-pro-theme [data-s98p-news-content] { min-block-size: 0; overflow: clip; }
+
+:root.soft98-pro-theme [data-s98p-download-rule="skip"] { display: none !important; }
+:root.soft98-pro-theme [data-s98p-download-rule="show"]:not([data-soft98-pro-download-collapsed]) {
+  padding: 4px 12px !important;
+  background: transparent !important;
+}
+:root.soft98-pro-theme [data-s98p-download-rule="show"] > :is(hr,[role=separator]) {
+  display: block;
+  block-size: 1px !important;
+  margin: 0 !important;
+  border: 0 !important;
+  background: var(--s98p-border) !important;
+}
+
+:root.soft98-pro-compact [data-soft98-pro-layout="content-grid"][data-s98p-wide-layout] {
+  direction: ltr !important;
+  --s98p-left-track: minmax(220px,clamp(235px,17vw,310px));
+  --s98p-right-track: minmax(245px,clamp(260px,23vw,415px));
+}
+:root.soft98-pro-compact [data-s98p-wide-layout="left"][data-soft98-pro-reading] { grid-template-columns: var(--s98p-left-track) minmax(0,1fr) !important; }
+:root.soft98-pro-compact [data-s98p-wide-layout="right"][data-soft98-pro-reading] { grid-template-columns: minmax(0,1fr) var(--s98p-right-track) !important; }
+:root.soft98-pro-compact [data-s98p-wide-layout="three"][data-soft98-pro-reading] { grid-template-columns: var(--s98p-left-track) minmax(0,1fr) var(--s98p-right-track) !important; }
+:root.soft98-pro-compact [data-s98p-wide-layout][data-soft98-pro-reading="rtl"] > * { direction: rtl; }
+:root.soft98-pro-compact [data-s98p-wide-layout][data-soft98-pro-reading="ltr"] > * { direction: ltr; }
+:root.soft98-pro-compact [data-s98p-wide-layout] > [data-s98p-related-rail] { grid-area: 1 / 1; min-width: 0; }
+:root.soft98-pro-compact [data-s98p-wide-layout][data-soft98-pro-reading] > [data-soft98-pro-column="primary"] { grid-column: 2 !important; }
+:root.soft98-pro-compact [data-s98p-wide-layout="right"][data-soft98-pro-reading] > [data-soft98-pro-column="primary"] { grid-column: 1 !important; }
+:root.soft98-pro-compact [data-s98p-wide-layout="three"][data-soft98-pro-reading] > [data-soft98-pro-column="secondary"] { grid-column: 3 !important; }
+:root.soft98-pro-compact [data-s98p-wide-layout="right"][data-soft98-pro-reading] > [data-soft98-pro-column="secondary"] { grid-column: 2 !important; }
+:root.soft98-pro-compact :is([data-s98p-wide-layout="three"],[data-s98p-wide-layout="right"]) > [data-soft98-pro-column="secondary"] {
+  position: static !important;
+  inline-size: 100% !important;
+  block-size: auto !important;
+  overflow: visible !important;
+  visibility: visible !important;
+}
+:root.soft98-pro-compact [data-s98p-wide-layout="left"] > [data-soft98-pro-column="secondary"] { display: none !important; }
+:root.soft98-pro-theme [data-s98p-related-rail] > [data-soft98-pro-related] { margin: 0 !important; min-width: 0; }
+:root.soft98-pro-theme [data-s98p-related-rail] li > a { white-space: normal !important; overflow-wrap: anywhere; line-height: 1.55; }
+:root.soft98-pro-theme [data-s98p-download-rail] {
+  margin-block-end: 16px;
+  border: 1px solid var(--s98p-border);
+  border-radius: 8px;
+  background: var(--s98p-surface);
+}
+:root.soft98-pro-theme [data-s98p-download-rail] > header { padding: 11px 13px; border-block-end: 1px solid var(--s98p-border); }
+:root.soft98-pro-theme [data-s98p-download-rail] > header h2 { margin: 0; font-size: 1rem; }
+:root.soft98-pro-theme [data-s98p-download-rail] > dl { float: none !important; inline-size: 100% !important; max-inline-size: none !important; margin: 0 !important; }
+:root.soft98-pro-theme [data-s98p-hidden-download-heading], :root.soft98-pro-theme [data-s98p-download-rail] [data-s98p-download-heading-fallback] { display: none !important; }
+:root.soft98-pro-theme [data-s98p-download-rail] [data-soft98-pro-download-row] { padding-inline: 8px !important; }
+:root.soft98-pro-theme [data-s98p-download-jump] { display: inline-flex; align-items: center; gap: 6px; margin: 8px; padding: 5px 8px; border: 1px solid var(--s98p-border); border-radius: 6px; }
+[data-s98p-download-jump] svg { inline-size: 16px; block-size: 16px; }
+
+:root.soft98-pro-theme [data-s98p-dialog-footer] {
+  background: var(--s98p-elevated) !important;
+  color: var(--s98p-text) !important;
+  border-block-start-color: var(--s98p-border) !important;
+}
+:root.soft98-pro-theme [data-s98p-site-backdrop] { opacity: 0 !important; transition: none !important; }
+:root.soft98-pro-theme [data-soft98-pro-dialog]:not(dialog) {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+  isolation: isolate;
+}
+:root.soft98-pro-theme [data-soft98-pro-dialog]:not(dialog)::before {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  background: var(--s98p-dialog-shade, #060a1080);
+  backdrop-filter: blur(7px);
+  animation: s98p-shade-in .19s ease-out both;
+}
+:root.soft98-pro-light { --s98p-dialog-shade: #24364959; }
+:root.soft98-pro-theme dialog[data-soft98-pro-native-dialog]::backdrop { transform: none !important; animation: s98p-shade-in .19s ease-out both; }
+@keyframes s98p-shade-in { from { opacity: 0; } to { opacity: 1; } }
+@media(prefers-reduced-motion:reduce) {
+  :root.soft98-pro-theme [data-s98p-news-reveal], [data-s98p-news-toggle] svg { transition: none; }
+  :root.soft98-pro-theme [data-soft98-pro-dialog]:not(dialog)::before, :root.soft98-pro-theme dialog[data-soft98-pro-native-dialog]::backdrop { animation: none; }
 }
 
 :root.soft98-pro-theme [data-soft98-pro-latest-header]:is([data-soft98-pro-tab-header],[data-soft98-pro-latest-tabs],[data-soft98-pro-latest-header="news"]) {
