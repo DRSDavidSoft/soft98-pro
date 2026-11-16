@@ -231,6 +231,10 @@ async function verifyFileActions(client) {
       panel.querySelector("[data-queue-files] progress").value === 42 &&
       panel.querySelector("[data-queue-files] button").dataset.s98pManagedUrl === ${JSON.stringify(destination)};
   })()`), true);
+  check("Control Center hides zero-count categories", await run(`(() => {
+    const visible = document.querySelectorAll('.s98p-download-overview > div:not([hidden]) dd');
+    return [...visible].map(node => node.dataset.queueCount).join(",");
+  })()`), "active");
   check("completion badge is not a generic Ready badge", await run(`(() => {
     document.documentElement.setAttribute("data-soft98-pro-download-snapshot", JSON.stringify({
       files: [{ url: ${JSON.stringify(destination)}, status: "complete", bytes: 100, total: 100 }],
@@ -260,6 +264,10 @@ async function verifyDownloadManager(client) {
       window.managerCommands = [];
       window.setManagerJob = (id, changes) => {
         Object.assign(state.jobs.find(job => job.id === id), changes);
+        document.dispatchEvent(new Event("visibilitychange"));
+      };
+      window.emptyManagerQueue = () => {
+        state.jobs = [];
         document.dispatchEvent(new Event("visibilitychange"));
       };
       window.browser = {
@@ -297,6 +305,9 @@ async function verifyDownloadManager(client) {
   try {
     await client.send("Page.navigate", { url: page + "/dist/chromium/downloads.html" });
     await until('document.querySelectorAll(".job-group .job").length === 2');
+    check("idle queue omits the active counter and pause control", await run(`document.querySelector("#count-active").parentElement.hidden &&
+      !document.querySelector("#count-waiting").parentElement.hidden && !document.querySelector("#count-finished").parentElement.hidden &&
+      document.querySelector("#hold").hidden`), true);
     check("multipart parts sort numerically", await run('document.querySelector(".job-group .job strong").textContent'), "Artwork.part01.rar");
     check("source page is navigable", await run('document.querySelector(".source a").href'), origin);
     check("a queued-only file has a Start button", await run('document.querySelectorAll(".job")[1].querySelector("[data-action=resume]").dataset.label'), "start");
@@ -357,6 +368,8 @@ async function verifyDownloadManager(client) {
     await run('document.body.style.minHeight = ""; scrollTo(0, 0)');
     await run('window.idleIcon = document.querySelector("#manager-favicon").href; setManagerJob("part2", { status: "downloading", bytes: 24117248, startedAt: Date.now() - 2000 })');
     await until('document.documentElement.dataset.downloadIndicator === "active"');
+    check("active queue shows its counter and pause control", await run(`!document.querySelector("#count-active").parentElement.hidden &&
+      document.querySelector("#count-waiting").parentElement.hidden && !document.querySelector("#hold").hidden`), true);
     check("active rows keep percentage and elapsed time", await run(`(() => {
       const row = document.querySelector('.job[data-state="downloading"]');
       return row.querySelector("[data-metric=percent]").textContent === "50%" &&
@@ -365,6 +378,9 @@ async function verifyDownloadManager(client) {
     check("progress updates the favicon and in-page mark together", await run('document.querySelector("#manager-favicon").href !== idleIcon && document.querySelector("#manager-mark").src === document.querySelector("#manager-favicon").href'), true);
     await run('Object.defineProperty(document,"hidden",{value:true,configurable:true}); setManagerJob("part2", { status: "complete", bytes: 48234496, endedAt: Date.now() })');
     await until('document.documentElement.dataset.downloadIndicator === "complete"');
+    check("finished-only queue hides pause and resume", await run(`document.querySelector("#hold").hidden &&
+      document.querySelectorAll("#counts > div:not([hidden]) dd").length === 1 &&
+      document.querySelector("#count-finished").textContent === "2"`), true);
     check("finishing clears the live timer", await run('document.querySelector(".job[data-id=part2] [data-metric=elapsed]").hidden'), true);
     await until('document.documentElement.dataset.downloadIndicator === "idle"');
     await run('delete document.hidden; setManagerJob("part2", { status: "paused", bytes: 0 })');
@@ -442,6 +458,9 @@ async function verifyDownloadManager(client) {
     check("Gregorian survives a reload", await run(calendarCheck("gregory")), true);
     await selectCalendar("persian");
     check("Solar Hijri can also be selected explicitly", await run(calendarCheck("persian")), true);
+    await run("emptyManagerQueue()");
+    await until('document.querySelector("#counts").hidden && !document.querySelector(".job")');
+    check("empty queue has no counters or pause control", await run('document.querySelector("#hold").hidden && document.querySelector("#notice").textContent === ""'), true);
   } finally {
     await client.send("Page.removeScriptToEvaluateOnNewDocument", { identifier: result.identifier });
     await client.send("Emulation.clearDeviceMetricsOverride");
@@ -464,6 +483,7 @@ async function verifyWideLayout(client) {
   await client.send("Page.navigate", { url: fixture });
   try {
     await until('document.querySelector("#separator-a")?.dataset.s98pDownloadRule === "show"');
+    await until('document.querySelector("#files a[data-key=package]")?.href === "https://files.example.test/tool.zip"');
     check("declared metadata restores an unresolved official link", await run('document.querySelector("#files a[data-key=package]").href'), "https://files.example.test/tool.zip");
     check("already working link keeps its original address", await run('document.querySelector("#files a[data-key=mirror]").href'), "https://files.example.test/mirror.zip");
     check("adjacent duplicate separator hidden", await run('getComputedStyle(document.querySelector("#separator-b")).display'), "none");

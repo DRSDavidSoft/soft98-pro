@@ -25,15 +25,15 @@
       <section id="queue-view" class="queue" aria-labelledby="queue-title">
         <header class="queue-header">
           <div><h2 id="queue-title" data-copy="queue"></h2>
-            <dl id="counts">
-              <div><dt data-copy="active"></dt><dd id="count-active">0</dd></div>
-              <div><dt data-copy="waiting"></dt><dd id="count-waiting">0</dd></div>
-              <div><dt data-copy="finished"></dt><dd id="count-finished">0</dd></div>
+            <dl id="counts" hidden>
+              <div hidden><dt data-copy="active"></dt><dd id="count-active"></dd></div>
+              <div hidden><dt data-copy="waiting"></dt><dd id="count-waiting"></dd></div>
+              <div hidden><dt data-copy="finished"></dt><dd id="count-finished"></dd></div>
             </dl>
           </div>
           <div class="controls">
             <button id="open-import" type="button" class="primary" aria-haspopup="dialog"></button>
-            <button id="hold" type="button" disabled></button>
+            <button id="hold" type="button" disabled hidden></button>
           </div>
         </header>
         <div class="filters">

@@ -83,7 +83,8 @@ const Soft98DownloadQueue = (() => {
         ? Math.ceil((job.estimatedEndAt - now) / 1000) : null;
       files.set(url, { url, status: job.manualStart ? "manual" : job.status, bytes, total, eta });
     }
-    return { counts, transfer, held: held === true, files: [...files.values()] };
+    const hasQueueWork = counts.active > 0 || jobs.some(job => job.status === "queued" || job.status === "resume-queued");
+    return { counts, transfer, held: held === true && hasQueueWork, files: [...files.values()] };
   }
 
   function applyNative(job, item) {

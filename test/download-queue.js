@@ -191,6 +191,8 @@ test("the page snapshot returns article-scoped transfer details and only aggrega
     files: [{ url, status: "downloading", bytes: 42, total: 100, eta: 5 }],
   });
   assert.ok(!JSON.stringify(snapshot).includes("PrivateFolder"));
+  assert.equal(pageSnapshot({ held: true, jobs: [{ url, status: "paused", manualStart: true }] }, page).held, false);
+  assert.equal(pageSnapshot({ held: true, jobs: [{ url, status: "queued" }] }, page).held, true);
 });
 
 test("limits transfers, frees a slot on pause, and resumes in the next available slot", async () => {

@@ -35,6 +35,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Kept file sizes in English digits even in Persian and stopped repeating the total when a download is complete. Download dialogs now follow the URL and close when clicked outside.
 - Replaced the final percentage and stale elapsed timer with a localized completion status.
 - Fixed access to the download queue when refreshing the manager directly on Settings or another built-in view.
+- Hid empty queue counters and showed queue-wide pause and resume only when there is work to manage.
 
 ### Removed
 

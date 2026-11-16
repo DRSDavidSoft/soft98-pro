@@ -3087,10 +3087,16 @@
     if (!panel || !downloadSnapshot) return;
     const { counts, transfer, held } = downloadSnapshot;
     const number = new Intl.NumberFormat(LOCALE);
-    for (const value of panel.querySelectorAll("[data-queue-count]")) {
+    const summary = panel.querySelector(".s98p-download-overview");
+    let showSummary = false;
+    for (const value of summary.querySelectorAll("[data-queue-count]")) {
       const count = counts?.[value.dataset.queueCount];
-      if (Number.isInteger(count) && count >= 0 && count <= 160) value.textContent = number.format(count);
+      const show = Number.isInteger(count) && count > 0 && count <= 160;
+      value.parentElement.hidden = !show;
+      value.textContent = show ? number.format(count) : "";
+      showSummary ||= show;
     }
+    summary.hidden = !showSummary;
     panel.querySelector("[data-queue-held]").hidden = held !== true;
     const overview = panel.querySelector("[data-queue-overall]");
     if (!overview.transfer) {
@@ -4532,8 +4538,8 @@
               </div>
               ${keys.map(controlOptionMarkup).join("")}
               ${group === "downloads" ? `
-              <dl class="s98p-download-overview">
-                ${["active", "waiting", "finished", "attention"].map(key => `<div><dt>${escapeHtml(text("controlDownloadStates." + key))}</dt><dd data-queue-count="${key}">–</dd></div>`).join("")}
+              <dl class="s98p-download-overview" hidden>
+                ${["active", "waiting", "finished", "attention"].map(key => `<div hidden><dt>${escapeHtml(text("controlDownloadStates." + key))}</dt><dd data-queue-count="${key}"></dd></div>`).join("")}
               </dl>
               <small data-queue-held hidden>${escapeHtml(text("controlDownloadHeld"))}</small>
               <div data-queue-overall hidden></div>
@@ -4632,7 +4638,8 @@
       #soft98-pro-control .s98p-metrics dt{margin:0;background:transparent!important;color:var(--c-muted)!important;font-size:10px;font-weight:500;white-space:normal}
       #soft98-pro-control .s98p-metrics dd{margin:0;background:transparent!important;color:var(--c-text)!important;font-size:18px;font-weight:750;line-height:1.15;font-variant-numeric:tabular-nums}
       #soft98-pro-control .s98p-tabs{display:grid;grid-template-columns:repeat(var(--tab-count,3),minmax(0,1fr));gap:3px;margin:11px 14px 0;padding:3px;border:1px solid var(--c-border-soft);border-radius:7px;background:var(--c-bg-soft)}
-      #soft98-pro-control .s98p-download-overview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:4px 0}
+      #soft98-pro-control .s98p-download-overview{display:grid;grid-template-columns:repeat(auto-fit,minmax(68px,1fr));gap:5px;margin:4px 0}
+      #soft98-pro-control .s98p-download-overview[hidden],#soft98-pro-control .s98p-download-overview>div[hidden]{display:none!important}
       #soft98-pro-control [data-queue-overall]{padding:5px 0}
       #soft98-pro-control [data-queue-held]{color:var(--c-accent-2)}
       #soft98-pro-control .s98p-download-page{display:grid;gap:4px;margin-block:6px;color:var(--c-text)}

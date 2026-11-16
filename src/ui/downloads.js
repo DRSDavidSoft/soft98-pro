@@ -247,7 +247,10 @@
   }
 
   function render() {
-    $("hold").disabled = !state;
+    const hold = $("hold");
+    const hasQueueWork = state?.jobs.some(job => states.active.has(job.status) || job.status === "queued" || job.status === "resume-queued");
+    if (!hasQueueWork && document.activeElement === hold) $("open-import").focus({ preventScroll: true });
+    hold.hidden = hold.disabled = !hasQueueWork;
     $("limit").disabled = !state;
     $("native-notifications").disabled = !state;
     if (!state) return;
@@ -257,8 +260,8 @@
     $("limit").value = state.limit;
     $("native-notifications").checked = state.notifications !== false;
     $("clear").disabled = !state.jobs.some((job) => states.finished.has(job.status) && !(job.status === "interrupted" && job.resumable));
-    buttonContent($("hold"), state.held ? "unhold" : "hold", state.held ? "player-play" : "player-pause");
-    $("notice").textContent = state.held ? text("held") : "";
+    buttonContent(hold, state.held ? "unhold" : "hold", state.held ? "player-play" : "player-pause");
+    $("notice").textContent = state.held && hasQueueWork ? text("held") : "";
     const query = $("search").value.trim().toLowerCase();
     const filter = $("filter").value;
     const counts = { active: 0, waiting: 0, finished: 0 };
@@ -295,7 +298,12 @@
       nodes.row.remove();
       rows.delete(id);
     }
-    for (const [key, count] of Object.entries(counts)) $("count-" + key).textContent = number.format(count);
+    for (const [key, count] of Object.entries(counts)) {
+      const value = $("count-" + key);
+      value.textContent = count > 0 ? number.format(count) : "";
+      value.parentElement.hidden = count === 0;
+    }
+    $("counts").hidden = !state.jobs.length;
     $("empty").textContent = visible ? "" : text(state.jobs.length ? "noMatches" : "empty");
     $("queue-empty").hidden = Boolean(visible);
     $("empty-action").hidden = Boolean(visible);
@@ -522,7 +530,9 @@
   }
   buttonContent($("hold"), "hold", "player-pause");
   buttonContent($("clear"), "clear", "trash");
-  $("hold").addEventListener("click", () => request("configure", { held: !state?.held }));
+  $("hold").addEventListener("click", event => {
+    if (!event.currentTarget.hidden) void request("configure", { held: !state?.held });
+  });
   $("limit").addEventListener("change", () => request("configure", { limit: Number($("limit").value) }));
   $("native-notifications").addEventListener("change", async (event) => {
     if (!await request("configure", { notifications: event.target.checked })) render();
