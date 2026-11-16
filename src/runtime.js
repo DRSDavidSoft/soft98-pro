@@ -3939,42 +3939,137 @@
     node.querySelector('button[role="menuitem"]').focus({ preventScroll: true });
   }
 
-  function installFileActions() {
-    document.addEventListener("soft98-pro:download-confirmation", () => {
-      const root = document.documentElement;
-      const raw = root.dataset.s98pDownloadConfirmation;
-      delete root.dataset.s98pDownloadConfirmation;
-      if (!settings.pro || !IS_EXTENSION || document.querySelector("dialog[data-s98p-download-confirm][open]")) return;
-      const { count, total } = parseDownloadConfirmation(raw);
-      if (!count) return;
-      const dialog = localizeElement(document.createElement("dialog"));
-      dialog.dataset.s98pDownloadConfirm = "";
-      dialog.setAttribute("aria-labelledby", "soft98-pro-download-confirm-title");
-      dialog.setAttribute("aria-describedby", "soft98-pro-download-confirm-summary");
-      const values = { count: new Intl.NumberFormat(LOCALE).format(count) };
-      dialog.innerHTML = `<form method="dialog">
-        <header>
-          <span data-s98p-download-confirm-mark aria-hidden="true">${PAGE_ICONS.folder}</span>
-          <h2 id="soft98-pro-download-confirm-title">${escapeHtml(text("downloadConfirmTitle"))}</h2>
-          <button type="button" data-s98p-download-confirm-close aria-label="${escapeHtml(text("close"))}">${PAGE_ICONS.close}</button>
-        </header>
-        <p id="soft98-pro-download-confirm-summary"><span>${escapeHtml(text(count === 1 ? "downloadConfirmSingle" : "downloadConfirmCount", values))}</span>
-          <bdi dir="ltr">${escapeHtml(downloadByteLabel(total))}</bdi>
-        </p>
-        <footer>
-          <button type="submit" value="cancel" autofocus>${escapeHtml(text("downloadConfirmCancel"))}</button>
-          <button type="submit" value="start" data-s98p-download-confirm-start>${PAGE_ICONS.download}${escapeHtml(text("downloadConfirmStart"))}</button>
-        </footer>
-      </form>`;
-      const close = dialog.querySelector("[data-s98p-download-confirm-close]");
-      close.firstElementChild.setAttribute("aria-hidden", "true");
-      close.addEventListener("click", () => dialog.close("cancel"));
-      dialog.querySelector("[data-s98p-download-confirm-start] svg").setAttribute("aria-hidden", "true");
-      dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
-      dialog.addEventListener("close", () => dialog.remove(), { once: true });
-      document.body.append(dialog);
-      dialog.showModal();
+  function openDownloadConfirmation() {
+    const root = document.documentElement;
+    const raw = root.dataset.s98pDownloadConfirmation;
+    delete root.dataset.s98pDownloadConfirmation;
+    if (!settings.pro || !IS_EXTENSION || document.querySelector("dialog[data-s98p-download-confirm][open]")) return;
+    const files = parseDownloadConfirmation(raw);
+    if (!files) return;
+    const dialog = localizeElement(document.createElement("dialog"));
+    dialog.dataset.s98pDownloadConfirm = "";
+    dialog.setAttribute("aria-labelledby", "soft98-pro-download-confirm-title");
+    dialog.setAttribute("aria-describedby", "soft98-pro-download-confirm-summary");
+    dialog.innerHTML = `<form method="dialog">
+      <header>
+        <span data-s98p-download-confirm-mark aria-hidden="true">${PAGE_ICONS.folder}</span>
+        <h2 id="soft98-pro-download-confirm-title">${escapeHtml(text("downloadConfirmTitle"))}</h2>
+        <button type="button" data-s98p-download-confirm-close aria-label="${escapeHtml(text("close"))}">${PAGE_ICONS.close}</button>
+      </header>
+      <div data-s98p-download-choices>
+        <label data-s98p-download-choice-search>
+          <span aria-hidden="true">${PAGE_ICONS.search}</span>
+          <input type="search" dir="auto" maxlength="260" placeholder="${escapeHtml(text("downloadConfirmSearch"))}"
+            aria-label="${escapeHtml(text("downloadConfirmSearch"))}">
+        </label>
+        <div data-s98p-download-choice-tools>
+          <label><input type="checkbox" data-s98p-download-choice-all> ${escapeHtml(text("downloadConfirmVisible"))}</label>
+          <div role="group" aria-label="${escapeHtml(text("downloadConfirmFilter"))}" data-s98p-download-choice-filters>
+            ${["all", "selected", "unselected"].map((key, index) =>
+              `<button type="button" data-choice-filter="${key}" aria-pressed="${index === 0}">${escapeHtml(text("downloadConfirmFilters." + key))}</button>`).join("")}
+          </div>
+        </div>
+        <div data-s98p-download-choice-list></div>
+        <span data-s98p-download-choice-empty role="status" hidden>${escapeHtml(text("downloadConfirmEmpty"))}</span>
+      </div>
+      <p id="soft98-pro-download-confirm-summary" aria-live="polite" aria-atomic="true"><span></span><bdi dir="ltr"></bdi></p>
+      <footer>
+        <button type="button" value="cancel" autofocus>${escapeHtml(text("downloadConfirmCancel"))}</button>
+        <button type="submit" value="start" data-s98p-download-confirm-start>${PAGE_ICONS.download}${escapeHtml(text("downloadConfirmStart"))}</button>
+      </footer>
+    </form>`;
+    const list = dialog.querySelector("[data-s98p-download-choice-list]");
+    const empty = dialog.querySelector("[data-s98p-download-choice-empty]");
+    const search = dialog.querySelector('input[type="search"]');
+    const all = dialog.querySelector("[data-s98p-download-choice-all]");
+    const filters = [...dialog.querySelectorAll("[data-choice-filter]")];
+    const start = dialog.querySelector("[data-s98p-download-confirm-start]");
+    const summary = dialog.querySelector("#soft98-pro-download-confirm-summary");
+    const normalize = value => value.normalize("NFKC").toLowerCase().replace(/[ـ\u200c\u200d]/gu, "");
+    const number = new Intl.NumberFormat(LOCALE);
+    const rows = files.map(({ name, type, size }, index) => {
+      const row = document.createElement("label");
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.checked = true;
+      input.value = String(index);
+      input.dataset.s98pDownloadChoice = "";
+      const label = document.createElement("bdi");
+      label.textContent = name;
+      label.title = name;
+      const details = document.createElement("span");
+      if (type) {
+        const kind = document.createElement("bdi");
+        kind.dir = "ltr";
+        kind.textContent = type;
+        details.append(kind);
+      }
+      const bytes = document.createElement("bdi");
+      bytes.dir = "ltr";
+      bytes.textContent = downloadByteLabel(size);
+      details.append(bytes);
+      row.append(input, label, details);
+      list.append(row);
+      return { row, input, size, term: normalize(name + " " + type) };
     });
+    let filter = "all";
+    function update() {
+      const words = normalize(search.value).trim().split(/\s+/).filter(Boolean);
+      let available = 0, visibleChecked = 0, count = 0, total = 0;
+      for (const { row, input, size, term } of rows) {
+        const checked = input.checked;
+        row.hidden = !words.every(word => term.includes(word)) ||
+          (filter === "selected" && !checked) || (filter === "unselected" && checked);
+        if (!row.hidden) {
+          available++;
+          if (checked) visibleChecked++;
+        }
+        if (checked) { count++; total += size; }
+      }
+      all.disabled = available === 0;
+      all.checked = available > 0 && visibleChecked === available;
+      all.indeterminate = visibleChecked > 0 && visibleChecked < available;
+      empty.hidden = available > 0;
+      list.hidden = available === 0;
+      start.disabled = count === 0;
+      summary.firstElementChild.textContent = text("downloadConfirmSelection", { selected: number.format(count), total: number.format(files.length) });
+      summary.lastElementChild.textContent = downloadByteLabel(total);
+    }
+    search.addEventListener("input", update);
+    search.addEventListener("keydown", event => { if (event.key === "Enter" && !event.isComposing) event.preventDefault(); });
+    all.addEventListener("change", () => {
+      for (const { row, input } of rows) if (!row.hidden) input.checked = all.checked;
+      update();
+      if (all.disabled) filters.find(button => button.dataset.choiceFilter === filter).focus();
+    });
+    list.addEventListener("change", (event) => {
+      const hadFocus = event.target === document.activeElement;
+      update();
+      if (hadFocus && event.target.closest("label").hidden) {
+        (rows.find(({ row }) => !row.hidden)?.input || filters.find(button => button.dataset.choiceFilter === filter)).focus({ preventScroll: true });
+      }
+    });
+    for (const button of filters) {
+      button.addEventListener("click", () => {
+        filter = button.dataset.choiceFilter;
+        for (const choice of filters) choice.setAttribute("aria-pressed", String(choice === button));
+        update();
+      });
+    }
+    for (const control of dialog.querySelectorAll('[data-s98p-download-confirm-close],button[value="cancel"]')) {
+      control.addEventListener("click", () => dialog.close("cancel"));
+    }
+    for (const icon of dialog.querySelectorAll("svg")) icon.setAttribute("aria-hidden", "true");
+    dialog.addEventListener("submit", event => { if (event.submitter !== start || start.disabled) event.preventDefault(); });
+    dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
+    dialog.addEventListener("close", () => dialog.remove(), { once: true });
+    update();
+    document.body.append(dialog);
+    dialog.showModal();
+  }
+
+  function installFileActions() {
+    document.addEventListener("soft98-pro:download-confirmation", openDownloadConfirmation);
     const rowControls = (target) => target?.closest?.("dd[data-soft98-pro-download-entry]")?.querySelector(":scope > .s98p-file-actions");
     document.addEventListener("contextmenu", (event) => {
       if (!settings.pro || settings.downloadRowContextMenu === false) return;
@@ -4076,10 +4171,15 @@
 
   function parseDownloadConfirmation(raw) {
     try {
-      const { count, total } = JSON.parse(raw);
-      if (Number.isInteger(count) && count > 0 && count <= Soft98DownloadLinks.MAX_BATCH && Number.isSafeInteger(total) && total >= 0) return { count, total };
+      if (!raw || raw.length > 16000) return null;
+      const files = JSON.parse(raw);
+      if (!Array.isArray(files) || !files.length || files.length > Soft98DownloadLinks.MAX_BATCH || !files.every(file =>
+        typeof file?.name === "string" && file.name.length > 0 && file.name.length <= 260 &&
+        typeof file.type === "string" && /^(?:[A-Z0-9]{1,8})?$/.test(file.type) &&
+        Number.isSafeInteger(file.size) && file.size >= 0 && file.size < Soft98DownloadLinks.MAX_REVIEW_MB * 1000000)) return null;
+      return files;
     } catch (_error) {}
-    return {};
+    return null;
   }
 
   function prepareDownloadRow(link, icon, url) {

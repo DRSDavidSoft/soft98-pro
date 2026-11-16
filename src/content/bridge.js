@@ -211,12 +211,12 @@
       sendRuntime({ type: "soft98:download-file", urls, confirmAll }, (response) => {
         owner.removeAttribute("aria-busy");
         if (confirmAll) preparingAll = false;
-        if (confirmAll && response?.ok && response.result === "confirm" && typeof response.token === "string") {
-          document.documentElement.dataset.s98pDownloadConfirmation = JSON.stringify({ count: response.count, total: response.total });
+        if (confirmAll && response?.ok && response.result === "confirm" && typeof response.token === "string" && Array.isArray(response.files)) {
+          document.documentElement.dataset.s98pDownloadConfirmation = JSON.stringify(response.files);
           document.dispatchEvent(new Event("soft98-pro:download-confirmation"));
           const dialog = document.querySelector("dialog[data-s98p-download-confirm][open]");
           if (dialog) {
-            const pending = pendingAll = { dialog, token: response.token };
+            const pending = pendingAll = { dialog, token: response.token, count: response.files.length };
             dialog.addEventListener("close", () => { if (pendingAll === pending) pendingAll = null; }, { once: true });
           } else downloadResult(null);
         } else downloadResult(response);
@@ -226,9 +226,15 @@
       if (!event.isTrusted || event.button !== 0 || event.defaultPrevented) return;
       const confirm = event.target instanceof Element && event.target.closest("dialog[open] button[data-s98p-download-confirm-start]");
       if (confirm && pendingAll?.dialog === confirm.closest("dialog")) {
-        const { token } = pendingAll;
+        const { dialog, token, count } = pendingAll;
+        const selected = [...dialog.querySelectorAll('input[data-s98p-download-choice]:checked')].map(input => Number(input.value));
+        if (!selected.length || selected.length > count || new Set(selected).size !== selected.length ||
+            selected.some(index => !Number.isInteger(index) || index < 0 || index >= count)) {
+          event.preventDefault();
+          return;
+        }
         pendingAll = null;
-        sendRuntime({ type: "soft98:confirm-download-all", token }, downloadResult);
+        sendRuntime({ type: "soft98:confirm-download-all", token, selected }, downloadResult);
         return;
       }
       const control = event.target instanceof Element && event.target.closest("button[data-soft98-pro-download-manager],button[data-s98p-file-command]");

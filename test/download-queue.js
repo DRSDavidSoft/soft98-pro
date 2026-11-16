@@ -18,6 +18,15 @@ const EXTENSION_ID = "soft98-test";
 const PREFIX = "https://example.test/";
 const DIST = path.resolve(__dirname, "../dist");
 
+test("an article confirmation accepts only checked indices from the original batch", () => {
+  const urls = [PREFIX + "one.zip", PREFIX + "two.msi", PREFIX + "three.exe"];
+  assert.deepEqual(links.confirmedUrls(urls, [1]), [urls[1]]);
+  assert.deepEqual(links.confirmedUrls(urls, [2, 0]), [urls[0], urls[2]]);
+  for (const invalid of [[], [1, 1], [0, 3], [-1], [1.2], ["1"], [urls[0]], null]) {
+    assert.equal(links.confirmedUrls(urls, invalid), null);
+  }
+});
+
 test("platform detection is conservative about generic and mixed download headings", () => {
   assert.equal(links.deviceOS({ platform: "Linux x86_64", userAgent: "Linux Android 15" }), "android");
   assert.equal(links.deviceOS({ platform: "MacIntel", maxTouchPoints: 5 }), "ios");

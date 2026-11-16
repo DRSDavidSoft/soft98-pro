@@ -126,6 +126,13 @@ const Soft98DownloadLinks = (() => {
     return Number.isInteger(value) && value > 0 && value <= MAX_REVIEW_MB ? value : DEFAULT_REVIEW_MB;
   }
 
+  function confirmedUrls(urls, selected) {
+    if (!Array.isArray(selected) || !selected.length || selected.length > urls.length) return null;
+    const indices = new Set(selected);
+    if (indices.size !== selected.length || [...indices].some(index => !Number.isInteger(index) || index < 0 || index >= urls.length)) return null;
+    return urls.filter((_url, index) => indices.has(index));
+  }
+
   function deviceOS({ platform = "", userAgent = "", userAgentData, maxTouchPoints = 0 } = {}) {
     const identity = `${userAgentData?.platform || ""} ${platform} ${userAgent}`;
     if (/\b(?:iPhone|iPad|iPod|iOS)\b/i.test(identity) || (/^Mac/i.test(platform) && maxTouchPoints > 1)) return "ios";
@@ -160,7 +167,7 @@ const Soft98DownloadLinks = (() => {
     return [...targets];
   }
 
-  return { MAX_BATCH, MAX_IMPORT, MAX_TEXT, DEFAULT_REVIEW_MB, MAX_REVIEW_MB, reviewLimit, deviceOS, headingOS, normalize, describe, fileType, parse, headers, articleFile, declaredArticleLinks, metadata };
+  return { MAX_BATCH, MAX_IMPORT, MAX_TEXT, DEFAULT_REVIEW_MB, MAX_REVIEW_MB, reviewLimit, confirmedUrls, deviceOS, headingOS, normalize, describe, fileType, parse, headers, articleFile, declaredArticleLinks, metadata };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = Soft98DownloadLinks;

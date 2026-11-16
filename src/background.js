@@ -19,6 +19,7 @@
   const pendingSources = new Map();
   const downloadImports = new Map();
   const pendingDownloadConfirmations = new Map();
+  const approvingDownloadConfirmations = new Set();
   const downloadPage = api.runtime.getURL("downloads.html");
   const downloadPopup = api.runtime.getURL("popup.html");
   const headerQueuePage = api.runtime.getURL("header-queue.html");
@@ -58,6 +59,39 @@
     return call(api.tabs, "create", { url: downloadPage + "#import=" + token, openerTabId: sender.tab.id });
   }
 
+  function downloadConfirmationKey(tab) {
+    return "soft98DownloadConfirmation:" + tab;
+  }
+
+  async function saveDownloadConfirmation(tab, pending) {
+    if (api.storage.session) return call(api.storage.session, "set", { [downloadConfirmationKey(tab)]: pending });
+    if (pendingDownloadConfirmations.size >= 32) pendingDownloadConfirmations.delete(pendingDownloadConfirmations.keys().next().value);
+    pendingDownloadConfirmations.set(tab, pending);
+  }
+
+  async function approveDownloadConfirmation(message, sender) {
+    const tab = sender.tab.id;
+    if (approvingDownloadConfirmations.has(tab)) return { ok: false };
+    approvingDownloadConfirmations.add(tab);
+    try {
+      const key = downloadConfirmationKey(tab);
+      const pending = api.storage.session ? (await call(api.storage.session, "get", key))[key] : pendingDownloadConfirmations.get(tab);
+      if (!pending || pending.token !== message.token || pending.expires < Date.now() || pending.source !== sender.url) return { ok: false };
+      const urls = Soft98DownloadLinks.confirmedUrls(pending.urls, message.selected);
+      if (!urls) return { ok: false };
+      if (api.storage.session) await call(api.storage.session, "remove", key);
+      else pendingDownloadConfirmations.delete(tab);
+      return await enqueueArticleDownloads(urls, pending.source, pending.metadata);
+    } finally {
+      approvingDownloadConfirmations.delete(tab);
+    }
+  }
+
+  api.tabs.onRemoved.addListener(tab => {
+    pendingDownloadConfirmations.delete(tab);
+    if (api.storage.session) ignore(call(api.storage.session, "remove", downloadConfirmationKey(tab)));
+  });
+
   async function downloadFromArticle(urls, sender, confirmAll) {
     const { soft98AdBlockerSettings } = await call(api.storage.local, "get", "soft98AdBlockerSettings");
     const metadata = await Soft98DownloadProbe.planArticleDownloads(urls, soft98AdBlockerSettings?.downloadReviewMB, inspectDownload);
@@ -67,9 +101,11 @@
     }
     if (!confirmAll) return enqueueArticleDownloads(urls, sender.url, metadata);
     const token = crypto.randomUUID();
-    if (pendingDownloadConfirmations.size >= 32) pendingDownloadConfirmations.delete(pendingDownloadConfirmations.keys().next().value);
-    pendingDownloadConfirmations.set(sender.tab.id, { token, urls, source: sender.url, metadata, expires: Date.now() + 120000 });
-    return { ok: true, result: "confirm", token, count: urls.length, total: Object.values(metadata).reduce((sum, file) => sum + file.size, 0) };
+    await saveDownloadConfirmation(sender.tab.id, { token, urls, source: sender.url, metadata, expires: Date.now() + 600000 });
+    return { ok: true, result: "confirm", token, files: urls.map(url => {
+      const file = Soft98DownloadLinks.describe(url);
+      return { name: file.name.slice(0, 260), type: metadata[url].type || file.type, size: metadata[url].size };
+    }) };
   }
 
   async function enqueueArticleDownloads(urls, source, metadata) {
@@ -416,13 +452,7 @@
         return true;
       }
       if (message.type === "soft98:confirm-download-all") {
-        const pending = pendingDownloadConfirmations.get(sender.tab.id);
-        if (!pending || pending.token !== message.token || pending.expires < Date.now() || pending.source !== sender.url) {
-          sendResponse({ ok: false });
-          return false;
-        }
-        pendingDownloadConfirmations.delete(sender.tab.id);
-        enqueueArticleDownloads(pending.urls, pending.source, pending.metadata).then(sendResponse, () => sendResponse({ ok: false }));
+        approveDownloadConfirmation(message, sender).then(sendResponse, () => sendResponse({ ok: false }));
         return true;
       }
       if (message.type === "soft98:download-snapshot") {

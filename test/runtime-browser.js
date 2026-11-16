@@ -368,8 +368,37 @@ async function verifyFileActions(client) {
   check("cancelling never sends a start request", await run(`${confirmed}.length`), 0);
   await click(section);
   await until('document.querySelector("dialog[data-s98p-download-confirm][open]")');
+  check("both files are initially selected", await run('document.querySelectorAll("[data-s98p-download-choice]:checked").length'), 2);
+  check("the selection total starts at 72 MiB", await run('document.querySelector("#soft98-pro-download-confirm-summary bdi").textContent'), "72 MiB");
+  const search = (query) => run(`(() => {
+    const field = document.querySelector("[data-s98p-download-choice-search] input");
+    field.value = ${JSON.stringify(query)};
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+    field.focus();
+  })()`);
+  const visibleChoices = 'document.querySelectorAll("[data-s98p-download-choice-list] label:not([hidden])").length';
+  await search("MSI");
+  check("search by type shows only the MSI file", await run(visibleChoices), 1);
+  await client.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
+  await client.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 });
+  check("Enter in search does not start a download", await run(`${confirmed}.length`), 0);
+  await click('[data-s98p-download-choice-all]');
+  check("bulk deselection only changes the visible file", await run('document.querySelector("[data-s98p-download-choice]:checked").value'), "0");
+  await search("not-a-file");
+  check("no-match state is contextual", await run('!document.querySelector("[data-s98p-download-choice-empty]").hidden'), true);
+  await search("");
+  await click('[data-choice-filter="selected"]');
+  check("selection filter shows only the checked file", await run(visibleChoices), 1);
+  await click('[data-s98p-download-choice-list] label:not([hidden]) > bdi');
+  check("clicking a row toggles its checkbox and disables Start when nothing is selected", await run('document.querySelector("[data-s98p-download-confirm-start]").disabled'), true);
+  await click('[data-choice-filter="unselected"]');
+  check("unselected filter shows both files", await run(visibleChoices), 2);
+  await search("installer");
+  await click('[data-s98p-download-choice-all]');
+  check("selection total is recalculated", await run('document.querySelector("#soft98-pro-download-confirm-summary bdi").textContent'), "8 MiB");
   await click('[data-s98p-download-confirm-start]');
   await until(`${confirmed}.length===1`);
+  check("start submits only the checked index, even when hidden by the filter", await run(`JSON.stringify(${confirmed}[0].selected)`), "[1]");
   await run('fileActionsFixture.nextResult = "review"');
   await click(section);
   check("group action also uses the threshold-aware route", await run(`${jobs}.at(-1).urls[0]`), destination);
@@ -2046,6 +2075,11 @@ async function main() {
         await verifyArticlePreview(client);
       }
       console.log("Soft98 article download previews passed");
+      return;
+    }
+    if (process.argv.includes("--article-download-actions-only")) {
+      await verifyFileActions(client);
+      console.log("Soft98 article download actions and file picker passed");
       return;
     }
     const badgeDark = "255,209,102";

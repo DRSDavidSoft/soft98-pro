@@ -15,6 +15,7 @@
       <dl>
         <dt>Windows</dt>
         <dd><a href="https://files.example.test/tool.zip?sig=A%2Fb">Download tool size 64 MB</a></dd>
+        <dd><a href="https://files.example.test/installer.msi">Windows installer</a></dd>
         <dt id="linux-section">لینوکـس</dt>
         <dd id="linux-file"><a href="https://files.example.test/linux.deb">Linux package</a></dd>
         <dt id="multi-section">Windows / macOS</dt>
@@ -42,7 +43,10 @@
         fixture.messages.push(message);
         if (message.type === "soft98:download-file") {
           if (message.confirmAll && fixture.nextResult !== "review") {
-            return { ok: true, result: "confirm", token: "token-for-one-approval", count: message.urls.length, total: 64000000 };
+            return { ok: true, result: "confirm", token: "token-for-one-approval", files: message.urls.map((url, index) => {
+              const name = new URL(url).pathname.split("/").pop();
+              return { name, type: name.split(".").at(-1).toUpperCase(), size: (index ? 8 : 64) * 1048576 };
+            }) };
           }
           return { ok: true, result: fixture.nextResult || "starting" };
         }

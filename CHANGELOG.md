@@ -30,6 +30,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Download All lets you search the batch, check or uncheck individual files, and see the selected count and size before starting.
+
 - The updates and technology news cards share one collapse button and remember their state. Hide both with the close button and bring them back from the Control Center.
 
 - Reworked the light theme with a sage canvas, flat card headings, and distinct colors for links, downloads, and notices. The Control Center, Download Manager, and Linkdoni now share the same palette.
