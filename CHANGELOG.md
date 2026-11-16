@@ -36,6 +36,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- “Read more” now reveals actual download links next to the post on listing pages, including links published as structured data.
+
 - Removed the extra scrollbar from the search field, kept suggestions inside the viewport, and improved keyboard focus and mixed-language input.
 
 - The Control Center's three-dot menu opens next to its header button instead of beside the floating launcher.

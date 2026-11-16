@@ -80,6 +80,7 @@
         })
       );
       window.__soft98HarnessConsoleInfo = console.info;
+      if (harnessParams.has("legacyPopover")) delete HTMLElement.prototype.showPopover;
       const originalFetch = window.fetch.bind(window);
       window.fetch = (input, init) => String(input) === location.origin + "/100-preview.html" ?
         Promise.resolve(new Response('<article><div role="tabpanel" id="test-file-panel"><dl><dt>Files</dt>' +
@@ -89,6 +90,15 @@
         })) : String(input) === location.origin + "/101-keyed.html" ?
         Promise.resolve(new Response('<article><div role="tabpanel"><dl><dd><a data-key="example" href="/101-keyed.html">Keyed file</a></dd>' +
           '<dd><a href="/support.html">Not a file</a></dd></dl></div></article>', { headers: { "Content-Type": "text/html" } })) :
+        String(input) === location.origin + "/102-delayed.html" ?
+        Promise.resolve(new Response('<main><article><div role="tabpanel"><dl data-json=\'' +
+          JSON.stringify({ first: { scheme: "https", host: "dl2.soft98.ir", path: "/files/package.part01.rar" },
+            second: { scheme: "https", host: "dl2.soft98.ir", path: "/files/package.part02.rar" } }) +
+          '\'><dt>Windows x64</dt><dd><a data-key="first" href="/102-delayed.html">Part 1</a></dd>' +
+          '<dt>Windows ARM</dt>' +
+          '<dd><a data-key="second" href="/102-delayed.html">Part 2</a></dd>' +
+          '<dd><a href="https://dl2.soft98.ir/files/package.part02.rar?12345">Duplicate</a></dd>' +
+          '<dd><a href="/support.html">Not a file</a></dd></dl></div></article></main>', { headers: { "Content-Type": "text/html" } })) :
         String(input) === "https://dl2.soft98.ir/files/metadata.zip" && init?.method === "HEAD" ?
         Promise.resolve(new Response(null, { headers: {
           "Content-Type": "application/zip", "Content-Length": "8200000", "Last-Modified": "Fri, 13 Nov 2026 12:00:00 GMT"
@@ -227,7 +237,8 @@
 
           var listingPreview = document.createElement("main");
           listingPreview.innerHTML = '<article><a data-test="article-preview-trigger" href="/100-preview.html">ادامه مطلب</a></article>' +
-            '<article><a data-test="keyed-preview-trigger" href="/101-keyed.html">ادامه مطلب</a></article>';
+            '<article><a data-test="keyed-preview-trigger" href="/101-keyed.html">ادامه مطلب</a></article>' +
+            '<article><footer class="rotated-name"><a data-test="delayed-preview-trigger" href="/">ادامــه مطلـب</a></footer></article>';
           document.body.appendChild(listingPreview);
           var pagination = document.createElement("ul");
           pagination.className = "pagination";

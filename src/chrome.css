@@ -192,6 +192,89 @@
   border-color: var(--s98p-control-edge) !important;
 }
 
+:root:not(.soft98-pro-theme) [data-soft98-pro-read-preview] { display: none !important; }
+
+:root.soft98-pro-theme [data-soft98-pro-read-preview] {
+  display: inline-flex;
+  margin-inline-start: 6px;
+  vertical-align: middle;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-read-preview] > :is(a,button) {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-block-size: 36px;
+  padding-inline: 11px;
+  border: 1px solid var(--s98p-border) !important;
+  border-radius: 6px;
+  background: var(--s98p-control-bg) !important;
+  color: var(--s98p-text) !important;
+  font: inherit;
+  text-decoration: none !important;
+  cursor: pointer;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-read-preview] > :is(a,button):is(:hover,:focus-visible,[aria-expanded=true]) {
+  background: var(--s98p-control-hover) !important;
+  border-color: var(--s98p-accent) !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-preview-panel]:not([data-s98p-preview-open]) { display: none; }
+
+:root.soft98-pro-theme [data-soft98-pro-preview-panel][data-s98p-preview-open] {
+  position: fixed;
+  z-index: 10001;
+  inset: auto;
+  margin: 0;
+  display: grid;
+  gap: 3px;
+  box-sizing: border-box;
+  inline-size: min(320px, calc(100vw - 24px));
+  max-block-size: min(320px, calc(100dvh - 24px));
+  padding: 6px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--s98p-border);
+  border-radius: 8px;
+  background: var(--s98p-elevated);
+  box-shadow: 0 12px 28px #0005;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-preview-panel] > span {
+  display: grid;
+  gap: 2px;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-preview-panel] > span + span {
+  padding-block-start: 5px;
+  border-block-start: 1px solid var(--s98p-border-soft);
+}
+
+:root.soft98-pro-theme [data-soft98-pro-preview-panel] > span > bdi {
+  padding: 5px 8px 3px;
+  color: var(--s98p-muted);
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-preview-panel] a {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-block-size: 38px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  color: var(--s98p-text) !important;
+  text-decoration: none !important;
+  overflow-wrap: anywhere;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-preview-panel] a:is(:hover,:focus-visible) {
+  background: var(--s98p-control-hover);
+  color: var(--s98p-link) !important;
+}
+
 :root.soft98-pro-theme [data-soft98-pro-nav-chrome] {
   box-sizing: border-box;
   display: flex !important;

@@ -1631,10 +1631,6 @@
       :root.soft98-pro-theme [data-soft98-pro-legacy-accent~="background-color"]{background-color:color-mix(in srgb,var(--s98p-accent) 23%,var(--s98p-surface))!important}
       :root.soft98-pro-theme [data-soft98-pro-legacy-accent~="border-block-start-color"]{border-block-start-color:var(--s98p-accent)!important}
       :root.soft98-pro-theme [data-soft98-pro-legacy-accent~="border-inline-start-color"]{border-inline-start-color:var(--s98p-accent)!important}
-      :root.soft98-pro-theme [data-soft98-pro-read-preview]{position:relative;display:inline-block;margin-inline-start:6px}
-      :root.soft98-pro-theme [data-soft98-pro-read-preview] > button{min-height:36px;padding-inline:9px}
-      :root.soft98-pro-theme [data-soft98-pro-preview-panel]{position:absolute;inset-inline-start:0;inset-block-end:100%;z-index:8;min-width:min(250px,75vw);max-width:min(340px,85vw);display:grid;gap:5px;padding:12px;border:1px solid var(--s98p-border);border-radius:7px;background:var(--s98p-elevated);box-shadow:0 8px 25px #0008}
-      :root.soft98-pro-theme [data-soft98-pro-preview-panel][hidden],:root:not(.soft98-pro-theme) [data-soft98-pro-read-preview]{display:none!important}
       @media(prefers-reduced-motion:reduce){:root.soft98-pro-theme [data-soft98-pro-page-icon=chevron]{transition:none}}
       :root.soft98-pro-theme [data-soft98-pro-heading-divider]{border-inline-start:0!important;padding-inline-start:14px!important;position:relative!important}
       :root.soft98-pro-theme [data-soft98-pro-heading-divider]::before{content:""!important;position:absolute!important;inset-inline-start:0!important;inset-block-start:50%!important;transform:translateY(-50%)!important;width:4px!important;height:1.15em!important;border:0!important;border-radius:3px!important;background:linear-gradient(180deg,var(--s98p-link),color-mix(in srgb,var(--s98p-link) 40%,var(--s98p-border)))!important;box-shadow:0 0 8px color-mix(in srgb,var(--s98p-link) 15%,transparent)!important;pointer-events:none!important}
@@ -2613,61 +2609,190 @@
   function bindArticlePreview(trigger) {
     if (articlePreviewTriggers.has(trigger) || !nativeFetch) return;
     const article = trigger.closest("article");
-    const headline = article?.querySelector("header :is(h1,h2,h3) a[href]");
-    const candidate = [trigger, headline].find((link) => link?.href && link.origin === location.origin &&
-      /\/\d+[^/]*\.html$/i.test(link.pathname) && link.pathname !== location.pathname);
-    if (!candidate) return;
-    const destination = new URL(candidate.href);
-    destination.hash = "";
+    const candidates = [trigger, ...article.querySelectorAll("header :is(h1,h2,h3,h4) a[href]")];
     let started = false;
+    let observer, expiry;
+    const stopWatching = () => {
+      observer?.disconnect();
+      observer = undefined;
+      clearTimeout(expiry);
+    };
     const discover = async () => {
       if (started || !settings.pro) return;
+      const candidate = candidates.find((link) => link.origin === location.origin &&
+        !link.username && !link.password && /\/\d+[^/]*\.html$/i.test(link.pathname) && link.pathname !== location.pathname);
+      if (!candidate) {
+        if (observer) return;
+        // Stock listing links get their public destination on interaction, sometimes after pointerenter.
+        observer = new MutationObserver(discover);
+        for (const link of candidates) observer.observe(link, { attributes: true, attributeFilter: ["href"] });
+        expiry = setTimeout(stopWatching, 1500);
+        return;
+      }
+      stopWatching();
+      const destination = new URL(candidate.href);
+      destination.hash = "";
       started = true;
       const links = await readArticleLinks(destination.href);
-      if (links === null) started = false;
-      if (links?.length && trigger.isConnected) renderArticlePreview(trigger, links);
+      if (!links || !settings.pro || !trigger.isConnected) {
+        started = false;
+        return;
+      }
+      if (links.length) renderArticlePreview(trigger, links, () => { started = false; });
     };
     articlePreviewTriggers.add(trigger);
     trigger.addEventListener("pointerenter", discover);
     trigger.addEventListener("focus", discover);
   }
 
-  function renderArticlePreview(trigger, links) {
+  function renderArticlePreview(trigger, links, onRemove) {
     const wrap = document.createElement("span");
+    let movement;
+    wrap.setAttribute("data-soft98-pro-read-preview", "");
+    const makeLink = ({ label, href, hideReferrer }, action = false) => {
+      const link = document.createElement("a");
+      const caption = document.createElement("bdi");
+      caption.textContent = action ? text("articlePreviewDownload") : label;
+      link.append(caption);
+      link.href = href;
+      if (hideReferrer) link.rel = "noreferrer";
+      if (action) link.title = label;
+      decorateIcon(link, "download");
+      return link;
+    };
+    trigger.after(wrap);
+    undoWithTheme(wrap, () => { movement?.abort(); wrap.remove(); onRemove(); });
+    if (links.length === 1) {
+      wrap.append(makeLink(links[0], true));
+      return;
+    }
     const button = document.createElement("button");
     const panel = document.createElement("span");
     button.type = "button";
     button.textContent = text("articlePreview");
     button.setAttribute("aria-expanded", "false");
-    panel.hidden = true;
-    wrap.setAttribute("data-soft98-pro-read-preview", "");
+    decorateIcon(button, "download");
+    const nativePopover = typeof panel.showPopover === "function";
+    if (nativePopover) panel.popover = "auto";
+    else panel.hidden = true;
     panel.setAttribute("data-soft98-pro-preview-panel", "");
     panel.setAttribute("role", "region");
     panel.setAttribute("aria-label", text("articlePreview"));
-    for (const { label, href, hideReferrer } of links) {
-      const link = document.createElement("a");
-      link.textContent = label;
-      link.href = href;
-      if (hideReferrer) link.rel = "noreferrer";
-      panel.append(link);
+    let group, section;
+    for (const link of links) {
+      if (!section || group !== link.group) {
+        group = link.group;
+        section = document.createElement("span");
+        if (group) {
+          const heading = document.createElement("bdi");
+          heading.textContent = group;
+          section.append(heading);
+        }
+        panel.append(section);
+      }
+      section.append(makeLink(link));
     }
     wrap.append(button, panel);
-    trigger.after(wrap);
-    let hover;
-    const dismiss = () => {
-      clearTimeout(hover);
-      button.setAttribute("aria-expanded", "false");
-      panel.hidden = true;
+    const isOpen = () => nativePopover ? panel.matches(":popover-open") : !panel.hidden;
+    const close = () => {
+      if (isOpen()) {
+        if (nativePopover) panel.hidePopover();
+        else {
+          panel.hidden = true;
+          updatePanel();
+        }
+      }
     };
-    const open = () => {
-      button.setAttribute("aria-expanded", "true");
-      panel.hidden = false;
+    const positionPanel = () => {
+      if (!panel.isConnected) { movement?.abort(); return; }
+      const { clientWidth: width, clientHeight: height } = document.documentElement;
+      const anchor = button.getBoundingClientRect();
+      const topbar = document.querySelector("[data-s98p-topbar-shell]");
+      const topEdge = Math.max(8, (topbar?.getBoundingClientRect().bottom || 0) + 8);
+      if (anchor.bottom < topEdge || anchor.top > height) {
+        close();
+        return;
+      }
+      const above = Math.max(0, anchor.top - topEdge - 6);
+      const below = Math.max(0, height - anchor.bottom - 14);
+      const naturalHeight = Math.min(panel.scrollHeight + 2, 320);
+      const placeBelow = below >= Math.min(naturalHeight, 240) || below >= above;
+      panel.style.maxBlockSize = Math.max(40, placeBelow ? below : above) + "px";
+      const box = panel.getBoundingClientRect();
+      const left = getComputedStyle(button).direction === "rtl" ? anchor.right - box.width : anchor.left;
+      const top = placeBelow ? anchor.bottom + 6 : anchor.top - box.height - 6;
+      panel.style.left = Math.max(8, Math.min(left, width - box.width - 8)) + "px";
+      panel.style.top = Math.max(topEdge, Math.min(top, height - box.height - 8)) + "px";
     };
-    wrap.addEventListener("pointerenter", () => { hover = setTimeout(open, 320); });
-    wrap.addEventListener("pointerleave", () => { if (!wrap.contains(document.activeElement)) dismiss(); });
-    wrap.addEventListener("focusout", (event) => { if (!wrap.contains(event.relatedTarget)) dismiss(); });
-    wrap.addEventListener("keydown", (event) => { if (event.key === "Escape") { dismiss(); button.focus(); } });
-    button.addEventListener("click", () => { if (panel.hidden) open(); else dismiss(); });
+    const updatePanel = () => {
+      movement?.abort();
+      const open = isOpen();
+      panel.toggleAttribute("data-s98p-preview-open", open);
+      button.setAttribute("aria-expanded", String(open));
+      if (!open) return;
+      positionPanel();
+      if (!isOpen()) return;
+      movement = new AbortController();
+      const options = { passive: true, signal: movement.signal };
+      window.addEventListener("resize", positionPanel, options);
+      window.addEventListener("scroll", () => {
+        movement.abort();
+        if (panel.isConnected) close();
+      }, options);
+      if (!nativePopover) {
+        document.addEventListener("pointerdown", (event) => {
+          if (!wrap.contains(event.target)) close();
+        }, { capture: true, signal: movement.signal });
+        wrap.addEventListener("keydown", (event) => {
+          if (event.key !== "Escape") return;
+          event.preventDefault();
+          close();
+          button.focus({ preventScroll: true });
+        }, options);
+      }
+    };
+    if (nativePopover) {
+      button.popoverTargetElement = panel;
+      panel.addEventListener("toggle", updatePanel);
+    } else {
+      button.addEventListener("click", () => {
+        panel.hidden = !panel.hidden;
+        updatePanel();
+      });
+    }
+  }
+
+  function extractArticlePreviewLinks(html, destination) {
+    const template = document.createElement("template");
+    template.innerHTML = html;
+    const article = template.content.querySelector("main article, article");
+    if (!article) return [];
+    const declared = new Map();
+    for (const list of article.querySelectorAll("[role=tabpanel] dl[data-json]")) {
+      const links = [...list.querySelectorAll(":scope > dd > a[data-key]")];
+      const targets = Soft98DownloadLinks.declaredArticleLinks(list.getAttribute("data-json"), links.map(link => link.dataset.key));
+      if (!targets || links.some((link, index) => {
+        const current = directDownloadUrl(link.getAttribute("href"), destination);
+        return current && current.href !== directDownloadUrl(targets[index], destination)?.href;
+      })) continue;
+      links.forEach((link, index) => declared.set(link, targets[index]));
+    }
+    const seen = new Set();
+    const files = [];
+    for (const link of article.querySelectorAll("[role=tabpanel] dl > dd a:is([href],[data-key]), a[download][href]")) {
+      const raw = link.getAttribute("href");
+      const current = directDownloadUrl(raw, destination);
+      const value = current ? raw : declared.get(link);
+      const url = current || directDownloadUrl(value, destination);
+      if (!url || BLOCKED_URL.test(url.href) || seen.has(url.href)) continue;
+      seen.add(url.href);
+      let heading = link.closest("dd")?.previousElementSibling;
+      while (heading && heading.tagName !== "DT") heading = heading.previousElementSibling;
+      files.push({ href: url.href, hideReferrer: new URL(value, destination).hostname === "href.li" || link.relList.contains("noreferrer"),
+        label: linkLabel(link).slice(0, 160) || Soft98DownloadLinks.describe(url.href).name,
+        group: heading ? linkLabel(heading).slice(0, 120) : "" });
+    }
+    return files;
   }
 
   function readArticleLinks(destination) {
@@ -2687,17 +2812,7 @@
           if (bytes > 650000) { await reader.cancel(); return null; }
           html += decoder.decode(value, { stream: true });
         }
-        const doc = new DOMParser().parseFromString(html + decoder.decode(), "text/html");
-        const seen = new Set();
-        const article = doc.querySelector("main article, article");
-        if (!article) return null;
-        return [...article.querySelectorAll("[role=tabpanel] dl > dd a[href], a[download][href]")].flatMap((link) => {
-          const url = directDownloadUrl(link.getAttribute("href"), destination);
-          if (!url || seen.has(url.href)) return [];
-          seen.add(url.href);
-          return [{ href: url.href, hideReferrer: new URL(link.getAttribute("href"), destination).hostname === "href.li",
-            label: link.textContent.trim().slice(0, 140) || url.pathname.split("/").at(-1) }];
-        }).slice(0, 12);
+        return extractArticlePreviewLinks(html + decoder.decode(), destination);
       }).catch(() => null);
     if (articlePreviewCache.size >= 24) articlePreviewCache.delete(articlePreviewCache.keys().next().value);
     articlePreviewCache.set(destination, { time: Date.now(), result });

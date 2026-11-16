@@ -133,6 +133,64 @@ async function waitForResults(client) {
   throw new Error("Timed out waiting for Soft98 runtime results");
 }
 
+async function verifyArticlePreview(client) {
+  const results = await evaluate(client, `
+    (async () => {
+      const trigger = document.querySelector('[data-test=article-preview-trigger]');
+      const keyed = document.querySelector('[data-test=keyed-preview-trigger]');
+      const delayed = document.querySelector('[data-test=delayed-preview-trigger]');
+      trigger.dir = 'rtl';
+      const icon = trigger.querySelector('[data-soft98-pro-page-icon]');
+      const label = new Range();
+      label.selectNodeContents(trigger);
+      label.setStartAfter(icon);
+      const trailing = icon.getBoundingClientRect().right <= label.getBoundingClientRect().left;
+      const noUnverifiedControls = [trigger, keyed, delayed].every(link => !link.nextElementSibling);
+      trigger.dispatchEvent(new PointerEvent('pointerenter'));
+      keyed.focus({ preventScroll: true });
+      delayed.dispatchEvent(new PointerEvent('pointerenter'));
+      await new Promise(resolve => setTimeout(resolve, 50));
+      const ignoredPlaceholder = !delayed.nextElementSibling;
+      delayed.href = '/102-delayed.html';
+      for (let i = 0; i < 30 && !delayed.nextElementSibling; i++)
+        await new Promise(resolve => setTimeout(resolve, 30));
+      const single = trigger.nextElementSibling?.querySelector(':scope > a');
+      const button = delayed.nextElementSibling?.querySelector('button');
+      const panel = delayed.nextElementSibling?.querySelector('[data-soft98-pro-preview-panel]');
+      button?.scrollIntoView({ block: 'center', behavior: 'instant' });
+      await new Promise(requestAnimationFrame);
+      button?.focus({ preventScroll: true });
+      button?.click();
+      for (let i = 0; i < 10 && button?.getAttribute('aria-expanded') !== 'true'; i++)
+        await new Promise(requestAnimationFrame);
+      const bounds = panel?.getBoundingClientRect();
+      const fits = Boolean(bounds && bounds.width > 0 && bounds.left >= 0 && bounds.right <= innerWidth &&
+        bounds.top >= 0 && bounds.bottom <= innerHeight);
+      return { trailing, noUnverifiedControls, ignoredPlaceholder, noKeyedPreview: !keyed.nextElementSibling,
+        single: single?.href, noReferrer: single?.relList.contains('noreferrer'), fits,
+        open: button?.getAttribute('aria-expanded') === 'true',
+        groups: [...(panel?.querySelectorAll('span > bdi:not(a bdi)') || [])].map(heading => heading.textContent),
+        links: [...(panel?.querySelectorAll('a') || [])].map(link => link.href) };
+    })()
+  `);
+  for (const key of ['trailing', 'noUnverifiedControls', 'ignoredPlaceholder', 'noKeyedPreview', 'noReferrer', 'fits', 'open']) {
+    assertEqual("listing preview", key, results[key], true);
+  }
+  assertEqual("listing preview", "one file links directly", results.single, "https://dl2.soft98.ir/files/preview.zip");
+  assertEqual("listing preview", "both structured links, without duplicates or placeholders", results.links.join(","),
+    "https://dl2.soft98.ir/files/package.part01.rar,https://dl2.soft98.ir/files/package.part02.rar");
+  assertEqual("listing preview", "file groups stay distinct", results.groups.join(","), "Windows x64,Windows ARM");
+  await client.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+  await client.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+  const closed = await evaluate(client, `(async () => {
+    const panel = document.querySelector('[data-soft98-pro-preview-panel]');
+    for (let i = 0; i < 10 && panel.hasAttribute('data-s98p-preview-open'); i++)
+      await new Promise(requestAnimationFrame);
+    return !panel.hasAttribute('data-s98p-preview-open');
+  })()`);
+  assertEqual("listing preview", "Escape closes the menu", closed, true);
+}
+
 async function verifyFileActions(client) {
   const selector = '[data-soft98-pro-download-manager="file"]';
   const menu = "#soft98-pro-file-menu";
@@ -1981,6 +2039,15 @@ async function main() {
       console.log("Soft98 site search and sticky navigation passed");
       return;
     }
+    if (process.argv.includes("--article-preview-only")) {
+      for (const mode of ["", "&legacyPopover=1"]) {
+        await client.send("Page.navigate", { url: `http://127.0.0.1:${PORT}/?taunt=0&dark=1${mode}` });
+        await waitForResults(client);
+        await verifyArticlePreview(client);
+      }
+      console.log("Soft98 article download previews passed");
+      return;
+    }
     const badgeDark = "255,209,102";
     let idleDark;
     const cases = [
@@ -2190,34 +2257,7 @@ async function main() {
         assertEqual("news", "shortcut count", latest.shortcuts, 5);
         assertEqual("news", "shortcut SVG centers", latest.centered, true);
         assertEqual("news", "collapse follows the left-aligned shortcuts in RTL and keyboard order", latest.collapseLast, true);
-        const previewLinks = await evaluate(client, `
-          (async () => {
-            const trigger = document.querySelector('[data-test=article-preview-trigger]');
-            const keyed = document.querySelector('[data-test=keyed-preview-trigger]');
-            trigger.dir = 'rtl';
-            const icon = trigger.querySelector('[data-soft98-pro-page-icon]');
-            const label = new Range();
-            label.selectNodeContents(trigger);
-            label.setStartAfter(icon);
-            const trailing = icon.getBoundingClientRect().right <= label.getBoundingClientRect().left;
-            const noUnverifiedControls = !trigger.nextElementSibling && !keyed.nextElementSibling;
-            trigger.dispatchEvent(new PointerEvent('pointerenter'));
-            keyed.focus({ preventScroll:true });
-            for (let i = 0; i < 10 && !trigger.nextElementSibling; i++)
-              await new Promise(resolve => setTimeout(resolve, 35));
-            const preview = trigger.nextElementSibling;
-            preview.querySelector('button').click();
-            keyed.blur();
-            return { trailing, noUnverifiedControls, noKeyedPreview: !keyed.nextElementSibling,
-              links: [...preview.querySelectorAll('[data-soft98-pro-preview-panel] a')].map(link => link.getAttribute('href')) };
-          })()
-        `);
-        assertEqual("listing preview", "direct file only", previewLinks.links.join(","), "https://dl2.soft98.ir/files/preview.zip");
-        assertEqual("read more", "RTL icon follows the label", previewLinks.trailing, true);
-        assertEqual("listing preview", "no controls before verification", previewLinks.noUnverifiedControls, true);
-        assertEqual("listing preview", "no placeholder for keyed controls", previewLinks.noKeyedPreview, true);
-        assertEqual("listing preview", "referrer stays private", await evaluate(client,
-          "document.querySelector('[data-soft98-pro-preview-panel] a').relList.contains('noreferrer')"), true);
+        await verifyArticlePreview(client);
         const wrappers = await evaluate(client, `(async () => {
           const samples = [
             ['https://href.li/?https://example.org/a%2Fb?q=a+b&token=%2F%3F#install', 'https://example.org/a%2Fb?q=a+b&token=%2F%3F#install'],
