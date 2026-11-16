@@ -37,6 +37,10 @@ const RELEASE_BASE = "https://github.com/DRSDavidSoft/soft98-pro/releases/latest
 const BRAND_FILES = {
   light: path.join(SRC, "assets", "soft98-pro-logo-light.png"),
   pirateDark: path.join(SRC, "assets", "soft98-pro-logo-pirate-dark.png"),
+  stockLight: path.join(SRC, "assets", "soft98-stock-logo-light.png"),
+  stockDark: path.join(SRC, "assets", "soft98-stock-logo-dark.png"),
+  stockCompactLight: path.join(SRC, "assets", "soft98-stock-navbar-light.png"),
+  stockCompactDark: path.join(SRC, "assets", "soft98-stock-navbar-dark.png"),
 };
 const { siAndroid } = require("simple-icons");
 const TABLER_ROOT = path.resolve(path.dirname(require.resolve("@tabler/icons/outline/download.svg")), "../..");

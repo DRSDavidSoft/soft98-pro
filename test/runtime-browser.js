@@ -989,9 +989,11 @@ async function verifyThemeRestore(client) {
   const stock = `(() => {
     const tools = document.getElementById("stock-tools");
     const link = document.querySelector("#downloads dd > a");
+    const masthead = document.getElementById("stock-masthead");
     return tools.children.length === 2 && getComputedStyle(tools).display === "flex" &&
       !document.querySelector("[data-soft98-pro-download-row],[data-s98p-download-toggle],[data-s98p-category-icon],[data-soft98-brand-variant]") &&
       document.getElementById("stock-logo").getAttribute("alt") === "Soft98 logo" &&
+      masthead.style.backgroundImage.includes("data:image/gif") && getComputedStyle(masthead).backgroundColor === "rgb(70, 117, 145)" &&
       link.href === "https://files.example.test/AnyDesk.zip" && link.textContent === "دانلود 8.1 MiB (رایگان)" &&
       document.getElementById("utility").contains(document.querySelector("#utility .tbdc")) &&
       getComputedStyle(document.querySelector("#utility .tbdc")).display !== "none";
@@ -1016,9 +1018,25 @@ async function verifyThemeRestore(client) {
       await client.send("Page.navigate", { url });
       await until(`location.href === ${JSON.stringify(url)} && ${active} && document.querySelector("[data-soft98-pro-download-row]") &&
         document.querySelector("dialog[aria-labelledby=soft98-pro-utility-title]") && document.querySelector("#stock-logo[data-soft98-brand-variant]")`);
+      const brand = (compact, variant) => `document.querySelector("#${compact ? "stock-logo" : "stock-masthead"}").getAttribute("data-soft98-brand-variant") === "${variant}"`;
+      await run('Soft98Pro.configure({pirateLogo:false})');
+      await until(`${brand(true,"stockCompactDark")} && ${brand(false,"stockDark")} &&
+        getComputedStyle(document.getElementById("stock-masthead")).backgroundColor === "rgba(0, 0, 0, 0)"`);
+      const logos = await run(`(() => {
+        const navbar = document.getElementById("stock-logo"), masthead = document.getElementById("stock-masthead");
+        return { imageBundled: navbar.src.startsWith("data:image/png;base64,"), alt: navbar.alt,
+          backgroundBundled: getComputedStyle(masthead).backgroundImage.includes("data:image/png;base64,"),
+          backgroundColor: getComputedStyle(masthead).backgroundColor };
+      })()`);
+      check(mode + " bundles both stock logo formats", logos.imageBundled && logos.backgroundBundled, true);
+      check(mode + " preserves the image label", logos.alt, "Soft98 logo");
+      check(mode + " clears the masthead matte", logos.backgroundColor, "rgba(0, 0, 0, 0)");
       await run('window.sameDownload = document.querySelector("#downloads dd > a"); window.sameNav = document.getElementById("stock-nav")');
       await run('Soft98Pro.configure({darkDesign:false})');
       await until('document.documentElement.classList.contains("soft98-pro-light")');
+      await until(`${brand(true,"stockCompactLight")} && ${brand(false,"stockLight")}`);
+      await run('Soft98Pro.configure({pirateLogo:true})');
+      await until(`${brand(true,"light")} && ${brand(false,"light")}`);
       check(mode + " light mode does not reload", await run("fixtureVisit"), 1);
       check(mode + " uses one solid fill across the article title and metadata", await run(`(() => {
         const styles = ["[data-soft98-pro-article-header]","[data-soft98-pro-article-meta]"]
@@ -1693,7 +1711,7 @@ function assertCase(name, results, expected) {
     nestedLightSurface: expected.dark ? "raised" : null,
     controlTabChanged: true,
     controlOutsideCollapsed: true,
-    logoRestored: true,
+    stockLogoSelected: true,
     constructableTheme: true,
     utilityLayout: "utility-list",
     utilityRows: true,

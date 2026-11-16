@@ -174,7 +174,7 @@
           },
           "pirateLogo": {
             "title": "Pirate branding",
-            "detail": "Use the bundled transparent pirate identity after successful protection."
+            "detail": "Use the Pro logo instead of the original Soft98 logo."
           },
           "taunt": {
             "title": "Success notification",
@@ -279,7 +279,7 @@
           "showLatest": ["Show latest posts and news", "Show the software, Android, and news lists at the top of the page."],
           "hideAnnoyances": ["Hide extra site prompts", "Hide the utility-list expansion prompt and the offer to install software for you."],
           "rgbMode": ["Animated RGB mode", "Add a restrained spectral glass experience with efficient motion and reduced-motion support."],
-          "pirateLogo": ["Pirate logo", "Use the bundled pirate logo after successful cleanup."],
+          "pirateLogo": ["Pirate logo", "Use the Pro logo instead of the original Soft98 logo."],
           "taunt": ["Success notification", "Briefly show a message after cleanup. Off by default."],
           "diagnostics": ["Console diagnostics", "Expose useful logs and interactive page APIs."]
         }
@@ -458,7 +458,7 @@
           },
           "pirateLogo": {
             "title": "نشان دزدان دریایی",
-            "detail": "پس از موفقیت حفاظت، از نشان شفاف داخلی استفاده می‌کند."
+            "detail": "لوگوی پرو رو به‌جای لوگوی اصلی سافت‌۹۸ نشون بده."
           },
           "taunt": {
             "title": "پیام موفقیت",
@@ -563,7 +563,7 @@
           "showLatest": ["تازه‌ها و اخبار", "نمایش تازه‌های نرم‌افزار، اندروید و اخبار بالای صفحه"],
           "hideAnnoyances": ["پنهان‌کردن گزینه‌های اضافه", "دکمهٔ ادامهٔ لیست کاربردی و پیشنهاد نصب نرم‌افزار پنهان می‌شن."],
           "rgbMode": ["افکت RGB متحرک", "لبه‌ها و رنگ‌های حالت تیره آروم تغییر می‌کنن."],
-          "pirateLogo": ["لوگوی دزدان دریایی", "بعد از حذف تبلیغات، لوگوی پرو جای لوگوی سایت رو می‌گیره."],
+          "pirateLogo": ["لوگوی دزدان دریایی", "لوگوی پرو رو به‌جای لوگوی اصلی سافت‌۹۸ نشون بده."],
           "taunt": ["پیام موفقیت", "بعد از حذف تبلیغات، یه پیام کوتاه می‌بینی. این گزینه به‌طور پیش‌فرض خاموشه."],
           "diagnostics": ["گزارش فنی در کنسول", "گزارش و ابزارهای بررسی در کنسول مرورگر"]
         }

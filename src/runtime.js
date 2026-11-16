@@ -1290,7 +1290,8 @@
       a[${DATA_HREF}]{pointer-events:auto}
       a[data-soft98-brand-compact]{min-height:36px!important;min-width:86px;background-size:86px auto!important;background-repeat:no-repeat!important;background-position:center!important}
       img[data-soft98-brand-compact]{width:86px!important;max-width:100%!important;height:38px!important;object-fit:cover!important}
-      [data-soft98-brand-kind=background]{display:block!important;background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important}
+      [data-soft98-brand-kind=background]{display:block!important;background-color:transparent!important;background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important}
+      img[data-soft98-brand-kind=image]{object-fit:contain!important}
       [data-soft98-brand-kind=background]:not([data-soft98-brand-compact]){min-height:104px!important}
       [data-soft98-brand-kind=background]>*{visibility:hidden!important}
       @media(max-width:700px){[data-soft98-brand-kind=background]:not([data-soft98-brand-compact]){min-height:78px!important}}
@@ -4856,7 +4857,8 @@
       const inNavigation = Boolean(link.closest("nav,[role=navigation]"));
       const hasGraphic = Boolean(image || background.startsWith("url("));
       const isCompactBrand = candidate.node.hasAttribute("data-soft98-brand-compact") || /\/navbar-brand\.[a-z]+(?:[?"')]|$)/i.test(assetSignals) ||
-        (inNavigation && hasGraphic && box.width > 0 && box.height > 0 && box.height <= 64 && (link.rel === "home" || link.children.length > 0));
+        (inNavigation && hasGraphic && (link.rel === "home" || link.hasAttribute("data-s98p-topbar-brand") ||
+          (box.width > 0 && box.height > 0 && box.height <= 64 && link.children.length > 0)));
       if (isCompactBrand) {
         compact.push({ ...candidate, compact: true });
         continue;
@@ -4867,7 +4869,8 @@
       const areaScore = box.width * box.height > 10000 ? 5 : box.width * box.height > 1400 ? 2 : 0;
       const homeScore = /\bhome\b/i.test(link.rel || "") ? 2 : 0;
       const brandScore = /soft\s*98|سافت[\s\u200c]*(?:98|۹۸|٩٨)|logo/i.test(`${linkSignals} ${imageSignals}`) ? 8 : 0;
-      const primaryAssetScore = /\/(?:logo|wordmark)[^/)]*\.(?:avif|png|webp|gif|svg)/i.test(assetSignals) ? 10 : 0;
+      const primaryAssetScore = originalLogos.has(candidate.node) ||
+        /\/(?:logo|wordmark)[^/)]*\.(?:avif|png|webp|gif|svg)/i.test(assetSignals) ? 10 : 0;
       const imageScore = image ? 3 : 0;
       candidates.push({ ...candidate, score: shapeScore + areaScore + homeScore + brandScore + primaryAssetScore + imageScore });
     }
@@ -4884,7 +4887,7 @@
 
   function enhanceLogo() {
     if (linkdoni) return;
-    if (!settings.pro || !settings.pirateLogo) return restoreOriginalLogo();
+    if (!settings.pro) return restoreOriginalLogo();
     for (const logo of originalLogos.keys()) {
       if (!logo.isConnected) originalLogos.delete(logo);
     }
@@ -4894,7 +4897,8 @@
   function applyLogo(candidate) {
     const logo = candidate.node;
     const dark = settings.pro && (settings.darkDesign || settings.rgbMode);
-    const variant = dark ? "pirateDark" : "light";
+    const variant = settings.pirateLogo ? (dark ? "pirateDark" : "light") :
+      `stock${candidate.compact ? "Compact" : ""}${dark ? "Dark" : "Light"}`;
     const source = BRAND_ASSETS[variant];
     if (!source) return;
     const branded = logo.getAttribute("data-soft98-brand-variant") === variant;
@@ -4906,7 +4910,10 @@
       logo.removeAttribute("srcset");
       logo.removeAttribute("sizes");
       logo.setAttribute("src", source);
-      logo.setAttribute("alt", text("product"));
+      const originalAlt = originalLogos.get(logo).attributes.find(([name]) => name === "alt")[1];
+      const alt = settings.pirateLogo ? text("product") : originalAlt;
+      if (alt === null) logo.removeAttribute("alt");
+      else logo.setAttribute("alt", alt);
     } else {
       if (!originalLogos.has(logo)) {
         originalLogos.set(logo, {

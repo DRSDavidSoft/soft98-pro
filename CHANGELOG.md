@@ -32,6 +32,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Trimmed excess padding from the Pro logos. Turning off Pirate branding now uses transparent copies of the original header and navbar logos in both themes.
+
 - RGB mode no longer darkens or desaturates artwork. The animated accents stay active without dimming article text.
 
 - Recovered the original article and download links when the userscript encounters an early page clear on ordinary reload.

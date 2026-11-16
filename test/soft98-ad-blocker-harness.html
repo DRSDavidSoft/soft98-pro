@@ -328,16 +328,14 @@
             api.configure({ taunt: harnessParams.get("taunt") === "1" });
             var brandedLogo = document.querySelector("[data-test='site-logo']");
             api.configure({ pirateLogo: false });
-            var logoRestored =
-              brandedLogo.getAttribute("src") === "data:image/gif;base64,R0lGODlhAQABAAAAACw=" &&
-              brandedLogo.getAttribute("alt") === "Soft98 logo" &&
-              brandedLogo.getAttribute("srcset") === "data:image/gif;base64,R0lGODlhAQABAAAAACw= 1x" &&
-              brandedLogo.getAttribute("sizes") === "220px";
+            var stockLogoSelected = brandedLogo.getAttribute("src").startsWith("data:image/png;base64,") &&
+              brandedLogo.getAttribute("data-soft98-brand-variant") === (api.settings.darkDesign || api.settings.rgbMode ? "stockDark" : "stockLight") &&
+              brandedLogo.getAttribute("alt") === "Soft98 logo";
             api.configure({ pirateLogo: true });
             return {
               tabChanged: Boolean(selectedAfterArrow && selectedAfterArrow !== firstTab),
               outsideCollapsed: control.getAttribute("data-open") === "false" && control.querySelector("form").getAttribute("aria-hidden") === "true",
-              logoRestored: logoRestored,
+              stockLogoSelected: stockLogoSelected,
             };
           })();
           var megamenu = document.querySelector('[data-test="megamenu"]');
@@ -426,7 +424,7 @@
             nestedLightBackground: nestedLightSurface && getComputedStyle(nestedLightSurface).backgroundColor,
             controlTabChanged: controlBehavior.tabChanged,
             controlOutsideCollapsed: controlBehavior.outsideCollapsed,
-            logoRestored: controlBehavior.logoRestored,
+            stockLogoSelected: controlBehavior.stockLogoSelected,
             tabTheme: tabTheme,
             control: (function () {
               var control = document.querySelector("#soft98-pro-control");

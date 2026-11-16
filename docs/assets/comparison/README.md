@@ -262,7 +262,7 @@ Live screenshots. Look for the offer to install the software at the bottom of th
 <details>
 <summary><strong>Pirate branding</strong></summary>
 
-Use the bundled transparent pirate identity after successful protection.
+Use the Pro logo instead of the original Soft98 logo.
 
 Live screenshots.
 

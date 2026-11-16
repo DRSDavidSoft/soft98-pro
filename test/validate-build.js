@@ -216,7 +216,30 @@ for (const phrase of [messages.locales.en.runtime.successLog, messages.locales.f
 for (const placeholder of ["__SOFT98_VERSION__", "__SOFT98_MESSAGES__", "__SOFT98_BRAND_ASSETS__", "__SOFT98_COMPATIBILITY__", "__SOFT98_RECOMMEND_EXTENSION__"]) {
   if (runtime.includes(placeholder) || userscript.includes(placeholder)) throw new Error(`Unresolved build placeholder: ${placeholder}`);
 }
-if ((runtime.match(/data:image\/png;base64,/g) || []).length < 2) throw new Error("Both logo variants must be inlined into the runtime");
+const firefoxRuntime = fs.readFileSync(path.join(DIST, "firefox", "assets", "runtime.page.js"), "utf8");
+for (const file of [
+  "soft98-pro-logo-pirate-dark.png", "soft98-pro-logo-light.png",
+  "soft98-stock-logo-dark.png", "soft98-stock-logo-light.png",
+  "soft98-stock-navbar-dark.png", "soft98-stock-navbar-light.png",
+]) {
+  const bytes = fs.readFileSync(path.join(ROOT, "src", "assets", file));
+  const dataUrl = "data:image/png;base64," + bytes.toString("base64");
+  if (![runtime, firefoxRuntime, userscript].every(source => source.includes(dataUrl))) {
+    throw new Error(`${file} must be bundled in all delivery formats`);
+  }
+  const { width, height, data } = PNG.sync.read(bytes);
+  let left = width, top = height, right = -1, bottom = -1;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (!data[4 * (y * width + x) + 3]) continue;
+      left = Math.min(left, x);
+      top = Math.min(top, y);
+      right = Math.max(right, x);
+      bottom = Math.max(bottom, y);
+    }
+  }
+  assert.deepEqual([left, top, width - 1 - right, height - 1 - bottom], [2, 2, 2, 2], `${file} must have a tight transparent margin`);
+}
 if (!/pirateLogo:!0/.test(runtime) || !/pirateDark/.test(runtimeWithoutImages)) throw new Error("Pirate logo branding must be enabled and bundled");
 
 const release = JSON.parse(fs.readFileSync(path.join(DIST, "release", "latest.json"), "utf8"));
