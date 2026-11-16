@@ -2310,21 +2310,34 @@
     const viewport = controlViewport();
     const bar = document.querySelector("[data-s98p-topbar-shell]")?.getBoundingClientRect();
     const top = bar?.top <= viewport.top + 1 ? Math.max(viewport.top, bar.bottom) : viewport.top;
+    const visibleHeight = viewport.bottom - top;
+    const lead = Math.min(360, visibleHeight / 3);
+    const finalOpacity = .3;
     for (const { download } of wideLayouts.values()) {
       if (!download) continue;
       const { source, rail } = download;
       const box = source.getBoundingClientRect();
-      const viewHeight = Math.min(box.height, viewport.bottom - top);
-      const intersection = box.right > viewport.left && box.left < viewport.right
-        ? Math.max(0, Math.min(box.bottom, viewport.bottom) - Math.max(box.top, top)) : 0;
-      const opacity = viewHeight > 0 ? 1 - Math.min(1, intersection / viewHeight) : 1;
+      const viewHeight = Math.min(box.height, visibleHeight);
+      let opacity = 1;
+      let inactive = false;
+      if (viewHeight > 0 && box.right > viewport.left && box.left < viewport.right) {
+        const distance = Math.max(0, box.top - viewport.bottom, top - box.bottom);
+        inactive = distance === 0;
+        if (inactive) {
+          const overlap = Math.min(box.bottom, viewport.bottom) - Math.max(box.top, top);
+          opacity = finalOpacity * (1 - Math.min(1, overlap / viewHeight));
+        } else if (distance < lead) {
+          // Ease out the first 70% before contact; the rest follows the visible overlap directly.
+          opacity = finalOpacity + (1 - finalOpacity) * (distance / lead) ** 2;
+        }
+      }
       const value = opacity.toFixed(4);
       if (rail.style.getPropertyValue("--s98p-download-rail-opacity") !== value) {
         rail.style.setProperty("--s98p-download-rail-opacity", value);
         gridStyles.set(rail, rail.getAttribute("style"));
       }
       const hidden = opacity === 0;
-      if (hidden && rail.contains(document.activeElement)) {
+      if (inactive && rail.contains(document.activeElement)) {
         const current = document.activeElement;
         const original = mirroredDownloadHeadings.get(current.closest("dt"));
         const role = current.hasAttribute("data-s98p-download-toggle") ? "[data-s98p-download-toggle]" :
@@ -2333,7 +2346,8 @@
         const replacement = original?.querySelector(role) || source.querySelector("[data-s98p-download-toggle]");
         replacement?.focus({ preventScroll: true });
       }
-      rail.inert = hidden;
+      if (rail.inert !== inactive) rail.inert = inactive;
+      rail.toggleAttribute("data-s98p-download-rail-inactive", inactive);
       rail.toggleAttribute("data-s98p-download-rail-faded", hidden);
     }
   }

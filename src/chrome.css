@@ -716,7 +716,8 @@
   opacity: var(--s98p-download-rail-opacity,1);
   transition: none !important;
 }
-:root.soft98-pro-theme [data-s98p-download-rail-faded] { visibility: hidden; pointer-events: none; }
+:root.soft98-pro-theme [data-s98p-download-rail-inactive] { pointer-events: none; }
+:root.soft98-pro-theme [data-s98p-download-rail-faded] { visibility: hidden; }
 :root.soft98-pro-compact [data-s98p-wide-layout] > [data-soft98-pro-column="secondary"]:has(> [data-s98p-download-rail]:only-child) {
   align-self: stretch;
 }
