@@ -135,6 +135,24 @@
   }
 
   if (!(api.extension && api.extension.inIncognitoContext)) {
+    let fileTimer;
+    let filesPending = false;
+    function refreshFiles() {
+      if (filesPending || document.hidden || !document.querySelector("[data-soft98-pro-download-manager=file]")) return;
+      filesPending = true;
+      sendRuntime({ type: "soft98:article-downloads" }, (response) => {
+        filesPending = false;
+        clearTimeout(fileTimer);
+        if (!response?.files) return;
+        document.documentElement.setAttribute("data-soft98-pro-article-downloads", JSON.stringify(response.files));
+        document.dispatchEvent(new Event("soft98-pro:article-downloads"));
+        if (response.files.some(({ status }) => ["starting", "resuming", "downloading"].includes(status))) {
+          fileTimer = setTimeout(refreshFiles, 1250);
+        }
+      });
+    }
+    document.addEventListener("soft98-pro:article-downloads-request", refreshFiles);
+    document.addEventListener("visibilitychange", refreshFiles);
     let summaryPending = false;
     const refreshSummary = () => {
       if (summaryPending || !document.querySelector('#soft98-pro-control[data-open="true"] [data-panel="downloads"]:not([hidden])')) return;
@@ -148,7 +166,10 @@
     };
     document.addEventListener("soft98-pro:download-summary-request", refreshSummary);
     api.storage.onChanged.addListener((changes, area) => {
-      if (area === "local" && changes.soft98DownloadQueue) refreshSummary();
+      if (area === "local" && changes.soft98DownloadQueue) {
+        refreshSummary();
+        refreshFiles();
+      }
     });
     document.addEventListener("click", (event) => {
       if (!event.isTrusted || event.button !== 0 || event.defaultPrevented) return;
@@ -158,19 +179,33 @@
         sendRuntime({ type: "soft98:open-downloads" });
         return;
       }
+      if (control.dataset.soft98ProDownloadManager === "section") {
+        const urls = [];
+        for (let entry = control.closest("dt")?.nextElementSibling; entry?.matches("dd"); entry = entry.nextElementSibling) {
+          const url = entry.querySelector(":scope > a[data-s98p-file-url]")?.dataset.s98pFileUrl;
+          if (url) urls.push(url);
+        }
+        if (urls.length) sendRuntime({ type: "soft98:open-downloads", urls });
+        return;
+      }
       const action = control.dataset.s98pFileCommand;
-      if (action !== "queue" && action !== "start") return;
+      if (!["queue", "start", "review"].includes(action)) return;
       const menu = control.closest("#soft98-pro-file-menu");
       const owner = menu ? document.getElementById(menu.dataset.owner || "") : control;
       if (!owner?.matches('button[data-soft98-pro-download-manager="file"]')) return;
       const row = owner.closest("article dd[data-soft98-pro-download-entry]");
-      const link = row?.querySelector(":scope > a[data-soft98-pro-download-row][href]");
+      const link = row?.querySelector(":scope > a[data-soft98-pro-download-row][href][data-s98p-file-url]");
       if (!link || !row.getClientRects().length || owner.getAttribute("aria-busy") === "true") return;
+      if (action === "review") {
+        sendRuntime({ type: "soft98:open-downloads", urls: [link.dataset.s98pFileUrl] });
+        return;
+      }
       owner.setAttribute("aria-busy", "true");
-      sendRuntime({ type: "soft98:download-file", action, url: link.href }, (response) => {
+      sendRuntime({ type: "soft98:download-file", action, url: link.dataset.s98pFileUrl }, (response) => {
         owner.removeAttribute("aria-busy");
         document.documentElement.setAttribute("data-soft98-pro-file-result", response?.ok ? response.result : "failed");
         document.dispatchEvent(new Event("soft98-pro:file-result"));
+        refreshFiles();
       });
     }, true);
   }

@@ -66,6 +66,7 @@
     copy: { label: "downloadCopyFile", icon: "copy" },
   };
   let fileMenu;
+  let fileStates = new Map();
   const savedHref = new WeakMap();
   const originalLogos = new Map();
   const hiddenPageDisplays = new WeakMap();
@@ -1130,6 +1131,10 @@
       .soft98-pro-theme .s98p-file-actions button:focus-visible{outline:2px solid var(--s98p-accent);outline-offset:-2px}
       .soft98-pro-theme .s98p-file-actions svg,.soft98-pro-theme .s98p-file-menu svg{width:18px;height:18px;flex:none;pointer-events:none}
       .soft98-pro-theme .s98p-file-actions [data-s98p-file-more] svg{width:14px;transform:rotate(-90deg)}
+      :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status]{--file-status-color:var(--s98p-link);width:auto;min-width:28px;max-width:75px;height:24px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-inline-end:5px;padding:0 5px;border-radius:5px;border-color:color-mix(in srgb,var(--file-status-color) 43%,var(--s98p-border))!important;background:color-mix(in srgb,var(--file-status-color) 10%,transparent)!important;color:var(--file-status-color)!important;font:inherit;font-size:11px;font-weight:680;text-align:center;font-variant-numeric:tabular-nums}
+      :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status][hidden]{display:none!important}
+      :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status=complete]{--file-status-color:var(--s98p-accent)}
+      :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status]:is([data-s98p-file-status=interrupted],[data-s98p-file-status=review]){--file-status-color:var(--s98p-text)}
       :root.soft98-pro-theme [data-soft98-pro-download-manager=file][aria-busy=true]{opacity:.6;cursor:progress}
       .soft98-pro-theme .s98p-file-menu{position:fixed;z-index:2147483001;display:grid;overflow:auto;overscroll-behavior:contain;box-sizing:border-box;width:246px;padding:5px;border:1px solid var(--s98p-border);border-radius:8px;background:color-mix(in srgb,var(--s98p-elevated) 92%,transparent);backdrop-filter:blur(18px);box-shadow:0 12px 26px #0005;color:var(--s98p-text);font:inherit;text-align:start}
       .soft98-pro-theme .s98p-file-menu [role=group]+[role=group]{margin-block-start:4px;padding-block-start:4px;border-block-start:1px solid var(--s98p-border)}
@@ -2247,6 +2252,9 @@
         element.href = destination;
         element.target = "_blank";
         element.rel = "noopener noreferrer";
+      } else if (key === "downloads") {
+        element.type = "button";
+        element.dataset.soft98ProDownloadManager = "open";
       } else {
         element.type = "button";
         element.addEventListener("click", key === "top" ? () => {
@@ -2267,6 +2275,7 @@
     const resources = node("div", "s98p-footer-links");
     resources.append(node("strong", "", "resources"), action("source", "github", EXTENSION_REPO),
       action("releases", "history", EXTENSION_REPO + "/releases"));
+    if (IS_EXTENSION) resources.append(action("downloads", "download"));
     const support = node("div", "s98p-footer-links");
     support.append(node("strong", "", "support"), action("community", "message", COMMUNITY_URL),
       action("report", "external", EXTENSION_REPO + "/issues"));
@@ -2367,8 +2376,7 @@
       if (!value || isBadHref(value)) return null;
       const original = new URL(value, base);
       const url = settings.pro ? unwrapReferrerLink(original) || original : original;
-      if (url.protocol !== "https:" || url.username || url.password || url.port ||
-          !/\.(?:zip|rar|7z|exe|msi|msix|appx|dmg|apk|iso|deb|rpm|tar|gz|xz|bz2|bin|img|pkg|001)$/i.test(url.pathname)) return null;
+      if (url.username || url.password || !Soft98DownloadLinks.articleFile(url)) return null;
       if (/^\?\d+$/.test(url.search) && (url.hostname === "soft98.ir" || url.hostname.endsWith(".soft98.ir"))) url.search = "";
       return url;
     } catch (_error) {
@@ -2474,10 +2482,18 @@
       const toggle = downloadButton("chevron");
       const copy = downloadButton("copy");
       copy.append(text("downloadCopyAll"));
+      let review;
+      if (IS_EXTENSION) {
+        review = downloadButton("download");
+        review.dataset.soft98ProDownloadManager = "section";
+        review.title = text("downloadReview");
+        review.setAttribute("aria-label", review.title);
+        controls.append(review);
+      }
       controls.append(copy, toggle);
       heading.setAttribute("data-soft98-pro-download-heading", "");
       heading.append(controls);
-      state = { controls, toggle, copy, entries: [], collapsed: false };
+      state = { controls, toggle, copy, review, entries: [], collapsed: false };
       downloadHeadings.set(heading, state);
       toggle.addEventListener("click", (event) => {
         event.stopPropagation();
@@ -2509,6 +2525,7 @@
     if (state.toggle.getAttribute("aria-controls") !== ids) state.toggle.setAttribute("aria-controls", ids);
     const noLinks = !directSectionLinks(entries).length;
     if (state.copy.hidden !== noLinks) state.copy.hidden = noLinks;
+    if (state.review && state.review.hidden !== noLinks) state.review.hidden = noLinks;
     syncDownloadCollapse(state);
   }
 
@@ -2548,8 +2565,33 @@
     more.setAttribute("aria-haspopup", "menu");
     more.setAttribute("aria-expanded", "false");
     group.append(action, more);
+    const badge = document.createElement("button");
+    badge.type = "button";
+    badge.dataset.soft98ProDownloadManager = "open";
+    badge.dataset.s98pFileStatus = "";
+    badge.hidden = true;
+    group.prepend(badge);
     link.after(group);
     return group;
+  }
+
+  function renderFileBadge(link, group) {
+    const badge = group.querySelector("[data-s98p-file-status]");
+    const state = fileStates.get(link.dataset.s98pFileUrl);
+    const key = state && ["queued", "starting", "resuming", "downloading", "paused", "complete", "interrupted", "review"].includes(state.status)
+      ? state.status : "";
+    if (badge.hidden !== !key) badge.hidden = !key;
+    if (!key) return;
+    const numeric = key === "downloading" && typeof state.percent === "number";
+    const label = text("downloadBadge." + key);
+    const value = numeric ? new Intl.NumberFormat(LOCALE, { style: "percent" }).format(state.percent / 100) : label;
+    if (badge.textContent !== value) badge.textContent = value;
+    if (badge.dataset.s98pFileStatus !== key) badge.dataset.s98pFileStatus = key;
+    const title = numeric ? `${label} · ${value}` : label;
+    if (badge.title !== title) {
+      badge.title = title;
+      badge.setAttribute("aria-label", `${title} · ${text("controlOpenDownloads")}`);
+    }
   }
 
   function closeFileMenu(restoreFocus = false) {
@@ -2565,7 +2607,8 @@
   function openFileMenu(group, invoker, point) {
     if (fileMenu?.more === group.lastElementChild) return closeFileMenu(true);
     closeFileMenu();
-    const [owner, more] = group.children;
+    const owner = group.querySelector("[data-s98p-file-command]");
+    const more = group.lastElementChild;
     const node = document.createElement("div");
     node.id = "soft98-pro-file-menu";
     node.dataset.owner = owner.id;
@@ -2592,6 +2635,14 @@
         button.append(text(actionLabel));
         section.append(button);
       }
+      if (!defaults) {
+        const review = downloadButton("download");
+        review.tabIndex = -1;
+        review.setAttribute("role", "menuitem");
+        review.dataset.s98pFileCommand = "review";
+        review.append(text("downloadReview"));
+        section.append(review);
+      }
       node.append(section);
     }
     document.body.append(node);
@@ -2612,7 +2663,7 @@
 
   function installFileActions() {
     document.addEventListener("contextmenu", (event) => {
-      const target = event.target.closest?.(".s98p-file-actions button");
+      const target = event.target.closest?.(".s98p-file-actions :is([data-s98p-file-command],[data-s98p-file-more])");
       if (!target || !settings.pro) return;
       event.preventDefault();
       openFileMenu(target.parentElement, target, event.clientX || event.clientY ? event : null);
@@ -2660,7 +2711,7 @@
         if (next === undefined) return;
         items[next].focus();
       } else {
-        const target = event.target.closest?.(".s98p-file-actions button");
+        const target = event.target.closest?.(".s98p-file-actions :is([data-s98p-file-command],[data-s98p-file-more])");
         if (!target || !(event.key === "ArrowDown" || event.key === "ContextMenu" || (event.shiftKey && event.key === "F10"))) return;
         openFileMenu(target.parentElement, target);
       }
@@ -2673,6 +2724,14 @@
       if (fileMenu && !(event.target instanceof Node && fileMenu.node.contains(event.target))) closeFileMenu();
     }, { capture: true, passive: true });
     window.addEventListener("resize", () => closeFileMenu());
+    document.addEventListener("soft98-pro:article-downloads", () => {
+      try {
+        const root = document.documentElement;
+        fileStates = new Map(JSON.parse(root.getAttribute("data-soft98-pro-article-downloads") || "[]").map((item) => [item.url, item]));
+        root.removeAttribute("data-soft98-pro-article-downloads");
+        for (const group of document.querySelectorAll(".s98p-file-actions")) renderFileBadge(group.previousElementSibling, group);
+      } catch (_error) {}
+    });
     document.addEventListener("soft98-pro:file-result", () => {
       const root = document.documentElement;
       const result = root.getAttribute("data-soft98-pro-file-result");
@@ -2688,7 +2747,11 @@
     if (IS_EXTENSION) {
       const existing = link.nextElementSibling?.matches(".s98p-file-actions") && link.nextElementSibling;
       if (url?.protocol === "https:" && !url.port) {
-        const button = (existing || createFileControls(link)).firstElementChild;
+        if (link.dataset.s98pFileUrl !== url.href) link.dataset.s98pFileUrl = url.href;
+        const group = existing || createFileControls(link);
+        const button = group.querySelector("[data-soft98-pro-download-manager=file]");
+        renderFileBadge(link, group);
+        if (!existing) document.dispatchEvent(new Event("soft98-pro:article-downloads-request"));
         const action = defaultFileAction();
         if (button.dataset.s98pFileCommand !== action) {
           button.dataset.s98pFileCommand = action;
@@ -2698,7 +2761,10 @@
           button.title = text(label);
           button.setAttribute("aria-label", button.title);
         }
-      } else if (existing) existing.remove();
+      } else if (existing) {
+        existing.remove();
+        delete link.dataset.s98pFileUrl;
+      }
     }
     const direct = url || /^(?:دانلود|download)/i.test(normalizedPersian(link.textContent || ""));
     decorateIcon(link, direct && icon === "link" ? "download" : icon);

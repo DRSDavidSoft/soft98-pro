@@ -3,9 +3,11 @@
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { Script } = require("node:vm");
 const { setTimeout: sleep } = require("node:timers/promises");
 const { test } = require("node:test");
 const { create, directUrl, articleFileUrl, relativeFilename, trustedSender } = require("../src/download-queue");
+const links = require("../src/download-links");
 
 const EXTENSION_ID = "soft98-test";
 const PREFIX = "https://example.test/";
@@ -16,10 +18,14 @@ test("both built extensions package the internal manager without exposing it to 
     const read = (file) => fs.readFileSync(path.join(DIST, target, file), "utf8");
     const manifest = JSON.parse(read("manifest.json"));
     assert.ok(manifest.permissions.includes("downloads"));
+    assert.ok(manifest.permissions.includes("notifications"));
+    assert.ok((manifest.optional_host_permissions || manifest.optional_permissions).includes("https://*/*"));
     assert.ok(!JSON.stringify(manifest.web_accessible_resources || []).includes("downloads"));
     assert.match(read("popup.html"), /href="downloads\.html"/);
     assert.match(read("options.html"), /href="downloads\.html"/);
     assert.match(read("downloads.html"), /src="downloads\.js"/);
+    assert.doesNotMatch(read("downloads.html"), /<textarea/i);
+    for (const file of ["downloads.js", "download-links.js", "download-import.js"]) new Script(read(file), { filename: file });
     assert.doesNotMatch(read("downloads.js"), /__SOFT98_DOWNLOAD_(MESSAGES|ICONS)__/);
     assert.match(read("assets/background.js"), /soft98:downloads/);
     assert.doesNotMatch(read("assets/bridge.js"), /["']soft98:downloads["']/);
@@ -34,7 +40,7 @@ test("both built extensions package the internal manager without exposing it to 
   }
 });
 
-function fixture() {
+function fixture(notify) {
   let record;
   let next = 0;
   let browserId = 0;
@@ -69,7 +75,7 @@ function fixture() {
     resume: async (id) => Object.assign(items.get(id), { paused: false, canResume: false, state: "in_progress", error: "" }),
     cancel: async (id) => Object.assign(items.get(id), { state: "interrupted", error: "USER_CANCELED" }),
   };
-  const restart = () => create({ storage, downloads, extensionId: EXTENSION_ID, now: () => ++tick, makeId: () => `job-${++next}` });
+  const restart = () => create({ storage, downloads, notify, extensionId: EXTENSION_ID, now: () => ++tick, makeId: () => `job-${++next}` });
   return { q: restart(), restart, storage, downloads, items, starts, waits, native, blockWrites: (block) => { writeFailure = block; } };
 }
 
@@ -101,6 +107,40 @@ test("accepts explicit HTTP(S) URLs, preserves signed queries, and rejects unsaf
   for (const path of ["../a", "a/../b", "/a", "C:/a", "a\\b", "a//b", "a/", "a/.env", "a/CON.zip", "a/a.zip."]) {
     assert.throws(() => relativeFilename(path), { queueCode: "invalid-path" }, path);
   }
+});
+
+test("import deduplicates and preserves signed URLs; multipart identity keeps mirrors and folders separate", () => {
+  const part1 = "https://files.example.test/releases/tool.part01.rar?sig=A%2Fb";
+  const part2 = "https://files.example.test/releases/tool.part02.rar?sig=B";
+  assert.deepEqual(links.parse(`[Part one](${part1})\n${part2}\n${part1}\nhttps://user:secret@example.test/file`),
+    { urls: [part1, part2], ignored: 2 });
+  assert.equal(links.describe(part1).group.key, links.describe(part2).group.key);
+  assert.equal(links.describe(part2).group.part, 2);
+  assert.notEqual(links.describe(part2).group.key, links.describe(part2.replace("/releases/", "/archives/")).group.key);
+  assert.equal(articleFileUrl("https://example.test/file.7z.002"), "https://example.test/file.7z.002");
+  assert.deepEqual(links.headers(new Headers({ "content-type": "application/zip; charset=utf-8", "last-modified": "Wed, 21 Oct 2015 07:28:00 GMT" })),
+    { size: null, date: Date.UTC(2015, 9, 21, 7, 28), mime: "application/zip" });
+});
+
+test("queue preserves only valid source links and emits a completion notification once across worker restarts", async () => {
+  const notifications = [];
+  const { q, items, restart } = fixture((job) => notifications.push(job));
+  const source = "https://soft98.ir/software/example.html";
+  const invalid = `${PREFIX}external.zip`;
+  await add(q, ["notify.zip", "external.zip"], { sources: { [`${PREFIX}notify.zip`]: source, [invalid]: "javascript:alert(1)" } });
+  const { jobs } = await eventually(q, (files) => files.every((file) => file.status === "downloading"));
+  assert.equal(jobs[0].source, source);
+  assert.equal(jobs[1].source, undefined);
+  Object.assign(items.get(jobs[0].browserId), { state: "complete", absolute: true });
+  await q.request({ action: "list" }, jobs[0].browserId);
+  await listing(restart());
+  assert.deepEqual(notifications.map(({ id, status }) => [id, status]), [[jobs[0].id, "complete"]]);
+  const muted = restart();
+  await configure(muted, { notifications: false });
+  Object.assign(items.get(jobs[1].browserId), { state: "complete" });
+  await muted.request({ action: "list" }, jobs[1].browserId);
+  await configure(restart(), { notifications: true });
+  assert.equal(notifications.length, 1);
 });
 
 test("only accepts the extension's own top-level non-private manager page", () => {
@@ -251,6 +291,10 @@ test("packaged Firefox queue uses native parallel downloads, pause, resume, and 
     }
     const match = /^\/(one|two|three)\.bin$/.exec(req.url);
     if (!match) { res.writeHead(404).end(); return; }
+    if (req.method === "HEAD") {
+      res.writeHead(200, { "Content-Type": "application/octet-stream", "Content-Length": bytes.length }).end();
+      return;
+    }
     const offset = Number(/^bytes=(\d+)-$/.exec(req.headers.range || "")?.[1] || 0);
     requests.push({ name: match[1], offset });
     res.writeHead(offset ? 206 : 200, {
@@ -309,7 +353,12 @@ test("packaged Firefox queue uses native parallel downloads, pause, resume, and 
     await until(() => evaluate("return !document.getElementById('add').disabled"), "manager ready");
     await evaluate("const limit = document.getElementById('limit'); limit.value = '2'; limit.dispatchEvent(new Event('change')); ");
     await sleep(150);
-    const submit = (urls, filename = "") => evaluate(`document.getElementById('urls').value = arguments[0]; document.getElementById('filename').value = arguments[1]; document.getElementById('add').click();`, urls, filename);
+    const submit = (urls, filename = "") => evaluate(`
+      const data = new DataTransfer(); data.setData("text/plain", arguments[0]);
+      document.dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, cancelable: true }));
+      document.getElementById("filename").value = arguments[1];
+      document.getElementById("composer").requestSubmit();
+    `, urls, filename);
     await submit(`${base}/one.bin`, "Tools/one.bin");
     await until(async () => (await inspect())[0]?.status === "downloading", "first download started");
     await submit(`${base}/two.bin\n${base}/three.bin`);

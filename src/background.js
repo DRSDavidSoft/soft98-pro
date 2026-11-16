@@ -49,6 +49,17 @@
       write: (state) => call(api.storage.local, "set", { [Soft98DownloadQueue.STORAGE_KEY]: state }),
     },
     downloads: Object.fromEntries(["search", "download", "pause", "resume", "cancel"].map((method) => [method, (...args) => call(api.downloads, method, ...args)])),
+    notify: (job) => call(api.notifications, "create", `soft98-download-${job.id}`, {
+      type: "basic",
+      iconUrl: api.runtime.getURL("assets/icon-128.png"),
+      title: text(job.status === "complete" ? "downloadNotificationComplete" : "downloadNotificationReview"),
+      message: (job.name || Soft98DownloadLinks.describe(job.url).name).slice(0, 160),
+    }),
+  });
+
+  api.notifications.onClicked.addListener((id) => {
+    const job = /^soft98-download-([a-f0-9-]{36})$/.exec(id)?.[1];
+    if (job) ignore(call(api.tabs, "create", { url: downloadPage + "#job=" + job }));
   });
 
   function refreshDownloadQueue(id) {
@@ -64,6 +75,11 @@
     } catch (_error) {
       return false;
     }
+  }
+
+  function articleKey(url) {
+    const parsed = new URL(url);
+    return parsed.origin + parsed.pathname.replace(/-a\.html$/i, ".html");
   }
 
   function supportedScriptUrl(value) {
@@ -298,7 +314,7 @@
   }
   api.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!message || typeof message !== "object") return false;
-    if (["soft98:open-downloads", "soft98:downloads-summary", "soft98:download-file"].includes(message.type)) {
+    if (["soft98:open-downloads", "soft98:downloads-summary", "soft98:download-file", "soft98:article-downloads"].includes(message.type)) {
       if (sender.id !== api.runtime.id || sender.frameId !== 0 || !Number.isInteger(sender.tab?.id) || sender.incognito || sender.tab.incognito ||
           !isProtectedPage(sender.url)) return false;
       if (message.type === "soft98:download-file") {
@@ -307,7 +323,7 @@
         let url;
         try { url = Soft98DownloadQueue.articleFileUrl(message.url); }
         catch (_error) { sendResponse({ ok: false }); return false; }
-        queue.request({ action: "add", urls: [url], defer: action === "queue", startExisting: action === "start" })
+        queue.request({ action: "add", urls: [url], defer: action === "queue", startExisting: action === "start", source: sender.url })
           .then(({ jobs, added, scheduled, held }) => {
             const job = jobs.findLast((entry) => entry.url === url);
             const result = !added && !scheduled ? "duplicate" : action === "queue" ? "queued"
@@ -315,6 +331,18 @@
               : job?.status === "interrupted" ? "failed" : "starting";
             sendResponse({ ok: result !== "failed", result });
           }, () => sendResponse({ ok: false }));
+        return true;
+      }
+      if (message.type === "soft98:article-downloads") {
+        const key = articleKey(sender.url);
+        queue.request({ action: "list" }).then(({ jobs }) => {
+          const files = new Map();
+          for (const { url, source, status, bytes, total, manualStart } of jobs) {
+            if (!source || articleKey(source) !== key) continue;
+            files.set(url, { url, status: manualStart ? "queued" : status, percent: total > 0 ? Math.min(100, Math.round((bytes || 0) / total * 100)) : null });
+          }
+          sendResponse({ files: [...files.values()] });
+        }, () => sendResponse(null));
         return true;
       }
       if (message.type === "soft98:downloads-summary") {
@@ -330,12 +358,12 @@
         return true;
       }
       let target = downloadPage;
-      if (message.url) {
+      if (Array.isArray(message.urls) && message.urls.length) {
         try {
-          const url = Soft98DownloadQueue.articleFileUrl(message.url);
+          const urls = [...new Set(message.urls.slice(0, Soft98DownloadLinks.MAX_IMPORT).map(Soft98DownloadQueue.articleFileUrl))];
           const token = crypto.randomUUID();
           if (downloadImports.size >= 32) downloadImports.delete(downloadImports.keys().next().value);
-          downloadImports.set(token, { url, expires: Date.now() + 120000 });
+          downloadImports.set(token, { urls, source: sender.url, expires: Date.now() + 120000 });
           target += "#import=" + token;
         } catch (_error) { sendResponse({ ok: false }); return false; }
       }
@@ -350,11 +378,11 @@
             Soft98DownloadQueue.trustedSender(sender, api.runtime.id, downloadPage))) return false;
       const pending = downloadImports.get(token);
       downloadImports.delete(token);
-      sendResponse({ url: pending && pending.expires > Date.now() ? pending.url : "" });
+      sendResponse(pending && pending.expires > Date.now() ? { urls: pending.urls, source: pending.source } : null);
       return false;
     }
     if (message.type === Soft98DownloadQueue.CHANNEL) {
-      const importedUrl = downloadPage + (/^#import=[a-f0-9-]{36}$/.exec(sender.url?.slice(downloadPage.length))?.[0] || "");
+      const importedUrl = downloadPage + (/^#(?:job|import)=[a-f0-9-]{36}$/.exec(sender.url?.slice(downloadPage.length))?.[0] || "");
       if (!Soft98DownloadQueue.trustedSender(sender, api.runtime.id, downloadPage) &&
           !Soft98DownloadQueue.trustedSender(sender, api.runtime.id, importedUrl)) return false;
       queue.request(message).then((state) => sendResponse({ ok: true, state }))

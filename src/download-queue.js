@@ -4,7 +4,8 @@ const Soft98DownloadQueue = (() => {
   const STORAGE_KEY = "soft98DownloadQueue";
   const CHANNEL = "soft98:downloads";
   const MAX_JOBS = 160;
-  const MAX_BATCH = 30;
+  const links = typeof Soft98DownloadLinks !== "undefined" ? Soft98DownloadLinks : require("./download-links");
+  const MAX_BATCH = links.MAX_BATCH;
   const MAX_PARALLEL = 6;
   const ACTIVE = new Set(["starting", "resuming", "downloading"]);
   const TERMINAL = new Set(["complete", "canceled", "interrupted", "missing", "review"]);
@@ -14,16 +15,7 @@ const Soft98DownloadQueue = (() => {
   }
 
   function directUrl(input) {
-    if (typeof input !== "string") fail("invalid-url");
-    const value = input.trim();
-    const authority = /^https?:\/\/([^/?#]+)/i.exec(value)?.[1];
-    if (!authority || authority.includes("@") || value.length > 4096 || /[\s\\\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/u.test(value)) fail("invalid-url");
-    let url;
-    try { url = new URL(value); } catch (_error) { fail("invalid-url"); }
-    if (!url.hostname || url.username || url.password) fail("invalid-url");
-    url.hash = "";
-    if (url.href.length > 4096) fail("invalid-url");
-    return url.href;
+    return links.normalize(input) || fail("invalid-url");
   }
 
   function relativeFilename(input) {
@@ -47,8 +39,7 @@ const Soft98DownloadQueue = (() => {
 
   function articleFileUrl(input) {
     const url = new URL(directUrl(input));
-    if (url.protocol !== "https:" || url.port ||
-        !/\.(?:zip|rar|7z|exe|msi|msix|appx|dmg|apk|iso|deb|rpm|tar|gz|xz|bz2|bin|img|pkg|001)$/i.test(url.pathname)) fail("invalid-url");
+    if (!links.articleFile(url)) fail("invalid-url");
     return url.href;
   }
 
@@ -87,7 +78,7 @@ const Soft98DownloadQueue = (() => {
     }
   }
 
-  function create({ storage, downloads, extensionId, now = Date.now, makeId = () => crypto.randomUUID() }) {
+  function create({ storage, downloads, extensionId, notify, now = Date.now, makeId = () => crypto.randomUUID() }) {
     let state;
     let persisted;
     let pending = Promise.resolve();
@@ -104,6 +95,10 @@ const Soft98DownloadQueue = (() => {
       if (state) return;
       const saved = await storage.read();
       state = saved?.version === 1 && Array.isArray(saved.jobs) ? saved : { version: 1, limit: 3, held: false, jobs: [] };
+      if (!state.notificationTracking) {
+        for (const job of state.jobs) if (TERMINAL.has(job.status)) job.notifiedStatus = job.status;
+        state.notificationTracking = true;
+      }
     }
 
     async function save() {
@@ -118,8 +113,22 @@ const Soft98DownloadQueue = (() => {
       persisted = encoded;
     }
 
+    async function notifyChanges() {
+      if (!notify) return;
+      const jobs = state.jobs.filter((job) => job.attemptAt && job.notifiedStatus !== job.status &&
+        ["complete", "interrupted", "review"].includes(job.status));
+      if (!jobs.length) return;
+      const previous = jobs.map((job) => job.notifiedStatus);
+      for (const job of jobs) job.notifiedStatus = job.status;
+      try { await save(); } catch (error) {
+        jobs.forEach((job, index) => { job.notifiedStatus = previous[index]; });
+        throw error;
+      }
+      if (state.notifications !== false) for (const job of jobs) Promise.resolve().then(() => notify({ ...job })).catch(() => {});
+    }
+
     function view() {
-      return { limit: state.limit, maxParallel: MAX_PARALLEL, held: state.held, jobs: state.jobs.map((job) => ({ ...job })) };
+      return { limit: state.limit, maxParallel: MAX_PARALLEL, held: state.held, notifications: state.notifications !== false, jobs: state.jobs.map((job) => ({ ...job })) };
     }
 
     async function refreshNative() {
@@ -160,12 +169,14 @@ const Soft98DownloadQueue = (() => {
         await save();
         await refreshNative();
         await save();
+        await notifyChanges();
         await advance();
       }), (error) => serial(async () => {
         const job = state.jobs.find((entry) => entry.id === queueId);
         const code = errorCode(error);
         Object.assign(job, { status: code === "USER_CANCELED" ? "canceled" : "interrupted", error: code, resumable: false });
         await save();
+        await notifyChanges();
         await advance();
       })).catch(() => {}).finally(() => starting.delete(queueId));
     }
@@ -180,6 +191,7 @@ const Soft98DownloadQueue = (() => {
         const job = state.jobs.find((entry) => entry.id === queueId && entry.browserId === browserId);
         if (error && job && !job.error && job.status === "paused") job.error = errorCode(error);
         await save();
+        await notifyChanges();
         await advance();
       });
       // Firefox resolves resume on completion, not when the transfer begins.
@@ -217,6 +229,7 @@ const Soft98DownloadQueue = (() => {
 
     function add(message) {
       const { urls, filename, saveAs, defer, startExisting } = message;
+      const source = links.normalize(message.source);
       if (!Array.isArray(urls) || !urls.length || urls.length > MAX_BATCH) fail("invalid-batch");
       const path = relativeFilename(filename);
       if (path && urls.length !== 1) fail("invalid-path");
@@ -237,6 +250,8 @@ const Soft98DownloadQueue = (() => {
       state.jobs.push(...newUrls.map((url) => ({
         id: makeId(), url, filename: path, saveAs: saveAs === true, status: defer === true ? "paused" : "queued", createdAt,
         ...(defer === true ? { manualStart: true } : {}),
+        source: links.normalize(message.sources?.[url]) || source || undefined,
+        metadata: links.metadata(message.metadata?.[url]),
       })));
       return { added: newUrls.length, duplicates: urls.length - newUrls.length - scheduled, ...(scheduled ? { scheduled } : {}) };
     }
@@ -249,9 +264,9 @@ const Soft98DownloadQueue = (() => {
         state.jobs.splice(state.jobs.indexOf(job), 1);
       } else if (action === "retry" && ["interrupted", "canceled", "missing", "review"].includes(status) && !job.resumable && job.error !== "html-response") {
         if (state.jobs.some((entry) => entry !== job && entry.url === job.url && (!TERMINAL.has(entry.status) || entry.resumable))) fail("duplicate");
-        const { id, url, filename, saveAs, createdAt } = job;
+        const { id, url, filename, saveAs, createdAt, source, metadata } = job;
         state.jobs.splice(state.jobs.indexOf(job), 1);
-        state.jobs.push({ id, url, filename, saveAs, createdAt, status: "queued" });
+        state.jobs.push({ id, url, filename, saveAs, createdAt, source, metadata, status: "queued" });
       } else if (action === "pause" && (status === "queued" || status === "resume-queued")) {
         job.status = "paused";
       } else if (action === "pause" && status === "downloading") {
@@ -305,6 +320,7 @@ const Soft98DownloadQueue = (() => {
           if (message.limit !== undefined && (!Number.isInteger(message.limit) || message.limit < 1 || message.limit > MAX_PARALLEL)) fail("invalid-limit");
           if (message.limit !== undefined) state.limit = message.limit;
           if (typeof message.held === "boolean") state.held = message.held;
+          if (typeof message.notifications === "boolean") state.notifications = message.notifications;
         } else if (action === "clear") {
           state.jobs = state.jobs.filter((job) => !TERMINAL.has(job.status) || (job.status === "interrupted" && job.resumable));
         } else if (action !== "list") await itemAction(action, message.id);
@@ -312,6 +328,7 @@ const Soft98DownloadQueue = (() => {
           state = JSON.parse(before);
           throw error;
         }
+        await notifyChanges();
         await advance();
         return { ...view(), ...result };
       });

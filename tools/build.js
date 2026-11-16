@@ -192,7 +192,7 @@ function copyFile(from, to) {
 }
 
 function runtimeSource(target) {
-  const modules = [PATCH_ENGINE, path.join(SRC, "listing-navigation.js"), path.join(SRC, "comments.js"), RUNTIME];
+  const modules = [PATCH_ENGINE, path.join(SRC, "listing-navigation.js"), path.join(SRC, "comments.js"), path.join(SRC, "download-links.js"), RUNTIME];
   return modules.map((file) => applyReplacements(fs.readFileSync(file, "utf8"), target)).join("\n");
 }
 
@@ -235,9 +235,11 @@ function chromiumManifest() {
   return {
     manifest_version: 3,
     ...commonManifest,
-    permissions: ["storage", "tabs", "alarms", "scripting", "webRequest", "downloads"],
+    permissions: ["storage", "tabs", "alarms", "scripting", "webRequest", "downloads", "notifications"],
+    optional_host_permissions: ["http://*/*", "https://*/*"],
     host_permissions: [
       "*://*.soft98.ir/*",
+      "https://*.82.ir.cdn.ir/*",
       "https://github.com/DRSDavidSoft/soft98-pro/releases/*",
       "https://api.github.com/repos/DRSDavidSoft/soft98-pro/releases/*",
       "https://release-assets.githubusercontent.com/*",
@@ -281,12 +283,15 @@ function firefoxManifest() {
       "webRequest",
       "webRequestBlocking",
       "downloads",
+      "notifications",
       "*://*.soft98.ir/*",
+      "https://*.82.ir.cdn.ir/*",
       "https://github.com/DRSDavidSoft/soft98-pro/releases/*",
       "https://api.github.com/repos/DRSDavidSoft/soft98-pro/releases/*",
       "https://release-assets.githubusercontent.com/*",
       "https://objects.githubusercontent.com/*",
     ],
+    optional_permissions: ["http://*/*", "https://*/*"],
     background: { scripts: ["assets/release-client.js", "assets/background.js"], persistent: false },
     browser_action: { default_title: "__MSG_extensionName__", default_popup: "popup.html", default_icon: TOOLBAR_ICONS },
     options_ui: { page: "options.html", open_in_tab: true },
@@ -305,7 +310,7 @@ function firefoxManifest() {
 function copyUi(target) {
   const catalog = JSON.parse(fs.readFileSync(path.join(SRC, "ui", "downloads.messages.json"), "utf8"));
   if (JSON.stringify(Object.keys(catalog.en).sort()) !== JSON.stringify(Object.keys(catalog.fa).sort())) throw new Error("Download catalogs must have identical keys");
-  const icons = Object.fromEntries(["download", "plus", "player-play", "player-pause", "x", "rotate-clockwise", "folder-open", "trash"].map((name) => [name,
+  const icons = Object.fromEntries(["download", "plus", "player-play", "player-pause", "x", "rotate-clockwise", "folder-open", "trash", "file-upload", "clipboard", "list-details"].map((name) => [name,
     fs.readFileSync(path.join(TABLER_ROOT, "icons", "outline", `${name}.svg`), "utf8")]));
   for (const file of ["popup.html", "options.html", "options.js", "styles.css"]) {
     const from = path.join(SRC, "ui", file);
@@ -322,9 +327,10 @@ function copyUi(target) {
       copyFile(from, to);
     }
   }
-  for (const file of ["downloads.html", "downloads.css", "downloads-link.css", "typography.css", "theme.js", "theme.css"]) {
+  for (const file of ["downloads.html", "downloads.css", "downloads-link.css", "download-import.js", "typography.css", "theme.js", "theme.css"]) {
     copyFile(path.join(SRC, "ui", file), path.join(target, file));
   }
+  copyFile(path.join(SRC, "download-links.js"), path.join(target, "download-links.js"));
   const previewDir = path.join(target, "assets", "previews");
   mkdir(previewDir);
   for (const [file, content] of PREVIEW_FILES) fs.writeFileSync(path.join(previewDir, file), content);
@@ -390,7 +396,8 @@ async function buildTarget(name, manifest) {
   await minifySource(runtimeSource(name === "chromium" ? "chromium" : "extension"), path.join(target, "assets", "runtime.page.js"));
   const backgroundPrefix = name === "chromium" ? 'importScripts("release-client.js");\n' : "";
   const queue = fs.readFileSync(path.join(SRC, "download-queue.js"), "utf8");
-  await minifySource(backgroundPrefix + queue + "\n" + applyReplacements(fs.readFileSync(path.join(SRC, "background.js"), "utf8"), "extension"), path.join(target, "assets", "background.js"));
+  const links = fs.readFileSync(path.join(SRC, "download-links.js"), "utf8");
+  await minifySource(backgroundPrefix + links + "\n" + queue + "\n" + applyReplacements(fs.readFileSync(path.join(SRC, "background.js"), "utf8"), "extension"), path.join(target, "assets", "background.js"));
   await minifyFile(path.join(SRC, "content", "bridge.js"), path.join(target, "assets", "bridge.js"));
   if (name === "firefox") {
     await minifyFile(path.join(SRC, "content", "upstream-gateway.js"), path.join(target, "assets", "upstream-gateway.js"));

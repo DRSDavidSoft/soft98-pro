@@ -71,6 +71,15 @@ http
   .createServer(async (request, response) => {
     try {
       const requestUrl = new URL(request.url, "http://127.0.0.1");
+      if (request.method === "HEAD" && /^\/test\/download-fixture\//.test(requestUrl.pathname)) {
+        const sizes = { "Artwork.part01.rar": 67108864, "Artwork.part02.rar": 48234496, "Notes.pdf": 94208, "Assets.zip": 12582912 };
+        const name = requestUrl.pathname.split("/").pop();
+        if (!Object.hasOwn(sizes, name)) { response.writeHead(404).end(); return; }
+        response.writeHead(200, { "Content-Length": sizes[name], "Last-Modified": "Wed, 21 Oct 2026 07:28:00 GMT",
+          "Content-Type": name.endsWith(".pdf") ? "application/pdf" : "application/octet-stream" });
+        response.end();
+        return;
+      }
       if (requestUrl.pathname === "/test/fallback/") {
         response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
         response.end("<!doctype html><title>Full-page fallback</title><p>Normal browser navigation completed.</p>");

@@ -11,6 +11,7 @@
   const percent = new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: 1 });
   const durations = Object.fromEntries(["hour", "minute", "second"].map(unit =>
     [unit, new Intl.NumberFormat(locale, { style: "unit", unit, unitDisplay: "short" })]));
+  const fileDates = new Intl.DateTimeFormat(locale === "fa" ? "fa-IR-u-ca-persian" : locale, { dateStyle: "medium" });
   const states = {
     active: new Set(["starting", "resuming", "downloading"]),
     waiting: new Set(["queued", "resume-queued", "paused"]),
@@ -18,6 +19,8 @@
   };
   const $ = (id) => document.getElementById(id);
   const rows = new Map();
+  const groups = new Map();
+  let focusedJob = /^#job=([a-f0-9-]{36})$/.exec(location.hash)?.[1];
   const actionIcons = { pause: "player-pause", resume: "player-play", cancel: "x", retry: "rotate-clockwise", show: "folder-open", remove: "trash" };
   let state;
   let inFlight;
@@ -101,8 +104,9 @@
   function createRow(job) {
     const row = document.createElement("li");
     row.className = "job";
-    row.innerHTML = '<div class="job-head"><strong><bdi></bdi></strong><span class="state"></span></div><div class="source"><bdi dir="ltr"></bdi></div><progress hidden></progress><div class="job-footer"><div class="metrics"><bdi data-metric="percent"></bdi><bdi data-metric="bytes"></bdi><bdi data-metric="speed"></bdi><bdi data-metric="eta"></bdi><bdi data-metric="elapsed"></bdi></div><div class="actions"></div></div><small class="detail" hidden></small>';
-    const nodes = { row, name: row.querySelector("strong bdi"), state: row.querySelector(".state"), source: row.querySelector(".source bdi"), progress: row.querySelector("progress"), metrics: row.querySelector(".metrics"), actions: row.querySelector(".actions"), detail: row.querySelector(".detail") };
+    row.innerHTML = '<div class="job-head"><strong><bdi></bdi></strong><span class="state"></span></div><div class="source"><bdi dir="ltr"></bdi><a target="_blank" rel="noopener noreferrer" hidden></a><small></small></div><progress hidden></progress><div class="job-footer"><div class="metrics"><bdi data-metric="percent"></bdi><bdi data-metric="bytes"></bdi><bdi data-metric="speed"></bdi><bdi data-metric="eta"></bdi><bdi data-metric="elapsed"></bdi></div><div class="actions"></div></div><small class="detail" hidden></small>';
+    const nodes = { row, name: row.querySelector("strong bdi"), state: row.querySelector(".state"), source: row.querySelector(".source bdi"), origin: row.querySelector(".source a"), metadata: row.querySelector(".source small"), progress: row.querySelector("progress"), metrics: row.querySelector(".metrics"), actions: row.querySelector(".actions"), detail: row.querySelector(".detail") };
+    nodes.origin.textContent = text("originalPage");
     for (const [action, icon] of Object.entries(actionIcons)) {
       const button = document.createElement("button");
       button.type = "button";
@@ -115,17 +119,20 @@
     return nodes;
   }
 
-  function renderRow(job, nodes) {
-    const url = new URL(job.url);
-    const segment = url.pathname.split("/").pop();
-    let name = segment || url.hostname;
-    try { name = decodeURIComponent(name); } catch (_error) {}
-    name = (job.name || job.filename?.split("/").pop() || name).replace(/[\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/gu, "");
+  function renderRow(job, nodes, file) {
+    const name = (job.name || job.filename?.split("/").pop() || file.name).replace(/[\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/gu, "");
     const status = job.status;
     nodes.row.dataset.state = status;
     nodes.name.textContent = name;
     nodes.state.textContent = text(job.manualStart ? "manual" : status);
-    nodes.source.textContent = url.host;
+    nodes.source.textContent = file.host;
+    const source = Soft98DownloadLinks.normalize(job.source);
+    nodes.origin.hidden = !source;
+    if (source) nodes.origin.href = source;
+    else nodes.origin.removeAttribute("href");
+    const meta = job.metadata;
+    nodes.metadata.textContent = meta ? [meta.type || meta.mime, meta.size != null ? bytes(meta.size) : "",
+      meta.date != null ? fileDates.format(meta.date) : ""].filter(Boolean).join(" · ") : "";
     const received = job.bytes || 0;
     const known = Number.isFinite(job.total) && job.total >= 0;
     updateMetrics(job, nodes);
@@ -150,25 +157,53 @@
       const { action } = button.dataset;
       const label = action === "resume" && job.manualStart ? "start" : action;
       const allowed = available[action];
-      if (button.dataset.label !== label) {
-        button.dataset.label = label;
-        buttonContent(button, label, actionIcons[action]);
-      }
+      buttonContent(button, label, actionIcons[action]);
       button.hidden = !allowed;
       button.disabled = !allowed;
       button.setAttribute("aria-label", `${text(label)}: ${name}`);
     }
   }
 
+  function placeRows(container, nodes) {
+    let next = container.firstElementChild;
+    for (const node of nodes) {
+      if (node === next) next = next.nextElementSibling;
+      else container.insertBefore(node, next);
+    }
+  }
+
+  function renderGroup(group, members) {
+    let entry = groups.get(group.key);
+    if (!entry) {
+      const row = document.createElement("li");
+      row.className = "job-group";
+      row.innerHTML = '<details open><summary><bdi></bdi><small></small></summary><ul></ul></details>';
+      entry = { row, title: row.querySelector("bdi"), status: row.querySelector("small"), list: row.querySelector("ul") };
+      entry.title.textContent = group.name;
+      groups.set(group.key, entry);
+    }
+    const ordered = [...members].sort((a, b) => a.part - b.part);
+    placeRows(entry.list, ordered.map(({ nodes }) => nodes.row));
+    const sizes = members.map(({ job }) => job.total ?? job.metadata?.size);
+    const total = sizes.every(Number.isFinite) ? sizes.reduce((sum, size) => sum + size, 0) : null;
+    const done = members.filter(({ job }) => job.status === "complete").length;
+    const status = text("groupStatus", { count: members.length, done });
+    const loaded = members.reduce((sum, { job }) => sum + (job.bytes || 0), 0);
+    entry.status.textContent = total === null ? status : `${status} · ${bytes(loaded)} / ${bytes(total)}`;
+    entry.row.hidden = members.every(({ nodes }) => nodes.row.hidden);
+    return entry.row;
+  }
+
   function render() {
-    $("add").disabled = !state;
     $("hold").disabled = !state;
     $("limit").disabled = !state;
+    $("native-notifications").disabled = !state;
     if (!state) return;
     if ($("limit").options.length !== state.maxParallel) {
       for (let index = 1; index <= state.maxParallel; index += 1) $("limit").append(option(index, number.format(index)));
     }
     $("limit").value = state.limit;
+    $("native-notifications").checked = state.notifications !== false;
     $("clear").disabled = !state.jobs.some((job) => states.finished.has(job.status) && !(job.status === "interrupted" && job.resumable));
     buttonContent($("hold"), state.held ? "unhold" : "hold", state.held ? "player-play" : "player-pause");
     $("notice").textContent = state.held ? text("held") : "";
@@ -176,21 +211,32 @@
     const filter = $("filter").value;
     const counts = { active: 0, waiting: 0, finished: 0 };
     const present = new Set();
+    const presentGroups = new Map();
+    const entries = [];
     let visible = 0;
     for (const job of state.jobs) {
       present.add(job.id);
       const group = Object.keys(states).find((key) => states[key].has(job.status));
       counts[group] += 1;
       const nodes = rows.get(job.id) || createRow(job);
-      renderRow(job, nodes);
-      nodes.row.hidden = (filter !== "all" && filter !== group) || !`${nodes.name.textContent} ${nodes.source.textContent}`.toLowerCase().includes(query);
+      const file = Soft98DownloadLinks.describe(job.url);
+      renderRow(job, nodes, file);
+      nodes.row.hidden = (filter !== "all" && filter !== group) || !`${nodes.name.textContent} ${nodes.source.textContent} ${job.source || ""}`.toLowerCase().includes(query);
       if (!nodes.row.hidden) visible += 1;
+      if (!file.group) entries.push(nodes.row);
+      else {
+        const { key, part } = file.group;
+        if (!presentGroups.has(key)) {
+          presentGroups.set(key, []);
+          entries.push(file.group);
+        }
+        presentGroups.get(key).push({ job, part, nodes });
+      }
     }
-    let previous = null;
-    for (const job of state.jobs) {
-      const { row } = rows.get(job.id);
-      if ((previous ? previous.nextElementSibling : $("jobs").firstElementChild) !== row) $("jobs").insertBefore(row, previous ? previous.nextElementSibling : $("jobs").firstElementChild);
-      previous = row;
+    placeRows($("jobs"), entries.map((item) => item.key ? renderGroup(item, presentGroups.get(item.key)) : item));
+    for (const [key, nodes] of groups) if (!presentGroups.has(key)) {
+      nodes.row.remove();
+      groups.delete(key);
     }
     for (const [id, nodes] of rows) if (!present.has(id)) {
       nodes.row.remove();
@@ -198,6 +244,14 @@
     }
     $("counts").textContent = text("counts", counts);
     $("empty").textContent = visible ? "" : text(state.jobs.length ? "noMatches" : "empty");
+    if (focusedJob) {
+      const target = rows.get(focusedJob)?.row;
+      focusedJob = null;
+      if (target) {
+        target.setAttribute("data-highlight", "");
+        target.scrollIntoView({ block: "center" });
+      }
+    }
   }
 
   function report(message, error = false) {
@@ -223,13 +277,7 @@
   async function exchange(action, payload) {
     try {
       const message = { type: "soft98:downloads", action, ...payload };
-      const response = usesPromises ? await api.runtime.sendMessage(message) : await new Promise((resolve, reject) => {
-        api.runtime.sendMessage(message, (value) => {
-          const error = api.runtime.lastError;
-          if (error) reject(error);
-          else resolve(value);
-        });
-      });
+      const response = await send(message);
       if (!response?.ok) {
         report(text(response?.error || "native-error"), true);
         if (!state) $("empty").textContent = "";
@@ -248,6 +296,16 @@
     }
   }
 
+  function send(message) {
+    return usesPromises ? api.runtime.sendMessage(message) : new Promise((resolve, reject) => {
+      api.runtime.sendMessage(message, (value) => {
+        const error = api.runtime.lastError;
+        if (error) reject(error);
+        else resolve(value);
+      });
+    });
+  }
+
   function refresh() {
     clearTimeout(timer);
     if (!document.hidden) timer = setTimeout(async () => {
@@ -260,19 +318,21 @@
   document.documentElement.dir = locale === "fa" ? "rtl" : "ltr";
   document.title = `${text("title")} | Soft98 Pro`;
   for (const node of document.querySelectorAll("[data-copy]")) node.textContent = text(node.dataset.copy);
+  if (locale === "fa") {
+    const guide = document.querySelector('[data-copy="managerGuide"]');
+    guide.href = guide.href.replace("/wiki/Download-Manager.md", "/wiki/fa/Download-Manager.md");
+  }
   for (const key of ["all", ...Object.keys(states)]) $("filter").append(option(key, text(key)));
   $("search").placeholder = text("search");
   $("empty").textContent = text("loading");
-  buttonContent($("add"), "add", "plus");
+  const review = createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, buttonContent, request, report });
   buttonContent($("hold"), "hold", "player-pause");
   buttonContent($("clear"), "clear", "trash");
-  $("composer").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const urls = $("urls").value.split(/\r?\n/).map((value) => value.trim()).filter(Boolean);
-    if (await request("add", { urls, filename: $("filename").value, saveAs: $("save-as").checked })) $("composer").reset();
-  });
   $("hold").addEventListener("click", () => request("configure", { held: !state?.held }));
   $("limit").addEventListener("change", () => request("configure", { limit: Number($("limit").value) }));
+  $("native-notifications").addEventListener("change", async (event) => {
+    if (!await request("configure", { notifications: event.target.checked })) render();
+  });
   $("clear").addEventListener("click", () => request("clear"));
   $("search").addEventListener("input", render);
   $("filter").addEventListener("change", render);
@@ -301,16 +361,13 @@
     const token = /^#import=([a-f0-9-]{36})$/.exec(location.hash)?.[1];
     if (token) {
       try {
-        const message = { type: "soft98:download-prefill", token };
-        const response = usesPromises ? await api.runtime.sendMessage(message) : await new Promise((resolve) => {
-          api.runtime.sendMessage(message, result => { void api.runtime.lastError; resolve(result); });
-        });
-        if (response?.url) {
-          $("urls").value = response.url;
-          $("urls").focus();
-        } else report(text("importExpired"), true);
-      } catch (_error) { report(text("importExpired"), true); }
-      finally { history.replaceState(null, "", location.pathname); }
+        const response = await send({ type: "soft98:download-prefill", token });
+        if (response?.urls?.length) review.append(response.urls, response.source);
+        else review.expired();
+      } catch (_error) { review.expired(); }
+    }
+    if (token || focusedJob) {
+      history.replaceState(null, "", location.pathname);
     }
     await request("list");
     refresh();

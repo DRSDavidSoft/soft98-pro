@@ -211,6 +211,108 @@ async function verifyFileActions(client) {
   })()`);
   await delay(250);
   check("control center persists and updates the default", await run(`${button}.dataset.s98pFileCommand`), "start");
+  await run(`(() => {
+    const url = ${JSON.stringify(destination)};
+    document.documentElement.setAttribute("data-soft98-pro-article-downloads", JSON.stringify([{ url, percent: 42, status: "downloading" }]));
+    document.dispatchEvent(new Event("soft98-pro:article-downloads"));
+  })()`);
+  check("article badges show real progress", await run('document.querySelector("[data-s98p-file-status]").dataset.s98pFileStatus'), "downloading");
+  check("completion badge is not a generic Ready badge", await run(`(() => {
+    document.documentElement.setAttribute("data-soft98-pro-article-downloads", JSON.stringify([{ url: ${JSON.stringify(destination)}, status: "complete" }]));
+    document.dispatchEvent(new Event("soft98-pro:article-downloads"));
+    return document.querySelector("[data-s98p-file-status]").dataset.s98pFileStatus;
+  })()`), "complete");
+}
+
+async function verifyDownloadManager(client) {
+  const page = `http://127.0.0.1:${PORT}`;
+  const fixtures = `${page}/test/download-fixture/`;
+  const part = (partNumber) => `${fixtures}Artwork.part0${partNumber}.rar`;
+  const origin = "https://soft98.ir/software/example.html";
+  const result = await client.send("Page.addScriptToEvaluateOnNewDocument", { source: `
+    if (location.pathname.endsWith("/downloads.html")) {
+      const state = { limit: 3, maxParallel: 6, held: false, notifications: true, jobs: [
+        { id: "part2", url: ${JSON.stringify(part(2))}, source: ${JSON.stringify(origin)}, status: "paused", manualStart: true, total: 48234496 },
+        { id: "part1", url: ${JSON.stringify(part(1))}, source: ${JSON.stringify(origin)}, status: "complete", total: 67108864, bytes: 67108864 },
+      ] };
+      window.managerCommands = [];
+      window.browser = {
+        storage: { local: { get: async () => ({}) }, onChanged: { addListener() {} } },
+        permissions: { request: async () => true },
+        runtime: { sendMessage: async (message) => {
+          managerCommands.push(message);
+          return { ok: true, state: { ...state, added: message.urls?.length ?? 0, duplicates: 0 } };
+        } },
+      };
+    }
+  ` });
+  const run = (source) => evaluate(client, source);
+  const check = (field, actual, expected) => assertEqual("download manager", field, actual, expected);
+  const until = async (source) => {
+    for (let attempt = 0; attempt < 60; attempt++) {
+      if (await run(source).catch(() => false)) return;
+      await delay(80);
+    }
+    throw new Error(`Download manager timed out: ${source}`);
+  };
+  const capture = async (name) => {
+    if (!process.env.SOFT98_DOWNLOAD_SCREENSHOTS) return;
+    const directory = path.join(ROOT, "docs", "assets", "comparison");
+    fs.mkdirSync(directory, { recursive: true });
+    const { data } = await client.send("Page.captureScreenshot", { format: "webp", quality: 84 });
+    fs.writeFileSync(path.join(directory, name + ".webp"), Buffer.from(data, "base64"));
+  };
+  await client.send("Emulation.setTimezoneOverride", { timezoneId: "UTC" });
+  await client.send("Emulation.setDeviceMetricsOverride", { width: 1180, height: 780, deviceScaleFactor: 1, mobile: false });
+  try {
+    await client.send("Page.navigate", { url: page + "/dist/chromium/downloads.html" });
+    await until('document.querySelectorAll(".job-group .job").length === 2');
+    check("multipart parts sort numerically", await run('document.querySelector(".job-group .job strong").textContent'), "Artwork.part01.rar");
+    check("source page is navigable", await run('document.querySelector(".source a").href'), origin);
+    check("a queued-only file has a Start button", await run('document.querySelectorAll(".job")[1].querySelector("[data-action=resume]").dataset.label'), "start");
+    await capture("download-manager-multipart");
+    await run(`(() => {
+      const data = new DataTransfer();
+      data.setData("text/plain", ${JSON.stringify([part(2), part(1), fixtures + "Notes.pdf", part(2)].join("\n"))});
+      document.dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, cancelable: true }));
+    })()`);
+    await until('document.querySelector("#import").open && document.querySelectorAll("#import-links tr").length === 3');
+    await until('[...document.querySelectorAll("#import-links tr")].every((tr) => !tr.cells[3].textContent.includes("Unavailable"))');
+    check("automatic HEAD reads Content-Length", await run('document.querySelector("#import-links tr").cells[3].textContent.includes("64 MiB")'), true);
+    check("automatic HEAD reads Last-Modified", await run('document.querySelector("#import-links tr").cells[4].textContent'), "Oct 21, 2026");
+    await run(`(() => {
+      const data = new DataTransfer();
+      data.items.add(new File([${JSON.stringify(fixtures + "Assets.zip")}], "links.txt", { type: "text/plain" }));
+      document.querySelector("#import").dispatchEvent(new DragEvent("drop", { dataTransfer: data, bubbles: true, cancelable: true }));
+    })()`);
+    await until('document.querySelectorAll("#import-links tr").length === 4');
+    await until('[...document.querySelectorAll("#import-links tr")].every((tr) => !tr.cells[3].textContent.includes("Unavailable"))');
+    await capture("download-manager-import");
+    await run(`(() => {
+      const name = document.querySelector('th[data-column="name"] [role=separator]');
+      name.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", cancelable: true }));
+      document.querySelector('th[data-column="size"] button').click();
+      const search = document.querySelector("#import-search");
+      search.value = "artwork";
+      search.dispatchEvent(new Event("input"));
+    })()`);
+    check("keyboard column resize changes width", await run('document.querySelector(\'col[data-column="name"]\').style.width'), "280px");
+    check("sort and search are applied together", await run('document.querySelector("#import-links tr").cells[1].querySelector("bdi").textContent'), "Artwork.part02.rar");
+    await client.send("Emulation.setDeviceMetricsOverride", { width: 375, height: 700, deviceScaleFactor: 1, mobile: false });
+    await run('document.documentElement.dataset.theme = "light"');
+    check("mobile dialog scrolls the table without widening the page", await run(`(() => {
+      const dialog = document.querySelector("#import");
+      const grid = document.querySelector(".import-grid");
+      return dialog.getBoundingClientRect().width < innerWidth && grid.scrollWidth > grid.clientWidth && document.documentElement.scrollWidth <= innerWidth;
+    })()`), true);
+    await run('document.querySelector("#clear-import").click(); document.querySelector("#select-import").click(); document.querySelector("#composer").requestSubmit()');
+    await until('managerCommands.some((message) => message.action === "add")');
+    check("only the checked, filtered files enter the queue", await run('managerCommands.find((message) => message.action === "add").urls.length'), 2);
+    check("dialog closes after success", await run('document.querySelector("#import").open'), false);
+  } finally {
+    await client.send("Page.removeScriptToEvaluateOnNewDocument", { identifier: result.identifier });
+    await client.send("Emulation.clearDeviceMetricsOverride");
+  }
 }
 
 async function faviconPixel(client) {
@@ -900,6 +1002,7 @@ async function main() {
       await client.send("Page.removeScriptToEvaluateOnNewDocument", { identifier });
     }
     await verifyFileActions(client);
+    await verifyDownloadManager(client);
     console.log("Soft98 runtime browser acceptance passed");
   } finally {
     if (client) client.close();

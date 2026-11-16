@@ -5,11 +5,11 @@ h1, h2, p { margin: 0; }
 h1 { font-size: 27px; line-height: 1.25; }
 h2 { font-size: 17px; }
 a { color: var(--sky); }
-.workspace { max-width: 1330px; margin-inline: auto; padding: 24px; display: grid; grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); align-items: start; gap: 20px; }
+.workspace { max-width: 1330px; margin-inline: auto; padding: 24px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
 .masthead { grid-column: 1 / -1; display: grid; gap: 4px; }
 .masthead a { width: fit-content; color: var(--mint); font-weight: 700; text-decoration: none; }
-.composer, .queue { min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); }
-.composer h2, .queue-header { margin-block-end: 14px; }
+.queue { min-width: 0; padding: 18px; border-block: 1px solid var(--line); background: var(--panel); }
+.queue-header { margin-block-end: 14px; }
 form, details[open] { display: grid; gap: 8px; }
 summary { padding-block: 4px; cursor: pointer; color: var(--sky); }
 details label { display: block; margin-block: 6px; }
@@ -17,9 +17,8 @@ details input[type="text"] { width: 100%; }
 small, #counts, #notice, .source, .metrics { color: var(--muted); }
 .check { display: flex; align-items: center; gap: 6px; }
 .check input { accent-color: var(--mint); }
-input:not([type="checkbox"]), textarea, select, button { min-width: 0; min-height: 36px; border: 1px solid var(--line); border-radius: 6px; background: var(--field); color: var(--ink); font: inherit; }
-input:not([type="checkbox"]), textarea, select { padding: 6px 8px; }
-textarea { width: 100%; resize: vertical; overflow-wrap: anywhere; }
+input:not([type="checkbox"]), select, button { min-width: 0; min-height: 36px; border: 1px solid var(--line); border-radius: 6px; background: var(--field); color: var(--ink); font: inherit; }
+input:not([type="checkbox"]), select { padding: 6px 8px; }
 button { display: inline-flex; justify-content: center; align-items: center; gap: 6px; padding-inline: 10px; background: var(--button); cursor: pointer; }
 button:hover:not(:disabled) { background: var(--button-hover); border-color: var(--sky); }
 button.primary { width: fit-content; padding-inline: 14px; background: var(--mint); color: var(--mint-on); border-color: transparent; font-weight: 700; }
@@ -45,6 +44,15 @@ button svg { flex: none; width: 18px; height: 18px; }
 [data-state="complete"] .state, [data-state="downloading"] .state { color: var(--mint); }
 [data-state="review"] .state, [data-state="interrupted"] .state { color: var(--amber); }
 .source, .detail { overflow-wrap: anywhere; }
+.source a { margin-inline-start: 9px; }
+.source small:not(:empty) { margin-inline-start: 9px; }
+.job-group { min-width: 0; border-block-start: 1px solid var(--line); }
+.job-group > details { display: block; }
+.job-group summary { padding: 11px 0; min-width: 0; }
+.job-group summary bdi { font-weight: 700; overflow-wrap: anywhere; }
+.job-group summary small { margin-inline-start: 10px; }
+.job-group ul { margin: 0 0 8px; padding-inline-start: 16px; border-inline-start: 2px solid var(--line); list-style: none; }
+.job[data-highlight] { background: color-mix(in srgb, var(--sky) 12%, transparent); }
 .metrics { display: flex; flex-wrap: wrap; gap: 5px 8px; min-width: 0; font-variant-numeric: tabular-nums; }
 .metrics bdi { padding: 2px 7px; border: 1px solid var(--line); border-radius: 6px; }
 .metrics [data-metric="percent"] { color: var(--mint); font-weight: 700; }
@@ -58,4 +66,32 @@ progress:indeterminate { appearance: auto; }
 progress[hidden], .detail[hidden] { display: none; }
 .actions button { min-height: 30px; padding-inline: 7px; font-size: 13px; }
 .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-@media (max-width: 750px) { .workspace { grid-template-columns: minmax(0, 1fr); padding: 14px; } .composer, .queue { padding: 13px; } }
+.manager-footer { display: flex; flex-wrap: wrap; gap: 12px 20px; padding: 0 18px; font-size: 13px; }
+.manager-footer a { color: var(--muted); }
+dialog { width: min(950px, calc(100% - 24px)); max-height: calc(100% - 24px); padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); box-shadow: 0 20px 58px #0006; }
+dialog::backdrop { background: #080e1699; backdrop-filter: blur(6px); }
+dialog form { padding: 16px; gap: 10px; }
+.import-bar, .import-inputs, .import-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.import-bar { justify-content: space-between; }
+.import-inputs input, .import-filters input { flex: 1 1 170px; }
+.import-inputs input { inline-size: 180px; }
+.icon-button { width: 36px; font-size: 0; padding: 0; }
+.import-grid { block-size: clamp(145px, 34vh, 345px); min-width: 0; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--line); border-radius: 6px; }
+.import-grid table { table-layout: fixed; border-collapse: separate; border-spacing: 0; width: 100%; font-size: 13px; }
+.import-grid th { position: sticky; inset-block-start: 0; z-index: 1; background: var(--field); text-align: start; }
+.import-grid td, .import-grid th { border-block-end: 1px solid var(--line); padding: 6px 8px; }
+.import-grid td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.import-grid td :is(bdi,small) { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: start; }
+.import-grid td small { direction: ltr; unicode-bidi: isolate; text-align: match-parent; }
+.import-grid .checkbox-col { width: 42px; }
+.import-grid tr :first-child:not(button) { accent-color: var(--mint); }
+.import-grid tr:hover td, .import-grid tr:focus-within td { background: var(--button); }
+.import-grid td:first-child, .import-grid th:first-child { text-align: center; }
+.import-grid th button { min-height: 30px; width: calc(100% - 10px); justify-content: space-between; padding-inline: 3px; border: 0; background: transparent; text-align: start; }
+.import-grid th[aria-sort=ascending] button::after { content: "\2191"; color: var(--sky); }
+.import-grid th[aria-sort=descending] button::after { content: "\2193"; color: var(--sky); }
+.import-grid [role=separator] { position: absolute; inset-block: 4px; inset-inline-end: 0; width: 10px; border-inline-end: 1px solid var(--line); cursor: col-resize; touch-action: none; }
+.import-grid [role=separator]:is(:hover,:focus-visible) { border-inline-end-color: var(--sky); }
+#import-notice, #import-count { color: var(--muted); font-size: 13px; }
+#import-notice:empty { display: none; }
+@media (max-width: 750px) { .workspace { padding: 14px; } .queue, dialog form { padding: 12px; } }
