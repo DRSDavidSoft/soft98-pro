@@ -1531,23 +1531,16 @@ async function main() {
               unrelatedHidden: !pane.querySelector('[data-test=unrelated-hidden]').getClientRects().length,
               originalHref: new URL(link.href).pathname === '/file/sample.zip',
             });
-            const afterReveal = async () => {
-              for (let attempt = 0; attempt < 40; attempt++) {
-                const current = state();
-                if (current.visible) return current;
-                await new Promise(resolve => setTimeout(resolve, 25));
-              }
-              return state();
-            };
             const before = state();
             downloads.click();
-            const clicked = await afterReveal();
+            await Promise.resolve();
+            const clicked = state();
             requirements.click();
             await Promise.resolve();
             const away = state();
             history.replaceState(null, '', '#harness.downloads');
             dispatchEvent(new HashChangeEvent('hashchange'));
-            const fragment = await afterReveal();
+            const fragment = state();
             history.replaceState(null, '', location.pathname + location.search);
             return { before, clicked, away, fragment };
           })()
