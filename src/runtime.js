@@ -10,6 +10,7 @@
   const FAVICON_ID = "soft98-pro-favicon";
   const CONTROL_POSITION_KEY = "soft98-ad-blocker.control-position";
   const DOWNLOAD_METADATA_KEY = "soft98-pro.download-metadata";
+  const DOWNLOAD_SECTIONS_KEY = "soft98-pro.download-sections";
   const COMPATIBILITY_DISMISS_KEY = "soft98-pro.compatibility-dismissed";
   const CONTROL_MARGIN = 12;
   const CONTROL_GRAVITY = 76;
@@ -69,10 +70,16 @@
     downloadRowAction: "copy",
     downloadRowContextMenu: true,
     downloadReviewMB: Soft98DownloadLinks.DEFAULT_REVIEW_MB,
+    downloadHeaderLayout: "actions",
+    downloadHeaderButtons: "icons",
   };
   const FILE_ACTIONS = {
     copy: { label: "downloadCopyFile", icon: "copy" },
     internal: { label: "downloadInternalFile", icon: "download" },
+  };
+  const DOWNLOAD_HEADER_OPTIONS = {
+    downloadHeaderLayout: { label: "downloadHeaderLayout", values: { actions: "downloadHeaderActionsFirst", toggle: "downloadHeaderToggleFirst" } },
+    downloadHeaderButtons: { label: "downloadHeaderButtons", values: { icons: "downloadHeaderIcons", text: "downloadHeaderText" } },
   };
   let fileMenu;
   let fileStates = new Map();
@@ -110,6 +117,7 @@
   let siteThemeReady = false;
   const downloadRows = new WeakMap();
   const downloadHeadings = new WeakMap();
+  const downloadDeviceOS = Soft98DownloadLinks.deviceOS(navigator);
   let downloadRowId = 0;
   let downloadToastTimer;
   const downloadProbes = new Map();
@@ -259,7 +267,10 @@
       } catch (_error) {}
     }
     installProStyle();
-    if (!settings.pro) closeFileMenu();
+    if (!settings.pro) {
+      closeFileMenu();
+      document.querySelector("dialog[data-s98p-download-confirm][open]")?.close();
+    }
     syncNativeNightMode();
     renderControlPanel();
     syncSuccessEnhancements();
@@ -326,7 +337,7 @@
 
   function isOwnedInterface(node) {
     const element = asElement(node);
-    return Boolean(element && element.closest("#soft98-pro-control,#soft98-pro-compatibility,#soft98-extension-recommendation,#soft98-ad-blocker-taunt,[data-soft98-pro-download-actions],[data-soft98-pro-password-actions],[data-soft98-pro-copy-toast],[data-soft98-pro-footer]"));
+    return Boolean(element && element.closest("#soft98-pro-control,#soft98-pro-compatibility,#soft98-extension-recommendation,#soft98-ad-blocker-taunt,[data-soft98-pro-download-actions],[data-soft98-pro-password-actions],[data-soft98-pro-copy-toast],[data-soft98-pro-footer],[data-s98p-download-confirm]"));
   }
 
   function localizeElement(element) {
@@ -2707,6 +2718,7 @@
 
   function enhanceDownloadSections() {
     const panes = new Set();
+    const listPositions = { article: 0, rail: 0 };
     for (const list of document.querySelectorAll(":is(article [role=tabpanel],[data-s98p-download-rail]) dl:has(> dt):has(> dd > a:is([href],[data-key]))")) {
       if (!list.hasAttribute("data-soft98-pro-download-group") &&
           ![...list.querySelectorAll(":scope > dd > a:is([href],[data-key])")].some((link) => directDownloadUrl(link.getAttribute("href")) ||
@@ -2734,7 +2746,10 @@
       }
       let heading;
       let entries = [];
-      const finish = () => { if (heading && entries.length) enhanceDownloadHeading(heading, entries); };
+      const placement = list.closest("[data-s98p-download-rail]") ? "rail" : "article";
+      const listIndex = listPositions[placement]++;
+      const titles = new Map();
+      const finish = () => { if (heading && entries.length) enhanceDownloadHeading(heading, entries, placement, listIndex, titles); };
       for (const item of list.children) {
         if (item.tagName === "DT") {
           finish();
@@ -2842,7 +2857,15 @@
     return [...urls];
   }
 
-  function enhanceDownloadHeading(heading, entries) {
+  function savedDownloadSections() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(DOWNLOAD_SECTIONS_KEY) || "[]");
+      return new Map(Array.isArray(raw) ? raw.filter(entry =>
+        Array.isArray(entry) && typeof entry[0] === "string" && typeof entry[1] === "boolean").slice(-250) : []);
+    } catch (_error) { return new Map(); }
+  }
+
+  function enhanceDownloadHeading(heading, entries, placement, listIndex, titles) {
     let state = downloadHeadings.get(heading);
     if (!state?.controls.isConnected) {
       heading.querySelectorAll(":scope > :is([data-soft98-pro-download-actions],[data-s98p-download-toggle])").forEach((node) => node.remove());
@@ -2867,25 +2890,33 @@
       const toggle = downloadButton("minus");
       toggle.setAttribute("data-s98p-download-toggle", "");
       const copy = downloadButton("copy");
-      copy.append(text("downloadCopyAll"));
-      setDownloadHint(copy, text("downloadCopyAllHint"));
-      controls.append(copy);
+      const copyLabel = document.createElement("span");
+      copyLabel.textContent = text("downloadCopyAll");
+      copy.append(copyLabel);
+      setDownloadHint(copy, text("downloadCopyAllHint"), true);
       let review;
       if (IS_EXTENSION) {
         review = downloadButton("download");
         review.dataset.soft98ProDownloadManager = "section";
-        review.append(text("downloadAll"));
-        setDownloadHint(review, text("downloadAllHint"));
+        const reviewLabel = document.createElement("span");
+        reviewLabel.textContent = text("downloadAll");
+        review.append(reviewLabel);
+        setDownloadHint(review, text("downloadAllHint"), true);
         controls.append(review);
       }
+      controls.append(copy);
       heading.setAttribute("data-soft98-pro-download-heading", "");
       heading.append(toggle, controls);
-      state = { controls, toggle, copy, review, entries: [], collapsed: false };
+      state = { controls, toggle, copy, review, label, entries: [] };
       downloadHeadings.set(heading, state);
       toggle.addEventListener("click", (event) => {
         event.stopPropagation();
         state.collapsed = !state.collapsed;
-        syncDownloadCollapse(state);
+        const saved = savedDownloadSections();
+        saved.delete(state.key);
+        saved.set(state.key, state.collapsed);
+        try { localStorage.setItem(DOWNLOAD_SECTIONS_KEY, JSON.stringify([...saved].slice(-250))); } catch (_error) {}
+        syncDownloadCollapse(state, true);
       });
       copy.addEventListener("click", async (event) => {
         event.stopPropagation();
@@ -2900,6 +2931,18 @@
         }
       });
     }
+    const title = state.label.textContent.trim();
+    const normalized = normalizedPersian(title);
+    const occurrence = titles.get(normalized) || 0;
+    titles.set(normalized, occurrence + 1);
+    const key = JSON.stringify([location.pathname, placement, listIndex, normalized, occurrence]);
+    if (state.key !== key) {
+      state.key = key;
+      const targets = Soft98DownloadLinks.headingOS(title);
+      state.collapsed = savedDownloadSections().get(key) ?? Boolean(downloadDeviceOS && targets.length && !targets.includes(downloadDeviceOS));
+    }
+    heading.dataset.s98pDownloadHeaderLayout = settings.downloadHeaderLayout === "toggle" ? "toggle" : "actions";
+    heading.dataset.s98pDownloadHeaderButtons = settings.downloadHeaderButtons === "text" ? "text" : "icons";
     state.entries = entries;
     const ids = entries.filter((row) => !row.hasAttribute("data-s98p-download-rule")).map((row) => {
       if (!row.id) {
@@ -2917,8 +2960,11 @@
     syncDownloadCollapse(state);
   }
 
-  function syncDownloadCollapse(state) {
-    for (const row of state.entries) row.toggleAttribute("data-soft98-pro-download-collapsed", state.collapsed);
+  function syncDownloadCollapse(state, animate = false) {
+    if (animate) animateDownloadRows(state);
+    else for (const row of state.entries) {
+      if (!downloadRowMotion.has(row)) row.toggleAttribute("data-soft98-pro-download-collapsed", state.collapsed);
+    }
     const expanded = String(!state.collapsed);
     if (state.toggle.getAttribute("aria-expanded") === expanded) return;
     const label = text(state.collapsed ? "downloadExpandGroup" : "downloadCollapseGroup");
@@ -2928,6 +2974,52 @@
     state.toggle.firstElementChild.setAttribute("aria-hidden", "true");
     state.toggle.setAttribute("aria-expanded", expanded);
     setDownloadHint(state.toggle, label, true);
+  }
+
+  const downloadRowMotion = new WeakMap();
+  const downloadRowDimensions = ["block-size", "padding-block-start", "padding-block-end", "margin-block-start", "margin-block-end",
+    "border-block-start-width", "border-block-end-width"];
+
+  function animateDownloadRows(state) {
+    const to = state.collapsed ? 0 : 1;
+    const canAnimate = !matchMedia("(prefers-reduced-motion: reduce)").matches &&
+      typeof CSS.registerProperty === "function" && typeof Element.prototype.animate === "function";
+    const rows = state.entries.map(row => {
+      const motion = downloadRowMotion.get(row);
+      const current = motion ? Number(getComputedStyle(row).getPropertyValue("--s98p-download-row-progress")) : (row.hasAttribute("data-soft98-pro-download-collapsed") ? 0 : 1);
+      if (motion) motion.finish();
+      row.removeAttribute("data-soft98-pro-download-collapsed");
+      return { row, current };
+    });
+    const measured = rows.map(({ row, current }) => {
+      const size = row.getBoundingClientRect().height;
+      if (!canAnimate || !size || current === to) return { row, current };
+      const css = getComputedStyle(row);
+      return { row, current, dimensions: [size + "px", ...downloadRowDimensions.slice(1).map(key => css.getPropertyValue(key))] };
+    });
+    for (const { row, current, dimensions } of measured) {
+      if (!dimensions) {
+        row.toggleAttribute("data-soft98-pro-download-collapsed", state.collapsed);
+        continue;
+      }
+      const inert = row.inert;
+      row.inert = true;
+      row.setAttribute("data-s98p-download-row-motion", "");
+      dimensions.forEach((value, index) => row.style.setProperty("--s98p-row-" + downloadRowDimensions[index], value));
+      const animation = row.animate([{ "--s98p-download-row-progress": current, opacity: current },
+        { "--s98p-download-row-progress": to, opacity: to }], { duration: 240, easing: "cubic-bezier(.2,.7,.25,1)", fill: "both" });
+      const finish = () => {
+        if (downloadRowMotion.get(row)?.animation !== animation) return;
+        downloadRowMotion.delete(row);
+        row.toggleAttribute("data-soft98-pro-download-collapsed", state.collapsed);
+        row.removeAttribute("data-s98p-download-row-motion");
+        row.inert = inert;
+        for (const key of downloadRowDimensions) row.style.removeProperty("--s98p-row-" + key);
+        animation.cancel();
+      };
+      downloadRowMotion.set(row, { animation, finish });
+      animation.finished.then(finish, finish);
+    }
   }
 
   function downloadButton(icon) {
@@ -3222,6 +3314,31 @@
   }
 
   function installFileActions() {
+    document.addEventListener("soft98-pro:download-confirmation", () => {
+      const root = document.documentElement;
+      const raw = root.dataset.s98pDownloadConfirmation;
+      delete root.dataset.s98pDownloadConfirmation;
+      if (!settings.pro || !IS_EXTENSION || document.querySelector("dialog[data-s98p-download-confirm][open]")) return;
+      const { count, total } = parseDownloadConfirmation(raw);
+      if (!count) return;
+      const dialog = localizeElement(document.createElement("dialog"));
+      dialog.dataset.s98pDownloadConfirm = "";
+      dialog.setAttribute("aria-labelledby", "soft98-pro-download-confirm-title");
+      dialog.setAttribute("aria-describedby", "soft98-pro-download-confirm-summary");
+      const values = { count: new Intl.NumberFormat(LOCALE).format(count) };
+      dialog.innerHTML = `<form method="dialog">
+        <h2 id="soft98-pro-download-confirm-title">${escapeHtml(text("downloadConfirmTitle"))}</h2>
+        <p id="soft98-pro-download-confirm-summary">${escapeHtml(text(count === 1 ? "downloadConfirmSingle" : "downloadConfirmCount", values))}
+          <bdi dir="ltr">${escapeHtml(downloadByteLabel(total))}</bdi>
+        </p>
+        <footer><button value="cancel" autofocus>${escapeHtml(text("downloadConfirmCancel"))}</button>
+          <button value="start" data-s98p-download-confirm-start>${PAGE_ICONS.download}${escapeHtml(text("downloadConfirmStart"))}</button></footer>
+      </form>`;
+      dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
+      dialog.addEventListener("close", () => dialog.remove(), { once: true });
+      document.body.append(dialog);
+      dialog.showModal();
+    });
     const rowControls = (target) => target?.closest?.("dd[data-soft98-pro-download-entry]")?.querySelector(":scope > .s98p-file-actions");
     document.addEventListener("contextmenu", (event) => {
       if (!settings.pro || settings.downloadRowContextMenu === false) return;
@@ -3319,6 +3436,14 @@
         held: "downloadFileHeld", duplicate: "downloadFileDuplicate", failed: "downloadFileFailed" }[result];
       if (message) showDownloadToast(message, result === "failed");
     });
+  }
+
+  function parseDownloadConfirmation(raw) {
+    try {
+      const { count, total } = JSON.parse(raw);
+      if (Number.isInteger(count) && count > 0 && count <= Soft98DownloadLinks.MAX_BATCH && Number.isSafeInteger(total) && total >= 0) return { count, total };
+    } catch (_error) {}
+    return {};
   }
 
   function prepareDownloadRow(link, icon, url) {
@@ -4459,6 +4584,10 @@
     if (action) action.value = defaultFileAction();
     const threshold = wrap.querySelector('input[name="downloadReviewMB"]');
     if (threshold && threshold !== document.activeElement) threshold.value = Soft98DownloadLinks.reviewLimit(settings.downloadReviewMB);
+    for (const [name, { values }] of Object.entries(DOWNLOAD_HEADER_OPTIONS)) {
+      const select = wrap.querySelector(`select[name="${name}"]`);
+      if (select) select.value = Object.hasOwn(values, settings[name]) ? settings[name] : DEFAULT_SETTINGS[name];
+    }
     refreshControlTelemetry();
   }
 
@@ -4589,6 +4718,10 @@
                 </select>
               </label>
               ${controlOptionMarkup("downloadRowContextMenu")}
+              ${Object.entries(DOWNLOAD_HEADER_OPTIONS).map(([name, { label, values }]) => `
+                <label class="s98p-download-default"><strong>${escapeHtml(text(label))}</strong>
+                  <select name="${name}">${Object.entries(values).map(([value, title]) => `<option value="${value}">${escapeHtml(text(title))}</option>`).join("")}</select>
+                </label>`).join("")}
               <label class="s98p-download-default">
                 <span><strong>${escapeHtml(text("downloadReviewLimit"))}</strong><small>${escapeHtml(text("downloadReviewLimitDetail"))}</small></span>
                 <input type="number" inputmode="numeric" dir="ltr" name="downloadReviewMB" min="1" max="${Soft98DownloadLinks.MAX_REVIEW_MB}" step="1" required value="${Soft98DownloadLinks.reviewLimit(settings.downloadReviewMB)}">
@@ -5152,6 +5285,11 @@
       const input = event.target;
       if (input?.matches('select[name="downloadRowAction"]') && Object.hasOwn(FILE_ACTIONS, input.value)) {
         writeSettings({ ...settings, downloadRowAction: input.value });
+        return;
+      }
+      if (input?.matches("select[name]") && Object.hasOwn(DOWNLOAD_HEADER_OPTIONS, input.name) &&
+          Object.hasOwn(DOWNLOAD_HEADER_OPTIONS[input.name].values, input.value)) {
+        writeSettings({ ...settings, [input.name]: input.value });
         return;
       }
       if (input?.matches('input[name="downloadReviewMB"]')) {

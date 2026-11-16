@@ -16,6 +16,20 @@ const EXTENSION_ID = "soft98-test";
 const PREFIX = "https://example.test/";
 const DIST = path.resolve(__dirname, "../dist");
 
+test("platform detection is conservative about generic and mixed download headings", () => {
+  assert.equal(links.deviceOS({ platform: "Linux x86_64", userAgent: "Linux Android 15" }), "android");
+  assert.equal(links.deviceOS({ platform: "MacIntel", maxTouchPoints: 5 }), "ios");
+  assert.equal(links.deviceOS({ userAgentData: { platform: "Chrome OS" }, userAgent: "CrOS x86_64" }), "chromeos");
+  assert.equal(links.deviceOS({ userAgentData: { platform: "Windows" } }), "windows");
+  assert.equal(links.deviceOS({}), "");
+  assert.deepEqual(links.headingOS("نسـخه Windows 11 (x64)"), ["windows"]);
+  assert.deepEqual(links.headingOS("macOS / لینوکـس"), ["mac", "linux"]);
+  assert.deepEqual(links.headingOS("نسخه ویندوز و مکینتاش"), ["windows", "mac"]);
+  for (const title of ["Other platforms", "Windows / All others", "راهنمای نصب ویندوز", "دانلود Windows with updates", "سایر پلتفرم‌ها"]) {
+    assert.deepEqual(links.headingOS(title), []);
+  }
+});
+
 test("file probes are permission-scoped and preserve exact links without credentials", async () => {
   const url = PREFIX + "file?token=abcd";
   let attempts = 0;

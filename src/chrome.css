@@ -428,21 +428,28 @@
 
 :root.soft98-pro-theme [data-soft98-pro-download-heading] {
   display: grid !important;
-  grid-template: "label toggle" auto / minmax(0,1fr) auto;
+  grid-template: "label . toggle" auto / minmax(0,max-content) minmax(0,1fr) auto;
   align-items: center;
-  gap: 6px 12px;
+  gap: 6px;
   padding: 8px !important;
 }
 :root.soft98-pro-theme [data-soft98-pro-download-heading]:has(> [data-soft98-pro-download-actions]:not([hidden])) {
-  grid-template-areas: "label toggle" "actions actions";
+  grid-template: "label actions . toggle" auto / minmax(0,max-content) auto minmax(0,1fr) auto;
+}
+:root.soft98-pro-theme [data-soft98-pro-download-heading][data-s98p-download-header-layout="toggle"]:has(> [data-soft98-pro-download-actions]:not([hidden])) {
+  grid-template: "label toggle . actions" auto / minmax(0,max-content) auto minmax(0,1fr) auto;
 }
 :root.soft98-pro-theme [data-s98p-download-rail] [data-soft98-pro-download-heading]:has(> [data-s98p-download-heading-fallback]) {
-  grid-template-areas: "actions toggle";
+  grid-template: "actions . toggle" auto / auto minmax(0,1fr) auto;
+}
+:root.soft98-pro-theme [data-s98p-download-rail] [data-soft98-pro-download-heading][data-s98p-download-header-layout="toggle"]:has(> [data-s98p-download-heading-fallback]) {
+  grid-template-areas: "toggle . actions";
 }
 :root.soft98-pro-theme [data-s98p-download-heading-label] {
   grid-area: label;
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   min-inline-size: 0;
   overflow-wrap: anywhere;
 }
@@ -456,7 +463,6 @@
   grid-area: actions;
   justify-self: start;
   align-items: center;
-  flex-wrap: wrap;
   gap: 5px;
   max-inline-size: 100%;
   direction: inherit;
@@ -484,6 +490,82 @@
   border-color: var(--s98p-border) !important;
 }
 :root.soft98-pro-theme [data-soft98-pro-download-heading] button svg { inline-size: 16px; block-size: 16px; flex: none; pointer-events: none; }
+:root.soft98-pro-theme [data-s98p-download-header-buttons="icons"] [data-soft98-pro-download-actions] button > span { display: none; }
+:root.soft98-pro-theme [data-s98p-download-header-buttons="icons"] [data-soft98-pro-download-actions] button { padding-inline: 4px; }
+:root.soft98-pro-theme [data-s98p-download-header-buttons="text"] [data-soft98-pro-download-actions] button > span {
+  font-size: .8rem;
+  white-space: nowrap;
+}
+
+@property --s98p-download-row-progress {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 1;
+}
+
+:root.soft98-pro-theme :is(article,[data-s98p-download-rail]) [data-soft98-pro-download-group] > dd[data-s98p-download-row-motion] {
+  box-sizing: border-box !important;
+  overflow: clip !important;
+  min-block-size: 0 !important;
+  max-block-size: none !important;
+  block-size: calc(var(--s98p-row-block-size) * var(--s98p-download-row-progress)) !important;
+  padding-block-start: calc(var(--s98p-row-padding-block-start) * var(--s98p-download-row-progress)) !important;
+  padding-block-end: calc(var(--s98p-row-padding-block-end) * var(--s98p-download-row-progress)) !important;
+  margin-block-start: calc(var(--s98p-row-margin-block-start) * var(--s98p-download-row-progress)) !important;
+  margin-block-end: calc(var(--s98p-row-margin-block-end) * var(--s98p-download-row-progress)) !important;
+  border-block-start-width: calc(var(--s98p-row-border-block-start-width) * var(--s98p-download-row-progress)) !important;
+  border-block-end-width: calc(var(--s98p-row-border-block-end-width) * var(--s98p-download-row-progress)) !important;
+}
+
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] {
+  inset: 0;
+  inline-size: min(400px, calc(100vw - 28px));
+  max-block-size: calc(100dvh - 28px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--s98p-border);
+  border-radius: 8px;
+  background: var(--s98p-surface) !important;
+  color: var(--s98p-text) !important;
+  box-shadow: 0 18px 56px #0005;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm]::backdrop { background: #08101869; backdrop-filter: blur(6px); }
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] form { padding: 18px; }
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] h2 { margin: 0 0 10px; font-size: 1.1rem; }
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] p { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 0; }
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] bdi {
+  padding: 3px 8px;
+  border: 1px solid var(--s98p-border-soft);
+  border-radius: 5px;
+  background: var(--s98p-surface-2);
+  font-variant-numeric: tabular-nums;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] footer { display: flex; flex-wrap: wrap; justify-content: end; gap: 8px; margin-block-start: 16px; }
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-inline-size: 58px;
+  min-block-size: 36px;
+  margin: 0 !important;
+  padding: 6px 12px;
+  border: 1px solid var(--s98p-border) !important;
+  border-radius: 6px;
+  background: var(--s98p-surface-2) !important;
+  color: var(--s98p-text) !important;
+  box-shadow: none !important;
+  font: inherit;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] button:focus-visible {
+  outline: 2px solid var(--s98p-accent) !important;
+  outline-offset: 2px;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] [data-s98p-download-confirm-start] {
+  background: color-mix(in srgb, var(--s98p-accent) 18%, var(--s98p-surface)) !important;
+  border-color: var(--s98p-accent) !important;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] button svg { inline-size: 16px; block-size: 16px; }
 
 :root.soft98-pro-theme [data-soft98-pro-download-group] > [data-s98p-rating] {
   display: block !important;

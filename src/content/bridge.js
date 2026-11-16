@@ -25,6 +25,8 @@
     downloadRowAction: "copy",
     downloadRowContextMenu: true,
     downloadReviewMB: 100,
+    downloadHeaderLayout: "actions",
+    downloadHeaderButtons: "icons",
   };
   const SCRIPT_PATH = /^\/templates\/.*\/(?:application\.min\.packed|jquery(?:-v[^/]+)?(?:\.min\.packed)?)\.js$/i;
   const reportedScripts = new Set();
@@ -168,18 +170,40 @@
         refreshDownloads();
       }
     });
-    function startArticleDownloads(owner, urls) {
-      if (!urls.length || owner.getAttribute("aria-busy") === "true") return;
+    let pendingAll, preparingAll = false;
+    function downloadResult(response) {
+      document.documentElement.setAttribute("data-soft98-pro-file-result", response?.ok ? response.result : "failed");
+      document.dispatchEvent(new Event("soft98-pro:file-result"));
+      refreshDownloads();
+    }
+
+    function startArticleDownloads(owner, urls, confirmAll = false) {
+      if (!urls.length || owner.getAttribute("aria-busy") === "true" || (confirmAll && (pendingAll || preparingAll))) return;
+      if (confirmAll) preparingAll = true;
       owner.setAttribute("aria-busy", "true");
-      sendRuntime({ type: "soft98:download-file", urls }, (response) => {
+      sendRuntime({ type: "soft98:download-file", urls, confirmAll }, (response) => {
         owner.removeAttribute("aria-busy");
-        document.documentElement.setAttribute("data-soft98-pro-file-result", response?.ok ? response.result : "failed");
-        document.dispatchEvent(new Event("soft98-pro:file-result"));
-        refreshDownloads();
+        if (confirmAll) preparingAll = false;
+        if (confirmAll && response?.ok && response.result === "confirm" && typeof response.token === "string") {
+          document.documentElement.dataset.s98pDownloadConfirmation = JSON.stringify({ count: response.count, total: response.total });
+          document.dispatchEvent(new Event("soft98-pro:download-confirmation"));
+          const dialog = document.querySelector("dialog[data-s98p-download-confirm][open]");
+          if (dialog) {
+            const pending = pendingAll = { dialog, token: response.token };
+            dialog.addEventListener("close", () => { if (pendingAll === pending) pendingAll = null; }, { once: true });
+          } else downloadResult(null);
+        } else downloadResult(response);
       });
     }
     document.addEventListener("click", (event) => {
       if (!event.isTrusted || event.button !== 0 || event.defaultPrevented) return;
+      const confirm = event.target instanceof Element && event.target.closest("dialog[open] button[data-s98p-download-confirm-start]");
+      if (confirm && pendingAll?.dialog === confirm.closest("dialog")) {
+        const { token } = pendingAll;
+        pendingAll = null;
+        sendRuntime({ type: "soft98:confirm-download-all", token }, downloadResult);
+        return;
+      }
       const control = event.target instanceof Element && event.target.closest("button[data-soft98-pro-download-manager],button[data-s98p-file-command]");
       if (!control || control.disabled || control.closest("[hidden]")) return;
       if (control.dataset.soft98ProDownloadManager === "open") {
@@ -192,7 +216,7 @@
           const url = entry.querySelector(":scope > a[data-s98p-file-url]")?.dataset.s98pFileUrl;
           if (url) urls.push(url);
         }
-        startArticleDownloads(control, urls);
+        startArticleDownloads(control, urls, true);
         return;
       }
       if (control.dataset.s98pFileCommand !== "internal") return;

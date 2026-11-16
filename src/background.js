@@ -18,6 +18,7 @@
   const pendingInspections = new Map();
   const pendingSources = new Map();
   const downloadImports = new Map();
+  const pendingDownloadConfirmations = new Map();
   const downloadPage = api.runtime.getURL("downloads.html");
   const downloadPopup = api.runtime.getURL("popup.html");
   let releaseStatus = null;
@@ -56,14 +57,22 @@
     return call(api.tabs, "create", { url: downloadPage + "#import=" + token, openerTabId: sender.tab.id });
   }
 
-  async function downloadFromArticle(urls, sender) {
+  async function downloadFromArticle(urls, sender, confirmAll) {
     const { soft98AdBlockerSettings } = await call(api.storage.local, "get", "soft98AdBlockerSettings");
     const metadata = await Soft98DownloadProbe.planArticleDownloads(urls, soft98AdBlockerSettings?.downloadReviewMB, inspectDownload);
     if (!metadata) {
       await openDownloadReview(urls, sender);
       return { ok: true, result: "review" };
     }
-    const { jobs, added, scheduled, held } = await queue.request({ action: "add", urls, startExisting: true, source: sender.url, metadata });
+    if (!confirmAll) return enqueueArticleDownloads(urls, sender.url, metadata);
+    const token = crypto.randomUUID();
+    if (pendingDownloadConfirmations.size >= 32) pendingDownloadConfirmations.delete(pendingDownloadConfirmations.keys().next().value);
+    pendingDownloadConfirmations.set(sender.tab.id, { token, urls, source: sender.url, metadata, expires: Date.now() + 120000 });
+    return { ok: true, result: "confirm", token, count: urls.length, total: Object.values(metadata).reduce((sum, file) => sum + file.size, 0) };
+  }
+
+  async function enqueueArticleDownloads(urls, source, metadata) {
+    const { jobs, added, scheduled, held } = await queue.request({ action: "add", urls, startExisting: true, source, metadata });
     const related = urls.map(url => jobs.findLast(entry => entry.url === url)).filter(Boolean);
     const result = !added && !scheduled ? "duplicate" : held ? "held" :
       related.some(job => ["starting", "downloading"].includes(job.status)) ? "starting" :
@@ -338,7 +347,7 @@
   }
   api.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!message || typeof message !== "object") return false;
-    if (["soft98:open-downloads", "soft98:download-file", "soft98:download-snapshot"].includes(message.type)) {
+    if (["soft98:open-downloads", "soft98:download-file", "soft98:confirm-download-all", "soft98:download-snapshot"].includes(message.type)) {
       if (sender.id !== api.runtime.id || sender.frameId !== 0 || !Number.isInteger(sender.tab?.id) || sender.incognito || sender.tab.incognito ||
           !isProtectedPage(sender.url)) return false;
       if (message.type === "soft98:download-file") {
@@ -349,7 +358,17 @@
           if (!urls.length) throw new Error("No article files");
         }
         catch (_error) { sendResponse({ ok: false }); return false; }
-        downloadFromArticle(urls, sender).then(sendResponse, () => sendResponse({ ok: false }));
+        downloadFromArticle(urls, sender, message.confirmAll === true || urls.length > 1).then(sendResponse, () => sendResponse({ ok: false }));
+        return true;
+      }
+      if (message.type === "soft98:confirm-download-all") {
+        const pending = pendingDownloadConfirmations.get(sender.tab.id);
+        if (!pending || pending.token !== message.token || pending.expires < Date.now() || pending.source !== sender.url) {
+          sendResponse({ ok: false });
+          return false;
+        }
+        pendingDownloadConfirmations.delete(sender.tab.id);
+        enqueueArticleDownloads(pending.urls, pending.source, pending.metadata).then(sendResponse, () => sendResponse({ ok: false }));
         return true;
       }
       if (message.type === "soft98:download-snapshot") {

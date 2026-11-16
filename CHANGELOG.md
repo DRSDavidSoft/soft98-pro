@@ -41,6 +41,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Simplified article download actions, made copying the default, and added a configurable size limit for review before internal downloads.
 - Restyled article quotes, warnings, and secondary notices to match the Pro themes.
 - Fixed FAQ expand arrows and themed the answer checkmark.
+- Put download section actions beside their titles, with adjustable layouts and button labels, remembered collapse state, and confirmation before starting small bulk downloads.
 
 ### Removed
 

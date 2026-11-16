@@ -112,7 +112,41 @@ const Soft98DownloadLinks = (() => {
     return Number.isInteger(value) && value > 0 && value <= MAX_REVIEW_MB ? value : DEFAULT_REVIEW_MB;
   }
 
-  return { MAX_BATCH, MAX_IMPORT, MAX_TEXT, DEFAULT_REVIEW_MB, MAX_REVIEW_MB, reviewLimit, normalize, describe, fileType, parse, headers, articleFile, declaredArticleLinks, metadata };
+  function deviceOS({ platform = "", userAgent = "", userAgentData, maxTouchPoints = 0 } = {}) {
+    const identity = `${userAgentData?.platform || ""} ${platform} ${userAgent}`;
+    if (/\b(?:iPhone|iPad|iPod|iOS)\b/i.test(identity) || (/^Mac/i.test(platform) && maxTouchPoints > 1)) return "ios";
+    if (/\bandroid\b/i.test(identity)) return "android";
+    if (/\b(?:CrOS|Chrome ?OS)\b/i.test(identity)) return "chromeos";
+    if (/\b(?:Windows|Win32|Win64)\b/i.test(identity)) return "windows";
+    if (/\b(?:macOS|MacIntel|Macintosh|Mac OS X)\b/i.test(identity)) return "mac";
+    if (/\blinux\b/i.test(identity)) return "linux";
+    return "";
+  }
+
+  function headingOS(title) {
+    const aliases = {
+      windows: /^(?:windows|win|ویندوز)$/u,
+      mac: /^(?:mac|macos|osx|مک|مکینتاش)$/u,
+      linux: /^(?:linux|ubuntu|debian|fedora|لینوکس|اوبونتو)$/u,
+      android: /^(?:android|اندروید)$/u,
+      ios: /^(?:ios|ipados|iphone|ipad|آیفون|آیپد)$/u,
+      chromeos: /^(?:chromeos|chromebook|کرومبوک)$/u,
+    };
+    const words = String(title).normalize("NFKC").toLowerCase()
+      .replace(/[\u0640\u200c\u200d]/gu, "").replace(/\b(mac|chrome)\s+os\b/g, "$1os")
+      .match(/[\p{L}\p{N}]+(?:\.[\p{N}]+)*/gu) || [];
+    const targets = new Set();
+    for (const word of words) {
+      if (/^(?:نسخه|دانلود|برای|مخصوص|و|for|version|versions|download|and|bit|x86|x64|arm64|arm|32bit|64bit)$/u.test(word) ||
+          /^\p{Nd}+(?:\.\p{Nd}+)*$/u.test(word)) continue;
+      const os = Object.keys(aliases).find(key => aliases[key].test(word));
+      if (!os) return [];
+      targets.add(os);
+    }
+    return [...targets];
+  }
+
+  return { MAX_BATCH, MAX_IMPORT, MAX_TEXT, DEFAULT_REVIEW_MB, MAX_REVIEW_MB, reviewLimit, deviceOS, headingOS, normalize, describe, fileType, parse, headers, articleFile, declaredArticleLinks, metadata };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = Soft98DownloadLinks;

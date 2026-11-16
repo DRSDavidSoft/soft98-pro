@@ -139,6 +139,13 @@ async function verifyFileActions(client) {
   const destination = "https://files.example.test/tool.zip?sig=A%2Fb";
   const check = (what, actual, expected) => assertEqual("download actions", what, actual, expected);
   const run = (code) => evaluate(client, code);
+  const until = async (code) => {
+    for (let attempt = 0; attempt < 45; attempt++) {
+      if (await run(code).catch(() => false)) return;
+      await delay(70);
+    }
+    throw new Error("Download actions timed out: " + code);
+  };
   const position = (target) => run(`(() => {
     const node = document.querySelector(${JSON.stringify(target)});
     node.scrollIntoView({ block: "nearest" });
@@ -229,9 +236,50 @@ async function verifyFileActions(client) {
   await click("[data-s98p-file-more]");
   check("the explicit menu still works with row right-click disabled", await run(`Boolean(document.querySelector("${menu}"))`), true);
   await press("Escape");
+  const section = '[data-soft98-pro-download-manager="section"]';
+  const responsive = `(() => {
+    const heading = document.querySelector(${JSON.stringify(section)}).closest("dt");
+    const t = heading.querySelector("[data-s98p-download-toggle]").getBoundingClientRect();
+    const l = heading.querySelector("[data-s98p-download-heading-label]").getBoundingClientRect();
+    const [d,c] = Array.from(heading.querySelectorAll("[data-soft98-pro-download-actions] button"), b => b.getBoundingClientRect());
+    return Math.abs(t.y-d.y)<2 && Math.abs(d.y-c.y)<2 && Math.abs((l.top+l.bottom)-(d.top+d.bottom))<4 &&
+      l.right>d.right && d.right>c.right && c.right>t.right;
+  })()`;
+  check("default RTL heading fits title, Download, Copy, and collapse in one row", await run(responsive), true);
+  await run(`(() => {
+    for (const [name, value] of [["downloadHeaderLayout","toggle"],["downloadHeaderButtons","text"]]) {
+      const select = document.querySelector("select[name="+name+"]");
+      select.value=value; select.dispatchEvent(new Event("change",{bubbles:true}));
+    }
+  })()`);
+  await until('document.querySelector("[data-s98p-download-header-layout=toggle]")');
+  check("alternative layout persists and text labels are visible", await run(`(() => {
+    const d=document.querySelector(${JSON.stringify(section)}), t=d.closest("dt").querySelector("[data-s98p-download-toggle]");
+    return getComputedStyle(d.querySelector("span")).display!=="none" && t.getBoundingClientRect().right > d.getBoundingClientRect().right &&
+      fileActionsFixture.settings.downloadHeaderButtons==="text";
+  })()`), true);
+  check("non-matching OS sections collapse but matching multi-OS sections stay open", await run(`
+    document.querySelector("#linux-file").hasAttribute("data-soft98-pro-download-collapsed") &&
+    !document.querySelector("#multi-file").hasAttribute("data-soft98-pro-download-collapsed")`), true);
+  await run('document.querySelector("#linux-section button[data-s98p-download-toggle]").click()');
+  await until('document.querySelector("#linux-file").getAnimations().length>0');
+  await until('!document.querySelector("#linux-file").inert && document.querySelector("#linux-file").offsetHeight>0');
+  check("manual expansion is saved", await run('JSON.parse(localStorage.getItem("soft98-pro.download-sections")).some(([key,value])=>key.includes("لینوکس") && value===false)'), true);
+  await click(section);
+  await until('document.querySelector("dialog[data-s98p-download-confirm][open]")');
+  const confirmed = 'fileActionsFixture.messages.filter(message=>message.type==="soft98:confirm-download-all")';
+  check("small Download All waits for explicit approval", await run(`${confirmed}.length`), 0);
+  await click('dialog[data-s98p-download-confirm] button[value="cancel"]');
+  await until('!document.querySelector("dialog[data-s98p-download-confirm]")');
+  check("cancelling never sends a start request", await run(`${confirmed}.length`), 0);
+  await click(section);
+  await until('document.querySelector("dialog[data-s98p-download-confirm][open]")');
+  await click('[data-s98p-download-confirm-start]');
+  await until(`${confirmed}.length===1`);
   await run('fileActionsFixture.nextResult = "review"');
-  await click('[data-soft98-pro-download-manager="section"]');
+  await click(section);
   check("group action also uses the threshold-aware route", await run(`${jobs}.at(-1).urls[0]`), destination);
+  check("review does not display another confirmation", await run('!document.querySelector("dialog[data-s98p-download-confirm][open]")'), true);
   await run(`(() => {
     const url = ${JSON.stringify(destination)};
     document.documentElement.setAttribute("data-soft98-pro-download-snapshot", JSON.stringify({
@@ -265,6 +313,9 @@ async function verifyFileActions(client) {
     return document.querySelector("[data-s98p-file-status]").dataset.s98pFileStatus;
   })()`), "complete");
   check("completion also appears on the article", await run('document.querySelector("[data-soft98-pro-copy-toast]").textContent.includes("دانلود تموم شد")'), true);
+  await client.send("Page.reload");
+  await until('document.querySelector("#linux-section [data-s98p-download-toggle]")');
+  check("an expanded foreign OS section stays open after reload", await run('!document.querySelector("#linux-file").hasAttribute("data-soft98-pro-download-collapsed")'), true);
 }
 
 async function verifyDownloadManager(client) {
@@ -645,6 +696,7 @@ async function verifyWideLayout(client) {
         !document.querySelector("#files dd:first-of-type").hasAttribute("data-soft98-pro-download-collapsed");
     })()`), true);
     await run('document.querySelector("[data-s98p-download-rail] [data-s98p-download-toggle]").click()');
+    await until('!document.querySelector("[data-s98p-download-rail] [data-s98p-download-row-motion]")');
     const tipButton = await run(`(() => {
       const button = document.querySelector("[data-s98p-download-rail] [data-soft98-pro-download-actions] button");
       button.scrollIntoView({block:"center"});
@@ -653,11 +705,12 @@ async function verifyWideLayout(client) {
     })()`);
     await delay(60);
     await client.send("Input.dispatchMouseEvent", { type: "mouseMoved", ...tipButton });
-    await until('document.querySelector("#soft98-pro-download-tooltip[data-visible]")');
+    await until('document.querySelector("#soft98-pro-download-tooltip[data-visible]")?.textContent === document.querySelector("[data-s98p-download-rail] [data-soft98-pro-download-actions] button")?.dataset.s98pTooltip');
     check("hover uses the custom tooltip instead of a native title", await run(`(() => {
       const button = document.querySelector("[data-s98p-download-rail] [data-soft98-pro-download-actions] button");
       const tip = document.querySelector('[role="tooltip"][data-visible]');
-      return !button.title && button.getAttribute("aria-describedby") === tip.id && tip.textContent === button.dataset.s98pTooltip;
+      return !button.title && (button.getAttribute("aria-label") === tip.textContent || button.getAttribute("aria-describedby") === tip.id) &&
+        tip.textContent === button.dataset.s98pTooltip;
     })()`), true);
     await client.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 1, y: 1 });
     await run('document.querySelector("#requirements-tab").click()');
@@ -1437,8 +1490,10 @@ async function main() {
               delete navigator.clipboard;
             }
             button.click();
+            await Promise.allSettled(linked.flatMap(entry => entry.getAnimations().map(animation => animation.finished)));
             const collapsed = linked.every(entry => !entry.getClientRects().length) && !!outside.getClientRects().length;
             button.click();
+            await Promise.allSettled(linked.flatMap(entry => entry.getAnimations().map(animation => animation.finished)));
             const reopened = linked.every(entry => !!entry.getClientRects().length);
             const input = article.querySelector('[data-soft98-pro-password] input');
             input.click();

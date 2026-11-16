@@ -10,11 +10,16 @@
       <dl>
         <dt>Windows</dt>
         <dd><a href="https://files.example.test/tool.zip?sig=A%2Fb">Download tool (64 MB)</a></dd>
+        <dt id="linux-section">لینوکـس</dt>
+        <dd id="linux-file"><a href="https://files.example.test/linux.deb">Linux package</a></dd>
+        <dt id="multi-section">Windows / macOS</dt>
+        <dd id="multi-file"><a href="https://files.example.test/multi.zip">Multi-platform package</a></dd>
       </dl>
     </section>
   </article>
 </main>
 <script>
+  Object.defineProperty(navigator, "userAgentData", { value: { platform: "Windows" } });
   const fixture = window.fileActionsFixture = { messages: [], copied: [] };
   Object.defineProperty(navigator, "clipboard", { value: { writeText: async (url) => fixture.copied.push(url) } });
   window.browser = {
@@ -24,7 +29,13 @@
       onMessage: { addListener() {} },
       sendMessage: async (message) => {
         fixture.messages.push(message);
-        if (message.type === "soft98:download-file") return { ok: true, result: fixture.nextResult || "starting" };
+        if (message.type === "soft98:download-file") {
+          if (message.confirmAll && fixture.nextResult !== "review") {
+            return { ok: true, result: "confirm", token: "token-for-one-approval", count: message.urls.length, total: 64000000 };
+          }
+          return { ok: true, result: fixture.nextResult || "starting" };
+        }
+        if (message.type === "soft98:confirm-download-all") return { ok: true, result: "starting" };
       },
     },
     storage: {

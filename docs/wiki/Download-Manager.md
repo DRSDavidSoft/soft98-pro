@@ -32,7 +32,9 @@ Recent dates appear as relative time, such as **2 days ago**. Hover over or focu
 
 On an article, the row button copies the link by default. Hover or focus the row to reveal **⋯**, or right-click the row. The menu offers **Copy link** and **Internal download**. Change the default or turn off the custom right-click menu in **Control Center → Downloads**. The three dots still work when right-click is disabled, and the original site link is unchanged.
 
-**Internal download** and **Download all** start immediately for files or groups with a verified total under **100 MB**. At or above the limit, or when a size is unknown, the manager opens the review list without starting anything. Change the limit in **Control Center → Downloads**. The article shows a notice and the row badge opens the tracked file in the queue.
+**Internal download** starts directly for a file under **100 MB**. **Download all** asks for confirmation when the verified total is under the limit. At or above the limit, or when a size is unknown, the manager opens the review list instead of showing an extra confirmation. Change the limit in **Control Center → Downloads**. The article shows a notice, and the row badge opens the tracked file in the queue.
+
+**Download all** and **Copy all** sit beside the section title by default. In **Control Center → Downloads**, swap their position with the collapse button or show the text labels. Sections that are clearly only for other operating systems start collapsed. Other sections stay open, and any change you make is remembered for that article and saved separately for the sidebar.
 
 Tracked rows show the current state, transfer size, and remaining time when available. In **Control Center → Downloads**, the totals cover the whole queue, but the file list only includes downloads from the current article. Select a tracked file to open its entry in the manager.
 
