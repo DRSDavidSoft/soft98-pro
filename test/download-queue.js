@@ -350,12 +350,15 @@ test("packaged Firefox queue uses native parallel downloads, pause, resume, and 
     await post("/moz/context", { context: "chrome" });
     await evaluate("gBrowser.loadURI(Services.io.newURI(arguments[0]), { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() });", browserUrl);
     await post("/moz/context", { context: "content" });
-    await until(() => evaluate("return !document.getElementById('add').disabled"), "manager ready");
+    await until(() => evaluate("return document.getElementById('limit')?.disabled === false"), "manager ready");
     await evaluate("const limit = document.getElementById('limit'); limit.value = '2'; limit.dispatchEvent(new Event('change')); ");
     await sleep(150);
     const submit = (urls, filename = "") => evaluate(`
-      const data = new DataTransfer(); data.setData("text/plain", arguments[0]);
-      document.dispatchEvent(new ClipboardEvent("paste", { clipboardData: data, cancelable: true }));
+      if (!document.getElementById("import").open) document.getElementById("open-import").click();
+      for (const url of arguments[0].split("\\n")) {
+        document.getElementById("import-url").value = url;
+        document.getElementById("add-url").click();
+      }
       document.getElementById("filename").value = arguments[1];
       document.getElementById("composer").requestSubmit();
     `, urls, filename);
