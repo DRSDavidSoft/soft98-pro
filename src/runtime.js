@@ -3611,6 +3611,15 @@
     syncDownloadCollapse(state);
   }
 
+  function toggleDownloadHeading(event) {
+    if (!settings.pro || event.defaultPrevented || event.button !== 0) return;
+    const target = event.target;
+    const heading = target.closest?.("dt[data-soft98-pro-download-heading]");
+    if (!heading || heading.closest("[inert]") ||
+        target.closest('a,button,input,select,textarea,label,summary,[role="button"],[role="link"],[contenteditable]')) return;
+    downloadHeadings.get(heading)?.toggle.click();
+  }
+
   function downloadViewCollapsed(state) {
     return state.section.collapsed || (state.mirror && state.section.sidebarStartsCollapsed);
   }
@@ -7040,6 +7049,7 @@
     installProStyle();
     installClickRepair();
     installDownloadHints();
+    document.addEventListener("click", toggleDownloadHeading);
     document.addEventListener("click", showDownloadActivation, true);
     document.addEventListener("auxclick", showDownloadActivation, true);
     setPersistentStyle("soft98-pro-listing-style", LISTING_NAVIGATION_CSS);

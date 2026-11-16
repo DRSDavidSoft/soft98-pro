@@ -360,6 +360,22 @@ async function verifyFileActions(client) {
     return rtl && ltr;
   })()`;
   check("Copy and Download sit at the end beside collapse in RTL and LTR, including keyboard order", await run(responsive), true);
+  const heading = 'dt:has([data-soft98-pro-download-manager="section"])';
+  const expanded = `document.querySelector(${JSON.stringify(heading + " [data-s98p-download-toggle]")}).getAttribute("aria-expanded")`;
+  await click(heading + " [data-s98p-download-heading-label]");
+  await until(`${expanded}==="false"`);
+  await click(heading + " [data-s98p-download-copy-all]");
+  check("Copy All does not toggle the heading", await run(expanded), "false");
+  const gap = await run(`(() => {
+    const row = document.querySelector(${JSON.stringify(heading)});
+    const a = row.querySelector("[data-s98p-download-heading-label]").getBoundingClientRect();
+    const b = row.querySelector("[data-soft98-pro-download-actions]").getBoundingClientRect();
+    const r = row.getBoundingClientRect();
+    return {x:(a.left+b.right)/2,y:r.top+r.height/2};
+  })()`);
+  await client.send("Input.dispatchMouseEvent", { type: "mousePressed", button: "left", clickCount: 1, ...gap });
+  await client.send("Input.dispatchMouseEvent", { type: "mouseReleased", button: "left", clickCount: 1, ...gap });
+  await until(`${expanded}==="true"`);
   await run(`(() => {
     for (const [name, value] of [["downloadHeaderLayout","toggle"],["downloadHeaderButtons","text"]]) {
       const select = document.querySelector("select[name="+name+"]");
@@ -387,6 +403,7 @@ async function verifyFileActions(client) {
   check("manual expansion is saved", await run('JSON.parse(localStorage.getItem("soft98-pro.download-sections")).some(([key,value])=>key.includes("لینوکس") && value===false)'), true);
   await click(section);
   await until('document.querySelector("dialog[data-s98p-download-confirm][open]")');
+  check("Download All opens review without collapsing its own section", await run(expanded), "true");
   const confirmed = 'fileActionsFixture.messages.filter(message=>message.type==="soft98:confirm-download-all")';
   check("small Download All waits for explicit approval", await run(`${confirmed}.length`), 0);
   check("the dialog has a labeled header, centered close icon, and matching action buttons", await run(`(() => {
@@ -1510,7 +1527,7 @@ async function verifyWideLayout(client) {
     const halfVisible = `downloadSourceAt(innerHeight-(${listHeight})/2)`;
     await run(far);
     await until(`${opacity}===1 && !${rail}.inert`);
-    await run(`${sideInfo}.click()`);
+    await run(`${sideInfo}.closest("dt").querySelector("[data-s98p-download-heading-label]").click()`);
     check("expanding More Information from the sidebar links both copies", await run(infoStates), "true,true");
     await run(`${mainInfo}.click()`);
     check("the main box then collapses both copies", await run(infoStates), "false,false");

@@ -755,6 +755,7 @@
   align-items: center;
   gap: 6px 9px;
   padding: 8px !important;
+  cursor: pointer;
 }
 :root.soft98-pro-theme [data-soft98-pro-download-heading]:has(> [data-soft98-pro-download-actions]:not([hidden])) {
   grid-template: "label . actions toggle" auto / minmax(0,max-content) minmax(0,1fr) auto auto;
