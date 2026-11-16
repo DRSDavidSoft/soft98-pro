@@ -4,15 +4,67 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
   const $ = (id) => document.getElementById(id);
   const { MAX_BATCH, MAX_IMPORT, MAX_TEXT, describe, headers, normalize, parse } = Soft98DownloadLinks;
   const dialog = $("import");
+  const table = $("import-table");
+  const headingRow = table.tHead.rows[0];
   const candidates = new Map();
   const rowNodes = new Map();
   const selected = new Set();
   const widths = { name: 268, type: 105, size: 104, date: 142 };
+  const defaultColumns = Object.keys(widths);
+  const columnIcons = { name: "file", type: "tag", size: "database", date: "calendar" };
+  const layoutKey = "soft98-pro.import-columns";
+  const rtl = locale === "fa";
   const collator = new Intl.Collator(locale, { numeric: true });
   let sort = { key: "name", direction: 1 };
+  let columnOrder = defaultColumns;
+  let columnDrag;
+  let suppressedDragClick;
   let probe;
   let autoTimer;
   let submitting = false;
+  try { columnOrder = readOrder(localStorage.getItem(layoutKey)); } catch (_error) {}
+
+  function readOrder(value) {
+    try {
+      const saved = JSON.parse(value);
+      if (Array.isArray(saved) && saved.length === defaultColumns.length && defaultColumns.every(key => saved.includes(key))) return saved;
+    } catch (_error) {}
+    return defaultColumns;
+  }
+
+  function placeColumns(row) {
+    let next = row.firstElementChild.nextElementSibling;
+    for (const key of columnOrder) {
+      const node = row.querySelector(`:scope > [data-column="${key}"]`);
+      if (node === next) next = next.nextElementSibling;
+      else row.insertBefore(node, next);
+    }
+  }
+
+  function applyOrder(next, persist = false) {
+    if (next.join() === columnOrder.join() && !persist) return;
+    const focused = headingRow.contains(document.activeElement) ? document.activeElement : null;
+    columnOrder = next;
+    placeColumns(table.querySelector("colgroup"));
+    placeColumns(headingRow);
+    for (const { tr } of rowNodes.values()) placeColumns(tr);
+    focused?.focus({ preventScroll: true });
+    if (persist) {
+      try { localStorage.setItem(layoutKey, JSON.stringify(columnOrder)); } catch (_error) {}
+    }
+  }
+
+  function reorderColumn(source, destination, after) {
+    if (source === destination) return;
+    const next = columnOrder.filter(key => key !== source);
+    next.splice(next.indexOf(destination) + (after ? 1 : 0), 0, source);
+    applyOrder(next, true);
+  }
+
+  function moveColumn(key, delta) {
+    const destination = columnOrder[columnOrder.indexOf(key) + delta];
+    if (destination) reorderColumn(key, destination, delta > 0);
+  }
 
   function notify(key, values) {
     $("import-notice").textContent = key ? text(key, values) : "";
@@ -60,7 +112,10 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
   }
 
   function updateSelection() {
-    for (const box of $("import-links").querySelectorAll("input")) box.checked = selected.has(box.value);
+    for (const [url, { tr, check }] of rowNodes) {
+      check.checked = selected.has(url);
+      tr.toggleAttribute("data-selected", check.checked);
+    }
     $("import-count").textContent = text("selectionCount", { count: selected.size, total: candidates.size });
     $("add").disabled = !selected.size || submitting;
     $("probe-import").disabled = !selected.size || Boolean(probe);
@@ -123,42 +178,86 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
   function createRow(row) {
     const tr = document.createElement("tr");
     tr.dataset.url = row.url;
-    tr.innerHTML = '<td><input type="checkbox"></td><td class="import-name"><span class="file-mark"></span><span><bdi></bdi><small dir="ltr"></small></span></td><td></td><td class="import-size"><bdi></bdi></td><td><time></time><span></span></td>';
+    tr.innerHTML = '<td><input type="checkbox"></td><td data-column="name" class="import-name"><span class="file-mark"></span><span><bdi></bdi><small dir="ltr"></small></span></td><td data-column="type"></td><td data-column="size" class="import-size"><bdi></bdi></td><td data-column="date"><time></time><span></span></td>';
     const check = tr.querySelector("input");
     check.value = row.url;
     check.setAttribute("aria-label", row.name);
     const name = tr.querySelector("bdi");
     name.textContent = name.title = row.name;
     tr.querySelector("small").textContent = row.host;
-    const date = tr.cells[4].firstElementChild;
-    return { tr, mark: tr.querySelector(".file-mark"), type: tr.cells[2], size: tr.cells[3].firstElementChild, date };
+    const nodes = { tr, check, mark: tr.querySelector(".file-mark"), type: tr.cells[2],
+      size: tr.cells[3].firstElementChild, date: tr.cells[4].firstElementChild };
+    placeColumns(tr);
+    return nodes;
   }
 
   function resize(key, value) {
     widths[key] = Math.min(640, Math.max(72, value));
-    $("import-table").querySelector(`col[data-column="${key}"]`).style.width = `${widths[key]}px`;
-    $("import-table").style.minWidth = `${Object.values(widths).reduce((a, b) => a + b, 42)}px`;
-    $("import-table").querySelector(`th[data-column="${key}"] [role=separator]`).setAttribute("aria-valuenow", widths[key]);
+    table.querySelector(`col[data-column="${key}"]`).style.width = `${widths[key]}px`;
+    table.style.minWidth = `${Object.values(widths).reduce((a, b) => a + b, 42)}px`;
+    headingRow.querySelector(`th[data-column="${key}"] [role=separator]`).setAttribute("aria-valuenow", widths[key]);
   }
 
-  for (const th of $("import-table").querySelectorAll("th[data-column]")) {
+  function applySort(key, direction) {
+    sort = { key, direction };
+    render();
+  }
+
+  function columnMenu(event, th) {
+    const { column: key } = th.dataset;
+    const index = columnOrder.indexOf(key);
+    const moveLeft = rtl ? 1 : -1;
+    const choices = [
+      { label: "sortAscending", icon: "sort-ascending", run: () => applySort(key, 1) },
+      { label: "sortDescending", icon: "sort-descending", run: () => applySort(key, -1) },
+    ];
+    for (const [label, icon, delta] of [["moveColumnLeft", "arrow-left", moveLeft], ["moveColumnRight", "arrow-right", -moveLeft]]) {
+      if (columnOrder[index + delta]) choices.push({ label, icon, group: "columns", run: () => moveColumn(key, delta) });
+    }
+    choices.push({ label: "resetColumnOrder", icon: "rotate-clockwise", group: "columns", run: () => applyOrder(defaultColumns, true) });
+    view.showMenu(event, choices, th.querySelector(".column-menu"));
+  }
+
+  function isDragClick(event) {
+    return event.detail > 0 && suppressedDragClick?.handle === event.currentTarget && suppressedDragClick.until >= performance.now();
+  }
+
+  for (const th of headingRow.querySelectorAll("th[data-column]")) {
     const key = th.dataset.column;
+    const controls = document.createElement("span");
+    controls.className = "column-tools";
     const order = document.createElement("button");
     order.type = "button";
-    order.textContent = text("column_" + key);
-    order.addEventListener("click", () => {
-      sort = { key, direction: sort.key === key ? -sort.direction : 1 };
-      render();
+    order.className = "column-sort";
+    order.setAttribute("data-column-drag", "");
+    const icon = document.createElement("span");
+    const label = document.createElement("span");
+    label.textContent = text("column_" + key);
+    setIcon(icon, columnIcons[key]);
+    order.append(icon, label);
+    order.addEventListener("click", event => {
+      if (!isDragClick(event)) applySort(key, sort.key === key ? -sort.direction : 1);
     });
+    const grip = document.createElement("button");
+    grip.type = "button";
+    grip.className = "column-menu icon-button";
+    grip.setAttribute("data-column-drag", "");
+    grip.setAttribute("aria-haspopup", "menu");
+    grip.setAttribute("aria-expanded", "false");
+    grip.setAttribute("aria-label", text("columnActions", { column: label.textContent }));
+    grip.title = text("columnActions", { column: label.textContent });
+    buttonContent(grip, "actions", "grip-vertical");
+    grip.addEventListener("click", event => { if (!isDragClick(event)) columnMenu(event, th); });
+    controls.append(order, grip);
     const handle = document.createElement("span");
     handle.tabIndex = 0;
     handle.setAttribute("role", "separator");
     handle.setAttribute("aria-orientation", "vertical");
-    handle.setAttribute("aria-label", text("resizeColumn", { column: order.textContent }));
+    handle.setAttribute("aria-label", text("resizeColumn", { column: label.textContent }));
     handle.setAttribute("aria-valuemin", "72");
     handle.setAttribute("aria-valuemax", "640");
     let anchor;
-    const dir = locale === "fa" ? -1 : 1;
+    const dir = rtl ? -1 : 1;
     handle.addEventListener("pointerdown", (event) => {
       if (event.button !== 0) return;
       anchor = { x: event.clientX, width: widths[key] };
@@ -173,9 +272,66 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
       event.preventDefault();
       resize(key, widths[key] + (event.key === "ArrowRight" ? 12 : -12) * dir);
     });
-    th.append(order, handle);
+    th.append(controls, handle);
     resize(key, widths[key]);
   }
+
+  placeColumns(table.querySelector("colgroup"));
+  placeColumns(headingRow);
+  window.addEventListener("storage", event => {
+    if (event.key === layoutKey && !columnDrag) applyOrder(readOrder(event.newValue));
+  });
+
+  function clearColumnDrag() {
+    if (!columnDrag) return;
+    columnDrag.source.removeAttribute("data-col-dragging");
+    columnDrag.target?.removeAttribute("data-col-drop");
+    columnDrag = null;
+  }
+
+  function dropAfter(event, th) {
+    const box = th.getBoundingClientRect();
+    return rtl ? event.clientX < box.left + box.width / 2 : event.clientX >= box.left + box.width / 2;
+  }
+
+  headingRow.addEventListener("pointerdown", event => {
+    const handle = event.target.closest("[data-column-drag]");
+    if (!handle || event.button !== 0 || !event.isPrimary || columnDrag) return;
+    columnDrag = { handle, source: handle.closest("th[data-column]"), id: event.pointerId, x: event.clientX, y: event.clientY };
+    handle.setPointerCapture(event.pointerId);
+  });
+  headingRow.addEventListener("pointermove", event => {
+    const drag = columnDrag;
+    if (!drag || event.pointerId !== drag.id) return;
+    if (!drag.moved) {
+      if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < 7) return;
+      drag.moved = true;
+      view.closeMenu();
+      drag.source.setAttribute("data-col-dragging", "");
+    }
+    event.preventDefault();
+    const region = table.parentElement;
+    const box = region.getBoundingClientRect();
+    if (event.clientY >= box.top && event.clientY <= box.bottom && region.scrollWidth > region.clientWidth) {
+      if (event.clientX >= box.left && event.clientX <= box.left + 20) region.scrollBy(-12, 0);
+      else if (event.clientX <= box.right && event.clientX >= box.right - 20) region.scrollBy(12, 0);
+    }
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest("th[data-column]");
+    const destination = target && target !== drag.source && headingRow.contains(target) ? target : null;
+    if (drag.target !== destination) drag.target?.removeAttribute("data-col-drop");
+    drag.target = destination;
+    if (destination) destination.dataset.colDrop = dropAfter(event, destination) ? "after" : "before";
+  });
+  headingRow.addEventListener("pointerup", event => {
+    const drag = columnDrag;
+    if (!drag || event.pointerId !== drag.id) return;
+    clearColumnDrag();
+    if (!drag.moved) return;
+    suppressedDragClick = { handle: drag.handle, until: performance.now() + 300 };
+    if (drag.target) reorderColumn(drag.source.dataset.column, drag.target.dataset.column, dropAfter(event, drag.target));
+  });
+  headingRow.addEventListener("pointercancel", clearColumnDrag);
+  headingRow.addEventListener("lostpointercapture", clearColumnDrag);
 
   function permissions(origins) {
     const options = { origins };
@@ -255,6 +411,8 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
   }
 
   function tableMenu(event) {
+    const th = event.target.closest("th[data-column]");
+    if (th) return columnMenu(event, th);
     const row = event.target.closest("tr[data-url]");
     const url = row?.dataset.url;
     const items = [];
@@ -300,6 +458,12 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
   });
   $("open-import").addEventListener("click", open);
   $("close-import").addEventListener("click", view.closeDialog);
+  $("save-options").addEventListener("click", (event) => {
+    const toggle = event.currentTarget;
+    const open = toggle.getAttribute("aria-expanded") !== "true";
+    toggle.setAttribute("aria-expanded", String(open));
+    $("save-fields").inert = !open;
+  });
   $("add-url").addEventListener("click", manual);
   $("import-url").addEventListener("keydown", (event) => {
     if (event.key === "Enter") { event.preventDefault(); manual(); }
@@ -320,7 +484,15 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
     const { checked, value } = event.target;
     setSelected(value, checked);
   });
-  dialog.addEventListener("close", () => { clearTimeout(autoTimer); probe?.abort(); });
+  $("import-links").addEventListener("click", event => {
+    if (event.target.closest("input,button,a,label") || event.defaultPrevented) return;
+    const row = event.target.closest("tr[data-url]");
+    if (!row || row.inert) return;
+    const selection = getSelection();
+    if (selection && !selection.isCollapsed && row.contains(selection.anchorNode)) return;
+    setSelected(row.dataset.url, !selected.has(row.dataset.url));
+  });
+  dialog.addEventListener("close", () => { clearTimeout(autoTimer); probe?.abort(); clearColumnDrag(); });
   $("composer").addEventListener("submit", async (event) => {
     event.preventDefault();
     if (submitting || !selected.size) return;
@@ -344,6 +516,7 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
   for (const [id, key, icon] of [
     ["open-import", "importOpen", "plus"], ["add-url", "addLink", "plus"], ["paste-links", "pasteLinks", "clipboard"],
     ["choose-file", "chooseFile", "file-upload"], ["probe-import", "fetchDetails", "list-details"], ["add", "add", "download"],
+    ["save-options", "saveOptions", "chevron-down"],
   ]) buttonContent($(id), key, icon);
   buttonContent($("close-import"), "close", "x");
   $("close-import").setAttribute("aria-label", text("close"));

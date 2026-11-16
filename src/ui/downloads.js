@@ -113,7 +113,7 @@
       setIcon(mark, icon);
       node.append(mark);
     }
-    node.append(text(label));
+    if (!node.classList.contains("icon-button")) node.append(text(label));
   }
 
   function option(value, label) {

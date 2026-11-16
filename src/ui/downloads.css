@@ -137,12 +137,23 @@ dialog form { padding: 16px; gap: 10px; }
 .import-bar { justify-content: space-between; }
 .import-inputs input, .import-filters input { flex: 1 1 170px; }
 .import-inputs input { inline-size: 180px; }
-.icon-button { width: 36px; flex: none; font-size: 0; padding: 0; gap: 0; }
+.icon-button { display: inline-grid; place-items: center; inline-size: 36px; block-size: 36px; flex: none; padding: 0; }
+.import-save { border-block: 1px solid var(--line); }
+#save-options {
+  width: 100%; min-height: 35px; justify-content: start; padding-inline: 8px; border: 0; background: transparent;
+  color: var(--sky); text-align: start;
+}
+#save-options [data-icon] { transition: rotate .2s ease; order: 1; margin-inline-start: auto; }
+#save-options[aria-expanded="true"] [data-icon] { rotate: 180deg; }
+.import-disclosure { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows .24s ease, opacity .18s ease; }
+#save-options[aria-expanded="true"] + .import-disclosure { grid-template-rows: 1fr; opacity: 1; }
+.import-disclosure-clip { min-height: 0; overflow: clip; }
+.import-save-fields { display: grid; gap: 6px; padding: 3px 8px 10px; }
 .import-grid { block-size: clamp(145px, 34vh, 345px); min-width: 0; overflow: auto; overscroll-behavior: contain; border: 1px solid var(--line); border-radius: 6px; }
 .import-grid table { table-layout: fixed; border-collapse: separate; border-spacing: 0; width: 100%; font-size: 13px; }
 .import-grid th { position: sticky; inset-block-start: 0; z-index: 1; background: var(--field); text-align: start; }
 .import-grid td, .import-grid th { border-block-end: 1px solid var(--line); padding: 6px 8px; }
-.import-grid td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.import-grid td { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: background-color .16s ease; }
 .import-grid tbody tr { opacity: 1; transition: opacity .17s ease, display .17s allow-discrete; }
 .import-grid tbody tr[data-filtered] { opacity: 0; display: none; pointer-events: none; }
 @starting-style { .import-grid tbody tr:not([data-filtered]) { opacity: 0; } }
@@ -154,13 +165,33 @@ dialog form { padding: 16px; gap: 10px; }
 :root[dir="rtl"] .import-grid td.import-name :is(bdi,small) { text-align: right; }
 .import-grid .import-size bdi { display: inline-block; vertical-align: middle; }
 .import-grid .checkbox-col { width: 42px; }
-.import-grid tr :first-child:not(button) { accent-color: var(--mint); }
-.import-grid tr:hover td, .import-grid tr:focus-within td { background: var(--button); }
+.import-grid tbody tr[data-url] { cursor: pointer; }
+.import-grid tbody tr:is(:hover,:focus-within) td { background: var(--button); }
+.import-grid tbody tr[data-selected] td { background: color-mix(in srgb, var(--mint) 9%, var(--panel)); }
+.import-grid tbody tr[data-selected]:is(:hover,:focus-within) td { background: color-mix(in srgb, var(--mint) 13%, var(--panel)); }
+.import-grid tbody tr[data-selected] td:first-child { box-shadow: inset 2px 0 var(--mint); }
+:root[dir="rtl"] .import-grid tbody tr[data-selected] td:first-child { box-shadow: inset -2px 0 var(--mint); }
 .import-grid td:first-child, .import-grid th:first-child { text-align: center; }
-.import-grid th button { min-height: 30px; width: calc(100% - 10px); justify-content: space-between; padding-inline: 3px; border: 0; background: transparent; text-align: start; }
-.import-grid th[aria-sort=ascending] button::after { content: "\2191"; color: var(--sky); }
-.import-grid th[aria-sort=descending] button::after { content: "\2193"; color: var(--sky); }
-.import-grid [role=separator] { position: absolute; inset-block: 4px; inset-inline-end: 0; width: 10px; border-inline-end: 1px solid var(--line); cursor: col-resize; touch-action: none; }
+.column-tools { display: flex; align-items: center; gap: 2px; }
+[data-column-drag] { touch-action: none; user-select: none; }
+.import-grid th[data-column] { padding-inline: 4px 8px; }
+.import-grid .column-sort, .import-grid .column-menu {
+  min-block-size: 30px; gap: 4px; padding-inline: 3px; border: 1px solid transparent; background: transparent;
+}
+.import-grid .column-sort { justify-content: start; min-width: 0; flex: 1; text-align: start; }
+.import-grid .column-sort [data-icon] { color: var(--sky); }
+.import-grid .column-sort span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.import-grid .column-sort svg { width: 14px; height: 14px; }
+.import-grid .column-menu { display: grid; place-items: center; inline-size: 22px; block-size: 30px; flex: none; cursor: grab; }
+.import-grid .column-menu svg { width: 15px; height: 15px; }
+.import-grid th[aria-sort="ascending"] .column-sort::after { content: "\2191"; color: var(--sky); }
+.import-grid th[aria-sort="descending"] .column-sort::after { content: "\2193"; color: var(--sky); }
+.import-grid th[data-col-dragging] { background: var(--button-hover); }
+.import-grid th[data-col-dragging] [data-column-drag] { cursor: grabbing; }
+.import-grid th[data-col-drop]::before { content: ""; position: absolute; inset-block: 0; width: 3px; background: var(--mint); pointer-events: none; z-index: 1; }
+.import-grid th[data-col-drop="before"]::before { inset-inline-start: 0; }
+.import-grid th[data-col-drop="after"]::before { inset-inline-end: 0; }
+.import-grid [role=separator] { position: absolute; inset-block: 4px; inset-inline-end: 0; width: 8px; border-inline-end: 1px solid var(--line); cursor: col-resize; touch-action: none; }
 .import-grid [role=separator]:is(:hover,:focus-visible) { border-inline-end-color: var(--sky); }
 #import-notice, #import-count { color: var(--muted); font-size: 13px; }
 #import-notice:empty { display: none; }
@@ -177,6 +208,6 @@ dialog form { padding: 16px; gap: 10px; }
 @keyframes menu-in { from { opacity: 0; } to { opacity: 1; } }
 @media (max-width: 750px) { .workspace, .masthead-inner { padding: 12px 14px; } .queue, .settings, dialog form { padding: 12px; } }
 @media (prefers-reduced-motion: reduce) {
-  :is(.job,.job-group,button,dialog), dialog::backdrop, .import-grid tbody tr { transition: none; }
+  :is(.job,.job-group,button,dialog), dialog::backdrop, .import-grid tbody tr, .import-grid td, .import-disclosure, #save-options [data-icon] { transition: none; }
   .context-menu { animation: none !important; }
 }

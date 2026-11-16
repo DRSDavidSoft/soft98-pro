@@ -395,12 +395,59 @@ async function verifyDownloadManager(client) {
     })()`);
     await until('document.querySelector("#import").open && document.querySelectorAll("#import-links tr").length === 3');
     check("pasting opens the import hash", await run('location.hash'), "#import");
+    check("close icon is centered in both axes", await run(`(() => {
+      const button=document.querySelector("#close-import"), b=button.getBoundingClientRect(), s=button.querySelector("svg").getBoundingClientRect();
+      return button.textContent.trim() === "" && Math.abs(b.left+b.width/2-s.left-s.width/2)<1 &&
+        Math.abs(b.top+b.height/2-s.top-s.height/2)<1;
+    })()`), true);
+    await run('document.querySelector("#save-options").click()');
+    await until('document.querySelector("#save-fields").getBoundingClientRect().height > 35');
+    check("save options expands with a transition and enables its fields", await run(`(() => {
+      const f=document.querySelector("#save-fields");
+      return !f.inert && getComputedStyle(f).transitionProperty.includes("grid-template-rows");
+    })()`), true);
+    await run('document.querySelector("#save-options").click()');
+    await until('document.querySelector("#save-fields").getBoundingClientRect().height < 1 && document.querySelector("#save-fields").inert');
+    check("row clicks and checkbox changes update the same selected state", await run(`(() => {
+      const row=document.querySelector("#import-links tr"), box=row.querySelector("input");
+      const initial=box.checked && row.hasAttribute("data-selected");
+      row.querySelector(".import-name").click();
+      const unchecked=!box.checked && !row.hasAttribute("data-selected");
+      box.click();
+      return initial && unchecked && box.checked && row.hasAttribute("data-selected");
+    })()`), true);
     await run('document.querySelector("#import-links input").dispatchEvent(new KeyboardEvent("keydown", { key: "F10", shiftKey: true, bubbles: true, cancelable: true }))');
     check("the import table has keyboard context actions inside its dialog", await run('document.querySelector("#import #manager-menu").matches(":popover-open") && document.querySelector("#manager-menu [data-label=copyLink]") !== null'), true);
     await run('document.activeElement.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }))');
     await until('[...document.querySelectorAll("#import-links tr")].every((tr) => !tr.cells[3].textContent.includes("Unavailable"))');
     check("automatic HEAD reads Content-Length", await run('document.querySelector("#import-links tr").cells[3].textContent.includes("64 MiB")'), true);
     check("automatic HEAD reads Last-Modified", await run('document.querySelector("#import-links tr").cells[4].textContent'), "Oct 21, 2026");
+    check("each reorderable column has an icon and a drag handle", await run('document.querySelectorAll("th[data-column] .column-sort svg").length === 4 && document.querySelectorAll("th[data-column] .column-menu[data-column-drag]").length === 4'), true);
+    await run(`document.querySelector('th[data-column="date"] .column-sort').dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }))`);
+    check("column context menu has sort and move commands", await run(`Boolean(document.querySelector("#manager-menu:popover-open [data-label=sortAscending]")) &&
+      Boolean(document.querySelector("#manager-menu [data-label=moveColumnLeft]"))`), true);
+    await run('document.querySelector("#manager-menu [data-label=moveColumnLeft]").click()');
+    const columnOrder = 'Array.from(document.querySelectorAll("#import-table th[data-column]"), th=>th.dataset.column).join(",")';
+    check("column menu moves the selected header", await run(columnOrder), "name,type,date,size");
+    const drag = await run(`(() => {
+      const source=document.querySelector('th[data-column="date"] .column-menu').getBoundingClientRect();
+      const destination=document.querySelector('th[data-column="name"]').getBoundingClientRect();
+      return { start: { x: source.x+source.width/2, y: source.y+source.height/2 },
+        end: { x: destination.left+12, y: destination.top+destination.height/2 } };
+    })()`);
+    await client.send("Input.dispatchMouseEvent", { type: "mousePressed", button: "left", clickCount: 1, ...drag.start });
+    await client.send("Input.dispatchMouseEvent", { type: "mouseMoved", buttons: 1, ...drag.end });
+    check("drag shows a drop indicator", await run('document.querySelector("th[data-column=name]").dataset.colDrop'), "before");
+    await client.send("Input.dispatchMouseEvent", { type: "mouseReleased", button: "left", clickCount: 1, ...drag.end });
+    check("drag and drop reorders headers and every file row without losing selection", await run(`(() => {
+      const order=${columnOrder};
+      const body=[...document.querySelectorAll("#import-links tr")];
+      return order==="date,name,type,size" && JSON.parse(localStorage.getItem("soft98-pro.import-columns")).join(",")===order &&
+        body.every(row=>[...row.querySelectorAll("td[data-column]")].map(cell=>cell.dataset.column).join(",")===order &&
+          row.querySelector("input").checked && row.hasAttribute("data-selected"));
+    })()`), true);
+    await run(`document.querySelector('th[data-column="date"] .column-menu').click(); document.querySelector("#manager-menu [data-label=resetColumnOrder]").click()`);
+    check("column order can be restored", await run(columnOrder), "name,type,size,date");
     await run(`(() => {
       const data = new DataTransfer();
       data.items.add(new File([${JSON.stringify(fixtures + "Assets.zip")}], "links.txt", { type: "text/plain" }));

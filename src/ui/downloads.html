@@ -90,12 +90,18 @@
           <p id="import-empty" class="empty" data-copy="importEmpty"></p>
         </div>
         <p id="import-notice" role="status"></p>
-        <details>
-          <summary data-copy="saveOptions"></summary>
-          <label for="filename" data-copy="path"></label>
-          <input id="filename" dir="ltr" type="text" maxlength="240" placeholder="Tools/file.zip">
-          <label class="check"><input id="save-as" type="checkbox"><span data-copy="saveAs"></span></label>
-        </details>
+        <section class="import-save">
+          <button id="save-options" type="button" aria-expanded="false" aria-controls="save-fields"></button>
+          <div id="save-fields" class="import-disclosure" inert>
+            <div class="import-disclosure-clip">
+              <div class="import-save-fields">
+                <label for="filename" data-copy="path"></label>
+                <input id="filename" dir="ltr" type="text" maxlength="240" placeholder="Tools/file.zip">
+                <label class="check"><input id="save-as" type="checkbox"><span data-copy="saveAs"></span></label>
+              </div>
+            </div>
+          </div>
+        </section>
         <footer class="import-bar">
           <span id="import-count" aria-live="polite"></span>
           <button id="add" type="submit" class="primary" disabled></button>

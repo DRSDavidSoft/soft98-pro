@@ -13,7 +13,8 @@ Right-click a row for its available actions. Use **Shift+F10** from a focused ro
 ![The download review dialog with selectable links, file sizes, dates, and a file type filter](../assets/comparison/download-manager-import.webp)
 
 - Search by file name or host, filter by type, and click a column heading to sort in either direction.
-- Drag a column divider to resize it. With the divider focused, use the Left and Right arrow keys.
+- Drag a column header or its grip to reorder it. Right-click the header or open its grip menu to move it with the keyboard. Drag a divider to resize; its Left and Right arrow keys do the same.
+- Click anywhere on a file row to toggle its checkbox. Selected rows stay tinted while you review the list.
 - **Select visible** checks the filtered rows. It keeps earlier selections, even if those rows are now filtered out. **Clear selection** unchecks all rows. Review up to 120 candidates and submit up to 30 per batch.
 - Size, type, and last-modified date are checked automatically for selected links. **Fetch details** retries and may ask the browser for access to the selected sites. It sends HEAD requests without cookies or a referrer. Soft98's download CDN is covered automatically; cross-site restrictions, missing headers, or servers that reject HEAD can leave values unavailable without disabling the download.
 - **Save options** lets you request a save prompt or enter a relative path for a single file.
