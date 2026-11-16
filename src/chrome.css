@@ -30,6 +30,139 @@
   backdrop-filter: none !important;
 }
 
+:root.soft98-pro-theme [data-soft98-pro-search] {
+  position: fixed !important;
+  inset: var(--s98p-search-top,calc(var(--s98p-topbar-height) + 6px)) auto auto var(--s98p-search-left,8px) !important;
+  box-sizing: border-box;
+  inline-size: min(520px,calc(100vw - 16px)) !important;
+  block-size: 48px !important;
+  overflow: visible !important;
+  padding: 4px !important;
+  border: 1px solid var(--s98p-border-soft) !important;
+  border-radius: 8px !important;
+  background: var(--s98p-nav) !important;
+  transition: opacity .15s ease !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-search]:not([data-s98p-search-open]) {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-search][data-s98p-search-open] {
+  z-index: 40 !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-search]::before { content: none !important; }
+
+:root.soft98-pro-theme [data-s98p-search-form] {
+  position: relative;
+  display: flex;
+  align-items: center;
+  inline-size: 100% !important;
+  block-size: 100% !important;
+  margin: 0;
+}
+
+:root.soft98-pro-theme [data-s98p-search-form] input[type="search"] {
+  box-sizing: border-box;
+  flex: 1;
+  min-inline-size: 0;
+  block-size: 100%;
+  margin: 0;
+  padding: 4px 12px !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  outline-offset: -2px !important;
+  text-align: start !important;
+}
+
+:root.soft98-pro-theme [data-s98p-search-form] input[type="search"]:dir(ltr) { direction: ltr !important; }
+:root.soft98-pro-theme [data-s98p-search-form] input[type="search"]:dir(rtl) { direction: rtl !important; }
+:root.soft98-pro-theme [data-s98p-search-form]:has([data-s98p-search-clear]) input[type="search"] { padding-inline-end: 37px !important; }
+:root.soft98-pro-theme [data-s98p-search-form]:has([data-s98p-search-clear]) input[type="search"]::-webkit-search-cancel-button { display: none; }
+
+:root.soft98-pro-theme [data-s98p-search-clear] {
+  position: absolute;
+  inset: 4px auto 4px 4px !important;
+  inline-size: 30px !important;
+  block-size: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 5px;
+  background: transparent !important;
+  color: var(--s98p-muted) !important;
+  transform: none !important;
+}
+
+:root.soft98-pro-theme [data-s98p-search-form]:has(input[type="search"]:dir(ltr)) [data-s98p-search-clear] {
+  inset-inline: auto !important;
+  left: auto !important;
+  right: 4px !important;
+}
+
+:root.soft98-pro-theme [data-s98p-search-clear]:is(:hover,:focus-visible) { background: var(--s98p-soft) !important; }
+:root.soft98-pro-theme [data-s98p-search-clear] [data-soft98-pro-page-icon] {
+  position: absolute;
+  inset: 0;
+  inline-size: 17px !important;
+  block-size: 17px !important;
+  margin: auto !important;
+  background: transparent !important;
+}
+
+:root.soft98-pro-theme [data-s98p-search-clear] svg { inline-size: 16px; block-size: 16px; }
+
+:root.soft98-pro-theme [data-s98p-search-results] {
+  --s98p-search-thumb: color-mix(in srgb,var(--s98p-muted) 55%,var(--s98p-surface));
+  position: absolute !important;
+  inset: calc(100% + 7px) 0 auto !important;
+  box-sizing: border-box;
+  inline-size: 100% !important;
+  block-size: auto !important;
+  min-block-size: 0 !important;
+  max-block-size: min(420px,60dvh,calc(100dvh - 128px)) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--s98p-search-thumb) transparent;
+  border: 1px solid var(--s98p-border-soft) !important;
+  border-radius: 8px !important;
+  background: var(--s98p-surface) !important;
+  box-shadow: var(--s98p-topbar-shadow) !important;
+}
+
+:root.soft98-pro-theme [data-s98p-search-results] a[href] { color: var(--s98p-text) !important; }
+:root.soft98-pro-theme [data-s98p-search-results] a[href]:is(:hover,:focus-visible) {
+  background-color: var(--s98p-soft) !important;
+  color: var(--s98p-link) !important;
+  outline-offset: -2px !important;
+}
+
+:root.soft98-pro-theme [data-s98p-search-results] img {
+  box-sizing: border-box;
+  object-fit: contain;
+  padding: 3px;
+  border-color: var(--s98p-border-soft) !important;
+  border-radius: 5px;
+  background: var(--s98p-surface-2) !important;
+  mix-blend-mode: normal;
+}
+
+:root.soft98-pro-theme [data-s98p-search-results] > :has(a[href] img) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--s98p-search-thumb) transparent;
+}
+
+@media (max-width: 820px) {
+  :root.soft98-pro-theme [data-soft98-pro-search] {
+    inset-inline: 8px !important;
+    inline-size: calc(100% - 16px) !important;
+  }
+}
+
 :root.soft98-pro-theme [data-soft98-pro-nav-chrome] {
   box-sizing: border-box;
   display: flex !important;

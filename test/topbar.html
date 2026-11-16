@@ -15,6 +15,11 @@
   #category-bar .desktop-dropdown::after { content: "legacy triangle"; }
   #category-bar [role=menu] { position: absolute; inset-block-start: 100%; inline-size: 270px; min-height: 55px; }
   nav .brand { min-inline-size: 85px; opacity: 0; transition: opacity .12s; }
+  #fixture-search { position: absolute; inset: 0 auto auto 48px; width: 516px; height: 48px; overflow: auto; }
+  #fixture-search form { position: relative; display: flex; height: 40px; }
+  #fixture-search input[type=search] { width: 100%; }
+  #fixture-suggestions { position: absolute; top: 50px; left: 0; width: 100%; }
+  #fixture-suggestions a { display: block; padding: 8px 12px; }
   :root[data-fixture-scrolled] nav .brand { opacity: 1; }
   @media (max-width: 991px) {
     nav > button { display: inline-flex; }
@@ -23,6 +28,9 @@
     #category-bar :is(.desktop-link,.desktop-dropdown) { display: none; }
     #category-bar :is(.compact-link,.compact-dropdown) { display: block; }
     nav > button[aria-expanded=false] ~ #category-bar { visibility: hidden; pointer-events: none; }
+  }
+  @media (max-width: 820px) {
+    #fixture-suggestions { min-height: 500px; height: 600px; }
   }
 </style>
 <header>
@@ -44,7 +52,16 @@
       </ul></div>
       <ul id="actions">
         <li><button type="button" data-toggle="night-mode" aria-label="Theme">Theme</button></li>
-        <li><button type="button" data-toggle="search" aria-label="Search">Search</button></li>
+        <li style="position:relative"><button id="fixture-search-trigger" type="button" data-toggle="search" data-target="#fixture-search" aria-expanded="false" aria-label="Search">Search</button>
+          <div id="fixture-search" hidden>
+            <form role="search" action="/search" method="post">
+              <input type="hidden" name="do" value="search">
+              <input type="search" name="story" aria-label="Search" data-autocomplete="#fixture-suggestions">
+              <button type="button" data-toggle="search-clear" hidden>Clear</button>
+              <div id="fixture-suggestions" role="listbox" hidden></div>
+            </form>
+          </div>
+        </li>
         <li><button type="button" aria-label="Messages">M</button></li>
         <li><button type="button" aria-label="Account">A</button></li>
         <li><button type="button" aria-label="Notices">N</button></li>
@@ -60,6 +77,34 @@
   document.querySelector("button[aria-controls]").addEventListener("click", (event) => {
     const button = event.currentTarget;
     button.setAttribute("aria-expanded", String(button.getAttribute("aria-expanded") !== "true"));
+  });
+  const searchTrigger = document.getElementById("fixture-search-trigger");
+  const searchPanel = document.getElementById("fixture-search");
+  const field = searchPanel.querySelector("input[type=search]");
+  const clearSearch = searchPanel.querySelector("[data-toggle=search-clear]");
+  const suggestions = document.getElementById("fixture-suggestions");
+  searchTrigger.addEventListener("click", () => {
+    searchPanel.hidden = !searchPanel.hidden;
+    searchTrigger.setAttribute("aria-expanded", String(!searchPanel.hidden));
+    if (!searchPanel.hidden) field.focus();
+  });
+  field.addEventListener("input", () => {
+    clearSearch.hidden = suggestions.hidden = !field.value;
+    suggestions.replaceChildren(...Array.from({ length: 20 }, (_, i) => {
+      const link = document.createElement("a");
+      link.href = "/software/" + i;
+      link.textContent = field.value + " " + (i + 1);
+      return link;
+    }));
+  });
+  clearSearch.addEventListener("click", () => {
+    field.value = "";
+    field.dispatchEvent(new Event("input", { bubbles: true }));
+    field.focus();
+  });
+  field.form.addEventListener("submit", event => {
+    event.preventDefault();
+    document.body.dataset.query = new FormData(event.target).get("story");
   });
 </script>
 <script src="/soft98-pro.user.js"></script>

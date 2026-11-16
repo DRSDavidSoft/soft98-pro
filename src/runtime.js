@@ -1615,10 +1615,6 @@
       :root.soft98-pro-theme [data-soft98-pro-read-more]{display:inline-flex!important;gap:8px;align-items:center;padding:6px 12px!important;border:1px solid var(--s98p-border)!important;border-radius:6px;background:var(--s98p-control-bg)!important;color:var(--s98p-text)!important;text-decoration:none!important;min-height:36px}
       :root.soft98-pro-theme [data-soft98-pro-read-more] > [data-soft98-pro-page-icon]{order:1;margin:0}
       :root.soft98-pro-theme [data-soft98-pro-read-more]:is(:hover,:focus-visible){background:var(--s98p-control-hover)!important;border-color:var(--s98p-accent)!important}
-      :root.soft98-pro-theme [data-soft98-pro-search]{max-inline-size:min(720px,calc(100vw - 20px))!important;max-block-size:calc(100dvh - 66px);overflow:auto!important}
-      :root.soft98-pro-theme [data-soft98-pro-search] :is(form,input,div){box-sizing:border-box;max-inline-size:100%}
-      :root.soft98-pro-theme [data-soft98-pro-search] img{background:var(--s98p-surface-2)!important;border-radius:5px;mix-blend-mode:normal}
-      :root.soft98-pro-theme [data-soft98-pro-search] img[data-soft98-pro-search-art]{object-fit:contain;padding:2px}
       :root.soft98-pro-theme [data-soft98-pro-dialog]{background:rgba(4,8,12,.34)!important;backdrop-filter:blur(7px);overscroll-behavior:contain}
       :root.soft98-pro-theme [data-soft98-pro-dialog-panel]{background:color-mix(in srgb,var(--s98p-surface) 96%,transparent)!important;border:1px solid var(--s98p-border)!important;border-radius:8px!important;box-shadow:0 16px 55px #0008,0 1px #ffffff15 inset!important;max-block-size:calc(100dvh - 32px);max-inline-size:calc(100vw - 26px);overflow:auto}
       :root.soft98-pro-theme [data-soft98-pro-dialog-header]{position:sticky;inset-block-start:0;z-index:1;background:var(--s98p-elevated)!important;color:var(--s98p-text)!important;border-block-end:1px solid var(--s98p-border)!important;padding:12px 16px}
@@ -1714,7 +1710,7 @@
     const surfaces = [...element.querySelectorAll(surfaceSelector)];
     if (element.matches?.(surfaceSelector)) surfaces.unshift(element);
     for (const node of surfaces) {
-      if (node.closest("#soft98-pro-control,#soft98-extension-recommendation,#soft98-ad-blocker-taunt")) continue;
+      if (node.closest("#soft98-pro-control,#soft98-extension-recommendation,#soft98-ad-blocker-taunt,[data-soft98-pro-search]")) continue;
       const semantic = semanticCallout(node);
       const tagged = node.getAttribute("data-soft98-pro-callout");
       if (semantic || tagged) {
@@ -1766,7 +1762,10 @@
   function applyInteractiveSurfaceHeuristics() {
     const candidates = new Set();
     const topbar = document.querySelector('nav:has([data-toggle="night-mode"]),header nav');
-    if (topbar) markTopbar(topbar);
+    if (topbar) {
+      syncSiteSearch(topbar.querySelector('[data-toggle="search"]'));
+      markTopbar(topbar);
+    }
     for (const navigation of document.querySelectorAll("nav,[role=navigation]")) {
       const shell = navigation.parentElement;
       if (!shell || shell === document.body) continue;
@@ -1778,7 +1777,7 @@
       const navigationBox = visibleBox(navigation);
       if (navigationBox.width >= Math.min(1200, window.innerWidth * 0.72) && navigationBox.height <= 120) {
         for (const item of navigation.querySelectorAll("li > :is(a[href],button), :scope > button")) {
-          if (item.closest("[data-soft98-pro-menu]") || item.closest("li")?.parentElement.closest("li")) continue;
+          if (item.closest("[data-soft98-pro-menu],[data-soft98-pro-search]") || item.closest("li")?.parentElement.closest("li")) continue;
           const bounds = visibleBox(item);
           if (!bounds.height || bounds.height > 72) continue;
           item.setAttribute("data-soft98-pro-nav-item", item.textContent.trim() ? "label" : "icon");
@@ -1808,7 +1807,7 @@
     }
     for (const candidate of candidates) {
       if (candidate.matches("[data-s98p-topbar-shell],[data-s98p-topbar-drawer],[data-s98p-topbar-actions],[data-s98p-topbar-categories]") ||
-          candidate.closest("#soft98-pro-control")) continue;
+          candidate.closest("#soft98-pro-control,[data-soft98-pro-search]")) continue;
       const style = getComputedStyle(candidate);
       if (!/absolute|fixed/.test(style.position) && !candidate.matches("[role=menu],[role=listbox]")) continue;
       const interactive = candidate.querySelectorAll("a[href],button,[role=menuitem]").length;
@@ -1990,6 +1989,63 @@
     const hash = raw.includes("#") ? raw.slice(raw.indexOf("#")) : raw ? `#${raw}` : "";
     if (!/^#[A-Za-z][\w:.-]*$/.test(hash)) return null;
     return document.getElementById(hash.slice(1));
+  }
+
+  function syncSiteSearch(trigger) {
+    const panel = trigger && tabTarget(trigger);
+    const field = panel?.querySelector('input[type="search"]');
+    const form = field?.form;
+    if (!form || !panel.contains(form)) return null;
+    if (!panel.hasAttribute("data-soft98-pro-search")) {
+      undoWithTheme(panel, () => {
+        panel.removeAttribute("data-soft98-pro-search");
+        panel.removeAttribute("data-s98p-search-open");
+        panel.style.removeProperty("--s98p-search-left");
+        panel.style.removeProperty("--s98p-search-top");
+        for (const node of panel.querySelectorAll("[data-s98p-search-form],[data-s98p-search-results]")) {
+          node.removeAttribute("data-s98p-search-form");
+          node.removeAttribute("data-s98p-search-results");
+        }
+      });
+      panel.setAttribute("data-soft98-pro-search", "");
+      panel.removeAttribute("data-soft98-pro-surface");
+    }
+    form.setAttribute("data-s98p-search-form", "");
+    if (field.dir !== "auto") {
+      undoWithTheme(field, restoreStockAttributes(field, ["dir"]));
+      field.dir = "auto";
+    }
+    const reference = (field.getAttribute("data-autocomplete") || field.getAttribute("aria-controls") || "").replace(/^#/, "");
+    const results = (reference && document.getElementById(reference)) || form.querySelector(
+      ':scope > :is([role="listbox"],div:has([data-toggle="search-history-clear"]))'
+    );
+    if (results && form.contains(results)) results.setAttribute("data-s98p-search-results", "");
+    const clear = form.querySelector('button[data-toggle="search-clear"]');
+    if (clear && !clear.hasAttribute("data-s98p-search-clear")) {
+      const restoreClear = restoreStockAttributes(clear, ["aria-label", "title"]);
+      undoWithTheme(clear, () => {
+        restoreClear();
+        clear.removeAttribute("data-s98p-search-clear");
+      });
+      clear.setAttribute("data-s98p-search-clear", "");
+      clear.setAttribute("aria-label", text("clearSearch"));
+      clear.title = text("clearSearch");
+      decorateIcon(clear, "close");
+    }
+    const open = !panel.hidden && panel.getAttribute("aria-hidden") !== "true" &&
+      (trigger.getAttribute("aria-expanded") === "true" || trigger.classList.contains("active"));
+    panel.toggleAttribute("data-s98p-search-open", open);
+    if (open) {
+      const anchor = trigger.getBoundingClientRect();
+      const bar = trigger.closest("[data-s98p-topbar-shell]")?.getBoundingClientRect();
+      const width = document.documentElement.clientWidth;
+      const left = Math.max(8, Math.min(anchor.left, width - 8 - Math.min(520, width - 16)));
+      const values = { "--s98p-search-left": `${Math.round(left)}px`, "--s98p-search-top": `${Math.round(bar?.bottom ?? anchor.bottom) + 6}px` };
+      for (const [name, value] of Object.entries(values)) {
+        if (panel.style.getPropertyValue(name) !== value) panel.style.setProperty(name, value);
+      }
+    }
+    return { panel, field, open };
   }
 
   function applyTabSurfaceHeuristics() {
@@ -2492,7 +2548,6 @@
           button.removeAttribute("data-html");
           button.removeAttribute("data-placement");
         }
-        if (kind === "search" && targetNode) targetNode.setAttribute("data-soft98-pro-search", "");
       }
       for (const link of nav.querySelectorAll('a[href]')) {
         if (normalizedPersian(link.textContent || "") === "تبلیغات") link.remove();
@@ -2666,33 +2721,38 @@
     }, true);
     document.addEventListener("click", (event) => {
       if (event.target.closest?.("[data-soft98-pro-download-notice]")) dialogRequested = true;
+      const search = event.target.closest?.('nav [data-toggle="search"]');
+      if (settings.pro && search) enqueueMicrotask(() => {
+        const state = syncSiteSearch(search);
+        if (state?.open) state.field.focus({ preventScroll: true });
+      });
     }, true);
     document.addEventListener("keydown", (event) => {
-      if (!settings.pro || event.key !== "F2" || event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey ||
-          event.target.closest?.("input,textarea,select,[contenteditable=true]")) return;
+      if (!settings.pro || event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey ||
+          (event.key !== "F2" && event.key !== "Escape")) return;
       const trigger = document.querySelector('nav [data-toggle="search"]');
       if (!trigger) return;
-      event.preventDefault();
-      const target = trigger.getAttribute("data-target") || "";
-      const panel = target.startsWith("#") ? document.getElementById(target.slice(1)) : null;
-      const input = panel?.querySelector('input[type="search"]');
-      if (input === document.activeElement) return;
-      const style = input && getComputedStyle(input);
-      if (input?.getClientRects().length && style.visibility === "visible" &&
-          !panel.closest('[hidden],[aria-hidden="true"]')) {
-        input.focus({ preventScroll: true });
-        if (document.activeElement === input) return;
+      const search = syncSiteSearch(trigger);
+      if (event.key === "Escape") {
+        if (!search?.open || !search.panel.contains(event.target)) return;
+        event.preventDefault();
+        trigger.click();
+        syncSiteSearch(trigger);
+        trigger.focus({ preventScroll: true });
+        return;
       }
-      trigger.click();
-      if (!input) return;
+      if (event.target.closest?.("input,textarea,select,[contenteditable=true]") && event.target !== search?.field) return;
+      event.preventDefault();
+      if (!search?.open) trigger.click();
+      if (!search) return;
       const deadline = performance.now() + 350;
       const focusedBeforeOpen = document.activeElement;
       const focusSearch = () => {
-        if (document.activeElement !== focusedBeforeOpen || !input.isConnected) return;
-        if (input.getClientRects().length) input.focus({ preventScroll:true });
-        if (document.activeElement !== input && performance.now() < deadline) requestAnimationFrame(focusSearch);
+        if (document.activeElement !== focusedBeforeOpen || !search.field.isConnected) return;
+        if (syncSiteSearch(trigger)?.open) search.field.focus({ preventScroll: true });
+        if (document.activeElement !== search.field && performance.now() < deadline) requestAnimationFrame(focusSearch);
       };
-      requestAnimationFrame(focusSearch);
+      focusSearch();
     });
     window.addEventListener("popstate", setDialogFromHash);
     window.addEventListener("hashchange", setDialogFromHash);
@@ -6706,6 +6766,7 @@
       sidebarContentsDirty = true;
       scheduleContentGridUpdate();
       syncNewsPanels();
+      if (settings.pro) syncSiteSearch(document.querySelector('nav [data-toggle="search"]'));
     }, { passive: true });
     document.addEventListener("focusin", scheduleContentGridUpdate);
     window.addEventListener("storage", (event) => {

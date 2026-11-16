@@ -21,6 +21,7 @@
         "newsHidden": "Updates and news are hidden. You can turn them back on in the Control Center.",
         "newsOpenAppearance": "Open Appearance",
         "newsUndoHide": "Undo",
+        "clearSearch": "Clear search",
         "linkdoni": {
           "name": "Linkdoni",
           "feed": "Technology news",
@@ -309,6 +310,7 @@
         "newsHidden": "تازه‌ها و اخبار پنهان شدن. از بخش «ظاهر» مرکز کنترل می‌تونی دوباره نشونشون بدی.",
         "newsOpenAppearance": "باز کردن بخش ظاهر",
         "newsUndoHide": "برگردوندن",
+        "clearSearch": "پاک کردن جست‌وجو",
         "linkdoni": {
           "name": "لینکدونی",
           "feed": "خبرهای تکنولوژی",

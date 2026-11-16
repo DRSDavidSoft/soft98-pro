@@ -1568,7 +1568,7 @@ async function verifyTopbar(client) {
     await run("Soft98Pro.configure({rgbMode:false})");
     const controls = `(() => {
       const elements = [document.querySelector("[data-s98p-topbar-toggle]"), document.querySelector("[data-s98p-topbar-brand]"),
-        ...document.querySelectorAll("#actions button")];
+        ...document.querySelectorAll("#actions > li > button")];
       return elements.map((node) => { const box = node.getBoundingClientRect(); return [box.left, box.right, (box.top + box.bottom) / 2, box.width]; });
     })()`;
     const rectangles = await run(controls);
@@ -1592,6 +1592,71 @@ async function verifyTopbar(client) {
       const style = getComputedStyle(document.querySelector("#actions li:last-child button"));
       return style.backgroundImage === "none" && style.backgroundColor === "rgba(0, 0, 0, 0)" && style.boxShadow === "none";
     })()`), true);
+  } finally {
+    await client.send("Emulation.clearDeviceMetricsOverride");
+  }
+}
+
+async function verifyTopbarSearch(client) {
+  const run = (source) => evaluate(client, source);
+  const url = `http://127.0.0.1:${PORT}/test/topbar.html?search-fixture=1`;
+  const field = 'document.querySelector("#fixture-search input[type=search]")';
+  const panel = 'document.getElementById("fixture-search")';
+  const results = 'document.getElementById("fixture-suggestions")';
+  const button = 'document.getElementById("fixture-search-trigger")';
+  const clear = 'document.querySelector("[data-s98p-search-clear]")';
+  const check = (label, value) => assertEqual("site search", label, value, true);
+  const until = async (source) => {
+    for (let attempt = 0; attempt < 40; attempt++) {
+      if (await run(source).catch(() => false)) return;
+      await delay(70);
+    }
+    throw new Error("Site search did not settle: " + source);
+  };
+  const key = async (key, windowsVirtualKeyCode) => {
+    const enter = key === "Enter";
+    await client.send("Input.dispatchKeyEvent", { type: enter ? "keyDown" : "rawKeyDown", key, code: key, windowsVirtualKeyCode, ...(enter ? { text: "\r" } : {}) });
+    await client.send("Input.dispatchKeyEvent", { type: "keyUp", key, code: key, windowsVirtualKeyCode });
+  };
+  const resize = (width, height) => client.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: false });
+  await resize(1200, 760);
+  try {
+    await client.send("Page.navigate", { url });
+    await until(`location.href === ${JSON.stringify(url)} && ${panel}?.hasAttribute("data-soft98-pro-search")`);
+    await key("F2", 113);
+    await until(`document.activeElement === ${field} && ${panel}.hasAttribute("data-s98p-search-open")`);
+    await client.send("Input.insertText", { text: "icon lover" });
+    await until(`${results}.querySelectorAll("a[href]").length === 20`);
+    check("only the suggestions can scroll", await run(`getComputedStyle(${panel}).overflowY === "visible" &&
+      ${panel}.scrollHeight > ${panel}.clientHeight &&
+      getComputedStyle(${results}).overflowY === "auto" && ${results}.scrollHeight > ${results}.clientHeight &&
+      !${results}.hasAttribute("data-s98p-category-menu")`));
+    check("Latin query and clear icon have matching directions", await run(`getComputedStyle(${field}).direction === "ltr" &&
+      ${clear}.getBoundingClientRect().right > ${field}.getBoundingClientRect().right - 10 &&
+      Boolean(${clear}.getAttribute("aria-label"))`));
+    await key("Enter", 13);
+    check("Enter submits the original form and query", await run('document.body.dataset.query === "icon lover"'));
+    await run(`${clear}.click()`);
+    check("clear uses the original action and keeps focus", await run(`!${field}.value && ${results}.hidden && document.activeElement === ${field}`));
+    await client.send("Input.insertText", { text: "فایرفاکس" });
+    check("Persian query moves the clear icon to the left", await run(`getComputedStyle(${field}).direction === "rtl" &&
+      ${clear}.getBoundingClientRect().left < ${field}.getBoundingClientRect().left + 10`));
+    await resize(375, 420);
+    await until(`innerWidth === 375 && ${panel}.getBoundingClientRect().left === 8`);
+    check("search bar and long suggestions fit the viewport", await run(`(() => {
+      const p = ${panel}.getBoundingClientRect(), r = ${results}.getBoundingClientRect(), i = ${field}.getBoundingClientRect();
+      return p.left >= 0 && p.top >= 58 && p.right <= innerWidth && r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight &&
+        document.elementFromPoint(i.left + i.width / 2, i.top + i.height / 2) === ${field};
+    })()`));
+    await run(`[...${results}.children].slice(1).forEach(node => node.remove())`);
+    check("a short results list does not reserve empty height", await run(`${results}.getBoundingClientRect().height < 75`));
+    await key("Escape", 27);
+    check("Escape closes search and returns focus to its trigger", await run(`${panel}.hidden &&
+      !${panel}.hasAttribute("data-s98p-search-open") && document.activeElement === ${button}`));
+    await run('Soft98Pro.configure({pro:false})');
+    check("turning off Pro restores the stock layout and attributes", await run(`getComputedStyle(${panel}).overflowY === "auto" &&
+      !${field}.hasAttribute("dir") && !document.querySelector("[data-s98p-search-clear]")`));
+    await run('Soft98Pro.configure({pro:true})');
   } finally {
     await client.send("Emulation.clearDeviceMetricsOverride");
   }
@@ -1868,6 +1933,12 @@ async function main() {
     if (process.argv.includes("--download-permissions-only")) {
       await verifyDownloadManager(client, { permissionsOnly: true });
       console.log("Soft98 contextual download permissions passed");
+      return;
+    }
+    if (process.argv.includes("--site-search-only")) {
+      await verifyTopbarSearch(client);
+      await verifyTopbar(client);
+      console.log("Soft98 site search and sticky navigation passed");
       return;
     }
     const badgeDark = "255,209,102";
@@ -2475,6 +2546,7 @@ async function main() {
     await verifyWideLayout(client);
     await verifyPostArtwork(client);
     await verifyTopbar(client);
+    await verifyTopbarSearch(client);
     await verifyLinkdoni(client);
     console.log("Soft98 runtime browser acceptance passed");
   } finally {
