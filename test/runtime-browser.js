@@ -1075,6 +1075,96 @@ async function verifyThemeRestore(client) {
   }
 }
 
+async function verifyRgbMedia(client) {
+  const run = expression => evaluate(client, expression);
+  const url = `http://127.0.0.1:${PORT}/test/theme-restore.html?mode=userscript`;
+  const check = (label, value, expected) => assertEqual("RGB media", label, value, expected);
+  let previous;
+  await client.send("Emulation.setDeviceMetricsOverride", { width: 1024, height: 780, deviceScaleFactor: 1, mobile: false });
+  try {
+    await client.send("Page.navigate", { url });
+    for (let attempt = 0; attempt < 50; attempt++) {
+      if (await run('location.href === ' + JSON.stringify(url) + ' && !!window.Soft98Pro && !!document.getElementById("soft98-pro-control")').catch(() => false)) break;
+      if (attempt === 49) throw new Error("RGB media fixture did not initialize");
+      await delay(100);
+    }
+    previous = await run('localStorage.getItem("soft98-ad-blocker.settings")');
+    const rgba = [242, 53, 69, 255];
+    const png = new PNG({ width: 1, height: 1 });
+    png.data.set(rgba);
+    const src = `data:image/png;base64,${PNG.sync.write(png).toString("base64")}`;
+    await run(`(async () => {
+      const src = ${JSON.stringify(src)};
+      const rgb = 'rgb(${rgba.slice(0,3).join(",")})';
+      const article = document.querySelector('main article');
+      const media = document.createElement('div');
+      media.style.cssText = 'display:flex;gap:6px;align-items:center;height:48px;direction:ltr';
+      media.innerHTML = '<a href="#art"><img class="fixture-stock-art" alt="Raster artwork"></a><svg viewBox="0 0 40 40"><rect width="40" height="40"/></svg>' +
+        '<canvas width="40" height="40"></canvas><div></div><p>Article text <a href="#info">Information</a></p>';
+      article.prepend(media);
+      const raster = media.querySelector('img');
+      raster.src = src;
+      await raster.decode();
+      const [,svg,canvas,background,copy] = media.children;
+      svg.firstElementChild.setAttribute('fill', rgb);
+      canvas.getContext('2d').fillStyle = rgb;
+      canvas.getContext('2d').fillRect(0, 0, 40, 40);
+      background.style.backgroundImage = 'url(' + src + ')';
+      background.style.backgroundSize = 'cover';
+      const artwork = [raster,svg,canvas,background];
+      artwork.forEach(node => node.style.cssText += ';display:block;width:40px;height:40px;flex:none');
+      const intentional = raster.cloneNode();
+      intentional.style.filter = 'sepia(.25)';
+      media.append(intentional);
+      window.rgbMediaProbe = {artwork, copy};
+      Soft98Pro.configure({pro:true,darkDesign:true,rgbMode:false});
+      media.scrollIntoView({block:'center',behavior:'instant'});
+    })()`);
+    async function samplePixels(label) {
+      const coords = await run(`rgbMediaProbe.artwork.map(node => {
+        const rect = node.getBoundingClientRect();
+        return [Math.floor(rect.left + rect.width / 2), Math.floor(rect.top + rect.height / 2)];
+      })`);
+      const { data } = await client.send("Page.captureScreenshot", { format: "png" });
+      const pixels = PNG.sync.read(Buffer.from(data, "base64"));
+      coords.forEach(([x,y], index) => {
+        const offset = (y * pixels.width + x) * 4;
+        check(label + " " + ["image","SVG","canvas","background image"][index],
+          [...pixels.data.subarray(offset, offset + 4)].join(), rgba.join());
+      });
+      return coords[0];
+    }
+    const textColors = () => run('[rgbMediaProbe.copy,rgbMediaProbe.copy.querySelector("a")].map(node => getComputedStyle(node).color).join("|")');
+    const darkInk = await textColors();
+    await run("Soft98Pro.configure({rgbMode:true})");
+    await delay(250);
+    const [x,y] = await samplePixels("RGB");
+    check("preserves an intentionally authored filter", await run("getComputedStyle(rgbMediaProbe.copy.nextElementSibling).filter"), "sepia(0.25)");
+    check("preserves dark-mode content and link color", await textColors(), darkInk);
+    await client.send("Input.dispatchMouseEvent", { type: "mouseMoved", x, y });
+    check("raster link receives hover", await run("rgbMediaProbe.artwork[0].parentElement.matches(':hover')"), true);
+    await delay(250);
+    await samplePixels("RGB on hover");
+    const accent = () => run('getComputedStyle(document.querySelector("#soft98-pro-control form"), "::before").backgroundImage');
+    const gradient = await accent();
+    check("retains a multicolor Control Center gradient", /^linear-gradient\(/.test(gradient) && new Set(gradient.match(/(?:hsl|rgb)\([^)]+\)/g)).size >= 3, true);
+    await delay(250);
+    check("animates the gradient", await accent() !== gradient, true);
+    await run(`Soft98Pro.configure({rgbMode:false});
+      const media = rgbMediaProbe.copy.parentElement;
+      document.querySelector('[data-soft98-pro-article-meta]').after(media);
+      media.style.marginBlock = '80px';
+    `);
+    await samplePixels("Dark");
+    await run("Soft98Pro.configure({pro:false})");
+    check("turning off Pro restores the native image filter", await run("getComputedStyle(rgbMediaProbe.artwork[0]).filter"), "saturate(1.2) brightness(0.8)");
+  } finally {
+    if (previous !== undefined) await run(previous === null ? 'localStorage.removeItem("soft98-ad-blocker.settings")'
+      : `localStorage.setItem("soft98-ad-blocker.settings", ${JSON.stringify(previous)})`);
+    await client.send("Emulation.clearDeviceMetricsOverride");
+  }
+}
+
 async function verifyWideLayout(client) {
   const run = (expression) => evaluate(client, expression);
   const until = async (expression) => {
@@ -1686,6 +1776,11 @@ async function main() {
       console.log("Soft98 ordinary reload recovery passed");
       return;
     }
+    if (process.argv.includes("--rgb-media-only")) {
+      await verifyRgbMedia(client);
+      console.log("Soft98 RGB media color and accent animation passed");
+      return;
+    }
     const badgeDark = "255,209,102";
     let idleDark;
     const cases = [
@@ -2284,6 +2379,7 @@ async function main() {
     await verifyIssue16EarlyReload(client);
     await verifyAppearanceBridge(client);
     await verifyThemeRestore(client);
+    await verifyRgbMedia(client);
     await verifyWideLayout(client);
     await verifyPostArtwork(client);
     await verifyTopbar(client);

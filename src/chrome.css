@@ -18,7 +18,7 @@
 
 :root.soft98-pro-rgb {
   --s98p-topbar-base: #060708;
-  --s98p-topbar-shadow: 0 16px 46px #0009;
+  --s98p-topbar-shadow: inset 0 -1px var(--s98p-neon-soft);
 }
 
 :root.soft98-pro-theme [data-s98p-topbar-shell] {

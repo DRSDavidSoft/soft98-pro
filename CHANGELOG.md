@@ -32,6 +32,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- RGB mode no longer darkens or desaturates artwork. The animated accents stay active without dimming article text.
+
 - Recovered the original article and download links when the userscript encounters an early page clear on ordinary reload.
 
 - Turning off the Pro theme now restores Soft98's original header, layout, and download controls without reloading or disabling ad blocking.
