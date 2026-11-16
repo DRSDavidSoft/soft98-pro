@@ -172,14 +172,16 @@ async function verifyFileActions(client) {
   const row = `${button}.closest("dd")`;
   const more = 'document.querySelector("[data-s98p-file-more]")';
   const background = () => run(`getComputedStyle(${row}).backgroundColor`);
+  const canHover = await run('matchMedia("(hover: hover) and (pointer: fine)").matches');
+  const idleOpacity = canHover ? "0" : "1";
+  await until(`getComputedStyle(${more}).opacity === ${JSON.stringify(idleOpacity)}`);
   const idle = await background();
-  check("the three dots are hidden when idle", await run(`getComputedStyle(${more}).opacity`), "0");
   const startPosition = await position(selector);
   await client.send("Input.dispatchMouseEvent", { type: "mouseMoved", ...await position('[data-soft98-pro-download-row]') });
   await delay(200);
   const linkHover = await background();
   if (linkHover === idle) throw new Error("The link hover did not highlight the download row");
-  check("hovering the link reveals the three dots", await run(`getComputedStyle(${more}).opacity`), "1");
+  check("the three dots are visible over the download link", await run(`getComputedStyle(${more}).opacity`), "1");
   check("the RTL layout puts the three dots physically to the right", await run(`${more}.getBoundingClientRect().left >= ${button}.getBoundingClientRect().right`), true);
   check("the menu icon has three dots", await run(`${more}.querySelectorAll("svg path").length`), 4);
   check("button lets the row background show through", await run(`getComputedStyle(${button}).backgroundColor`), "rgba(0, 0, 0, 0)");
