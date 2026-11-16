@@ -3,6 +3,7 @@
   "rgbMode": ["dark-on.webp", "rgb.webp", "rgb-still.webp"],
   "expandMain": "illustration",
   "showLatest": ["latest-off.webp", "latest-on.webp"],
+  "downloadRowContextMenu": ["download-context-off.webp", "download-context-on.webp"],
   "pirateLogo": ["pirate-detail-off.webp", "pirate-detail-on.webp"],
   "blockAds": "illustration",
   "patchScripts": "illustration",

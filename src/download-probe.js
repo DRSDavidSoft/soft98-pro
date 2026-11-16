@@ -66,7 +66,35 @@ const Soft98DownloadProbe = (() => {
     }
   }
 
-  return { inspect };
+  async function planArticleDownloads(urls, maxMB, getDetails, timeoutMs = 7000, links = Soft98DownloadLinks) {
+    if (!urls.length || urls.length > links.MAX_BATCH) return null;
+    const limit = links.reviewLimit(maxMB) * 1000000;
+    let next = 0, total = 0, stopped = false, timer;
+    const results = Object.create(null);
+    const timeout = new Promise(resolve => { timer = setTimeout(() => resolve(null), timeoutMs); });
+    // Resolve as soon as any file forces review; do not start more probes in that case.
+    let requireReview;
+    const review = new Promise(resolve => { requireReview = () => { stopped = true; resolve(null); }; });
+    const workers = Promise.all(Array.from({ length: Math.min(4, urls.length) }, async () => {
+      while (!stopped && next < urls.length) {
+        const url = urls[next++];
+        const details = await getDetails(url).catch(() => null);
+        if (stopped) return;
+        if (details?.status !== "ok" || !Number.isSafeInteger(details.size) || details.size < 0 || details.size >= limit) return requireReview();
+        total += details.size;
+        if (total >= limit) return requireReview();
+        results[url] = details;
+      }
+    }));
+    try {
+      return await Promise.race([workers.then(() => stopped ? null : results), timeout, review]);
+    } finally {
+      stopped = true;
+      clearTimeout(timer);
+    }
+  }
+
+  return { inspect, planArticleDownloads };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = Soft98DownloadProbe;

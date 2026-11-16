@@ -14,6 +14,7 @@ const livePairs = {
   expandMain: ["../settings/expand-off.webp", "../settings/expand-on.webp"],
 };
 const notes = {
+  downloadRowContextMenu: "Live screenshots of the same download row after a right-click. Off leaves the native browser menu, which is outside the page capture. On opens the Soft98 Pro menu.",
   blockAds: "Live screenshots. With the switch off, the advertising cards remain beside the article. The ads themselves vary by visit.",
   patchScripts: "Illustration. The difference is in how the original script runs, not in the switch's appearance.",
   pro: "Live screenshots. Turning off this switch leaves the selected protection options running; it is not stock Soft98.",

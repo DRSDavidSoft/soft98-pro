@@ -22,7 +22,9 @@
     rgbMode: false,
     showLatest: true,
     hideAnnoyances: false,
-    downloadRowAction: "queue",
+    downloadRowAction: "copy",
+    downloadRowContextMenu: true,
+    downloadReviewMB: 100,
   };
   const SCRIPT_PATH = /^\/templates\/.*\/(?:application\.min\.packed|jquery(?:-v[^/]+)?(?:\.min\.packed)?)\.js$/i;
   const reportedScripts = new Set();
@@ -166,6 +168,16 @@
         refreshDownloads();
       }
     });
+    function startArticleDownloads(owner, urls) {
+      if (!urls.length || owner.getAttribute("aria-busy") === "true") return;
+      owner.setAttribute("aria-busy", "true");
+      sendRuntime({ type: "soft98:download-file", urls }, (response) => {
+        owner.removeAttribute("aria-busy");
+        document.documentElement.setAttribute("data-soft98-pro-file-result", response?.ok ? response.result : "failed");
+        document.dispatchEvent(new Event("soft98-pro:file-result"));
+        refreshDownloads();
+      });
+    }
     document.addEventListener("click", (event) => {
       if (!event.isTrusted || event.button !== 0 || event.defaultPrevented) return;
       const control = event.target instanceof Element && event.target.closest("button[data-soft98-pro-download-manager],button[data-s98p-file-command]");
@@ -180,28 +192,17 @@
           const url = entry.querySelector(":scope > a[data-s98p-file-url]")?.dataset.s98pFileUrl;
           if (url) urls.push(url);
         }
-        if (urls.length) sendRuntime({ type: "soft98:open-downloads", urls });
+        startArticleDownloads(control, urls);
         return;
       }
-      const action = control.dataset.s98pFileCommand;
-      if (!["queue", "start", "review"].includes(action)) return;
+      if (control.dataset.s98pFileCommand !== "internal") return;
       const menu = control.closest("#soft98-pro-file-menu");
       const owner = menu ? document.getElementById(menu.dataset.owner || "") : control;
       if (!owner?.matches('button[data-soft98-pro-download-manager="file"]')) return;
       const row = owner.closest(":is(article,[data-s98p-download-rail]) dd[data-soft98-pro-download-entry]");
       const link = row?.querySelector(":scope > a[data-soft98-pro-download-row][href][data-s98p-file-url]");
-      if (!link || !row.getClientRects().length || owner.getAttribute("aria-busy") === "true") return;
-      if (action === "review") {
-        sendRuntime({ type: "soft98:open-downloads", urls: [link.dataset.s98pFileUrl] });
-        return;
-      }
-      owner.setAttribute("aria-busy", "true");
-      sendRuntime({ type: "soft98:download-file", action, url: link.dataset.s98pFileUrl }, (response) => {
-        owner.removeAttribute("aria-busy");
-        document.documentElement.setAttribute("data-soft98-pro-file-result", response?.ok ? response.result : "failed");
-        document.dispatchEvent(new Event("soft98-pro:file-result"));
-        refreshDownloads();
-      });
+      if (!link || !row.getClientRects().length) return;
+      startArticleDownloads(owner, [link.dataset.s98pFileUrl]);
     }, true);
   }
 

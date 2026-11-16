@@ -20,6 +20,23 @@ The live download tab with the Soft98 Pro extension installed and its default se
 Expand a section for its Off and On views. These compare one setting inside Soft98 Pro, keeping the other relevant settings fixed. Off here does not mean the extension was uninstalled. Illustrations are labeled where a live still does not reliably show the behavior.
 
 <details>
+<summary><strong>Download row context menu</strong></summary>
+
+Right-click anywhere on a download row to open its actions.
+
+Live screenshots of the same download row after a right-click. Off leaves the native browser menu, which is outside the page capture. On opens the Soft98 Pro menu.
+
+**Off**
+
+![Download row context menu: Off](../settings/download-context-off.webp)
+
+**On**
+
+![Download row context menu: On](../settings/download-context-on.webp)
+
+</details>
+
+<details>
 <summary><strong>Structural ad blocking</strong></summary>
 
 Remove advertising surfaces using source, geometry, and behavior signals.

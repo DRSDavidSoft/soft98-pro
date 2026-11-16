@@ -70,7 +70,7 @@ const PAGE_ICONS = Object.fromEntries(Object.entries({
   home: "outline/home", apps: "outline/apps", phone: "outline/device-mobile",
   androidOutline: "outline/brand-android", headphones: "outline/headphones",
   book: "outline/book-2", support: "outline/lifebuoy", forums: "outline/messages",
-  menu: "outline/menu-2", moon: "outline/moon", sun: "outline/sun",
+  menu: "outline/menu-2", dots: "outline/dots", moon: "outline/moon", sun: "outline/sun",
   bell: "outline/bell", mail: "outline/mail", search: "outline/search",
   grid: "outline/layout-grid", arrow: "outline/arrow-left", github: "outline/brand-github",
   settings: "outline/settings", history: "outline/history", external: "outline/external-link",
@@ -80,7 +80,6 @@ const PAGE_ICONS = Object.fromEntries(Object.entries({
   ...UTILITY_CATALOG.genericIcons,
 }).map(([key, name]) => [key, fs.readFileSync(path.join(TABLER_ROOT, "icons", name + ".svg"), "utf8")
   .replace(/\s+class="[^"]*"/, "").replace(/>\s+</g, "><").replace(/\s+/g, " ").trim()]));
-PAGE_ICONS.downloadPlus = PAGE_ICONS.download.replace("</svg>", '<path d="M16 5h6m-3-3v6"/></svg>');
 PAGE_ICONS.android = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 1 26 22" fill="currentColor"><path d="${siAndroid.path}"/></svg>`;
 for (const [key, icon, fill] of [
   ["kaspersky", siKaspersky, "#5ad8bc"], ["dotnet", siDotnet, "#aab5ff"],

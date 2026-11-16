@@ -66,12 +66,13 @@
     rgbMode: false,
     showLatest: true,
     hideAnnoyances: false,
-    downloadRowAction: "queue",
+    downloadRowAction: "copy",
+    downloadRowContextMenu: true,
+    downloadReviewMB: Soft98DownloadLinks.DEFAULT_REVIEW_MB,
   };
   const FILE_ACTIONS = {
-    queue: { label: "downloadQueueFile", icon: "downloadPlus" },
-    start: { label: "downloadStartFile", icon: "download" },
     copy: { label: "downloadCopyFile", icon: "copy" },
+    internal: { label: "downloadInternalFile", icon: "download" },
   };
   let fileMenu;
   let fileStates = new Map();
@@ -1140,14 +1141,15 @@
       :root.soft98-pro-theme dd[data-soft98-pro-download-entry]:has(>.s98p-file-actions){display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:stretch}
       :root.soft98-pro-theme dd[data-soft98-pro-download-collapsed]:has(>.s98p-file-actions){display:none!important}
       :root:not(.soft98-pro-theme) :is([data-soft98-pro-download-manager],.s98p-file-actions,.s98p-file-menu){display:none!important}
-      .soft98-pro-theme .s98p-file-actions{display:inline-flex;align-self:stretch;align-items:center;gap:3px;margin-inline-end:8px;min-width:0}
+      .soft98-pro-theme .s98p-file-actions{display:inline-flex;direction:ltr;align-self:stretch;align-items:center;gap:3px;margin-inline-end:8px;min-width:0}
       :root.soft98-pro-theme .s98p-file-actions button{display:grid;place-items:center;min-width:0;width:34px;height:34px;padding:0;margin:0;border:1px solid var(--s98p-border)!important;border-radius:6px;background:transparent!important;color:var(--s98p-text)!important;cursor:pointer;transform:none!important}
       :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-more]{width:28px;border-color:transparent!important;transition:opacity .14s ease,color .14s ease}
       @media (hover:hover) and (pointer:fine){
-        :root.soft98-pro-theme .s98p-file-actions:not(:hover,:focus-within) [data-s98p-file-more]:not([aria-expanded=true]){opacity:0;pointer-events:none}
+        :root.soft98-pro-theme dd[data-soft98-pro-download-entry]:not(:hover,:focus-within) [data-s98p-file-more]:not([aria-expanded=true]){opacity:0;pointer-events:none}
       }
       :root.soft98-pro-theme .s98p-file-actions button:is(:hover,:focus-visible,[aria-expanded=true]){background:color-mix(in srgb,var(--s98p-accent) 15%,transparent)!important;color:var(--s98p-accent)!important}
       .soft98-pro-theme .s98p-file-actions button:focus-visible{outline:2px solid var(--s98p-accent);outline-offset:-2px}
+      .soft98-pro-theme :is(.s98p-file-actions button,[data-soft98-pro-download-manager=section])[aria-busy=true]{cursor:progress;opacity:.75}
       .soft98-pro-theme .s98p-file-actions svg,.soft98-pro-theme .s98p-file-menu svg{width:18px;height:18px;flex:none;pointer-events:none}
       .soft98-pro-theme .s98p-file-actions [data-s98p-file-more] svg{width:14px;height:14px}
       :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status]{--file-status-color:var(--s98p-link);width:auto;min-width:28px;max-width:75px;height:24px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-inline-end:5px;padding:0 5px;border-radius:5px;border-color:color-mix(in srgb,var(--file-status-color) 43%,var(--s98p-border))!important;background:color-mix(in srgb,var(--file-status-color) 10%,transparent)!important;color:var(--file-status-color)!important;font:inherit;font-size:11px;font-weight:680;text-align:center;font-variant-numeric:tabular-nums}
@@ -1163,7 +1165,6 @@
       :root.soft98-pro-theme [data-soft98-pro-download-manager=file][aria-busy=true]{opacity:.6;cursor:progress}
       .soft98-pro-theme .s98p-file-menu{position:fixed;z-index:2147483001;display:grid;overflow:auto;overscroll-behavior:contain;box-sizing:border-box;width:246px;padding:5px;border:1px solid var(--s98p-border);border-radius:8px;background:color-mix(in srgb,var(--s98p-elevated) 92%,transparent);backdrop-filter:blur(18px);box-shadow:0 12px 26px #0005;color:var(--s98p-text);font:inherit;text-align:start}
       .soft98-pro-theme .s98p-file-menu [role=group]+[role=group]{margin-block-start:4px;padding-block-start:4px;border-block-start:1px solid var(--s98p-border)}
-      .soft98-pro-theme .s98p-file-menu [role=group]>span{display:block;padding:4px 9px;color:var(--s98p-muted);font-size:11px;font-weight:700}
       :root.soft98-pro-theme .s98p-file-menu button{display:flex;width:100%;align-items:center;gap:8px;min-height:32px;padding:4px 8px;border:1px solid transparent!important;border-radius:5px;background:transparent!important;color:var(--s98p-text)!important;font:inherit;text-align:start;cursor:pointer;transform:none!important}
       :root.soft98-pro-theme .s98p-file-menu button:is(:hover,:focus-visible){border-color:var(--s98p-border)!important;background:var(--s98p-soft)!important;outline:none}
       .soft98-pro-theme .s98p-file-menu [aria-checked=true]::after{content:"";width:8px;height:8px;margin-inline-start:auto;border-radius:50%;background:var(--s98p-accent)}
@@ -2979,17 +2980,17 @@
   }
 
   function defaultFileAction() {
-    return Object.hasOwn(FILE_ACTIONS, settings.downloadRowAction) ? settings.downloadRowAction : "queue";
+    return settings.downloadRowAction === "internal" ? "internal" : "copy";
   }
 
   function createFileControls(link) {
     const group = document.createElement("span");
     group.className = "s98p-file-actions";
-    const action = downloadButton("downloadPlus");
+    const action = downloadButton("copy");
     do { action.id = `soft98-pro-file-${++downloadRowId}`; } while (document.getElementById(action.id));
     action.dataset.soft98ProDownloadManager = "file";
     action.setAttribute("aria-keyshortcuts", "Shift+F10 ContextMenu");
-    const more = downloadButton("chevronDown");
+    const more = downloadButton("dots");
     more.dataset.s98pFileMore = "";
     setDownloadHint(more, text("downloadFileActions"), true);
     more.setAttribute("aria-haspopup", "menu");
@@ -3147,7 +3148,7 @@
   }
 
   function openFileMenu(group, invoker, point) {
-    if (fileMenu?.more === group.lastElementChild) return closeFileMenu(true);
+    if (!point && fileMenu?.more === group.lastElementChild) return closeFileMenu(true);
     closeFileMenu();
     const owner = group.querySelector("[data-s98p-file-command]");
     const more = group.lastElementChild;
@@ -3158,35 +3159,27 @@
     localizeElement(node);
     node.setAttribute("role", "menu");
     node.setAttribute("aria-label", text("downloadFileActions"));
-    for (const [heading, defaults] of [["downloadRunAction", false], ["downloadDefaultAction", true]]) {
-      const section = document.createElement("div");
-      section.setAttribute("role", "group");
-      section.setAttribute("aria-label", text(heading));
-      const label = document.createElement("span");
-      label.textContent = text(heading);
-      label.setAttribute("aria-hidden", "true");
-      section.append(label);
-      for (const [key, { icon, label: actionLabel }] of Object.entries(FILE_ACTIONS)) {
-        const button = downloadButton(icon);
-        button.tabIndex = -1;
-        button.setAttribute("role", defaults ? "menuitemradio" : "menuitem");
-        if (defaults) {
-          button.dataset.s98pFileDefault = key;
-          button.setAttribute("aria-checked", String(key === defaultFileAction()));
-        } else button.dataset.s98pFileCommand = key;
-        button.append(text(actionLabel));
-        section.append(button);
-      }
-      if (!defaults) {
-        const review = downloadButton("download");
-        review.tabIndex = -1;
-        review.setAttribute("role", "menuitem");
-        review.dataset.s98pFileCommand = "review";
-        review.append(text("downloadReview"));
-        section.append(review);
-      }
-      node.append(section);
+    const commands = document.createElement("div");
+    commands.setAttribute("role", "group");
+    for (const [key, { icon, label }] of Object.entries(FILE_ACTIONS)) {
+      const button = downloadButton(icon);
+      button.tabIndex = -1;
+      button.setAttribute("role", "menuitem");
+      button.dataset.s98pFileCommand = key;
+      button.append(text(label));
+      commands.append(button);
     }
+    const preferences = document.createElement("div");
+    preferences.setAttribute("role", "group");
+    const defaultToggle = downloadButton("settings");
+    defaultToggle.tabIndex = -1;
+    defaultToggle.setAttribute("role", "menuitemcheckbox");
+    const useInternal = defaultFileAction() === "internal";
+    defaultToggle.dataset.s98pFileDefault = useInternal ? "copy" : "internal";
+    defaultToggle.setAttribute("aria-checked", String(useInternal));
+    defaultToggle.append(text("downloadDefaultInternal"));
+    preferences.append(defaultToggle);
+    node.append(commands, preferences);
     document.body.append(node);
     fileMenu = { node, invoker, more };
     more.setAttribute("aria-controls", node.id);
@@ -3204,12 +3197,16 @@
   }
 
   function installFileActions() {
+    const rowControls = (target) => target?.closest?.("dd[data-soft98-pro-download-entry]")?.querySelector(":scope > .s98p-file-actions");
     document.addEventListener("contextmenu", (event) => {
-      const target = event.target.closest?.(".s98p-file-actions :is([data-s98p-file-command],[data-s98p-file-more])");
-      if (!target || !settings.pro) return;
+      if (!settings.pro || settings.downloadRowContextMenu === false) return;
+      const group = rowControls(event.target);
+      if (!group || event.defaultPrevented || !group.getClientRects().length) return;
       event.preventDefault();
-      openFileMenu(target.parentElement, target, event.clientX || event.clientY ? event : null);
-    });
+      event.stopPropagation();
+      const invoker = event.target.closest?.("a,button") || group.lastElementChild;
+      openFileMenu(group, invoker, event.clientX || event.clientY ? event : null);
+    }, true);
     document.addEventListener("click", async (event) => {
       const target = event.target.closest?.("button");
       if (!event.isTrusted || !target) return;
@@ -3254,8 +3251,11 @@
         items[next].focus();
       } else {
         const target = event.target.closest?.(".s98p-file-actions :is([data-s98p-file-command],[data-s98p-file-more])");
-        if (!target || !(event.key === "ArrowDown" || event.key === "ContextMenu" || (event.shiftKey && event.key === "F10"))) return;
-        openFileMenu(target.parentElement, target);
+        const rightClick = event.key === "ContextMenu" || (event.shiftKey && event.key === "F10");
+        const group = event.key === "ArrowDown" && target ? target.parentElement :
+          rightClick && settings.downloadRowContextMenu !== false ? rowControls(event.target) : null;
+        if (!settings.pro || !group || !group.getClientRects().length) return;
+        openFileMenu(group, target || event.target);
       }
       event.preventDefault();
     });
@@ -3274,8 +3274,14 @@
         const snapshot = JSON.parse(raw);
         if (!Array.isArray(snapshot?.files)) return;
         downloadSnapshot = snapshot;
+        const previous = fileStates;
         fileStates = new Map(snapshot.files.slice(0, 160).filter(state =>
           typeof state?.url === "string" && state.url.startsWith("https://") && FILE_STATES.has(state.status)).map(state => [state.url, state]));
+        const completed = [...fileStates].filter(([url, current]) =>
+          current.status === "complete" && previous.has(url) && !["complete", "missing", "interrupted", "review", "canceled"].includes(previous.get(url).status)).length;
+        if (completed) showDownloadToast(completed === 1 ? "downloadFileCompleted" : "downloadFilesCompleted", false, {
+          count: new Intl.NumberFormat(LOCALE).format(completed),
+        });
         for (const group of document.querySelectorAll(".s98p-file-actions")) renderFileBadge(group.previousElementSibling, group);
         renderControlDownloads();
       } catch (_error) {}
@@ -3284,7 +3290,7 @@
       const root = document.documentElement;
       const result = root.getAttribute("data-soft98-pro-file-result");
       root.removeAttribute("data-soft98-pro-file-result");
-      const message = { queued: "downloadFileQueued", starting: "downloadFileStarting", waiting: "downloadFileWaiting",
+      const message = { review: "downloadReviewOpened", starting: "downloadFileStarting", waiting: "downloadFileWaiting",
         held: "downloadFileHeld", duplicate: "downloadFileDuplicate", failed: "downloadFileFailed" }[result];
       if (message) showDownloadToast(message, result === "failed");
     });
@@ -4426,6 +4432,8 @@
     for (const input of wrap.querySelectorAll(".s98p-switch input")) input.checked = Boolean(settings[input.name]);
     const action = wrap.querySelector('select[name="downloadRowAction"]');
     if (action) action.value = defaultFileAction();
+    const threshold = wrap.querySelector('input[name="downloadReviewMB"]');
+    if (threshold && threshold !== document.activeElement) threshold.value = Soft98DownloadLinks.reviewLimit(settings.downloadReviewMB);
     refreshControlTelemetry();
   }
 
@@ -4555,6 +4563,11 @@
                   ${Object.entries(FILE_ACTIONS).map(([key, { label }]) => `<option value="${key}">${escapeHtml(text(label))}</option>`).join("")}
                 </select>
               </label>
+              ${controlOptionMarkup("downloadRowContextMenu")}
+              <label class="s98p-download-default">
+                <span><strong>${escapeHtml(text("downloadReviewLimit"))}</strong><small>${escapeHtml(text("downloadReviewLimitDetail"))}</small></span>
+                <input type="number" inputmode="numeric" dir="ltr" name="downloadReviewMB" min="1" max="${Soft98DownloadLinks.MAX_REVIEW_MB}" step="1" required value="${Soft98DownloadLinks.reviewLimit(settings.downloadReviewMB)}">
+              </label>
               ` : ""}
             </section>`)
             .join("")}
@@ -4660,8 +4673,8 @@
       #soft98-pro-control .s98p-download-default{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;padding:8px;border:1px solid var(--c-border-soft);border-radius:6px;background:var(--c-bg-soft)}
       #soft98-pro-control .s98p-download-default span{display:grid;gap:2px}
       #soft98-pro-control .s98p-download-default small{color:var(--c-muted)}
-      #soft98-pro-control .s98p-download-default select{width:100%;min-height:36px;padding:5px 8px;border:1px solid var(--c-border);border-radius:6px;background:var(--c-bg-raised);color:var(--c-text);font:inherit}
-      #soft98-pro-control .s98p-download-default select:focus-visible{outline:2px solid var(--c-accent);outline-offset:1px}
+      #soft98-pro-control .s98p-download-default :is(select,input){width:100%;min-height:36px;padding:5px 8px;border:1px solid var(--c-border);border-radius:6px;background:var(--c-bg-raised);color:var(--c-text);font:inherit}
+      #soft98-pro-control .s98p-download-default :is(select,input):focus-visible{outline:2px solid var(--c-accent);outline-offset:1px}
       #soft98-pro-control .s98p-download-overview>div{display:grid;gap:4px;padding:8px;border:1px solid var(--c-border-soft);border-radius:6px;background:var(--c-bg-soft);text-align:center}
       #soft98-pro-control .s98p-download-overview dt{font-size:11px;line-height:1.35;min-height:2.7em;display:grid;place-items:center;overflow-wrap:anywhere;color:var(--c-muted)}
       #soft98-pro-control .s98p-download-overview dd{margin:0;font-weight:700;font-size:18px;color:var(--c-accent);font-variant-numeric:tabular-nums}
@@ -5114,6 +5127,12 @@
       const input = event.target;
       if (input?.matches('select[name="downloadRowAction"]') && Object.hasOwn(FILE_ACTIONS, input.value)) {
         writeSettings({ ...settings, downloadRowAction: input.value });
+        return;
+      }
+      if (input?.matches('input[name="downloadReviewMB"]')) {
+        const value = Number(input.value);
+        if (value === Soft98DownloadLinks.reviewLimit(value)) writeSettings({ ...settings, downloadReviewMB: value });
+        else input.value = Soft98DownloadLinks.reviewLimit(settings.downloadReviewMB);
         return;
       }
       if (!input?.matches(".s98p-switch input")) return;

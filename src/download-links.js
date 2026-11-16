@@ -4,6 +4,8 @@ const Soft98DownloadLinks = (() => {
   const MAX_BATCH = 30;
   const MAX_IMPORT = 120;
   const MAX_TEXT = 256 * 1024;
+  const DEFAULT_REVIEW_MB = 100;
+  const MAX_REVIEW_MB = 100000;
   const MULTIPART = /^(.*?)(?:[._ -]part[._ -]?(\d{1,5})(\.[a-z\d]{1,8})?|(\.(?:zip|7z|rar))\.(\d{3}))$/i;
   const FILE = /\.(?:zip|rar|7z|exe|msi|msix|appx|dmg|apk|iso|deb|rpm|tar|gz|xz|bz2|bin|img|pkg)$/i;
 
@@ -106,7 +108,11 @@ const Soft98DownloadLinks = (() => {
     return size !== undefined || date !== undefined || mime || type ? { size, date, mime, type } : undefined;
   }
 
-  return { MAX_BATCH, MAX_IMPORT, MAX_TEXT, normalize, describe, fileType, parse, headers, articleFile, declaredArticleLinks, metadata };
+  function reviewLimit(value) {
+    return Number.isInteger(value) && value > 0 && value <= MAX_REVIEW_MB ? value : DEFAULT_REVIEW_MB;
+  }
+
+  return { MAX_BATCH, MAX_IMPORT, MAX_TEXT, DEFAULT_REVIEW_MB, MAX_REVIEW_MB, reviewLimit, normalize, describe, fileType, parse, headers, articleFile, declaredArticleLinks, metadata };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = Soft98DownloadLinks;

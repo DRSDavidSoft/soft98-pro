@@ -30,7 +30,9 @@ Recent dates appear as relative time, such as **2 days ago**. Hover over or focu
 
 ![A grouped archive with one part complete, another waiting, and original page links](../assets/comparison/download-manager-multipart.webp)
 
-On a Soft98 article, use the row menu to queue, start, copy, or review one link. The menu arrow appears when you hover or focus its controls and stays visible on touchscreens. At the section heading, **Copy all** copies the direct links and **Download all** opens them for review before starting any downloads. The original site link is unchanged. A status badge appears only when the manager tracks the file and opens its queue.
+On an article, the row button copies the link by default. Hover or focus the row to reveal **⋯**, or right-click the row. The menu offers **Copy link** and **Internal download**. Change the default or turn off the custom right-click menu in **Control Center → Downloads**. The three dots still work when right-click is disabled, and the original site link is unchanged.
+
+**Internal download** and **Download all** start immediately for files or groups with a verified total under **100 MB**. At or above the limit, or when a size is unknown, the manager opens the review list without starting anything. Change the limit in **Control Center → Downloads**. The article shows a notice and the row badge opens the tracked file in the queue.
 
 Tracked rows show the current state, transfer size, and remaining time when available. In **Control Center → Downloads**, the totals cover the whole queue, but the file list only includes downloads from the current article. Select a tracked file to open its entry in the manager.
 

@@ -43,6 +43,34 @@
     if (operation && typeof operation.catch === "function") operation.catch(() => {});
   }
 
+  function inspectDownload(url) {
+    return Soft98DownloadProbe.inspect(url, {
+      allowed: (origin) => call(api.permissions, "contains", { origins: [origin] }),
+    });
+  }
+
+  function openDownloadReview(urls, sender) {
+    const token = crypto.randomUUID();
+    if (downloadImports.size >= 32) downloadImports.delete(downloadImports.keys().next().value);
+    downloadImports.set(token, { urls, source: sender.url, expires: Date.now() + 120000 });
+    return call(api.tabs, "create", { url: downloadPage + "#import=" + token, openerTabId: sender.tab.id });
+  }
+
+  async function downloadFromArticle(urls, sender) {
+    const { soft98AdBlockerSettings } = await call(api.storage.local, "get", "soft98AdBlockerSettings");
+    const metadata = await Soft98DownloadProbe.planArticleDownloads(urls, soft98AdBlockerSettings?.downloadReviewMB, inspectDownload);
+    if (!metadata) {
+      await openDownloadReview(urls, sender);
+      return { ok: true, result: "review" };
+    }
+    const { jobs, added, scheduled, held } = await queue.request({ action: "add", urls, startExisting: true, source: sender.url, metadata });
+    const related = urls.map(url => jobs.findLast(entry => entry.url === url)).filter(Boolean);
+    const result = !added && !scheduled ? "duplicate" : held ? "held" :
+      related.some(job => ["starting", "downloading"].includes(job.status)) ? "starting" :
+      related.some(job => job.status === "queued") ? "waiting" : "failed";
+    return { ok: result !== "failed", result };
+  }
+
   const queue = Soft98DownloadQueue.create({
     extensionId: api.runtime.id,
     storage: {
@@ -314,19 +342,14 @@
       if (sender.id !== api.runtime.id || sender.frameId !== 0 || !Number.isInteger(sender.tab?.id) || sender.incognito || sender.tab.incognito ||
           !isProtectedPage(sender.url)) return false;
       if (message.type === "soft98:download-file") {
-        const { action } = message;
-        if (action !== "queue" && action !== "start") return false;
-        let url;
-        try { url = Soft98DownloadQueue.articleFileUrl(message.url); }
+        let urls;
+        try {
+          const list = Array.isArray(message.urls) ? message.urls.slice(0, Soft98DownloadLinks.MAX_IMPORT) : [message.url];
+          urls = [...new Set(list.map(Soft98DownloadQueue.articleFileUrl))];
+          if (!urls.length) throw new Error("No article files");
+        }
         catch (_error) { sendResponse({ ok: false }); return false; }
-        queue.request({ action: "add", urls: [url], defer: action === "queue", startExisting: action === "start", source: sender.url })
-          .then(({ jobs, added, scheduled, held }) => {
-            const job = jobs.findLast((entry) => entry.url === url);
-            const result = !added && !scheduled ? "duplicate" : action === "queue" ? "queued"
-              : held ? "held" : job?.status === "queued" ? "waiting"
-              : job?.status === "interrupted" ? "failed" : "starting";
-            sendResponse({ ok: result !== "failed", result });
-          }, () => sendResponse({ ok: false }));
+        downloadFromArticle(urls, sender).then(sendResponse, () => sendResponse({ ok: false }));
         return true;
       }
       if (message.type === "soft98:download-snapshot") {
@@ -344,17 +367,7 @@
         }).then(() => sendResponse({ ok: true }), () => sendResponse({ ok: false }));
         return true;
       }
-      let target = downloadPage;
-      if (Array.isArray(message.urls) && message.urls.length) {
-        try {
-          const urls = [...new Set(message.urls.slice(0, Soft98DownloadLinks.MAX_IMPORT).map(Soft98DownloadQueue.articleFileUrl))];
-          const token = crypto.randomUUID();
-          if (downloadImports.size >= 32) downloadImports.delete(downloadImports.keys().next().value);
-          downloadImports.set(token, { urls, source: sender.url, expires: Date.now() + 120000 });
-          target += "#import=" + token;
-        } catch (_error) { sendResponse({ ok: false }); return false; }
-      }
-      call(api.tabs, "create", { url: target, openerTabId: sender.tab.id }).then(() => sendResponse({ ok: true }),
+      call(api.tabs, "create", { url: downloadPage, openerTabId: sender.tab.id }).then(() => sendResponse({ ok: true }),
         () => sendResponse({ ok: false }));
       return true;
     }
@@ -372,9 +385,7 @@
       if (!Soft98DownloadQueue.trustedSender(sender, api.runtime.id, downloadPage) &&
           !Soft98DownloadQueue.trustedSender(sender, api.runtime.id, downloadPopup)) return false;
       if (message.type === "soft98:download-details") {
-        Soft98DownloadProbe.inspect(message.url, {
-          allowed: (origin) => call(api.permissions, "contains", { origins: [origin] }),
-        }).then(sendResponse, () => sendResponse({ status: "unavailable" }));
+        inspectDownload(message.url).then(sendResponse, () => sendResponse({ status: "unavailable" }));
         return true;
       }
       queue.request(message).then((state) => sendResponse({ ok: true, state }))

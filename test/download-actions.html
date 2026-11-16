@@ -24,7 +24,7 @@
       onMessage: { addListener() {} },
       sendMessage: async (message) => {
         fixture.messages.push(message);
-        if (message.type === "soft98:download-file") return { ok: true, result: message.action === "queue" ? "queued" : "starting" };
+        if (message.type === "soft98:download-file") return { ok: true, result: fixture.nextResult || "starting" };
       },
     },
     storage: {

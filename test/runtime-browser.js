@@ -156,61 +156,82 @@ async function verifyFileActions(client) {
   await client.send("Emulation.setDeviceMetricsOverride", { width: 375, height: 560, deviceScaleFactor: 1, mobile: false });
   await client.send("Page.navigate", { url: `http://127.0.0.1:${PORT}/test/download-actions.html` });
   for (let attempt = 0; attempt < 40; attempt += 1) {
-    if (await run(`document.querySelector(${JSON.stringify(selector)})?.dataset.s98pFileCommand`).catch(() => "") === "queue") break;
+    if (await run(`document.querySelector(${JSON.stringify(selector)})?.dataset.s98pFileCommand`).catch(() => "") === "copy") break;
     if (attempt === 39) throw new Error("Extension download action did not render");
     await delay(100);
   }
   await client.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 1, y: 1 });
   const button = `document.querySelector(${JSON.stringify(selector)})`;
   const row = `${button}.closest("dd")`;
+  const more = 'document.querySelector("[data-s98p-file-more]")';
   const background = () => run(`getComputedStyle(${row}).backgroundColor`);
   const idle = await background();
+  check("the three dots are hidden when idle", await run(`getComputedStyle(${more}).opacity`), "0");
   const startPosition = await position(selector);
   await client.send("Input.dispatchMouseEvent", { type: "mouseMoved", ...await position('[data-soft98-pro-download-row]') });
   await delay(200);
   const linkHover = await background();
   if (linkHover === idle) throw new Error("The link hover did not highlight the download row");
+  check("hovering the link reveals the three dots", await run(`getComputedStyle(${more}).opacity`), "1");
+  check("the RTL layout puts the three dots physically to the right", await run(`${more}.getBoundingClientRect().left >= ${button}.getBoundingClientRect().right`), true);
+  check("the menu icon has three dots", await run(`${more}.querySelectorAll("svg path").length`), 4);
   check("button lets the row background show through", await run(`getComputedStyle(${button}).backgroundColor`), "rgba(0, 0, 0, 0)");
   await client.send("Input.dispatchMouseEvent", { type: "mouseMoved", ...startPosition });
   await delay(200);
   check("hover shared across link and action", await background(), linkHover);
   check("action remains stationary on hover", JSON.stringify(await position(selector)), JSON.stringify(startPosition));
-  check("default icon combines arrow and plus", await run(`${button}.querySelectorAll("svg path").length > 3`), true);
   await run(`${button}.click()`);
   const jobs = 'fileActionsFixture.messages.filter(message => message.type === "soft98:download-file")';
   check("synthetic clicks do not start downloads", await run(`${jobs}.length`), 0);
   await click(selector);
-  check("default action queues the link", await run(`${jobs}.at(-1).action`), "queue");
-  check("queue preserves typed URL", await run(`${jobs}.at(-1).url`), destination);
-  await click(selector, "right");
+  check("Copy preserves the signed destination", await run("fileActionsFixture.copied.at(-1)"), destination);
+  check("Copy did not submit a job", await run(`${jobs}.length`), 0);
+  const link = '[data-soft98-pro-download-row]';
+  await click(link, "right");
   check("context menu stays inside mobile viewport", await run(`(() => {
     const box = document.querySelector("${menu}").getBoundingClientRect();
     return box.x >= 0 && box.y >= 0 && box.right <= innerWidth && box.bottom <= innerHeight;
   })()`), true);
   check("menu uses the page locale direction", await run(`getComputedStyle(document.querySelector("${menu}")).direction`), "rtl");
   await press("ArrowDown");
-  check("arrow navigation advances to Start", await run("document.activeElement.dataset.s98pFileCommand"), "start");
+  check("arrow navigation advances to the single internal action", await run("document.activeElement.dataset.s98pFileCommand"), "internal");
+  check("only Copy and Internal Download run a command", await run(`[...document.querySelectorAll("${menu} [data-s98p-file-command]")].map(el=>el.dataset.s98pFileCommand).join(",")`), "copy,internal");
   await press("Escape");
-  check("Escape restores focus", await run(`document.activeElement === ${button}`), true);
+  check("Escape restores focus to the original link", await run(`document.activeElement.matches(${JSON.stringify(link)})`), true);
   await click("[data-s98p-file-more]");
-  await click(`${menu} [data-s98p-file-command="start"]`);
-  check("one-time Start reaches the queue", await run(`${jobs}.at(-1).action`), "start");
-  check("one-time Start keeps previous default", await run(`${button}.dataset.s98pFileCommand`), "queue");
+  await click(`${menu} [data-s98p-file-command="internal"]`);
+  check("Internal download sends the exact direct link", await run(`${jobs}.at(-1).urls[0]`), destination);
+  check("the direct-start notice appears on the article", await run('document.querySelector("[data-soft98-pro-copy-toast]").textContent.includes("دانلود داره شروع می‌شه")'), true);
+  check("one-time Internal download keeps the Copy default", await run(`${button}.dataset.s98pFileCommand`), "copy");
   await click("[data-s98p-file-more]");
-  await click(`${menu} [data-s98p-file-default="copy"]`);
-  check("menu persists the new default", await run("fileActionsFixture.settings.downloadRowAction"), "copy");
-  await delay(250);
-  await click(selector);
-  check("Copy preserves the signed destination", await run("fileActionsFixture.copied.at(-1)"), destination);
-  check("Copy did not submit a job", await run(`${jobs}.length`), 2);
-  check("control center reflects menu selection", await run('document.querySelector("select[name=downloadRowAction]").value'), "copy");
+  await click(`${menu} [data-s98p-file-default="internal"]`);
+  check("menu persists the new default", await run("fileActionsFixture.settings.downloadRowAction"), "internal");
+  check("control center reflects menu selection", await run('document.querySelector("select[name=downloadRowAction]").value'), "internal");
   await run(`(() => {
     const select = document.querySelector("select[name=downloadRowAction]");
-    select.value = "start";
+    select.value = "copy";
     select.dispatchEvent(new Event("change", { bubbles: true }));
+    const limit = document.querySelector("input[name=downloadReviewMB]");
+    if (limit.value !== "100") throw new Error("Wrong initial review threshold");
+    limit.value = "25";
+    limit.dispatchEvent(new Event("change", { bubbles: true }));
+    const toggle = document.querySelector("input[name=downloadRowContextMenu]");
+    toggle.checked = false;
+    toggle.dispatchEvent(new Event("change", { bubbles: true }));
   })()`);
   await delay(250);
-  check("control center persists and updates the default", await run(`${button}.dataset.s98pFileCommand`), "start");
+  check("control center persists and updates the default", await run(`${button}.dataset.s98pFileCommand`), "copy");
+  check("control center persists the review threshold", await run("fileActionsFixture.settings.downloadReviewMB"), 25);
+  check("disabling row context actions leaves browser right-click untouched", await run(`(() => {
+    const event = new MouseEvent("contextmenu", { bubbles: true, cancelable: true });
+    return document.querySelector(${JSON.stringify(link)}).dispatchEvent(event) && !document.querySelector("${menu}");
+  })()`), true);
+  await click("[data-s98p-file-more]");
+  check("the explicit menu still works with row right-click disabled", await run(`Boolean(document.querySelector("${menu}"))`), true);
+  await press("Escape");
+  await run('fileActionsFixture.nextResult = "review"');
+  await click('[data-soft98-pro-download-manager="section"]');
+  check("group action also uses the threshold-aware route", await run(`${jobs}.at(-1).urls[0]`), destination);
   await run(`(() => {
     const url = ${JSON.stringify(destination)};
     document.documentElement.setAttribute("data-soft98-pro-download-snapshot", JSON.stringify({
@@ -243,6 +264,7 @@ async function verifyFileActions(client) {
     document.dispatchEvent(new Event("soft98-pro:download-snapshot"));
     return document.querySelector("[data-s98p-file-status]").dataset.s98pFileStatus;
   })()`), "complete");
+  check("completion also appears on the article", await run('document.querySelector("[data-soft98-pro-copy-toast]").textContent.includes("دانلود تموم شد")'), true);
 }
 
 async function verifyDownloadManager(client) {
@@ -442,13 +464,16 @@ async function verifyDownloadManager(client) {
     await run('document.querySelector("#manager-menu [data-label=moveColumnLeft]").click()');
     const columnOrder = 'Array.from(document.querySelectorAll("#import-table th[data-column]"), th=>th.dataset.column).join(",")';
     check("column menu moves the selected header", await run(columnOrder), "name,type,date,size");
+    await until('!document.querySelector("#manager-menu").matches(":popover-open") && !document.querySelector("#import").getAnimations().some(animation => animation.playState === "running")');
     const drag = await run(`(() => {
       const source=document.querySelector('th[data-column="date"] .column-menu').getBoundingClientRect();
       const destination=document.querySelector('th[data-column="name"]').getBoundingClientRect();
       return { start: { x: source.x+source.width/2, y: source.y+source.height/2 },
         end: { x: destination.left+12, y: destination.top+destination.height/2 } };
     })()`);
-    await client.send("Input.dispatchMouseEvent", { type: "mousePressed", button: "left", clickCount: 1, ...drag.start });
+    await client.send("Input.dispatchMouseEvent", { type: "mouseMoved", ...drag.start });
+    await client.send("Input.dispatchMouseEvent", { type: "mousePressed", button: "left", buttons: 1, clickCount: 1, ...drag.start });
+    await client.send("Input.dispatchMouseEvent", { type: "mouseMoved", buttons: 1, x: drag.start.x - 10, y: drag.start.y });
     await client.send("Input.dispatchMouseEvent", { type: "mouseMoved", buttons: 1, ...drag.end });
     check("drag shows a drop indicator", await run('document.querySelector("th[data-column=name]").dataset.colDrop'), "before");
     await client.send("Input.dispatchMouseEvent", { type: "mouseReleased", button: "left", clickCount: 1, ...drag.end });

@@ -49,6 +49,22 @@ test("file probes fall back to one byte, cancel bodies, and reject web pages", a
     fetchFile: async () => new Response(null, { headers: { "Content-Type": "text/html", "Content-Length": "14" } }) }), { status: "unavailable" });
 });
 
+test("article downloads require review at the file or group limit and for unknown sizes", async () => {
+  const files = [PREFIX + "archive.part01.rar", PREFIX + "archive.part02.rar"];
+  const check = (sizes, maxMB, urls = files) => probe.planArticleDownloads(urls, maxMB, async url => {
+    const size = sizes[files.indexOf(url)];
+    return { status: size === undefined ? "permission" : "ok", size };
+  }, 100, links);
+  assert.equal((await check([49000000, 50000000]))[files[0]].size, 49000000);
+  assert.equal(await check([50000000, 50000000]), null);
+  assert.equal(await check([60000000, 60000000]), null);
+  assert.equal(await check([110000000], undefined, files.slice(0, 1)), null);
+  assert.equal(await check([50000000], 40, files.slice(0, 1)), null);
+  assert.equal(await check([8000000], 40), null);
+  assert.equal(await check([null, 100]), null);
+  assert.equal(await probe.planArticleDownloads(files, 100, () => new Promise(() => {}), 5, links), null);
+});
+
 test("article download fallback accepts explicit row mappings and ordered numbered records only", () => {
   const direct = { proto: "https", pathname: "/file.zip", domain: "files.example.test" };
   const wrapped = { host: "href.li", a: "/", b: "https://example.test/linux?edition=desktop", c: "https" };

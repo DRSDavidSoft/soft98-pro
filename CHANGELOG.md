@@ -38,6 +38,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Hid empty queue counters and showed queue-wide pause and resume only when there is work to manage.
 - Improved the download review dialog with row selection, animated save options, and reorderable columns with their own menus.
 - Improved file details for downloads, added file-specific icons to the queue and review, and made the review table left to right by default with a direction setting.
+- Simplified article download actions, made copying the default, and added a configurable size limit for review before internal downloads.
 
 ### Removed
 
