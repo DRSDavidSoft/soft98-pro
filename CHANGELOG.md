@@ -21,8 +21,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Added relative dates for recent downloads and file updates, with an automatic, Solar Hijri, or Gregorian calendar setting.
 - Added the Download Manager to the extension toolbar. Article rows and the Control Center now show live progress, file sizes, and queue state.
 - Added a test button for browser notifications in Download Manager settings.
+- Added shared theme, accent color, animated RGB, and Control Center settings to Download Manager.
 
 ### Fixed
+
+- Kept Download Manager tabs stable when switching views and replaced native dropdowns with keyboard-friendly menus.
 
 - Unified the sticky header without changing the previous palette, centered the new inline chevrons, and removed the accent stripe from rounded navigation buttons.
 

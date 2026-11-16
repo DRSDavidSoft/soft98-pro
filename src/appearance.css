@@ -1,0 +1,18 @@
+[data-s98p-accent="sky"] { --s98p-choice-dark: #88caff; --s98p-choice-light: #145bad; }
+[data-s98p-accent="orchid"] { --s98p-choice-dark: #e1aaff; --s98p-choice-light: #783db1; }
+[data-s98p-accent="amber"] { --s98p-choice-dark: #ffce86; --s98p-choice-light: #905006; }
+
+:root.soft98-pro-theme[data-s98p-accent]:not(.soft98-pro-rgb,.soft98-pro-light) {
+  --s98p-accent: var(--s98p-choice-dark);
+  --s98p-link: var(--s98p-choice-dark);
+}
+:root.soft98-pro-light[data-s98p-accent] {
+  --s98p-accent: var(--s98p-choice-light);
+  --s98p-link: var(--s98p-choice-light);
+}
+:root.soft98-pro-theme[data-s98p-ld-page][data-s98p-accent] { --ld-accent: var(--s98p-accent); }
+:root[data-s98p-accent] #soft98-pro-control:is([data-theme="light"],[data-theme="dark"]) {
+  --c-accent: var(--s98p-choice-dark);
+  --c-accent-soft: color-mix(in srgb,var(--c-accent) 15%,var(--c-bg));
+}
+:root[data-s98p-accent] #soft98-pro-control[data-theme="light"] { --c-accent: var(--s98p-choice-light); }

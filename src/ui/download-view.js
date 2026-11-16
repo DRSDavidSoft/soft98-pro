@@ -22,12 +22,14 @@ const Soft98DownloadView = (() => {
     return "file";
   }
 
-  function create({ text, buttonContent, importToken, highlight }) {
+  function create({ text, buttonContent, importToken, highlight, closeSelect }) {
     const menu = $("manager-menu");
     const dialogs = [$("import"), $("guide")];
     const views = ["queue", "settings"];
     const tokens = new Set();
-    let current = "queue", section, menuAnchor;
+    const scrollPositions = new Map();
+    const scroller = document.documentElement.hasAttribute("data-compact-popup") ? document.body : window;
+    let current = "queue", section, menuAnchor, sectionMotion;
 
     function hash(value) {
       history.replaceState(history.state, "", location.pathname + location.search + value);
@@ -44,13 +46,20 @@ const Soft98DownloadView = (() => {
       const job = /^#job=([a-f0-9-]{36})$/.exec(value)?.[1];
       const active = value === "#import" || token ? dialogs[0] : value === "#guide" ? dialogs[1] : null;
       closeMenu(false);
+      closeSelect();
       if (!active) current = value === "#settings" ? "settings" : "queue";
+      const switched = section && section !== current;
+      if (switched) scrollPositions.set(section, scroller === window ? scrollY : scroller.scrollTop);
       for (const view of views) {
         $(view + "-view").hidden = current !== view;
         if (view === current) $(view + "-tab").setAttribute("aria-current", "page");
         else $(view + "-tab").removeAttribute("aria-current");
       }
-      if (section && section !== current) window.scrollTo(0, 0);
+      if (switched) {
+        sectionMotion?.cancel();
+        scroller.scrollTo({ top: scrollPositions.get(current) || 0, behavior: "instant" });
+        if (!reduced.matches) sectionMotion = $(current + "-view").animate([{ opacity: .65 }, { opacity: 1 }], { duration: 160, easing: "ease-out" });
+      }
       section = current;
       for (const dialog of dialogs) {
         if (dialog !== active && dialog.open) dialog.close();

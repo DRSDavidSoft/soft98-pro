@@ -2,6 +2,10 @@
   "en": {
     "settings": "Settings", "history": "Download history", "managerPages": "Download Manager views", "actions": "Actions", "resetFilters": "Clear filters",
     "openFullManager": "Open in a tab", "proSettings": "Soft98 Pro settings",
+    "appearance": "Appearance", "appearanceTheme": "Theme", "themeLight": "Light", "themeDark": "Dark",
+    "appearanceAccent": "Accent color", "accent_default": "Soft98 Pro", "accent_sky": "Sky blue", "accent_orchid": "Orchid", "accent_amber": "Amber",
+    "appearanceRgb": "Animated RGB", "controlCenter": "Control Center", "controlCenterVisible": "Show on Soft98 pages", "controlCenterSound": "Sound feedback",
+    "appearanceSaveFailed": "Could not save these settings.",
     "dateCalendar": "Date calendar", "calendarAuto": "Auto (by language)", "calendarPersian": "Solar Hijri", "calendarGregorian": "Gregorian",
     "dateNow": "just now", "completedDate": "Finished", "calendarSaveFailed": "Could not save the date calendar.",
     "tableDirection": "Review table direction", "columnsLtr": "Left to right (default)", "columnsRtl": "Right to left", "directionSaveFailed": "Could not save the table direction.",
@@ -37,6 +41,10 @@
   "fa": {
     "settings": "تنظیمات", "history": "سابقهٔ دانلودها", "managerPages": "بخش‌های مدیر دانلود", "actions": "گزینه‌ها", "resetFilters": "پاک کردن فیلترها",
     "openFullManager": "باز کردن در تب", "proSettings": "تنظیمات سافت‌۹۸ پرو",
+    "appearance": "ظاهر", "appearanceTheme": "حالت نمایش", "themeLight": "روشن", "themeDark": "تاریک",
+    "appearanceAccent": "رنگ رابط", "accent_default": "پیش‌فرض سافت‌۹۸ پرو", "accent_sky": "آبی آسمونی", "accent_orchid": "بنفش", "accent_amber": "کهربایی",
+    "appearanceRgb": "افکت RGB متحرک", "controlCenter": "مرکز کنترل", "controlCenterVisible": "نمایش در صفحه‌های سافت‌۹۸", "controlCenterSound": "صدای دکمه‌ها",
+    "appearanceSaveFailed": "تنظیمات ذخیره نشد.",
     "dateCalendar": "تقویم تاریخ‌ها", "calendarAuto": "خودکار (طبق زبان)", "calendarPersian": "شمسی", "calendarGregorian": "میلادی",
     "dateNow": "همین الان", "completedDate": "پایان دانلود", "calendarSaveFailed": "تنظیم تقویم ذخیره نشد.",
     "tableDirection": "جهت ستون‌های جدول بررسی", "columnsLtr": "از چپ به راست (پیش‌فرض)", "columnsRtl": "از راست به چپ", "directionSaveFailed": "جهت جدول ذخیره نشد.",

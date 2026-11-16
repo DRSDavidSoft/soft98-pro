@@ -398,7 +398,7 @@ async function verifyDownloadManager(client) {
   const part = (partNumber) => `${fixtures}Artwork.part0${partNumber}.rar`;
   const origin = "https://soft98.ir/software/example.html";
   const result = await client.send("Page.addScriptToEvaluateOnNewDocument", { source: `
-    if (location.pathname.endsWith("/downloads.html")) {
+    if (["/downloads.html", "/popup.html"].some(path => location.pathname.endsWith(path))) {
       if (location.search === "?fa=1") {
         Object.defineProperty(navigator, "language", { value: "fa-IR" });
         Object.defineProperty(navigator, "languages", { value: ["fa-IR"] });
@@ -411,6 +411,14 @@ async function verifyDownloadManager(client) {
       window.managerCommands = [];
       window.notificationReply = { ok: true };
       let externalAllowed = false;
+      const appearanceKey = "soft98AdBlockerSettings";
+      const storageListeners = [];
+      const appearance = () => JSON.parse(sessionStorage.getItem("fixtureAppearance") || "{}");
+      window.externalAppearance = next => {
+        const oldValue = appearance();
+        sessionStorage.setItem("fixtureAppearance", JSON.stringify(next));
+        for (const listen of storageListeners) listen({ [appearanceKey]: { oldValue, newValue: next } }, "local");
+      };
       window.setManagerJob = (id, changes) => {
         Object.assign(state.jobs.find(job => job.id === id), changes);
         document.dispatchEvent(new Event("visibilitychange"));
@@ -421,9 +429,14 @@ async function verifyDownloadManager(client) {
       };
       window.browser = {
         storage: { local: {
-          get: async key => ({ [key]: sessionStorage.getItem(key) || undefined }),
-          set: async values => { for (const [key, value] of Object.entries(values)) sessionStorage.setItem(key, value); },
-        }, onChanged: { addListener() {} } },
+          get: async key => ({ [key]: key === appearanceKey ? appearance() : sessionStorage.getItem(key) || undefined }),
+          set: async values => {
+            for (const [key, value] of Object.entries(values)) {
+              if (key === appearanceKey) externalAppearance(value);
+              else sessionStorage.setItem(key, value);
+            }
+          },
+        }, onChanged: { addListener(listener) { storageListeners.push(listener); } } },
         permissions: { request: async ({ origins }) => {
           managerCommands.push({ action: "grant", origins }); externalAllowed = true; return true;
         } },
@@ -431,6 +444,7 @@ async function verifyDownloadManager(client) {
         runtime: { sendMessage: async (message) => {
           managerCommands.push(message);
           if (message.type === "soft98:test-download-notification") return notificationReply;
+          if (message.action === "configure" && message.limit) state.limit = message.limit;
           if (message.type === "soft98:download-details") {
             const url = new URL(message.url);
             if (url.hostname === "external.example.test" && !externalAllowed) return { status: "permission", origin: url.origin + "/*" };
@@ -499,8 +513,47 @@ async function verifyDownloadManager(client) {
     })()`), true);
     await run('document.activeElement.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true }))');
     check("Escape returns focus to the menu button", await run('document.activeElement.matches(".job-menu")'), true);
+    await run('document.body.style.minHeight = "200vh"; scrollTo(0, 450); document.querySelector("#settings-tab").click()');
+    check("first visit to Settings starts at the top", await run("scrollY"), 0);
+    await run('document.querySelector("#queue-tab").click()');
+    check("switching back restores the queue scroll position", await run("scrollY"), 450);
+    await run('document.body.style.minHeight = ""; scrollTo(0, 0)');
     await run('document.querySelector("#settings-tab").click()');
     check("settings are routed and separated from the queue", await run('location.hash === "#settings" && document.querySelector("#queue-view").hidden && document.querySelector("#settings-view #limit") !== null'), true);
+    await until('!document.querySelector("#limit-trigger").disabled');
+    const pressSelect = key => run(`document.activeElement.dispatchEvent(new KeyboardEvent("keydown", { key: ${JSON.stringify(key)}, bubbles: true, cancelable: true }))`);
+    await run('document.querySelector("#limit-trigger").focus({ preventScroll: true })');
+    await delay(180);
+    await pressSelect("ArrowDown");
+    check("native select is replaced by a labeled combobox with one selected option", await run(`
+      document.querySelector("#limit").hidden && document.querySelector("#limit-trigger").getAttribute("role") === "combobox" &&
+      document.querySelector("#limit-choices").matches(":popover-open") &&
+      document.querySelector("#limit-choices [aria-selected=true] > span").textContent === "3"`), true);
+    await pressSelect("End");
+    await pressSelect("Escape");
+    check("Escape cancels navigation without a setting update", await run(`document.activeElement.id === "limit-trigger" &&
+      !document.querySelector("#limit-choices").matches(":popover-open") && document.querySelector("#limit").value === "3"`), true);
+    await run(`(() => {
+      const trigger = document.querySelector("#limit-trigger");
+      const press = key => trigger.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
+      press("Home");
+      if (trigger.getAttribute("aria-activedescendant") !== "limit-choices-0")
+        throw new Error("Home did not highlight the first parallel limit");
+      press("Enter");
+    })()`);
+    await until('managerCommands.some(message => message.action === "configure" && message.limit === 1)');
+    check("keyboard selection updates the visible label", await run('document.querySelector("#limit-value").textContent'), "1");
+    await run(`externalAppearance({ patchScripts: false });
+      document.querySelector('[name=darkDesign][value=light]').click();
+      document.querySelector('[name=accentColor][value=orchid]').click();`);
+    await until('document.documentElement.dataset.theme === "light" && document.documentElement.dataset.s98pAccent === "orchid"');
+    check("saving appearance preserves unrelated settings", await run('JSON.parse(sessionStorage.fixtureAppearance).patchScripts'), false);
+    await run('document.querySelector("#appearance-rgb").click(); document.querySelector("#control-center-visible").click()');
+    await until('document.documentElement.dataset.theme === "rgb" && JSON.parse(sessionStorage.fixtureAppearance).controlCenter === false');
+    await run('document.querySelector("[name=darkDesign][value=light]").click()');
+    await until('document.documentElement.dataset.theme === "light" && !document.querySelector("#appearance-rgb").checked');
+    await run('externalAppearance({ darkDesign: true, controlCenter: true })');
+    check("changes from other extension views update the controls", await run('document.documentElement.dataset.theme === "dark" && document.querySelector("#control-center-visible").checked'), true);
     const alertFeedback = 'document.getElementById("feedback")';
     const sendTestAlert = 'document.getElementById("test-notification").click()';
     await run(`${sendTestAlert}; ${sendTestAlert}`);
@@ -694,15 +747,70 @@ async function verifyDownloadManager(client) {
     await until('document.querySelector("#probe-import").dataset.label === "allowDetails" && !document.querySelector("#probe-import").disabled');
     await run('document.querySelector("#probe-import").click()');
     await until('document.querySelector("#import-links [data-icon=device-mobile]") && document.querySelector("#import-links .import-size").textContent.includes("950 B")');
+    await run('document.querySelector("#import-type-trigger").click()');
+    check("review file-type popup follows the RTL dialog and its live options", await run(`(() => {
+      const list = document.querySelector("#import-type-choices");
+      const box = list.getBoundingClientRect();
+      return list.matches(":popover-open") && getComputedStyle(list).direction === "rtl" &&
+        box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight && list.children.length === 2;
+    })()`), true);
     check("only the missing external origin is requested", await run('managerCommands.find(message => message.action === "grant")?.origins.join(",")'), "https://external.example.test/*");
     await run('document.querySelector("#close-import").click(); setManagerJob("part1", { name: "download", mime: "application/pdf" })');
     await until('document.querySelector(".job[data-id=part1] [data-icon=file-type-pdf]")');
     await run("emptyManagerQueue()");
     await until('document.querySelector("#counts").hidden && !document.querySelector(".job")');
     check("empty queue has no counters or pause control", await run('document.querySelector("#hold").hidden && document.querySelector("#notice").textContent === ""'), true);
+    await client.send("Emulation.setDeviceMetricsOverride", { width: 464, height: 520, deviceScaleFactor: 1, mobile: false });
+    await client.send("Page.navigate", { url: page + "/dist/chromium/popup.html?fa=1" });
+    await until('document.querySelector("#queue-tab svg") && !document.querySelector("#limit-trigger").disabled');
+    const measurements = 'JSON.stringify([document.body.clientHeight, document.querySelector(".masthead").offsetHeight, ...[...document.querySelectorAll("#manager-nav a")].map(tab => tab.offsetWidth)])';
+    const popupQueue = await run(measurements);
+    await run('document.querySelector("#settings-tab").click()');
+    check("switching views cannot resize the popup or its navigation", await run(measurements), popupQueue);
   } finally {
     await client.send("Page.removeScriptToEvaluateOnNewDocument", { identifier: result.identifier });
     await client.send("Emulation.clearDeviceMetricsOverride");
+  }
+}
+
+async function verifyAppearanceBridge(client) {
+  const runtime = fs.readFileSync(path.join(ROOT, "dist", "chromium", "assets", "runtime.page.js"), "utf8");
+  const { identifier } = await client.send("Page.addScriptToEvaluateOnNewDocument", { source: runtime });
+  const check = (label, value) => assertEqual("appearance bridge", label, value, true);
+  let previous;
+  const send = settings => evaluate(client, `(() => {
+    document.documentElement.setAttribute("data-soft98-pro-settings", encodeURIComponent(JSON.stringify(${JSON.stringify(settings)})));
+    document.dispatchEvent(new Event("soft98-pro:settings-received"));
+  })()`);
+  try {
+    await client.send("Page.navigate", { url: `http://127.0.0.1:${PORT}/test/appearance.html` });
+    for (let attempt = 0; attempt < 35; attempt++) {
+      if (await evaluate(client, 'location.pathname === "/test/appearance.html" && !!document.getElementById("soft98-pro-control")').catch(() => false)) break;
+      if (attempt === 34) throw new Error("The extension appearance fixture did not load");
+      await delay(80);
+    }
+    previous = await evaluate(client, 'localStorage.getItem("soft98-ad-blocker.settings")');
+    await send({ darkDesign: false, accentColor: "orchid", controlCenter: false });
+    check("settings cross the bridge without inline scripts", await evaluate(client, `(() => {
+      const root = document.documentElement;
+      const center = document.getElementById("soft98-pro-control");
+      return root.classList.contains("soft98-pro-light") && center.hidden &&
+        getComputedStyle(root).getPropertyValue("--s98p-accent").trim() === "#783db1" &&
+        getComputedStyle(center).getPropertyValue("--c-accent").trim() === "#783db1";
+    })()`));
+    await send({ darkDesign: false, rgbMode: true, accentColor: "orchid", controlCenter: true });
+    check("RGB uses its own accent and restores the launcher", await evaluate(client, `
+      document.documentElement.classList.contains("soft98-pro-rgb") &&
+      !document.getElementById("soft98-pro-control").hidden &&
+      document.getElementById("soft98-pro-control").dataset.theme === "rgb"`));
+    await send({ darkDesign: false, controlCenter: true });
+    check("the default palette and light theme can be restored", await evaluate(client, `
+      !document.documentElement.hasAttribute("data-s98p-accent") &&
+      document.documentElement.classList.contains("soft98-pro-light")`));
+  } finally {
+    if (previous !== undefined) await evaluate(client, previous === null ? 'localStorage.removeItem("soft98-ad-blocker.settings")' :
+      `localStorage.setItem("soft98-ad-blocker.settings", ${JSON.stringify(previous)})`);
+    await client.send("Page.removeScriptToEvaluateOnNewDocument", { identifier });
   }
 }
 
@@ -1895,6 +2003,7 @@ async function main() {
     }
     await verifyFileActions(client);
     await verifyDownloadManager(client);
+    await verifyAppearanceBridge(client);
     await verifyWideLayout(client);
     await verifyTopbar(client);
     await verifyLinkdoni(client);

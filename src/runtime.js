@@ -33,6 +33,7 @@
   const LISTING_NAVIGATION_CSS = __SOFT98_LISTING_NAVIGATION_CSS__;
   const COMMENTS_CSS = __SOFT98_COMMENTS_CSS__;
   const CHROME_CSS = __SOFT98_CHROME_CSS__;
+  const APPEARANCE_CSS = __SOFT98_APPEARANCE_CSS__;
   const LINKDONI_CSS = __SOFT98_LINKDONI_CSS__;
   const EARLY_ADS_CSS = __SOFT98_EARLY_ADS_CSS__;
   const comments = Soft98Comments.create(document);
@@ -278,6 +279,15 @@
     renderControlPanel();
     syncSuccessEnhancements();
     schedule(document);
+  }
+
+  function receiveExtensionSettings() {
+    try {
+      const value = document.documentElement.getAttribute("data-soft98-pro-settings");
+      if (!value) return;
+      const next = JSON.parse(decodeURIComponent(value));
+      if (next && typeof next === "object" && !Array.isArray(next)) writeSettings(next, { sync: false });
+    } catch (_error) {}
   }
 
   function safeConsole(level, ...args) {
@@ -1080,6 +1090,11 @@
 
   function installProStyle() {
     const active = settings.pro;
+    const accent = settings.accentColor;
+    if (["sky", "orchid", "amber"].includes(accent)) document.documentElement.dataset.s98pAccent = accent;
+    else document.documentElement.removeAttribute("data-s98p-accent");
+    if (accent && accent !== "default" && !persistentStyles.has("soft98-pro-appearance"))
+      setPersistentStyle("soft98-pro-appearance", APPEARANCE_CSS);
     document.documentElement.classList.toggle("soft98-pro-theme", active);
     document.documentElement.classList.toggle("soft98-pro-light", active && !settings.darkDesign && !settings.rgbMode);
     document.documentElement.classList.toggle("soft98-pro-rgb", active && settings.rgbMode);
@@ -4697,6 +4712,8 @@
   }
 
   function syncControlSettings(wrap) {
+    if (settings.controlCenter === false && wrap.dataset.open === "true") controlPanel?.close();
+    wrap.hidden = settings.controlCenter === false;
     wrap.dataset.theme = settings.rgbMode && settings.pro ? "rgb" : settings.darkDesign && settings.pro ? "dark" : "light";
     const brand = wrap.dataset.theme === "light" ? BRAND_ASSETS.light : BRAND_ASSETS.pirateDark;
     if (brand) {
@@ -4878,6 +4895,7 @@
     const style = document.createElement("style");
     style.textContent = `
       #soft98-pro-control{--c-bg:rgba(246,250,251,.985);--c-bg-soft:#e7f0f2;--c-bg-raised:#fff;--c-border:#9ebac2;--c-border-soft:#ccdde1;--c-text:#11232a;--c-muted:#526b74;--c-accent:#087a63;--c-accent-2:#a56b13;--c-accent-soft:rgba(8,122,99,.11);--c-danger:#b84152;position:fixed;z-index:2147483647;width:42px;height:42px;direction:ltr;font-family:inherit!important;font-size:13px;line-height:1.6;font-weight:400;color:var(--c-text);letter-spacing:0;isolation:isolate}
+      #soft98-pro-control[hidden]{display:none!important}
       #soft98-pro-control[data-theme=dark],#soft98-pro-control[data-theme=rgb]{--c-bg:rgba(5,10,14,.985);--c-bg-soft:#0d1a21;--c-bg-raised:#14252d;--c-border:#41616c;--c-border-soft:#203943;--c-text:#f3f8f9;--c-muted:#a6bbc1;--c-accent:#70e1b2;--c-accent-2:#e0bd70;--c-accent-soft:rgba(112,225,178,.12);--c-danger:#ff8796}
       #soft98-pro-control[data-theme=rgb]{--c-bg:rgba(2,3,4,.99);--c-bg-soft:#07090a;--c-bg-raised:#0c0f10;--c-border:color-mix(in srgb,var(--c-accent) 75%,#24292c);--c-border-soft:#24292c;--c-text:#d9dee0;--c-muted:#a1aab0;--c-accent:var(--s98p-neon,#70e1b2);--c-accent-2:var(--s98p-neon-2,#8c9bff);--c-accent-soft:color-mix(in srgb,var(--c-accent) 17%,transparent)}
       #soft98-pro-control[data-theme=light]{color-scheme:light;--c-bg:#f5f9ff;--c-bg-soft:#e7efff;--c-bg-raised:#fff;--c-border:#9fb9eb;--c-border-soft:#d4e2f7;--c-text:#14284a;--c-muted:#3f587d;--c-accent:#165bd3;--c-accent-2:#087752;--c-accent-soft:#dceaff;--c-danger:#a6294b}
@@ -5145,6 +5163,7 @@
       menuTrigger = null;
     };
     const setOpen = (open, moveFocus = false) => {
+      if (open && settings.controlCenter === false) return;
       if (!open) hidePreview();
       closeMenu();
       const changing = open !== (wrap.dataset.open === "true");
@@ -5447,7 +5466,7 @@
     window.visualViewport?.addEventListener("resize", refreshViewport, { signal });
     window.visualViewport?.addEventListener("scroll", { handleEvent: refreshViewport }, { signal });
     document.body.appendChild(wrap);
-    controlPanel = { wrap, form, abort, open: () => setOpen(true) };
+    controlPanel = { wrap, form, abort, open: () => setOpen(true), close: () => setOpen(false) };
     updateLauncher();
     layout();
     if (wasOpen) setOpen(true);
@@ -6062,6 +6081,7 @@
     window.addEventListener("soft98-pro:compatibility", receiveExtensionCompatibility);
     window.addEventListener("soft98-pro:upstream-payload", receiveExtensionPatchedScript);
     if (IS_EXTENSION) {
+      document.addEventListener("soft98-pro:settings-received", receiveExtensionSettings);
       installFileActions();
       window.__Soft98AdBlockerExtension = true;
       document.documentElement.setAttribute("data-soft98-ad-blocker", VERSION);
@@ -6092,6 +6112,7 @@
     schedule(document);
     installObserver();
     document.documentElement.setAttribute("data-soft98-runtime-ready", VERSION);
+    if (IS_EXTENSION) receiveExtensionSettings();
     onReady(() => {
       renderControlPanel();
       inspectPageScripts();

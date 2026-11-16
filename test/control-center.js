@@ -22,6 +22,7 @@ const substitutions = {
   LISTING_NAVIGATION_CSS: '""',
   COMMENTS_CSS: '""',
   CHROME_CSS: '""',
+  APPEARANCE_CSS: JSON.stringify(source("src/appearance.css")),
   LINKDONI_CSS: '""',
   EARLY_ADS_CSS: '""',
   OPTION_PREVIEWS: JSON.stringify({ rgbMode: { files: ["dark-on.webp", "rgb.webp", "rgb-still.webp"].map((file) =>

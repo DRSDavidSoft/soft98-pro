@@ -50,15 +50,7 @@
     document.documentElement.setAttribute("data-soft98-pro-settings", encodeURIComponent(JSON.stringify(merged)));
     document.documentElement.toggleAttribute("data-soft98-pro-ads-off", !merged.blockAds);
     sendRuntime({ type: "soft98:set-interception", enabled: merged.patchScripts });
-    inject(`
-      try {
-        localStorage.setItem(${JSON.stringify(PAGE_STORAGE_KEY)}, ${JSON.stringify(JSON.stringify(merged))});
-        if (window.Soft98AdBlocker && window.Soft98AdBlocker.configure) {
-          window.Soft98AdBlocker.configure(${JSON.stringify(merged)}, { sync: false });
-          window.Soft98AdBlocker.scan();
-        }
-      } catch (_) {}
-    `);
+    document.dispatchEvent(new Event("soft98-pro:settings-received"));
   }
 
   function sendRuntime(message, callback) {

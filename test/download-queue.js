@@ -108,7 +108,8 @@ test("both built extensions package the internal manager without exposing it to 
     assert.match(read("options.html"), /href="downloads\.html"/);
     assert.match(read("downloads.html"), /src="downloads\.js"/);
     assert.doesNotMatch(read("downloads.html"), /<textarea/i);
-    for (const file of ["downloads.js", "download-links.js", "download-import.js", "download-view.js"]) new Script(read(file), { filename: file });
+    for (const file of ["downloads.js", "download-links.js", "download-import.js", "download-view.js", "download-select.js"])
+      new Script(read(file), { filename: file });
     assert.doesNotMatch(read("downloads.js"), /__SOFT98_DOWNLOAD_(MESSAGES|ICONS)__/);
     assert.match(read("assets/background.js"), /soft98:downloads/);
     assert.doesNotMatch(read("assets/bridge.js"), /["']soft98:downloads["']/);
@@ -571,6 +572,16 @@ async function verifyNativeQueue(browser, chromium) {
       document.querySelector("#expand-manager").getClientRects().length === 1 &&
       document.querySelector(".masthead button#open-guide").getClientRects().length === 1 &&
       document.documentElement.scrollWidth <= innerWidth`), true);
+    assert.equal(await evaluate(`
+      const height = document.body.clientHeight;
+      document.getElementById("settings-tab").click();
+      document.getElementById("limit-trigger").click();
+      return document.body.clientHeight === height && document.getElementById("limit").hidden &&
+        document.getElementById("limit-choices").matches(":popover-open")
+    `), true);
+    await evaluate(`document.querySelector("#limit-choices [role=option]").click()`);
+    await until(() => evaluate(`return (typeof browser !== "undefined" ? browser : chrome).storage.local.get("soft98DownloadQueue")
+      .then(({ soft98DownloadQueue }) => soft98DownloadQueue?.limit === 1)`), "custom popup selection persists");
     console.log(`${browser} ${capabilities.browserVersion}: native queue, file bytes, HTML handling, and narrow layout verified`);
   } finally {
     if (session) await webdriver("DELETE", session).catch(() => {});

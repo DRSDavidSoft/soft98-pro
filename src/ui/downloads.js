@@ -259,10 +259,11 @@
     $("limit").disabled = !state;
     $("native-notifications").disabled = !state;
     if (!state) return;
-    if ($("limit").options.length !== state.maxParallel) {
-      for (let index = 1; index <= state.maxParallel; index += 1) $("limit").append(option(index, number.format(index)));
-    }
+    if ($("limit").options.length !== state.maxParallel)
+      $("limit").replaceChildren(...Array.from({ length: state.maxParallel }, (_, index) => option(index + 1, number.format(index + 1))));
     $("limit").value = state.limit;
+    selectControls.sync($("limit"));
+    selectControls.sync($("filter"));
     $("native-notifications").checked = state.notifications !== false;
     $("clear").disabled = !state.jobs.some((job) => states.finished.has(job.status) && !(job.status === "interrupted" && job.resumable));
     buttonContent(hold, state.held ? "unhold" : "hold", state.held ? "player-play" : "player-pause");
@@ -334,6 +335,67 @@
   function report(message, error = false) {
     $("feedback").textContent = message;
     $("feedback").dataset.error = String(error);
+  }
+
+  function initializeAppearance() {
+    const panel = $("appearance-settings");
+    function choice(group, name, value, label, icon) {
+      const item = document.createElement("label");
+      const input = document.createElement("input");
+      input.type = "radio";
+      input.name = name;
+      input.value = value;
+      input.className = "visually-hidden";
+      const face = document.createElement("span");
+      const mark = document.createElement("span");
+      setIcon(mark, icon);
+      face.append(mark);
+      if (name === "accentColor") {
+        item.title = text(label);
+        if (value !== "default") item.dataset.s98pAccent = value;
+        face.className = "accent-sample";
+        const title = document.createElement("span");
+        title.className = "visually-hidden";
+        title.textContent = text(label);
+        face.append(title);
+      } else face.append(text(label));
+      item.append(input, face);
+      $(group).append(item);
+    }
+
+    choice("appearance-theme", "darkDesign", "light", "themeLight", "sun");
+    choice("appearance-theme", "darkDesign", "dark", "themeDark", "moon");
+    for (const accent of Soft98Theme.accents) choice("appearance-accent", "accentColor", accent, "accent_" + accent, "check");
+
+    let current = {}, pending = Promise.resolve(), revision = 0;
+    const apply = (settings) => {
+      const mode = settings.darkDesign === false ? "light" : "dark";
+      for (const choice of panel.querySelectorAll("[name=darkDesign]")) choice.checked = !settings.rgbMode && choice.value === mode;
+      const accent = Soft98Theme.accents.includes(settings.accentColor) ? settings.accentColor : "default";
+      panel.querySelector('[name=accentColor][value=' + accent + ']').checked = true;
+      $("appearance-rgb").checked = Boolean(settings.rgbMode);
+      $("control-center-visible").checked = settings.controlCenter !== false;
+      $("control-center-sound").checked = Boolean(settings.soundFeedback);
+    };
+    Soft98Theme.observe(settings => { current = settings; apply(settings); });
+    panel.addEventListener("change", ({ target }) => {
+      const { name, checked, value } = target;
+      if (!["darkDesign", "accentColor", "rgbMode", "controlCenter", "soundFeedback"].includes(name) ||
+          (target.type === "radio" && !checked)) return;
+      const patch = name === "darkDesign" ? { darkDesign: value === "dark", rgbMode: false } :
+        { [name]: name === "accentColor" ? value : checked };
+      const change = ++revision;
+      pending = pending.then(async () => {
+        const key = Soft98Theme.key;
+        const stored = await localStorageCall("get", key);
+        await localStorageCall("set", { [key]: { ...stored?.[key], ...patch } });
+        if (revision === change) report("");
+      }).catch(() => {
+        if (revision !== change) return;
+        apply(current);
+        report(text("appearanceSaveFailed"), true);
+      });
+    });
   }
 
   async function request(action, payload = {}) {
@@ -412,6 +474,7 @@
   function applyCalendar(value) {
     calendar = dates.setCalendar(value);
     $("date-calendar").value = calendar;
+    selectControls.sync($("date-calendar"));
     refreshDates();
   }
 
@@ -430,6 +493,7 @@
   function applyDirection(value) {
     direction = value === "rtl" ? "rtl" : "ltr";
     $("table-direction").value = direction;
+    selectControls.sync($("table-direction"));
     review.setDirection(direction);
   }
 
@@ -513,8 +577,9 @@
   $("search").placeholder = text("search");
   $("empty").textContent = text("loading");
   setIcon($("empty-icon"), "download");
+  const selectControls = createDownloadSelects(setIcon);
   const view = Soft98DownloadView.create({
-    text, buttonContent,
+    text, buttonContent, closeSelect: selectControls.close,
     async importToken(token) {
       try {
         const response = await send({ type: "soft98:download-prefill", token });
@@ -573,7 +638,9 @@
   $("hold").addEventListener("click", event => {
     if (!event.currentTarget.hidden) void request("configure", { held: !state?.held });
   });
-  $("limit").addEventListener("change", () => request("configure", { limit: Number($("limit").value) }));
+  $("limit").addEventListener("change", async () => {
+    if (!await request("configure", { limit: Number($("limit").value) })) render();
+  });
   $("native-notifications").addEventListener("change", async (event) => {
     if (!await request("configure", { notifications: event.target.checked })) render();
   });
@@ -629,6 +696,7 @@
   });
   setInterval(() => { if (!document.hidden) refreshDates(); }, 30000);
   async function initialize() {
+    initializeAppearance();
     void initializeCalendar();
     void initializeDirection();
     view.route();

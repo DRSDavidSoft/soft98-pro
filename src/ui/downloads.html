@@ -41,7 +41,7 @@
         </header>
         <div class="filters">
           <label class="search"><span class="visually-hidden" data-copy="search"></span><input id="search" type="search"></label>
-          <label><span class="visually-hidden" data-copy="filter"></span><select id="filter"></select></label>
+          <label class="visually-hidden" for="filter" data-copy="filter"></label><select id="filter"></select>
         </div>
         <p id="notice" role="status"></p>
         <ul id="jobs" class="jobs"></ul>
@@ -53,6 +53,22 @@
       </section>
       <section id="settings-view" class="settings" aria-labelledby="settings-title" hidden>
         <h2 id="settings-title" data-copy="settings"></h2>
+        <div id="appearance-settings" class="settings-group">
+          <h3 data-copy="appearance"></h3>
+          <div class="setting-row">
+            <span id="theme-label" data-copy="appearanceTheme"></span>
+            <div id="appearance-theme" class="segmented" role="group" aria-labelledby="theme-label"></div>
+          </div>
+          <div class="setting-row">
+            <span id="accent-label" data-copy="appearanceAccent"></span>
+            <div id="appearance-accent" class="accent-swatches" role="group" aria-labelledby="accent-label"></div>
+          </div>
+          <div class="setting-row"><label for="appearance-rgb" data-copy="appearanceRgb"></label><input id="appearance-rgb" name="rgbMode" type="checkbox" role="switch"></div>
+          <h3 data-copy="controlCenter"></h3>
+          <div class="setting-row"><label for="control-center-visible" data-copy="controlCenterVisible"></label><input id="control-center-visible" name="controlCenter" type="checkbox" role="switch"></div>
+          <div class="setting-row"><label for="control-center-sound" data-copy="controlCenterSound"></label><input id="control-center-sound" name="soundFeedback" type="checkbox" role="switch"></div>
+        </div>
+        <h3 data-copy="title"></h3>
         <div class="setting-row"><label for="limit" data-copy="parallel"></label><select id="limit" disabled></select></div>
         <div class="setting-row">
           <label for="native-notifications" data-copy="nativeNotifications"></label>
@@ -128,6 +144,7 @@
     <div id="manager-menu" class="context-menu" role="menu" popover="manual"></div>
     <script src="download-links.js"></script>
     <script src="download-view.js"></script>
+    <script src="download-select.js"></script>
     <script src="download-import.js"></script>
     <script src="downloads.js"></script>
   </body>

@@ -171,6 +171,7 @@ function sourceReplacements(target) {
     __SOFT98_CHROME_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "chrome.css"), "utf8")
       .replace(/__CALLOUT_ICON_(info|quote|alertTriangle|check)__/g, (_, icon) =>
         `data:image/svg+xml;base64,${Buffer.from(PAGE_ICONS[icon]).toString("base64")}`)),
+    __SOFT98_APPEARANCE_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "appearance.css"), "utf8")),
     __SOFT98_LINKDONI_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "linkdoni.css"), "utf8").replace(
       "__SOFT98_LINKDONI_FONT__", "data:font/woff2;base64," +
       fs.readFileSync(path.join(VAZIRMATN_ROOT, "files", "vazirmatn-arabic-wght-normal.woff2")).toString("base64"))),
@@ -323,7 +324,7 @@ function copyUi(target) {
   if (JSON.stringify(Object.keys(catalog.en).sort()) !== JSON.stringify(Object.keys(catalog.fa).sort())) throw new Error("Download catalogs must have identical keys");
   const icons = Object.fromEntries(["download", "plus", "player-play", "player-pause", "x", "rotate-clockwise", "folder-open", "trash", "file-upload", "clipboard", "list-details", "settings", "dots", "external-link", "file", "file-zip", "file-text", "photo", "video", "music", "package", "link", "square-check", "square", "help-circle",
     "chevron-down", "tag", "database", "calendar", "grip-vertical", "sort-ascending", "sort-descending", "arrow-left", "arrow-right",
-    "file-type-pdf", "table", "presentation", "terminal-2", "disc", "code", "device-mobile", "lock-open", "bell"].map((name) => [name,
+    "file-type-pdf", "table", "presentation", "terminal-2", "disc", "code", "device-mobile", "lock-open", "bell", "check", "sun", "moon"].map((name) => [name,
     fs.readFileSync(path.join(TABLER_ROOT, "icons", "outline", `${name}.svg`), "utf8")]));
   for (const file of ["options.html", "options.js", "styles.css"]) {
     const from = path.join(SRC, "ui", file);
@@ -340,9 +341,10 @@ function copyUi(target) {
       copyFile(from, to);
     }
   }
-  for (const file of ["downloads.html", "downloads.css", "downloads-link.css", "download-import.js", "download-view.js", "download-manager.svg", "typography.css", "theme.js", "theme.css"]) {
+  for (const file of ["downloads.html", "downloads.css", "downloads-link.css", "download-import.js", "download-view.js", "download-select.js", "download-manager.svg", "typography.css", "theme.js", "theme.css"]) {
     copyFile(path.join(SRC, "ui", file), path.join(target, file));
   }
+  copyFile(path.join(SRC, "appearance.css"), path.join(target, "appearance.css"));
   const managerPage = fs.readFileSync(path.join(SRC, "ui", "downloads.html"), "utf8");
   fs.writeFileSync(path.join(target, "popup.html"), managerPage.replace('<html lang="en">', '<html lang="en" data-compact-popup>'), "utf8");
   copyFile(path.join(SRC, "download-links.js"), path.join(target, "download-links.js"));

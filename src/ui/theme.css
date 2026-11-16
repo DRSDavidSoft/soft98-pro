@@ -1,3 +1,5 @@
+@import url("appearance.css");
+
 :root {
   color-scheme: dark;
   --page: #101518;
@@ -37,3 +39,31 @@
   --page-top: #f7fbff;
   --edge: #8ca8bf;
 }
+
+:root[data-s98p-accent]:not([data-theme="rgb"]) {
+  --mint: var(--s98p-choice-dark);
+  --mint-hover: color-mix(in srgb,var(--mint) 75%,white);
+  --sky: var(--mint);
+}
+
+:root[data-s98p-accent][data-theme="light"] {
+  --mint: var(--s98p-choice-light);
+  --mint-hover: color-mix(in srgb,var(--mint) 80%,black);
+}
+
+@property --s98p-ui-hue { syntax: "<angle>"; inherits: true; initial-value: 155deg; }
+:root[data-theme="rgb"] {
+  --page: #0a0b0d;
+  --panel: #111417;
+  --field: #0b0e10;
+  --button: #1c2328;
+  --button-hover: #252e36;
+  --mint: hsl(var(--s98p-ui-hue) 85% 72%);
+  --sky: var(--mint);
+  --mint-hover: hsl(var(--s98p-ui-hue) 92% 83%);
+  --mint-on: #101218;
+  --edge: color-mix(in srgb,var(--mint) 36%,var(--line));
+  animation: soft98-ui-rgb 16s linear infinite;
+}
+@keyframes soft98-ui-rgb { to { --s98p-ui-hue: 515deg; } }
+@media (prefers-reduced-motion: reduce) { :root[data-theme="rgb"] { animation: none; } }
