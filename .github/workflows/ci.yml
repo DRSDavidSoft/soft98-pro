@@ -43,7 +43,16 @@ jobs:
       - name: "🔐 Audit critical dependencies"
         run: npm audit --audit-level=critical
 
+      - name: "🌐 Install Chrome for Testing and ChromeDriver"
+        id: browser
+        uses: browser-actions/setup-chrome@39ce663831f86d2ea36cbda0a8143709cdfcc410 # v2.2.0
+        with:
+          install-chromedriver: true
+
       - name: "✅ Build and run acceptance suite"
+        env:
+          CHROME_PATH: ${{ steps.browser.outputs.chrome-path }}
+          SOFT98_QUEUE_CHROMEDRIVER: ${{ steps.browser.outputs.chromedriver-path }}
         run: npm run ci
 
       - name: "🧬 Verify PersianBlocker fixture"

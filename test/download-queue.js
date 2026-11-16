@@ -1,9 +1,11 @@
 "use strict";
 
 const assert = require("node:assert/strict");
+const { spawn } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 const { Script } = require("node:vm");
+const { once } = require("node:events");
 const { setTimeout: sleep } = require("node:timers/promises");
 const { test } = require("node:test");
 const { create, directUrl, articleFileUrl, relativeFilename, trustedSender } = require("../src/download-queue");
@@ -287,14 +289,46 @@ test("validation is atomic; never launches a job whose intent could not be persi
   assert.equal((await listing(q)).jobs.length, 0);
 });
 
-test("packaged Firefox queue uses native parallel downloads, pause, resume, and relative paths", { skip: !process.env.SOFT98_QUEUE_WEBDRIVER, timeout: 90000 }, async () => {
+async function startChromeDriver() {
+  const child = spawn(process.env.SOFT98_QUEUE_CHROMEDRIVER, ["--port=0"], { windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
+  const exited = once(child, "close").catch(() => {});
+  const stop = async () => { child.kill(); await exited; };
+  try {
+    const driver = await new Promise((resolve, reject) => {
+      let output = "";
+      const timer = setTimeout(() => reject(new Error("ChromeDriver did not start: " + output)), 10000);
+      function append(chunk) {
+        output = (output + chunk).slice(-4096);
+        const port = /started successfully on port (\d+)\./i.exec(output)?.[1];
+        if (!port) return;
+        clearTimeout(timer);
+        resolve(new URL(`http://127.0.0.1:${port}/`));
+      }
+      child.stdout.on("data", append);
+      child.stderr.on("data", append);
+      child.once("error", (error) => { clearTimeout(timer); reject(error); });
+      child.once("close", (code) => { clearTimeout(timer); reject(new Error(`ChromeDriver exited (${code}): ${output}`)); });
+    });
+    return { driver, stop };
+  } catch (error) {
+    await stop();
+    throw error;
+  }
+}
+
+for (const browser of ["Firefox", "Chromium"]) {
+  const chromium = browser === "Chromium";
+  const enabled = chromium ? process.env.SOFT98_QUEUE_CHROMEDRIVER : process.env.SOFT98_QUEUE_WEBDRIVER;
+  test(`packaged ${browser} queue uses native parallel downloads, pause, resume, and relative paths`,
+    { skip: !enabled, timeout: 100000 }, () => verifyNativeQueue(browser, chromium));
+}
+
+async function verifyNativeQueue(browser, chromium) {
   const http = require("node:http");
   const os = require("node:os");
   const fs = require("node:fs/promises");
-  const driver = new URL(process.env.SOFT98_QUEUE_WEBDRIVER);
-  assert.equal(driver.protocol, "http:");
-  assert.equal(driver.hostname, "127.0.0.1");
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "soft98-queue-test-"));
+  const temp = await fs.realpath(os.tmpdir());
+  const dir = await fs.mkdtemp(path.join(temp, "soft98-queue-test-"));
   const uuid = "af9b3c6c-35c1-47d1-977d-f4d6d78dea93";
   const requests = [];
   const bytes = Buffer.alloc(1 * 1024 * 1024, 0x47);
@@ -329,6 +363,7 @@ test("packaged Firefox queue uses native parallel downloads, pause, resume, and 
     }, 75);
     res.on("close", () => clearInterval(timer));
   });
+  let driver, stopDriver;
   async function webdriver(method, endpoint, payload) {
     const response = await fetch(new URL(endpoint, driver), { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload), redirect: "error", signal: AbortSignal.timeout(15000) });
     const { value } = await response.json();
@@ -337,17 +372,32 @@ test("packaged Firefox queue uses native parallel downloads, pause, resume, and 
   }
   let session;
   try {
+    if (chromium) ({ driver, stop: stopDriver } = await startChromeDriver());
+    else driver = new URL(process.env.SOFT98_QUEUE_WEBDRIVER);
+    assert.equal(driver.protocol, "http:");
+    assert.equal(driver.hostname, "127.0.0.1");
     await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
     const base = `http://127.0.0.1:${server.address().port}`;
-    const { sessionId, capabilities } = await webdriver("POST", "/session", {
-      capabilities: { alwaysMatch: { browserName: "firefox", "moz:firefoxOptions": { args: ["-headless"], prefs: {
+    const alwaysMatch = chromium ? {
+      browserName: "chrome",
+      "goog:chromeOptions": {
+        binary: process.env.SOFT98_QUEUE_CHROME || process.env.CHROME_PATH,
+        args: ["--headless", "--no-sandbox", "--no-proxy-server", "--window-size=1100,800",
+          `--load-extension=${path.join(DIST, "chromium")}`],
+        prefs: { "download.default_directory": dir, "download.prompt_for_download": false, "extensions.ui.developer_mode": true },
+        enableExtensionTargets: true,
+      },
+    } : {
+      browserName: "firefox",
+      "moz:firefoxOptions": { args: ["-headless"], prefs: {
         "network.proxy.type": 0,
         "browser.download.folderList": 2,
         "browser.download.dir": dir,
         "browser.download.useDownloadDir": true,
         "extensions.webextensions.uuids": JSON.stringify({ "soft98-pro@drsdavidsoft.github.io": uuid }),
-      } } } },
-    });
+      } },
+    };
+    const { sessionId, capabilities } = await webdriver("POST", "/session", { capabilities: { alwaysMatch } });
     session = `/session/${sessionId}`;
     const post = (route, body) => webdriver("POST", session + route, body);
     const evaluate = (script, ...args) => post("/execute/sync", { script, args });
@@ -360,11 +410,21 @@ test("packaged Firefox queue uses native parallel downloads, pause, resume, and 
       }
       assert.fail(`${label}: ${JSON.stringify(await inspect())}`);
     }
-    await post("/moz/addon/install", { path: path.join(DIST, "packages", `soft98-pro-firefox-${require("../package.json").version}.zip`), temporary: true });
-    const browserUrl = `moz-extension://${uuid}/downloads.html`;
-    await post("/moz/context", { context: "chrome" });
-    await evaluate("gBrowser.loadURI(Services.io.newURI(arguments[0]), { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() });", browserUrl);
-    await post("/moz/context", { context: "content" });
+    if (chromium) {
+      let origin;
+      await until(async () => {
+        const { targetInfos } = await post("/goog/cdp/execute", { cmd: "Target.getTargets", params: {} });
+        origin = targetInfos.map(({ url }) => /^chrome-extension:\/\/[a-p]{32}(?=\/assets\/background\.js$)/.exec(url)?.[0]).find(Boolean);
+        return origin;
+      }, "unpacked Chromium extension registered");
+      await post("/url", { url: origin + "/downloads.html" });
+    } else {
+      await post("/moz/addon/install", { path: path.join(DIST, "packages", `soft98-pro-firefox-${require("../package.json").version}.zip`), temporary: true });
+      const browserUrl = `moz-extension://${uuid}/downloads.html`;
+      await post("/moz/context", { context: "chrome" });
+      await evaluate("gBrowser.loadURI(Services.io.newURI(arguments[0]), { triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal() });", browserUrl);
+      await post("/moz/context", { context: "content" });
+    }
     await until(() => evaluate("return document.getElementById('limit')?.disabled === false"), "manager ready");
     await evaluate("const limit = document.getElementById('limit'); limit.value = '2'; limit.dispatchEvent(new Event('change')); ");
     await sleep(150);
@@ -389,19 +449,24 @@ test("packaged Firefox queue uses native parallel downloads, pause, resume, and 
     await until(async () => (await inspect())[0]?.status === "paused", "paused queue survives reload");
     await evaluate("document.querySelector('.job [data-action=resume]').click()");
     await until(async () => (await inspect()).length === 3 && (await inspect()).every((item) => item.status === "complete"), "resume finishes every file");
-    assert.ok(requests.some(({ name, offset }) => name === "one" && offset > 0), "native resume must continue from existing bytes");
+    const first = requests.filter(({ name }) => name === "one");
+    assert.equal(first.filter(({ offset }) => offset === 0).length, 1, "resume must not restart the file");
+    assert.ok(chromium || first.some(({ offset }) => offset > 0), "Firefox must resume with a Range request");
     assert.deepEqual(await fs.readFile(path.join(dir, "Tools", "one.bin")), bytes);
     assert.deepEqual(await fs.readFile(path.join(dir, "two.bin")), bytes);
+    assert.deepEqual(await fs.readFile(path.join(dir, "three.bin")), bytes);
     await submit(`${base}/confirm.html`);
     await until(async () => (await inspect()).at(-1)?.status === "review", "HTML verification is not retried");
     assert.equal(await evaluate("return document.querySelector('.job:last-child [data-action=retry]').hidden"), true);
     await post("/window/rect", { width: 490, height: 700 });
-    assert.equal(await evaluate("return document.documentElement.scrollWidth <= innerWidth"), true);
-    console.log(`Firefox ${capabilities.browserVersion}: native queue, file bytes, HTML handling, and narrow layout verified`);
+    assert.equal(await evaluate("return innerWidth <= 600 && document.documentElement.scrollWidth <= innerWidth"), true);
+    console.log(`${browser} ${capabilities.browserVersion}: native queue, file bytes, HTML handling, and narrow layout verified`);
   } finally {
     if (session) await webdriver("DELETE", session).catch(() => {});
+    await stopDriver?.();
     server.closeAllConnections();
     await new Promise((resolve) => server.close(resolve));
+    assert.equal(path.dirname(path.resolve(dir)), path.resolve(temp));
     await fs.rm(dir, { recursive: true, force: true });
   }
-});
+}
