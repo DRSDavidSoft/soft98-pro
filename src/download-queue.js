@@ -96,6 +96,7 @@ const Soft98DownloadQueue = (() => {
       return;
     }
     job.name = String(item.filename || "").split(/[/\\]/).pop().slice(0, 255);
+    job.mime = links.metadata({ mime: item.mime?.split(";")[0].trim().toLowerCase() })?.mime;
     job.bytes = Math.max(0, item.bytesReceived || 0);
     job.total = item.totalBytes >= 0 ? item.totalBytes : null;
     job.startedAt = Date.parse(item.startTime) || null;

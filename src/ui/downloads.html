@@ -56,6 +56,7 @@
         <div class="setting-row"><label for="limit" data-copy="parallel"></label><select id="limit" disabled></select></div>
         <div class="setting-row"><label for="native-notifications" data-copy="nativeNotifications"></label><input id="native-notifications" type="checkbox" disabled></div>
         <div class="setting-row"><label for="date-calendar" data-copy="dateCalendar"></label><select id="date-calendar" disabled></select></div>
+        <div class="setting-row"><label for="table-direction" data-copy="tableDirection"></label><select id="table-direction" disabled></select></div>
         <div class="setting-row"><span data-copy="history"></span><button id="clear" type="button" disabled></button></div>
       </section>
       <output id="feedback" role="status"></output>
@@ -81,13 +82,13 @@
           <button id="clear-import" type="button" data-copy="deselectAll"></button>
           <button id="probe-import" type="button"></button>
         </div>
-        <div class="import-grid" tabindex="0" role="region" aria-labelledby="import-title">
-          <table id="import-table">
+        <div class="import-grid" dir="ltr" tabindex="0" role="region" aria-labelledby="import-title">
+          <table id="import-table" dir="ltr">
             <colgroup><col class="checkbox-col"><col data-column="name"><col data-column="type"><col data-column="size"><col data-column="date"></colgroup>
             <thead><tr><th scope="col" aria-label="" id="check-column">✓</th><th scope="col" data-column="name"></th><th scope="col" data-column="type"></th><th scope="col" data-column="size"></th><th scope="col" data-column="date"></th></tr></thead>
             <tbody id="import-links"></tbody>
           </table>
-          <p id="import-empty" class="empty" data-copy="importEmpty"></p>
+          <p id="import-empty" class="empty" dir="auto" data-copy="importEmpty"></p>
         </div>
         <p id="import-notice" role="status"></p>
         <section class="import-save">

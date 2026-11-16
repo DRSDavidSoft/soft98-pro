@@ -368,9 +368,15 @@
       sendResponse(pending && pending.expires > Date.now() ? { urls: pending.urls, source: pending.source } : null);
       return false;
     }
-    if (message.type === Soft98DownloadQueue.CHANNEL) {
+    if (message.type === "soft98:download-details" || message.type === Soft98DownloadQueue.CHANNEL) {
       if (!Soft98DownloadQueue.trustedSender(sender, api.runtime.id, downloadPage) &&
           !Soft98DownloadQueue.trustedSender(sender, api.runtime.id, downloadPopup)) return false;
+      if (message.type === "soft98:download-details") {
+        Soft98DownloadProbe.inspect(message.url, {
+          allowed: (origin) => call(api.permissions, "contains", { origins: [origin] }),
+        }).then(sendResponse, () => sendResponse({ status: "unavailable" }));
+        return true;
+      }
       queue.request(message).then((state) => sendResponse({ ok: true, state }))
         .catch((error) => sendResponse({ ok: false, error: error.queueCode || "native-error" }));
       return true;

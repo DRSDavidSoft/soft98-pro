@@ -19,6 +19,13 @@ const Soft98DownloadLinks = (() => {
     } catch (_error) { return ""; }
   }
 
+  function fileType(name) {
+    if (!name) return "";
+    const part = MULTIPART.exec(name);
+    const suffix = part ? part[3] || part[4] || "" : /\.[a-z0-9]{1,8}$/i.exec(name)?.[0] || "";
+    return part && !suffix ? "PART" : suffix.slice(1).toUpperCase();
+  }
+
   function describe(url) {
     const { pathname, host } = new URL(url);
     const slash = pathname.lastIndexOf("/");
@@ -28,7 +35,7 @@ const Soft98DownloadLinks = (() => {
     const match = MULTIPART.exec(name);
     const suffix = match ? match[3] || match[4] || "" : /\.[a-z0-9]{1,8}$/i.exec(name)?.[0] || "";
     const group = match && match[1] ? { key: JSON.stringify([host, pathname.slice(0, slash), match[1], suffix.toLowerCase()]), name: match[1] + suffix, part: Number(match[2] || match[5]) } : null;
-    return { name, host, type: group && !suffix ? "PART" : suffix.slice(1).toUpperCase(), group };
+    return { name, host, type: pathname.endsWith("/") ? "" : fileType(name), group };
   }
 
   function parse(input) {
@@ -99,7 +106,7 @@ const Soft98DownloadLinks = (() => {
     return size !== undefined || date !== undefined || mime || type ? { size, date, mime, type } : undefined;
   }
 
-  return { MAX_BATCH, MAX_IMPORT, MAX_TEXT, normalize, describe, parse, headers, articleFile, declaredArticleLinks, metadata };
+  return { MAX_BATCH, MAX_IMPORT, MAX_TEXT, normalize, describe, fileType, parse, headers, articleFile, declaredArticleLinks, metadata };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = Soft98DownloadLinks;

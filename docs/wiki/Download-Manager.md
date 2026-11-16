@@ -16,7 +16,8 @@ Right-click a row for its available actions. Use **Shift+F10** from a focused ro
 - Drag a column header or its grip to reorder it. Right-click the header or open its grip menu to move it with the keyboard. Drag a divider to resize; its Left and Right arrow keys do the same.
 - Click anywhere on a file row to toggle its checkbox. Selected rows stay tinted while you review the list.
 - **Select visible** checks the filtered rows. It keeps earlier selections, even if those rows are now filtered out. **Clear selection** unchecks all rows. Review up to 120 candidates and submit up to 30 per batch.
-- Size, type, and last-modified date are checked automatically for selected links. **Fetch details** retries and may ask the browser for access to the selected sites. It sends HEAD requests without cookies or a referrer. Soft98's download CDN is covered automatically; cross-site restrictions, missing headers, or servers that reject HEAD can leave values unavailable without disabling the download.
+- Size, type, and last-modified date are checked automatically for selected links on Soft98's download hosts. For external download hosts, choose **Allow file details** and confirm access in the browser. The extension checks response headers without cookies or a referrer and can retry with a one-byte range when HEAD is unavailable. Missing details never prevent downloading.
+- The review table runs left to right by default, including in Persian. Choose **Settings → Review table direction** to change the column direction without changing the language.
 - **Save options** lets you request a save prompt or enter a relative path for a single file.
 
 ## Follow downloads

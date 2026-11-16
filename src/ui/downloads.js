@@ -13,6 +13,7 @@
   const durations = Object.fromEntries(["hour", "minute", "second"].map(unit =>
     [unit, new Intl.NumberFormat(locale, { style: "unit", unit, unitDisplay: "short" })]));
   const calendarKey = "soft98DownloadDateCalendar";
+  const directionKey = "soft98DownloadTableDirection";
   const dates = Soft98DownloadView.dates(locale, text);
   const states = {
     active: new Set(["starting", "resuming", "downloading"]),
@@ -31,6 +32,8 @@
   let timer;
   let calendar = "auto";
   let calendarRevision = 0;
+  let direction = "ltr";
+  let directionRevision = 0;
 
   function text(key, values = {}) {
     return (catalog[locale][key] || catalog.en[key] || catalog[locale]["native-error"])
@@ -162,8 +165,10 @@
       else nodes.open.before(nodes.name);
     }
     nodes.open.title = text("open");
-    const nameType = /\.([a-z][a-z0-9]{0,7})$/i.exec(name)?.[1];
-    setIcon(nodes.mark, Soft98DownloadView.fileIcon((job.name && nameType) || job.metadata?.type || file.type || nameType, job.metadata?.mime));
+    const nameType = Soft98DownloadLinks.fileType(job.name || job.filename?.split("/").at(-1));
+    const type = nameType || job.metadata?.type || (job.name && job.mime && Soft98DownloadView.fileIcon("", job.mime) !== "file" ? "" : file.type);
+    const mime = job.mime || job.metadata?.mime;
+    setIcon(nodes.mark, Soft98DownloadView.fileIcon(type, mime));
     nodes.state.textContent = text(job.manualStart ? "manual" : status);
     nodes.source.textContent = file.host;
     const source = Soft98DownloadLinks.normalize(job.source);
@@ -171,7 +176,7 @@
     if (source) nodes.origin.href = source;
     else nodes.origin.removeAttribute("href");
     const meta = job.metadata;
-    nodes.type.textContent = meta?.type || file.type || meta?.mime || "";
+    nodes.type.textContent = type || mime || "";
     nodes.size.textContent = meta?.size != null && meta.size !== job.total ? bytes(meta.size) : "";
     paintRowDates(job, nodes);
     for (const field of [nodes.type, nodes.size]) field.hidden = !field.textContent;
@@ -386,7 +391,7 @@
     });
   }
 
-  function dateStorage(method, value) {
+  function localStorageCall(method, value) {
     const storage = api.storage.local;
     if (usesPromises) return storage[method](value);
     return new Promise((resolve, reject) => storage[method](value, result => {
@@ -413,12 +418,28 @@
   async function initializeCalendar() {
     const revision = calendarRevision;
     try {
-      const settings = await dateStorage("get", calendarKey);
+      const settings = await localStorageCall("get", calendarKey);
       if (calendarRevision === revision) applyCalendar(settings?.[calendarKey]);
     } catch (_error) {
       // Keep Auto available if storage is temporarily unavailable.
     } finally {
       $("date-calendar").disabled = false;
+    }
+  }
+
+  function applyDirection(value) {
+    direction = value === "rtl" ? "rtl" : "ltr";
+    $("table-direction").value = direction;
+    review.setDirection(direction);
+  }
+
+  async function initializeDirection() {
+    const revision = directionRevision;
+    try {
+      const settings = await localStorageCall("get", directionKey);
+      if (directionRevision === revision) applyDirection(settings?.[directionKey]);
+    } catch (_error) {} finally {
+      $("table-direction").disabled = false;
     }
   }
 
@@ -503,7 +524,7 @@
     },
     highlight(job) { focusedJob = job; if (state) render(); },
   });
-  const review = createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, buttonContent, setIcon, request, view, copyLink, externalLink, dates });
+  const review = createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, buttonContent, setIcon, request, send, view, copyLink, externalLink, dates });
   for (const [value, label] of [["auto", "calendarAuto"], ["persian", "calendarPersian"], ["gregory", "calendarGregorian"]]) {
     $("date-calendar").append(option(value, text(label)));
   }
@@ -512,11 +533,26 @@
     const revision = ++calendarRevision;
     applyCalendar(event.target.value);
     try {
-      await dateStorage("set", { [calendarKey]: calendar });
+      await localStorageCall("set", { [calendarKey]: calendar });
     } catch (_error) {
       if (calendarRevision !== revision) return;
       applyCalendar(previous);
       report(text("calendarSaveFailed"), true);
+    }
+  });
+  for (const [value, label] of [["ltr", "columnsLtr"], ["rtl", "columnsRtl"]]) {
+    $("table-direction").append(option(value, text(label)));
+  }
+  $("table-direction").addEventListener("change", async event => {
+    const previous = direction;
+    const revision = ++directionRevision;
+    applyDirection(event.target.value);
+    try {
+      await localStorageCall("set", { [directionKey]: direction });
+    } catch (_error) {
+      if (directionRevision !== revision) return;
+      applyDirection(previous);
+      report(text("directionSaveFailed"), true);
     }
   });
   $("manager-nav").setAttribute("aria-label", text("managerPages"));
@@ -568,6 +604,10 @@
       calendarRevision++;
       if (changes[calendarKey].newValue !== calendar) applyCalendar(changes[calendarKey].newValue);
     }
+    if (changes[directionKey]) {
+      directionRevision++;
+      if (changes[directionKey].newValue !== direction) applyDirection(changes[directionKey].newValue);
+    }
   });
   document.addEventListener("visibilitychange", () => {
     refresh();
@@ -576,6 +616,7 @@
   setInterval(() => { if (!document.hidden) refreshDates(); }, 30000);
   async function initialize() {
     void initializeCalendar();
+    void initializeDirection();
     view.route();
     await request("list");
     refresh();

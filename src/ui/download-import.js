@@ -1,8 +1,8 @@
 "use strict";
 
-function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, buttonContent, setIcon, request, view, copyLink, externalLink, dates }) {
+function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, buttonContent, setIcon, request, send, view, copyLink, externalLink, dates }) {
   const $ = (id) => document.getElementById(id);
-  const { MAX_BATCH, MAX_IMPORT, MAX_TEXT, describe, headers, normalize, parse } = Soft98DownloadLinks;
+  const { MAX_BATCH, MAX_IMPORT, MAX_TEXT, describe, normalize, parse } = Soft98DownloadLinks;
   const dialog = $("import");
   const table = $("import-table");
   const headingRow = table.tHead.rows[0];
@@ -13,7 +13,7 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
   const defaultColumns = Object.keys(widths);
   const columnIcons = { name: "file", type: "tag", size: "database", date: "calendar" };
   const layoutKey = "soft98-pro.import-columns";
-  const rtl = locale === "fa";
+  const rtl = () => table.dir === "rtl";
   const collator = new Intl.Collator(locale, { numeric: true });
   let sort = { key: "name", direction: 1 };
   let columnOrder = defaultColumns;
@@ -70,6 +70,10 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
     $("import-notice").textContent = key ? text(key, values) : "";
   }
 
+  function needsFileAccess() {
+    return [...selected].some(url => candidates.get(url)?.probeStatus === "permission");
+  }
+
   function open() {
     if (!dialog.open) view.openImport();
     scheduleDetails();
@@ -119,6 +123,8 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
     $("import-count").textContent = text("selectionCount", { count: selected.size, total: candidates.size });
     $("add").disabled = !selected.size || submitting;
     $("probe-import").disabled = !selected.size || Boolean(probe);
+    const needsAccess = needsFileAccess();
+    buttonContent($("probe-import"), needsAccess ? "allowDetails" : "fetchDetails", needsAccess ? "lock-open" : "list-details");
     $("select-import").disabled = selected.size >= MAX_BATCH || !visibleRows().some(({ url }) => !selected.has(url));
     $("clear-import").disabled = !selected.size;
     $("filename").disabled = selected.size !== 1;
@@ -154,7 +160,8 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
       size.dir = row.size != null ? "ltr" : "auto";
       size.textContent = row.size != null ? bytes(row.size) : text("unavailable");
       paintDate(date, row.date);
-      size.parentElement.title = date.parentElement.title = row.probeFailed ? text("headersUnavailable") : "";
+      size.parentElement.title = date.parentElement.title = row.probeStatus === "permission" ? text("detailsNeedAccess") :
+        row.probeStatus === "unavailable" ? text("headersUnavailable") : "";
       if (tr === next) next = next.nextElementSibling;
       else body.insertBefore(tr, next);
     }
@@ -206,7 +213,7 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
   function columnMenu(event, th) {
     const { column: key } = th.dataset;
     const index = columnOrder.indexOf(key);
-    const moveLeft = rtl ? 1 : -1;
+    const moveLeft = rtl() ? 1 : -1;
     const choices = [
       { label: "sortAscending", icon: "sort-ascending", run: () => applySort(key, 1) },
       { label: "sortDescending", icon: "sort-descending", run: () => applySort(key, -1) },
@@ -232,6 +239,7 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
     order.setAttribute("data-column-drag", "");
     const icon = document.createElement("span");
     const label = document.createElement("span");
+    label.dir = "auto";
     label.textContent = text("column_" + key);
     setIcon(icon, columnIcons[key]);
     order.append(icon, label);
@@ -257,20 +265,20 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
     handle.setAttribute("aria-valuemin", "72");
     handle.setAttribute("aria-valuemax", "640");
     let anchor;
-    const dir = rtl ? -1 : 1;
+    const dir = () => rtl() ? -1 : 1;
     handle.addEventListener("pointerdown", (event) => {
       if (event.button !== 0) return;
       anchor = { x: event.clientX, width: widths[key] };
       handle.setPointerCapture(event.pointerId);
     });
     handle.addEventListener("pointermove", (event) => {
-      if (anchor) resize(key, anchor.width + dir * (event.clientX - anchor.x));
+      if (anchor) resize(key, anchor.width + dir() * (event.clientX - anchor.x));
     });
     handle.addEventListener("lostpointercapture", () => { anchor = null; });
     handle.addEventListener("keydown", (event) => {
       if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
       event.preventDefault();
-      resize(key, widths[key] + (event.key === "ArrowRight" ? 12 : -12) * dir);
+      resize(key, widths[key] + (event.key === "ArrowRight" ? 12 : -12) * dir());
     });
     th.append(controls, handle);
     resize(key, widths[key]);
@@ -291,7 +299,7 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
 
   function dropAfter(event, th) {
     const box = th.getBoundingClientRect();
-    return rtl ? event.clientX < box.left + box.width / 2 : event.clientX >= box.left + box.width / 2;
+    return rtl() ? event.clientX < box.left + box.width / 2 : event.clientX >= box.left + box.width / 2;
   }
 
   headingRow.addEventListener("pointerdown", event => {
@@ -349,17 +357,14 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
 
   async function fetchDetails(askPermission) {
     if (probe || !selected.size) return;
-    const entries = [...selected].map((url) => candidates.get(url)).filter((entry) => askPermission || !entry.probed);
+    const entries = [...selected].map((url) => candidates.get(url)).filter((entry) => askPermission || !entry.probeStatus);
     if (!entries.length) return;
-    const origins = [...new Set(entries.map(({ url }) => {
-      const { protocol, hostname } = new URL(url);
-      return `${protocol}//${hostname}/*`;
-    }))];
+    const origins = [...new Set(entries.map(entry => entry.permissionOrigin).filter(Boolean))];
     const controller = new AbortController();
     probe = controller;
     updateSelection();
     try {
-      if (askPermission && !await permissions(origins)) return notify("permissionDeclined");
+      if (askPermission && origins.length && !await permissions(origins)) return notify("permissionDeclined");
       if (controller.signal.aborted) return;
       if (askPermission) notify("fetchingDetails");
       let index = 0;
@@ -367,31 +372,30 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
       await Promise.all(Array.from({ length: Math.min(4, entries.length) }, async () => {
         while (index < entries.length && !controller.signal.aborted) {
           const entry = entries[index++];
-          const timeout = new AbortController();
-          const abort = () => timeout.abort();
-          const timer = setTimeout(abort, 6500);
-          controller.signal.addEventListener("abort", abort, { once: true });
-          try {
-            const response = await fetch(entry.url, { method: "HEAD", credentials: "omit", referrerPolicy: "no-referrer", signal: timeout.signal });
-            if (!response.ok) throw new Error("HEAD unavailable");
-            Object.assign(entry, headers(response.headers), { probeFailed: false });
-          } catch (_error) { if (!controller.signal.aborted) { entry.probeFailed = true; failed++; } }
-          finally {
-            if (!controller.signal.aborted) entry.probed = true;
-            clearTimeout(timer);
-            controller.signal.removeEventListener("abort", abort);
+          const result = await send({ type: "soft98:download-details", url: entry.url }).catch(() => null);
+          if (controller.signal.aborted) return;
+          entry.probeStatus = result?.status || "unavailable";
+          entry.permissionOrigin = result?.origin;
+          if (entry.probeStatus === "ok") {
+            entry.size = result.size;
+            entry.date = result.date;
+            entry.mime = result.mime;
+            entry.type = result.type || entry.type;
+          } else if (entry.probeStatus !== "permission") {
+            failed++;
           }
         }
       }));
       if (!controller.signal.aborted) {
         render();
-        if (askPermission || failed) notify(failed ? "detailsPartial" : "detailsDone", { count: failed });
+        if (entries.some(entry => entry.probeStatus === "permission")) notify("detailsNeedAccess");
+        else if (askPermission || failed) notify(failed ? "detailsPartial" : "detailsDone", { count: failed });
       }
     } catch (_error) { notify("permissionDeclined"); }
     finally {
       if (probe === controller) probe = null;
       updateSelection();
-      if ([...selected].some((url) => !candidates.get(url)?.probed)) scheduleDetails();
+      if ([...selected].some((url) => !candidates.get(url)?.probeStatus)) scheduleDetails();
     }
   }
 
@@ -422,7 +426,8 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
         { label: "copyLink", icon: "clipboard", group: "links", run: () => copyLink(url) },
         { label: "openLink", icon: "external-link", group: "links", run: () => externalLink(url) });
     }
-    for (const [id, label, icon] of [["select-import", "selectVisible", "square-check"], ["clear-import", "deselectAll", "square"], ["probe-import", "fetchDetails", "list-details"]]) {
+    const details = needsFileAccess() ? ["allowDetails", "lock-open"] : ["fetchDetails", "list-details"];
+    for (const [id, label, icon] of [["select-import", "selectVisible", "square-check"], ["clear-import", "deselectAll", "square"], ["probe-import", ...details]]) {
       if (!$(id).disabled) items.push({ label, icon, group: "table", run: () => $(id).click() });
     }
     view.showMenu(event, items, row?.querySelector("input") || event.target.closest("button") || dialog.querySelector(".import-grid"));
@@ -524,5 +529,8 @@ function createSoft98DownloadImport({ api, usesPromises, locale, text, bytes, bu
   $("check-column").setAttribute("aria-label", text("selection"));
   $("import-search").placeholder = text("search");
   render();
-  return { append, refreshDates, expired: () => notify("importExpired") };
+  return { append, refreshDates, setDirection(value) {
+    clearColumnDrag();
+    table.dir = grid.dir = value;
+  }, expired: () => notify("importExpired") };
 }

@@ -5,12 +5,20 @@ const Soft98DownloadView = (() => {
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 
   function fileIcon(type, mime = "") {
-    if (/^(ZIP|RAR|7Z|TAR|GZ|BZ2|XZ|ZST|PART|TGZ|GZIP)$/i.test(type)) return "file-zip";
-    if (/^(EXE|MSI|MSIX|DEB|RPM|APK|APPX|ISO|IMG|BIN|PKG|DMG)$/i.test(type)) return "package";
-    if (mime.startsWith("image/") || /^(PNG|JPE?G|GIF|WEBP|AVIF|SVG|ICO|BMP)$/i.test(type)) return "photo";
-    if (mime.startsWith("video/") || /^(MP4|MKV|WEBM|MOV|AVI)$/i.test(type)) return "video";
-    if (mime.startsWith("audio/") || /^(MP3|WAV|OGG|M4A|FLAC)$/i.test(type)) return "music";
-    if (mime.startsWith("text/") || /^(TXT|MD|PDF|DOCX?|XLSX?|CSV|JSON|XML)$/i.test(type)) return "file-text";
+    if (/^(ZIP|RAR|7Z|TAR|GZ|BZ2|XZ|ZST|PART|TGZ|GZIP|TBZ2|TXZ|LZMA|CAB|001)$/i.test(type) ||
+        /^application\/(?:zip|gzip|x-(?:rar(?:-compressed)?|7z-compressed|tar|gzip|bzip2|xz)|vnd\.rar)$/.test(mime)) return "file-zip";
+    if (/^(PDF)$/i.test(type) || mime === "application/pdf") return "file-type-pdf";
+    if (/^(XLSX?|XLSM|ODS|CSV|TSV)$/i.test(type) || /spreadsheet|excel|^(?:text\/(?:csv|tab-separated-values))$/.test(mime)) return "table";
+    if (/^(PPTX?|PPSX?|ODP)$/i.test(type) || /presentation|powerpoint/.test(mime)) return "presentation";
+    if (/^(APK|AAB|IPA)$/i.test(type) || mime === "application/vnd.android.package-archive") return "device-mobile";
+    if (/^(ISO|IMG|DMG|VHDX?|VMDK|CUE)$/i.test(type) || /diskimage|iso9660/.test(mime)) return "disc";
+    if (/^(EXE|COM|BAT|CMD|SH|PS1|APPIMAGE)$/i.test(type) || /^application\/(?:x-msdownload|vnd\.microsoft\.portable-executable)$/.test(mime)) return "terminal-2";
+    if (/^(MSI|MSIX|MSIXBUNDLE|DEB|RPM|APPX|APPXBUNDLE|PKG)$/i.test(type) || /debian\.binary-package|x-rpm|x-msi/.test(mime)) return "package";
+    if (/^(PNG|JPE?G|GIF|WEBP|AVIF|HEIC|SVG|ICO|BMP|TIFF?|PSD)$/i.test(type) || mime.startsWith("image/")) return "photo";
+    if (/^(MP4|MKV|WEBM|MOV|AVI|MPEG|MPG|M4V|WMV)$/i.test(type) || mime.startsWith("video/")) return "video";
+    if (/^(MP3|WAV|OGG|OPUS|M4A|FLAC|AAC|WMA)$/i.test(type) || mime.startsWith("audio/")) return "music";
+    if (/^(JS|MJS|CSS|HTML?|PY|JSON|XML|YAML|YML|TOML|SQL|DIFF|PATCH)$/i.test(type) || /javascript|[+/]json$|[+/]xml$|text\/css/.test(mime)) return "code";
+    if (/^(TXT|MD|DOCX?|RTF|ODT|NFO|LOG|EPUB|MOBI)$/i.test(type) || /wordprocessing|msword|rtf/.test(mime) || mime.startsWith("text/")) return "file-text";
     return "file";
   }
 

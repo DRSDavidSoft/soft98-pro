@@ -88,7 +88,8 @@ button [data-icon], .manager-nav [data-icon] { display: inline-grid; flex: none;
 .file-mark { display: inline-grid; flex: none; width: 32px; height: 34px; place-items: center; border-radius: 7px; border: 1px solid var(--line); color: var(--sky); background: var(--field); }
 .file-mark svg { width: 20px; height: 20px; }
 .file-mark[data-icon="file-zip"] { color: var(--amber); }
-.file-mark[data-icon="package"] { color: var(--mint); }
+.file-mark:is([data-icon="package"],[data-icon="terminal-2"],[data-icon="device-mobile"],[data-icon="table"]) { color: var(--mint); }
+.file-mark:is([data-icon="file-type-pdf"],[data-icon="presentation"]) { color: var(--amber); }
 .file-mark:is([data-icon="music"],[data-icon="video"]) { color: var(--rose); }
 .state { display: inline-block; max-inline-size: 38%; padding: 1px 7px; border: 1px solid var(--line); border-radius: 20px; color: var(--muted); line-height: 1.45; font-size: 12px; }
 [data-state="complete"] .state, [data-state="downloading"] .state { color: var(--mint); }
@@ -162,7 +163,7 @@ dialog form { padding: 16px; gap: 10px; }
 .import-grid td.import-name .file-mark { display: inline-grid; width: 27px; height: 29px; vertical-align: middle; }
 .import-grid td.import-name .file-mark svg { width: 17px; height: 17px; }
 .import-grid td.import-name > span:last-child { display: inline-grid; vertical-align: middle; width: calc(100% - 37px); margin-inline-start: 6px; }
-:root[dir="rtl"] .import-grid td.import-name :is(bdi,small) { text-align: right; }
+.import-grid[dir="rtl"] td.import-name :is(bdi,small) { text-align: right; }
 .import-grid .import-size bdi { display: inline-block; vertical-align: middle; }
 .import-grid .checkbox-col { width: 42px; }
 .import-grid tbody tr[data-url] { cursor: pointer; }
@@ -170,7 +171,7 @@ dialog form { padding: 16px; gap: 10px; }
 .import-grid tbody tr[data-selected] td { background: color-mix(in srgb, var(--mint) 9%, var(--panel)); }
 .import-grid tbody tr[data-selected]:is(:hover,:focus-within) td { background: color-mix(in srgb, var(--mint) 13%, var(--panel)); }
 .import-grid tbody tr[data-selected] td:first-child { box-shadow: inset 2px 0 var(--mint); }
-:root[dir="rtl"] .import-grid tbody tr[data-selected] td:first-child { box-shadow: inset -2px 0 var(--mint); }
+.import-grid[dir="rtl"] tbody tr[data-selected] td:first-child { box-shadow: inset -2px 0 var(--mint); }
 .import-grid td:first-child, .import-grid th:first-child { text-align: center; }
 .column-tools { display: flex; align-items: center; gap: 2px; }
 [data-column-drag] { touch-action: none; user-select: none; }

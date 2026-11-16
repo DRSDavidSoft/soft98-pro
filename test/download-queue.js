@@ -10,10 +10,44 @@ const { setTimeout: sleep } = require("node:timers/promises");
 const { test } = require("node:test");
 const { create, directUrl, articleFileUrl, relativeFilename, trustedSender, pageSnapshot } = require("../src/download-queue");
 const links = require("../src/download-links");
+const probe = require("../src/download-probe");
 
 const EXTENSION_ID = "soft98-test";
 const PREFIX = "https://example.test/";
 const DIST = path.resolve(__dirname, "../dist");
+
+test("file probes are permission-scoped and preserve exact links without credentials", async () => {
+  const url = PREFIX + "file?token=abcd";
+  let attempts = 0;
+  const inspect = allowed => probe.inspect(url, { links, allowed, fetchFile: async (requested, options) => {
+    attempts++;
+    assert.equal(requested, url);
+    assert.equal(options.credentials, "omit");
+    assert.equal(options.referrerPolicy, "no-referrer");
+    const response = new Response(null, { headers: { "Content-Type": "application/octet-stream", "Content-Length": "500",
+      "Last-Modified": "Wed, 21 Oct 2026 07:28:00 GMT", "Content-Disposition": "attachment; filename*=UTF-8''Notes%20v2.pdf" } });
+    Object.defineProperty(response, "url", { value: "https://cdn.example.test/get" });
+    return response;
+  } });
+  assert.deepEqual(await inspect(() => false), { status: "permission", origin: PREFIX + "*" });
+  assert.equal(attempts, 0);
+  assert.deepEqual(await inspect(origin => origin === PREFIX + "*"), { status: "permission", origin: "https://cdn.example.test/*" });
+  assert.deepEqual(await inspect(() => true), { status: "ok", size: 500, date: Date.UTC(2026, 9, 21, 7, 28), mime: "application/octet-stream", type: "PDF" });
+});
+
+test("file probes fall back to one byte, cancel bodies, and reject web pages", async () => {
+  let canceled = false;
+  const inspected = await probe.inspect(PREFIX + "archive", { links, allowed: () => true, fetchFile: async (_url, options) => {
+    if (options.method === "HEAD") return new Response(null, { status: 405 });
+    assert.equal(options.headers.Range, "bytes=0-0");
+    return new Response(new ReadableStream({ cancel() { canceled = true; } }), { status: 206,
+      headers: { "Content-Length": "1", "Content-Range": "bytes 0-0/12345", "Content-Type": "application/zip" } });
+  } });
+  assert.deepEqual(inspected, { status: "ok", size: 12345, date: null, mime: "application/zip", type: "" });
+  assert.equal(canceled, true);
+  assert.deepEqual(await probe.inspect(PREFIX + "archive.zip", { links, allowed: () => true,
+    fetchFile: async () => new Response(null, { headers: { "Content-Type": "text/html", "Content-Length": "14" } }) }), { status: "unavailable" });
+});
 
 test("article download fallback accepts explicit row mappings and ordered numbered records only", () => {
   const direct = { proto: "https", pathname: "/file.zip", domain: "files.example.test" };

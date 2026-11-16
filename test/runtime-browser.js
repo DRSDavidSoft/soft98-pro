@@ -262,6 +262,7 @@ async function verifyDownloadManager(client) {
           metadata: { date: Date.UTC(2024, 10, 16) } },
       ] };
       window.managerCommands = [];
+      let externalAllowed = false;
       window.setManagerJob = (id, changes) => {
         Object.assign(state.jobs.find(job => job.id === id), changes);
         document.dispatchEvent(new Event("visibilitychange"));
@@ -275,10 +276,21 @@ async function verifyDownloadManager(client) {
           get: async key => ({ [key]: sessionStorage.getItem(key) || undefined }),
           set: async values => { for (const [key, value] of Object.entries(values)) sessionStorage.setItem(key, value); },
         }, onChanged: { addListener() {} } },
-        permissions: { request: async () => true },
+        permissions: { request: async ({ origins }) => {
+          managerCommands.push({ action: "grant", origins }); externalAllowed = true; return true;
+        } },
         downloads: { open: async id => managerCommands.push({ action: "open-native", id }) },
         runtime: { sendMessage: async (message) => {
           managerCommands.push(message);
+          if (message.type === "soft98:download-details") {
+            const url = new URL(message.url);
+            if (url.hostname === "external.example.test" && !externalAllowed) return { status: "permission", origin: url.origin + "/*" };
+            if (url.hostname === "external.example.test") return { status: "ok", size: 950, date: null, mime: "application/vnd.android.package-archive", type: "" };
+            const response = await fetch(url, { method: "HEAD" });
+            const facts = response.headers;
+            return { status: response.ok ? "ok" : "unavailable", size: Number(facts.get("content-length")),
+              date: Date.parse(facts.get("last-modified")), mime: facts.get("content-type") };
+          }
           return { ok: true, state: structuredClone({ ...state, added: message.urls?.length ?? 0, duplicates: 0 }) };
         } },
       };
@@ -422,6 +434,7 @@ async function verifyDownloadManager(client) {
     await until('[...document.querySelectorAll("#import-links tr")].every((tr) => !tr.cells[3].textContent.includes("Unavailable"))');
     check("automatic HEAD reads Content-Length", await run('document.querySelector("#import-links tr").cells[3].textContent.includes("64 MiB")'), true);
     check("automatic HEAD reads Last-Modified", await run('document.querySelector("#import-links tr").cells[4].textContent'), "Oct 21, 2026");
+    check("PDF gets its own icon in the review dialog", await run('document.querySelector(\'#import-links tr[data-url$="Notes.pdf"] [data-icon]\').dataset.icon'), "file-type-pdf");
     check("each reorderable column has an icon and a drag handle", await run('document.querySelectorAll("th[data-column] .column-sort svg").length === 4 && document.querySelectorAll("th[data-column] .column-menu[data-column-drag]").length === 4'), true);
     await run(`document.querySelector('th[data-column="date"] .column-sort').dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }))`);
     check("column context menu has sort and move commands", await run(`Boolean(document.querySelector("#manager-menu:popover-open [data-label=sortAscending]")) &&
@@ -507,6 +520,22 @@ async function verifyDownloadManager(client) {
     check("Gregorian survives a reload", await run(calendarCheck("gregory")), true);
     await selectCalendar("persian");
     check("Solar Hijri can also be selected explicitly", await run(calendarCheck("persian")), true);
+    check("the table defaults to LTR in the RTL Persian interface", await run('document.documentElement.dir + "/" + document.querySelector("#import-table").dir'), "rtl/ltr");
+    await run(`document.querySelector("#settings-tab").click();
+      const direction = document.querySelector("#table-direction");
+      direction.value = "rtl"; direction.dispatchEvent(new Event("change"));`);
+    await client.send("Page.reload");
+    await until('!document.querySelector("#table-direction").disabled && document.querySelector("#import-table").dir === "rtl"');
+    check("the RTL table setting survives a reload", await run('document.querySelector("#table-direction").value'), "rtl");
+    await run(`document.querySelector("#open-import").click();
+      document.querySelector("#import-url").value = "https://external.example.test/download";
+      document.querySelector("#add-url").click();`);
+    await until('document.querySelector("#probe-import").dataset.label === "allowDetails" && !document.querySelector("#probe-import").disabled');
+    await run('document.querySelector("#probe-import").click()');
+    await until('document.querySelector("#import-links [data-icon=device-mobile]") && document.querySelector("#import-links .import-size").textContent.includes("950 B")');
+    check("only the missing external origin is requested", await run('managerCommands.find(message => message.action === "grant")?.origins.join(",")'), "https://external.example.test/*");
+    await run('document.querySelector("#close-import").click(); setManagerJob("part1", { name: "download", mime: "application/pdf" })');
+    await until('document.querySelector(".job[data-id=part1] [data-icon=file-type-pdf]")');
     await run("emptyManagerQueue()");
     await until('document.querySelector("#counts").hidden && !document.querySelector(".job")');
     check("empty queue has no counters or pause control", await run('document.querySelector("#hold").hidden && document.querySelector("#notice").textContent === ""'), true);
