@@ -1597,6 +1597,7 @@
       candidate.setAttribute("data-soft98-pro-surface", kind);
       candidate.setAttribute("data-soft98-pro-menu", "true");
       if (kind === "megamenu") organizeMegamenu(candidate);
+      if (kind === "megamenu" || candidate.matches("[data-s98p-topbar-categories] > li > *")) markCategoryMenuLinks(candidate);
       for (const column of candidate.querySelectorAll(":scope>div,:scope>ul,:scope>ol,:scope>section")) {
         if (column.querySelectorAll("a[href],button,[role=menuitem]").length >= 2) column.setAttribute("data-soft98-pro-menu-column", "true");
       }
@@ -1721,6 +1722,20 @@
           groupMegamenuPlatformLinks(row);
         }
       }
+    }
+  }
+
+  function markCategoryMenuLinks(menu) {
+    if (!menu.hasAttribute("data-s98p-category-menu")) menu.setAttribute("data-s98p-category-menu", "");
+    for (const link of menu.querySelectorAll('a[href]:not([href^="#"],[role="button"])')) {
+      if (link.closest("[data-soft98-pro-mega-heading],[data-soft98-pro-platform-links]") ||
+          link.querySelector(":scope > [data-s98p-menu-arrow]")) continue;
+      const arrow = document.createElement("span");
+      arrow.setAttribute("data-s98p-menu-arrow", "");
+      arrow.setAttribute("aria-hidden", "true");
+      arrow.innerHTML = PAGE_ICONS.arrow;
+      link.setAttribute("data-s98p-menu-link", "");
+      link.append(arrow);
     }
   }
 

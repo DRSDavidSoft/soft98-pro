@@ -9,6 +9,7 @@
       .fixture-report { background-color: #71263b; }
       .night-mode .fixture-install { background: #283e12; }
       .fixture-install::after { content: ""; background: radial-gradient(circle, #315012, #384e21); }
+      [data-test=megamenu-entry]::before, [data-test=platform-row]::after { content: "legacy marker"; }
       details { overflow: hidden; }
       details[open] { margin-block-end: .2rem; }
       details p { margin-block: 0 16px; }
@@ -182,7 +183,7 @@
             '<div data-test="megamenu" style="position:absolute;top:58px;left:30px;width:760px;height:180px;background:rgb(245,245,245)">' +
             '<div dir="rtl"><div><h4><a data-test="megamenu-heading-link" href="/software/">نرم‌افزار</a></h4>' +
             '<span data-test="platform-row">ابزار اینترنت ( <a href="/internet/">ویندوز</a> | <a href="/mac/internet-mac/">مکینتاش</a> )</span>' +
-            '<a href="/category/other">سایر ابزارها</a></div><div><h4>Categories</h4>' +
+            '<a data-test="megamenu-entry" href="/category/other">سایر ابزارها</a></div><div><h4>Categories</h4>' +
             Array.from({ length: 15 }, function (_item, index) { return '<a href="/category/' + index + '">Category ' + index + '</a>'; }).join("") +
             "</div></div></div></div></nav>";
           document.body.appendChild(navigationShell);

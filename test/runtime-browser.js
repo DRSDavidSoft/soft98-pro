@@ -1416,6 +1416,42 @@ async function main() {
           assertEqual("megamenu heading", state + " layout", JSON.stringify(await evaluate(client, headingLayout)), JSON.stringify(resting));
         }
         await client.send("CSS.forcePseudoState", { nodeId: headingLink, forcedPseudoClasses: [] });
+        const menuEntry = 'document.querySelector("[data-test=megamenu-entry]")';
+        const arrowLayout = `(() => {
+          const entry = ${menuEntry}, arrow = entry.querySelector("[data-s98p-menu-arrow]");
+          const rtl = arrow.getBoundingClientRect().left - entry.getBoundingClientRect().left;
+          entry.dir = "ltr";
+          const ltr = entry.getBoundingClientRect().right - arrow.getBoundingClientRect().right;
+          const mirrored = getComputedStyle(arrow.querySelector("svg")).scale === "-1 1";
+          entry.removeAttribute("dir");
+          return {
+            label: entry.textContent,
+            path: entry.pathname,
+            legacyHidden: getComputedStyle(entry,"::before").content === "none" &&
+              getComputedStyle(document.querySelector("[data-test=platform-row]"),"::after").content === "none",
+            onlyOneArrow: entry.querySelectorAll("[data-s98p-menu-arrow]").length === 1 &&
+              !document.querySelector("[data-test=platform-row] [data-s98p-menu-arrow]"),
+            rtlAndLtr: rtl > 0 && rtl === ltr && mirrored,
+            decorative: arrow.getAttribute("aria-hidden") === "true" && getComputedStyle(arrow).pointerEvents === "none",
+            idle: getComputedStyle(arrow).opacity === "0"
+          };
+        })()`;
+        for (const [field, value] of Object.entries(await evaluate(client, arrowLayout))) {
+          assertEqual("megamenu entries", field, value, field === "label" ? "سایر ابزارها" : field === "path" ? "/category/other" : true);
+        }
+        const entryBox = `JSON.stringify(${menuEntry}.getBoundingClientRect().toJSON())`;
+        const originalBox = await evaluate(client, entryBox);
+        const { nodeId: menuEntryId } = await client.send("DOM.querySelector", {
+          nodeId: menuRoot.nodeId, selector: "[data-test=megamenu-entry]",
+        });
+        for (const pseudo of ["hover", "focus-visible"]) {
+          await client.send("CSS.forcePseudoState", { nodeId: menuEntryId, forcedPseudoClasses: [pseudo] });
+          await delay(200);
+          assertEqual("megamenu entries", pseudo + " arrow", await evaluate(client,
+            `getComputedStyle(${menuEntry}.querySelector("[data-s98p-menu-arrow]")).opacity`), "1");
+          assertEqual("megamenu entries", pseudo + " layout", await evaluate(client, entryBox), originalBox);
+        }
+        await client.send("CSS.forcePseudoState", { nodeId: menuEntryId, forcedPseudoClasses: [] });
         if (idleDark.split(",").some(value => Number(value) > 40)) throw new Error("The idle favicon has a bright badge");
         const latest = await evaluate(client, `
           (() => {

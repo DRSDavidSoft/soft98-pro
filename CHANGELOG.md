@@ -46,6 +46,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Fixed repeated download sizes, aligned status badges without shifting row buttons, and restored the hover border on file-help buttons.
 - Removed stray backgrounds around content cards and synchronized the sidebar download box with the original, fading it in proportion to the original's visibility.
 - Fixed sticky navigation wrapping when the logo is hidden at the top of the page.
+- Replaced legacy category menu chevrons with direction-aware hover and focus arrows, and refined the megamenu's light and dark surfaces.
 
 ### Removed
 
