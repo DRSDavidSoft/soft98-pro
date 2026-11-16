@@ -41,6 +41,97 @@ async function screenshot(session, destination) {
   await fs.writeFile(destination, PNG.sync.write(await screenshotPixels(session)));
 }
 
+async function captureComparison(session, evaluate, addon, output) {
+  // Align the same native download tab in both captures without changing site markup.
+  const selector = 'article [role=tabpanel] a[data-key]';
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const ready = await evaluate(`
+      const link = [...document.querySelectorAll(${JSON.stringify(selector)})].find(node => node.getClientRects().length);
+      return document.readyState === 'complete' && document.fonts.status === 'loaded' && Boolean(link);
+    `);
+    if (ready) break;
+    if (attempt === 29) throw new Error("The AnyDesk download tab did not finish loading");
+    await new Promise(resolve => setTimeout(resolve, 300));
+  }
+  const align = `
+    const link = [...document.querySelectorAll(${JSON.stringify(selector)})].find(node => node.getClientRects().length);
+    scrollBy({top: link.getBoundingClientRect().top - Math.round(innerHeight * .49), behavior: 'instant'});
+  `;
+  await evaluate(align);
+  await new Promise(resolve => setTimeout(resolve, 700));
+  await evaluate(align);
+  const proof = await evaluate(`
+    return {
+      runtime: Boolean(window.Soft98Pro || document.documentElement.hasAttribute('data-soft98-runtime-ready')),
+      theme: document.documentElement.classList.contains('soft98-pro-theme'),
+      control: Boolean(document.getElementById('soft98-pro-control')),
+      open: document.getElementById('soft98-pro-control')?.dataset.open === 'true',
+      visible: [...document.querySelectorAll(${JSON.stringify(selector)})].some(node => {
+        const box = node.getBoundingClientRect();
+        return box.width && box.top > 0 && box.bottom <= innerHeight;
+      }),
+    };
+  `);
+  if (!proof.visible || proof.open || [proof.runtime, proof.theme, proof.control].some(flag => flag !== Boolean(addon))) {
+    throw new Error("Comparison state does not match the selected browser profile: " + JSON.stringify(proof));
+  }
+  await fs.mkdir(output, { recursive: true });
+  const file = path.join(output, addon ? "downloads-after.png" : "downloads-before.png");
+  await screenshot(session, file);
+  console.log(JSON.stringify({ file, profile: addon ? "Soft98 Pro extension" : "stock Firefox (no add-ons)", ...proof }));
+}
+
+async function captureVisualSwitches(session, post, evaluate, output, width, height, filter) {
+  const articleHeading = "document.querySelector('article h1')";
+  const articleTop = `const target = ${articleHeading}; if (!target) return false;
+    scrollBy({top: target.getBoundingClientRect().top - 125, behavior: 'instant'}); return true;`;
+  const utility = "document.querySelector('[data-soft98-pro-utility-header]')";
+  const dialog = "document.querySelector('dialog[aria-labelledby=soft98-pro-utility-title]')";
+  const cases = [
+    { key: "blockAds", focus: () => articleTop },
+    { key: "pro", focus: () => articleTop },
+    { key: "compactLayout", focus: () => articleTop },
+    { key: "wideColumns", width: 2304, focus: () => articleTop },
+    { key: "hideAnnoyances", focus: () => `
+      const link = [...document.querySelectorAll('article [role=tabpanel] a[data-key]')].find(node => node.getClientRects().length);
+      if (!link) return false;
+      scrollBy({top: link.getBoundingClientRect().top - Math.round(innerHeight * .38), behavior: 'instant'});
+      return true;
+    ` },
+    { key: "utilityInHeader", focus: on => on ? `
+      const panel = ${dialog};
+      const trigger = document.querySelector('nav button[aria-haspopup=dialog]:has([data-soft98-pro-page-icon=grid])');
+      if (!panel || !trigger) return false;
+      if (!panel.open) trigger.click();
+      return panel.open;
+    ` : `const label = ${utility}; if (!label || label.closest('dialog')) return false;
+      label.scrollIntoView({block:'center',behavior:'instant'}); return true;` },
+  ];
+  const selected = filter === "1" ? cases : cases.filter(item => item.key === filter);
+  if (!selected.length) throw new Error(`Unknown comparison feature: ${filter}`);
+  for (const item of selected) {
+    await post("/window/rect", { width: item.width || width, height });
+    for (const on of [false, true]) {
+      await evaluate(`Soft98Pro.configure({${item.key}:${on}})`);
+      await post("/url", { url });
+      for (let attempt = 0; attempt < 25; attempt++) {
+        const ready = await evaluate(`
+          if (document.readyState !== "complete" || document.fonts.status !== "loaded" ||
+              window.Soft98Pro?.settings.${item.key} !== ${on}) return false;
+          ${item.focus(on)}
+        `);
+        if (ready) break;
+        if (attempt === 24) throw new Error(`Could not capture ${item.key} in the ${on ? "On" : "Off"} state`);
+        await new Promise(resolve => setTimeout(resolve, 350));
+      }
+      await new Promise(resolve => setTimeout(resolve, 550));
+      const file = path.join(output, `${item.key}-${on ? "on" : "off"}.png`);
+      await screenshot(session, file);
+      console.log(JSON.stringify({ file, setting: item.key, enabled: on }));
+    }
+  }
+}
+
 async function watchAdFrames(webSocketUrl) {
   const socketUrl = new URL(webSocketUrl);
   if (socketUrl.protocol !== "ws:" || socketUrl.hostname !== "127.0.0.1") {
@@ -126,13 +217,22 @@ async function main() {
     const post = (route, body) => request("POST", session + route, body);
     const evaluate = (script) => post("/execute/sync", { script, args: [] });
     const width = Number(process.env.SOFT98_VIEWPORT_WIDTH || 1440);
-    await post("/window/rect", { width, height: Number(process.env.SOFT98_VIEWPORT_HEIGHT || 1000) });
+    const height = Number(process.env.SOFT98_VIEWPORT_HEIGHT || 1000);
+    await post("/window/rect", { width, height });
     const addon = process.env.SOFT98_BASELINE === "1" ? null : await post("/moz/addon/install", {
       path: path.resolve(__dirname, "..", "dist", "packages", `soft98-pro-firefox-${require("../package.json").version}.zip`),
       temporary: true,
     });
     if (process.env.SOFT98_AD_FRAME_CHECK === "1") frameSocket = await watchAdFrames(capabilities.webSocketUrl);
     await post("/url", { url });
+    if (process.env.SOFT98_COMPARISON_DIR) {
+      const output = path.resolve(process.env.SOFT98_COMPARISON_DIR);
+      await captureComparison(session, evaluate, addon, output);
+      if (addon && process.env.SOFT98_COMPARISON_FEATURES) {
+        await captureVisualSwitches(session, post, evaluate, output, width, height, process.env.SOFT98_COMPARISON_FEATURES);
+      }
+      return;
+    }
     if (frameSocket) {
       await new Promise(resolve => setTimeout(resolve, 3600));
       const frames = await evaluate("return window.__soft98AdFrames");

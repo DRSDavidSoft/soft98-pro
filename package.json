@@ -11,6 +11,7 @@
     "build": "node tools/build.js",
     "screenshot": "node tools/screenshot.js",
     "screenshot:firefox": "node tools/firefox-live-smoke.js docs/assets/soft98-pro-dark.png",
+    "docs:comparison": "node tools/comparison-gallery.js",
     "check:live-extension": "node tools/live-extension-check.js",
     "summary": "node tools/ci-summary.js",
     "import:history": "node tools/import-soft98-history.js",

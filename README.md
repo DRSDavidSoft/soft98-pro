@@ -24,9 +24,9 @@
 
 ![Soft98 Pro dark mode running on Soft98](docs/assets/soft98-pro-dark.png)
 
-[Compare the download page before and after the redesign](docs/assets/comparison/README.md)
+[Compare stock Soft98 with Soft98 Pro and see each switch off and on](docs/assets/comparison/README.md)
 
-Soft98 Pro improves Soft98 with resilient ad blocking, anti-adblock patching, download-link recovery, warning cleanup, and a modern dark interface. It is available as both a userscript and browser extensions for Chrome, Edge, and Firefox.
+Soft98 Pro improves Soft98 with resilient ad blocking, anti-adblock patching, download-link recovery, warning cleanup, and a modern dark interface. It is available as both a userscript and a browser extension.
 
 Both formats are built from the shared runtime in [`src/runtime.js`](src/runtime.js), keeping blocking behavior, diagnostics, localization, theming, favicon status, and link recovery aligned.
 
@@ -37,6 +37,7 @@ Both formats are built from the shared runtime in [`src/runtime.js`](src/runtime
 - [Screenshot](#screenshot)
 - [Features](#features)
 - [Bundled Branding](#bundled-branding)
+- [Compatible Browsers](#compatible-browsers)
 - [Getting Started](#getting-started)
   - [Userscript setup](#userscript-quick-start)
   - [Browser extension setup](#extension-quick-start)
@@ -79,6 +80,19 @@ Both formats are built from the shared runtime in [`src/runtime.js`](src/runtime
 
 The build converts both images to inlined PNG data URLs. After successful cleanup, the runtime heuristically identifies the live site logo and selects the light or pirate Pro variant for the active theme without relying on generated selectors or downloading external assets.
 
+<a id="compatible-browsers"></a>
+
+## 🌐 Compatible Browsers
+
+| Desktop browser | Extension package | Userscript manager |
+| --- | --- | --- |
+| Google Chrome | Chromium ZIP | Tampermonkey |
+| Microsoft Edge | Chromium ZIP | Tampermonkey |
+| Brave | Chromium ZIP | Tampermonkey |
+| Mozilla Firefox | Firefox ZIP | Violentmonkey or Tampermonkey |
+
+Use a current desktop version. The Firefox ZIP on GitHub is a temporary add-on and must be reloaded after a browser restart. Safari and mobile browsers are not verified.
+
 <a id="getting-started"></a>
 
 ## 🚀 Getting Started
@@ -89,7 +103,7 @@ Choose one installation path below. The userscript is the shortest setup; the ex
 
 ### ⚡ Userscript
 
-1. Install [Tampermonkey](https://tampermonkey.net) for Chrome or Edge, or [Violentmonkey](https://violentmonkey.github.io) for Firefox.
+1. Install [Tampermonkey](https://tampermonkey.net) or, on Firefox, [Violentmonkey](https://violentmonkey.github.io).
 2. Install [`soft98-pro.user.js`](https://github.com/DRSDavidSoft/soft98-pro/releases/latest/download/soft98-pro.user.js).
 3. Confirm the prompt in your userscript manager.
 4. Open [soft98.ir](https://soft98.ir).
@@ -104,9 +118,9 @@ Choose one installation path below. The userscript is the shortest setup; the ex
 2. Extract the archive.
 3. Follow the instructions for your browser.
 
-#### 🟦 Chrome or Edge
+#### 🟦 Chrome, Edge, or Brave
 
-1. Open `chrome://extensions` or `edge://extensions`.
+1. Open `chrome://extensions`, `edge://extensions`, or `brave://extensions`.
 2. Enable **Developer mode**.
 3. Select **Load unpacked**.
 4. Choose the extracted Chromium folder.
@@ -189,7 +203,7 @@ npm run screenshot:firefox
 
 - [`soft98-pro.user.js`](soft98-pro.user.js): root userscript for direct GitHub installation.
 - `dist/userscript/soft98-pro.user.js`: release copy of the userscript.
-- `dist/chromium/`: Manifest V3 build for Chrome and Edge.
+- `dist/chromium/`: Manifest V3 build for Chrome, Edge, and Brave.
 - `dist/firefox/`: Firefox build with the page-runtime bridge.
 - `dist/packages/*.zip`: release-ready installation archives.
 - `dist/release/latest.json`: machine-readable update metadata and direct package links.

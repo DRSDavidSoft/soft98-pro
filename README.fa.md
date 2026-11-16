@@ -26,11 +26,11 @@
 
 ![نمای حالت تاریک Soft98 Pro روی وب‌سایت Soft98](docs/assets/soft98-pro-dark.png)
 
-[عکس‌های قبل و بعد از بازطراحی صفحهٔ دانلود](docs/assets/comparison/README.md)
+[مقایسهٔ سافت‌۹۸ اصلی با نسخهٔ پرو و عکس هر گزینه در حالت خاموش و روشن](docs/assets/comparison/README.md)
 
 سافت‌۹۸، بدون شلوغی تبلیغات؛ با لینک‌های سالم، دانلود مرتب‌تر و رابط کاربری با قابلیت دارک‌مود
 
-نسخهٔ سبک رو به‌صورت یوزراسکریپت نصب کن یا سراغ افزونهٔ مرورگر برو تا مدیر دانلود رو هم داشته باشی. هر دو روی Chrome، Edge و Firefox قابل استفاده‌ان و ابزارهای اصلی‌شون از [یک کد مشترک](src/runtime.js) ساخته می‌شه.
+نسخهٔ سبک رو به‌صورت یوزراسکریپت نصب کن یا سراغ افزونهٔ مرورگر برو تا مدیر دانلود رو هم داشته باشی. ابزارهای اصلی هر دو نسخه از [یک کد مشترک](src/runtime.js) ساخته می‌شن.
 
 <a id="contents"></a>
 
@@ -39,6 +39,7 @@
 - [تصویر نمونه](#screenshot)
 - [قابلیت‌ها](#features)
 - [لوگوها](#bundled-branding)
+- [مرورگرهای سازگار](#compatible-browsers)
 - [شروع کار](#getting-started)
   - [راه‌اندازی یوزراسکریپت](#userscript-quick-start)
   - [راه‌اندازی افزونه مرورگر](#extension-quick-start)
@@ -76,6 +77,19 @@
 
 هر دو لوگو همراه بسته‌ان و برای نمایش‌شون لازم نیست مرورگر فایل دیگه‌ای بگیره.
 
+<a id="compatible-browsers"></a>
+
+## 🌐 مرورگرهای سازگار
+
+| مرورگر دسکتاپ | بستهٔ افزونه | برنامهٔ اجرای یوزراسکریپت |
+| --- | --- | --- |
+| گوگل کروم | بستهٔ کرومیوم | افزونهٔ Tampermonkey |
+| مایکروسافت اج | بستهٔ کرومیوم | افزونهٔ Tampermonkey |
+| مرورگر بریو | بستهٔ کرومیوم | افزونهٔ Tampermonkey |
+| موزیلا فایرفاکس | بستهٔ فایرفاکس | افزونهٔ Violentmonkey یا Tampermonkey |
+
+از نسخهٔ به‌روز مرورگر استفاده کن. بستهٔ فایرفاکس توی گیت‌هاب موقتیه؛ بعد از بستن و باز کردن مرورگر باید دوباره بارگذاریش کنی. سازگاری با سافاری و مرورگرهای موبایل هنوز بررسی نشده.
+
 <a id="getting-started"></a>
 
 ## 🚀 شروع کار
@@ -86,7 +100,7 @@
 
 ### ⚡ یوزراسکریپت
 
-1. روی Chrome یا Edge، [Tampermonkey](https://tampermonkey.net) رو نصب کن؛ روی Firefox، [Violentmonkey](https://violentmonkey.github.io)
+1. افزونهٔ [Tampermonkey](https://tampermonkey.net) رو نصب کن. توی فایرفاکس می‌تونی از [Violentmonkey](https://violentmonkey.github.io) هم استفاده کنی.
 2. دکمهٔ نصب یوزراسکریپت رو بزن و نصب رو تأیید کن
 3. سایت [سافت‌۹۸](https://soft98.ir) رو باز کن
 
@@ -98,9 +112,9 @@
 
 اول بستهٔ مخصوص مرورگرت رو از [آخرین نسخه](https://github.com/DRSDavidSoft/soft98-pro/releases/latest) بگیر و فایل ZIP رو از حالت فشرده دربیار.
 
-#### 🟦 مرورگرهای Chrome یا Edge
+#### 🟦 مرورگرهای کروم، اج و بریو
 
-1. صفحهٔ `chrome://extensions` یا `edge://extensions` رو باز کن
+1. صفحهٔ افزونه‌های مرورگرت رو باز کن: `chrome://extensions`، `edge://extensions` یا `brave://extensions`
 2. گزینهٔ **Developer mode** رو روشن کن
 3. روی **Load unpacked** بزن و پوشهٔ افزونه رو انتخاب کن
 
@@ -180,7 +194,7 @@ npm run screenshot:firefox
 ### 📦 خروجی‌های ساخت
 
 - فایل [`soft98-pro.user.js`](soft98-pro.user.js): یوزراسکریپت آمادهٔ نصب
-- پوشهٔ `dist/chromium/`: افزونهٔ Chrome و Edge
+- پوشهٔ `dist/chromium/`: افزونهٔ کروم، اج و بریو
 - پوشهٔ `dist/firefox/`: افزونهٔ Firefox
 - پوشهٔ `dist/packages/`: بسته‌های ZIP آمادهٔ نصب
 - پوشهٔ `dist/release/`: یادداشت انتشار، اطلاعات آپدیت و هش فایل‌ها
