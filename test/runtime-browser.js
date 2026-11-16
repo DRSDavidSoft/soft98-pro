@@ -1662,6 +1662,45 @@ async function verifyTopbarSearch(client) {
   }
 }
 
+async function verifySearchHint(client) {
+  const url = `http://127.0.0.1:${PORT}/test/topbar.html?do=search`;
+  const run = source => evaluate(client, source);
+  const check = (label, value) => assertEqual("search hint", label, value, true);
+  const button = 'document.querySelector("[data-s98p-search-hint-dismiss]")';
+  const until = async source => {
+    for (let attempt = 0; attempt < 40; attempt++) {
+      if (await run(source).catch(() => false)) return;
+      await delay(70);
+    }
+    const state = await run(`(() => {
+      const chain = [];
+      for (let node = ${button}; node; node = node.parentElement) {
+        const css = getComputedStyle(node);
+        chain.push([node.tagName,node.id,node.hidden,css.display,css.visibility,node.getBoundingClientRect().height]);
+      }
+      return JSON.stringify({url:location.href, hide:window.Soft98Pro?.settings.hideSearchHint, chain});
+    })()`);
+    throw new Error("Search hint did not settle: " + state);
+  };
+  await client.send("Page.navigate", { url });
+  await until(`location.href === ${JSON.stringify(url)} && ${button}?.checkVisibility()`);
+  const timeOrigin = await run("performance.timeOrigin");
+  check("uses the requested Persian label on the matching notice only", await run(
+    `${button}.textContent === "متوجه شدم" && document.querySelectorAll("[data-s98p-search-hint-dismiss]").length === 1`));
+  await run(`${button}.click()`);
+  check("dismisses without navigating or affecting the search", await run(`
+    !${button}.checkVisibility() && performance.timeOrigin === ${timeOrigin} &&
+    document.activeElement.matches("#fixture-search-page input[name=story]") &&
+    document.getElementById("fixture-other-alert").checkVisibility() &&
+    document.getElementById("fixture-search-result").checkVisibility()`));
+  await client.send("Page.reload");
+  await until(`performance.timeOrigin !== ${timeOrigin} && ${button} && !${button}.checkVisibility()`);
+  await run("Soft98Pro.configure({pro:false})");
+  check("stock theme shows the untouched notice again", await run(`!${button} &&
+    [...document.querySelectorAll("#fixture-search-page .alert")].every(node => node.checkVisibility())`));
+  await run("Soft98Pro.configure({pro:true,hideSearchHint:false})");
+}
+
 async function verifyLinkdoni(client) {
   const run = expression => evaluate(client, expression);
   await client.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 850, deviceScaleFactor: 1, mobile: false });
@@ -1937,6 +1976,7 @@ async function main() {
     }
     if (process.argv.includes("--site-search-only")) {
       await verifyTopbarSearch(client);
+      await verifySearchHint(client);
       await verifyTopbar(client);
       console.log("Soft98 site search and sticky navigation passed");
       return;
@@ -2547,6 +2587,7 @@ async function main() {
     await verifyPostArtwork(client);
     await verifyTopbar(client);
     await verifyTopbarSearch(client);
+    await verifySearchHint(client);
     await verifyLinkdoni(client);
     console.log("Soft98 runtime browser acceptance passed");
   } finally {

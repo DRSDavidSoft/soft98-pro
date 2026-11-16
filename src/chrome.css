@@ -163,6 +163,35 @@
   }
 }
 
+:root.soft98-pro-theme [data-s98p-search-hint] {
+  display: flex !important;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  background: color-mix(in srgb,var(--s98p-link) 8%,var(--s98p-surface)) !important;
+  border-color: color-mix(in srgb,var(--s98p-link) 30%,var(--s98p-border-soft)) !important;
+  color: var(--s98p-text) !important;
+}
+
+:root.soft98-pro-theme[data-s98p-hide-search-hint] [data-s98p-search-hint] { display: none !important; }
+
+:root.soft98-pro-theme [data-s98p-search-hint] > [data-s98p-search-hint-dismiss] {
+  flex: none;
+  min-block-size: 34px;
+  margin-inline-start: auto;
+  padding: 3px 10px;
+  border: 1px solid var(--s98p-border) !important;
+  border-radius: 6px;
+  background: var(--s98p-control-bg) !important;
+  color: var(--s98p-text) !important;
+  cursor: pointer;
+}
+
+:root.soft98-pro-theme [data-s98p-search-hint] > [data-s98p-search-hint-dismiss]:is(:hover,:focus-visible) {
+  background: var(--s98p-control-hover) !important;
+  border-color: var(--s98p-control-edge) !important;
+}
+
 :root.soft98-pro-theme [data-soft98-pro-nav-chrome] {
   box-sizing: border-box;
   display: flex !important;

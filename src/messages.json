@@ -22,6 +22,7 @@
         "newsOpenAppearance": "Open Appearance",
         "newsUndoHide": "Undo",
         "clearSearch": "Clear search",
+        "acknowledgeSearchHint": "Got it",
         "linkdoni": {
           "name": "Linkdoni",
           "feed": "Technology news",
@@ -311,6 +312,7 @@
         "newsOpenAppearance": "باز کردن بخش ظاهر",
         "newsUndoHide": "برگردوندن",
         "clearSearch": "پاک کردن جست‌وجو",
+        "acknowledgeSearchHint": "متوجه شدم",
         "linkdoni": {
           "name": "لینکدونی",
           "feed": "خبرهای تکنولوژی",

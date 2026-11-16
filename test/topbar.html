@@ -71,7 +71,14 @@
     </nav>
   </div>
 </header>
-<main id="fixture-content">Page content</main>
+<main id="fixture-content">Page content
+  <form id="fixture-search-page" method="post" action="/?do=search" hidden>
+    <div class="alert alert-danger">برای جست‌وجـوی بهتر و دقیق تر، نسخه و توضیحات فارسی را حذف كرده و فقط نام نرم‌افزار را جستجو كنید.</div>
+    <div class="alert" id="fixture-other-alert">Another search notice</div>
+    <label>Search <input name="story" value="AnyDesk"></label>
+    <a href="/software/anydesk" id="fixture-search-result">AnyDesk</a>
+  </form>
+</main>
 <script>
   window.addEventListener("scroll", () => document.documentElement.toggleAttribute("data-fixture-scrolled", scrollY > 0), { passive: true });
   document.querySelector("button[aria-controls]").addEventListener("click", (event) => {
@@ -79,6 +86,7 @@
     button.setAttribute("aria-expanded", String(button.getAttribute("aria-expanded") !== "true"));
   });
   const searchTrigger = document.getElementById("fixture-search-trigger");
+  document.getElementById("fixture-search-page").hidden = new URLSearchParams(location.search).get("do") !== "search";
   const searchPanel = document.getElementById("fixture-search");
   const field = searchPanel.querySelector("input[type=search]");
   const clearSearch = searchPanel.querySelector("[data-toggle=search-clear]");

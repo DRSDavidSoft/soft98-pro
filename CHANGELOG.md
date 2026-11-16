@@ -8,6 +8,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- The search results tip now has a “Got it” button that remembers your choice.
+
 - Added a Telegram community link for questions and support.
 - Added configurable download buttons that can queue a file, start it immediately, or copy the link, with one-time actions in the context menu.
 - Added a review dialog for pasted links and text files, with file details, filters, sorting, and resizable columns.

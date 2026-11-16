@@ -71,6 +71,7 @@
     rgbMode: false,
     showLatest: true,
     hideAnnoyances: false,
+    hideSearchHint: false,
     downloadRowAction: "copy",
     downloadRowContextMenu: true,
     downloadReviewMB: Soft98DownloadLinks.DEFAULT_REVIEW_MB,
@@ -4118,6 +4119,7 @@
   }
 
   function applyPagePreferences() {
+    bindSearchHint();
     const rtlPage = document.documentElement.dir === "rtl" || /^fa\b/i.test(document.documentElement.lang);
     const latestCards = new Set();
     for (const list of document.querySelectorAll("ul[role=tablist],ol[role=tablist]")) {
@@ -4245,6 +4247,37 @@
       normalizeLabel(node, rtlPage);
     }
     syncPageVisibility();
+  }
+
+  function bindSearchHint() {
+    if (new URLSearchParams(location.search).get("do") !== "search") return;
+    for (const form of document.querySelectorAll(":is(main,[role=main]) form")) {
+      const field = form.querySelector('input[name="story"]:not([type=hidden]),input[type=search]');
+      if (!field) continue;
+      for (const hint of form.querySelectorAll('div,p,aside,[role="alert"],[role="note"]')) {
+        if (hint.hasAttribute("data-s98p-search-hint") ||
+            hint.querySelector("div,p,aside,form,table,input,button,a[href]") || hint.textContent.length > 240) continue;
+        const label = normalizedPersian(hint.textContent).replace(/[\p{P}\p{M}]/gu, "");
+        if (!/^برایجستو?جویبهتر/.test(label) ||
+            !/(?:ورژن|نسخه).*توضیحاتفارسی/.test(label) || !/فقطنامنرمافزار/.test(label)) continue;
+        hint.setAttribute("data-s98p-search-hint", "");
+        const button = document.createElement("button");
+        button.type = "button";
+        button.lang = "fa";
+        button.dir = "rtl";
+        button.setAttribute("data-s98p-search-hint-dismiss", "");
+        button.textContent = catalogValue("fa", "runtime", "acknowledgeSearchHint");
+        hint.append(button);
+        undoWithTheme(button, () => {
+          button.remove();
+          hint.removeAttribute("data-s98p-search-hint");
+        });
+        button.addEventListener("click", () => {
+          field.focus({ preventScroll: true });
+          writeSettings({ ...settings, hideSearchHint: true });
+        });
+      }
+    }
   }
 
   function readNewsCollapsed() {
@@ -4452,6 +4485,7 @@
 
   function syncPageVisibility() {
     document.documentElement.toggleAttribute("data-s98p-hide-news", settings.pro && !settings.showLatest);
+    document.documentElement.toggleAttribute("data-s98p-hide-search-hint", settings.pro && settings.hideSearchHint);
     for (const [list, { tabs, panes, listeners, original, originalPaneHidden }] of contentTabs) {
       if (settings.pro && list.isConnected && tabs.every((tab) => list.contains(tab)) &&
           panes.every((pane, i) => tabTarget(tabs[i]) === pane)) continue;
