@@ -80,6 +80,27 @@
         <div class="setting-row"><label for="date-calendar" data-copy="dateCalendar"></label><select id="date-calendar" disabled></select></div>
         <div class="setting-row"><label for="table-direction" data-copy="tableDirection"></label><select id="table-direction" disabled></select></div>
         <div class="setting-row"><span data-copy="history"></span><button id="clear" type="button" disabled></button></div>
+        <fieldset class="sound-settings">
+          <legend><span id="sound-icon" aria-hidden="true"></span><span data-copy="downloadSounds"></span></legend>
+          <div class="setting-row">
+            <label for="download-sounds" data-copy="soundAutomatic"></label>
+            <input id="download-sounds" type="checkbox" role="switch" disabled>
+          </div>
+          <div class="setting-row">
+            <label for="sound-volume" data-copy="soundVolume"></label>
+            <div class="sound-level">
+              <input id="sound-volume" type="range" min="0" max="100" step="1" value="40" disabled>
+              <output id="sound-level" for="sound-volume" aria-hidden="true"></output>
+            </div>
+          </div>
+          <div class="setting-row">
+            <label for="sound-cue" data-copy="soundEvent"></label>
+            <div class="setting-actions sound-actions">
+              <select id="sound-cue"></select>
+              <button id="preview-sound" type="button"></button>
+            </div>
+          </div>
+        </fieldset>
       </section>
       <output id="feedback" role="status"></output>
     </main>
@@ -146,6 +167,7 @@
     <script src="download-view.js"></script>
     <script src="download-select.js"></script>
     <script src="download-import.js"></script>
+    <script src="assets/download-audio.js"></script>
     <script src="downloads.js"></script>
   </body>
 </html>

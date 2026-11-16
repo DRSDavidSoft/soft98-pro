@@ -42,6 +42,8 @@ The **Wide-screen columns** setting is on by default. From 1280 CSS pixels, rela
 
 **Browser notifications** cover completion and downloads that need attention. They use the extension's background worker, so the manager does not need to stay open. Click a notification to open the corresponding queue entry. Use **Settings → Send test notification** to check delivery even if automatic alerts are off. If no banner appears, check your browser and system notification settings.
 
+**Settings → Download sounds** is separate from browser notifications and is off by default. Set the volume and try any of the seven previews, then turn on automatic playback if you like. The same settings apply to the toolbar popup and the full manager. Sounds work with both closed, and simultaneous downloads won't play overlapping cues.
+
 **Settings → Appearance** shares light/dark mode, accent color, and animated RGB across the manager and Soft98 Pro. Under **Control Center**, you can hide or restore its launcher on Soft98 pages and change sound feedback.
 
 The screenshots show the actual packaged interface with sample files and local HEAD responses. To regenerate them in PowerShell, set `$env:SOFT98_DOWNLOAD_SCREENSHOTS='1'`, then run `npm run build` and `node test/runtime-browser.js`.

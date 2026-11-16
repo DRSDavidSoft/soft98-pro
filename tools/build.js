@@ -9,6 +9,7 @@ const { pipeline } = require("node:stream/promises");
 const terser = require("terser");
 const { writeReleaseNotes } = require("./changelog.js");
 const { illustration } = require("./preview-illustrations.js");
+const { downloadSounds } = require("./download-sounds.js");
 
 const ROOT = path.resolve(__dirname, "..");
 const SRC = path.join(ROOT, "src");
@@ -247,7 +248,7 @@ function chromiumManifest() {
   return {
     manifest_version: 3,
     ...commonManifest,
-    permissions: ["storage", "tabs", "alarms", "scripting", "webRequest", "downloads", "downloads.open", "notifications"],
+    permissions: ["storage", "tabs", "alarms", "scripting", "webRequest", "downloads", "downloads.open", "notifications", "offscreen"],
     optional_host_permissions: ["http://*/*", "https://*/*"],
     host_permissions: [
       "*://*.soft98.ir/*",
@@ -325,7 +326,7 @@ function copyUi(target) {
   if (JSON.stringify(Object.keys(catalog.en).sort()) !== JSON.stringify(Object.keys(catalog.fa).sort())) throw new Error("Download catalogs must have identical keys");
   const icons = Object.fromEntries(["download", "plus", "player-play", "player-pause", "x", "rotate-clockwise", "folder-open", "trash", "file-upload", "clipboard", "list-details", "settings", "dots", "external-link", "file", "file-zip", "file-text", "photo", "video", "music", "package", "link", "square-check", "square", "help-circle",
     "chevron-down", "tag", "database", "calendar", "grip-vertical", "sort-ascending", "sort-descending", "arrow-left", "arrow-right",
-    "file-type-pdf", "table", "presentation", "terminal-2", "disc", "code", "device-mobile", "lock-open", "bell", "check", "sun", "moon"].map((name) => [name,
+    "file-type-pdf", "table", "presentation", "terminal-2", "disc", "code", "device-mobile", "lock-open", "bell", "check", "sun", "moon", "volume"].map((name) => [name,
     fs.readFileSync(path.join(TABLER_ROOT, "icons", "outline", `${name}.svg`), "utf8")]));
   for (const file of ["options.html", "options.js", "styles.css"]) {
     const from = path.join(SRC, "ui", file);
@@ -416,7 +417,16 @@ async function buildTarget(name, manifest) {
   const queue = fs.readFileSync(path.join(SRC, "download-queue.js"), "utf8");
   const links = fs.readFileSync(path.join(SRC, "download-links.js"), "utf8");
   const probe = fs.readFileSync(path.join(SRC, "download-probe.js"), "utf8");
-  await minifySource(backgroundPrefix + links + "\n" + queue + "\n" + probe + "\n" + applyReplacements(fs.readFileSync(path.join(SRC, "background.js"), "utf8"), "extension"), path.join(target, "assets", "background.js"));
+  const audio = fs.readFileSync(path.join(SRC, "download-audio.js"), "utf8");
+  const soundDir = path.join(target, "assets", "download-sounds");
+  mkdir(soundDir);
+  for (const [file, contents] of downloadSounds()) fs.writeFileSync(path.join(soundDir, file), contents);
+  await minifySource(audio, path.join(target, "assets", "download-audio.js"));
+  if (name === "chromium") {
+    copyFile(path.join(SRC, "download-audio-offscreen.html"), path.join(target, "download-audio-offscreen.html"));
+    await minifyFile(path.join(SRC, "download-audio-offscreen.js"), path.join(target, "assets", "download-audio-offscreen.js"));
+  }
+  await minifySource(backgroundPrefix + links + "\n" + audio + "\n" + queue + "\n" + probe + "\n" + applyReplacements(fs.readFileSync(path.join(SRC, "background.js"), "utf8"), "extension"), path.join(target, "assets", "background.js"));
   await minifyFile(path.join(SRC, "content", "bridge.js"), path.join(target, "assets", "bridge.js"));
   if (name === "firefox") {
     await minifyFile(path.join(SRC, "content", "upstream-gateway.js"), path.join(target, "assets", "upstream-gateway.js"));

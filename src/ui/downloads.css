@@ -43,6 +43,13 @@ html { scroll-padding-block-start: 95px; scrollbar-gutter: stable; }
 .setting-row select { min-width: 68px; }
 .setting-row input { width: 19px; height: 19px; }
 .setting-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.sound-settings { min-inline-size: 0; margin: 14px 0 0; padding: 0; border: 0; }
+.sound-settings legend { display: inline-flex; align-items: center; gap: 7px; margin-block-end: 7px; padding: 0; color: var(--mint); font-size: 13px; font-weight: 700; }
+.sound-settings legend svg { display: block; inline-size: 17px; block-size: 17px; }
+.sound-level { display: inline-flex; align-items: center; gap: 10px; inline-size: min(100%, 200px); }
+.sound-settings #sound-volume { flex: 1; width: 100%; min-inline-size: 0; margin: 0; accent-color: var(--mint); }
+.sound-level output { min-inline-size: 5ch; text-align: end; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sound-actions .select-field { inline-size: 158px; }
 .select-field { display: inline-grid; max-inline-size: 100%; min-inline-size: 0; }
 .select-trigger { display: grid; grid-template-columns: minmax(0,1fr) 16px; gap: 9px; min-inline-size: 80px; padding-inline: 11px 8px; background: var(--field); }
 .select-trigger[aria-expanded="true"] { border-color: var(--sky); background: var(--button-hover); }

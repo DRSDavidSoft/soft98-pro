@@ -22,6 +22,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Added the Download Manager to the extension toolbar. Article rows and the Control Center now show live progress, file sizes, and queue state.
 - Added a test button for browser notifications in Download Manager settings.
 - Added shared theme, accent color, animated RGB, and Control Center settings to Download Manager.
+- Added optional download sounds with volume control and a preview for each event, shared by the Download Manager and toolbar popup.
 
 ### Fixed
 

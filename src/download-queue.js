@@ -5,6 +5,7 @@ const Soft98DownloadQueue = (() => {
   const CHANNEL = "soft98:downloads";
   const MAX_JOBS = 160;
   const links = typeof Soft98DownloadLinks !== "undefined" ? Soft98DownloadLinks : require("./download-links");
+  const audio = typeof Soft98DownloadAudio !== "undefined" ? Soft98DownloadAudio : require("./download-audio");
   const MAX_BATCH = links.MAX_BATCH;
   const MAX_PARALLEL = 6;
   const ACTIVE = new Set(["starting", "resuming", "downloading"]);
@@ -123,7 +124,7 @@ const Soft98DownloadQueue = (() => {
     }
   }
 
-  function create({ storage, downloads, extensionId, notify, now = Date.now, makeId = () => crypto.randomUUID() }) {
+  function create({ storage, downloads, extensionId, notify, sound, now = Date.now, makeId = () => crypto.randomUUID() }) {
     let state;
     let persisted;
     let pending = Promise.resolve();
@@ -158,8 +159,19 @@ const Soft98DownloadQueue = (() => {
       persisted = encoded;
     }
 
+    function soundSettings() {
+      return { enabled: state.soundEnabled === true, volume: state.soundVolume ?? audio.DEFAULT_VOLUME };
+    }
+
+    function emitSound(cue) {
+      if (!sound) return;
+      const { enabled, volume } = soundSettings();
+      if (cue === "mute") Promise.resolve().then(() => sound({ mute: true })).catch(() => {});
+      else if (enabled && audio.valid(cue, volume)) Promise.resolve().then(() => sound({ cue, volume })).catch(() => {});
+    }
+
     async function notifyChanges() {
-      if (!notify) return;
+      if (!notify && !sound) return;
       const jobs = state.jobs.filter((job) => job.attemptAt && job.notifiedStatus !== job.status &&
         ["complete", "interrupted", "review"].includes(job.status));
       if (!jobs.length) return;
@@ -169,11 +181,13 @@ const Soft98DownloadQueue = (() => {
         jobs.forEach((job, index) => { job.notifiedStatus = previous[index]; });
         throw error;
       }
-      if (state.notifications !== false) for (const job of jobs) Promise.resolve().then(() => notify({ ...job })).catch(() => {});
+      if (notify && state.notifications !== false) for (const job of jobs) Promise.resolve().then(() => notify({ ...job })).catch(() => {});
+      emitSound(jobs.some((job) => job.status !== "complete") ? "attention" : "complete");
     }
 
     function view() {
-      return { limit: state.limit, maxParallel: MAX_PARALLEL, held: state.held, notifications: state.notifications !== false, jobs: state.jobs.map((job) => ({ ...job })) };
+      return { limit: state.limit, maxParallel: MAX_PARALLEL, held: state.held, notifications: state.notifications !== false,
+        sounds: soundSettings(), jobs: state.jobs.map((job) => ({ ...job })) };
     }
 
     async function refreshNative() {
@@ -203,6 +217,7 @@ const Soft98DownloadQueue = (() => {
       const item = authorizedItem(value);
       if (job.status === "resuming" && resuming.has(job.id) && item?.canResume && (item.paused || item.state === "interrupted")) return;
       applyNative(job, item);
+      if (job.status === "downloading" && job.notifiedStatus === "interrupted") delete job.notifiedStatus;
     }
 
     function deferResult(queueId, options) {
@@ -214,6 +229,7 @@ const Soft98DownloadQueue = (() => {
         await save();
         await refreshNative();
         await save();
+        if (job.status === "downloading") emitSound("started");
         await notifyChanges();
         await advance();
       }), (error) => serial(async () => {
@@ -221,6 +237,7 @@ const Soft98DownloadQueue = (() => {
         const code = errorCode(error);
         Object.assign(job, { status: code === "USER_CANCELED" ? "canceled" : "interrupted", error: code, resumable: false });
         await save();
+        if (job.status === "canceled") emitSound("canceled");
         await notifyChanges();
         await advance();
       })).catch(() => {}).finally(() => starting.delete(queueId));
@@ -344,6 +361,10 @@ const Soft98DownloadQueue = (() => {
         Object.assign(job, { status: "canceled", error: "", resumable: false });
         delete job.manualStart;
       } else fail("not-allowed");
+      if (action === "pause" && job.status === "paused") return "paused";
+      if (action === "resume") return "resumed";
+      if (action === "retry") return "queued";
+      if (action === "cancel" && job.status === "canceled") return "canceled";
     }
 
     function request(message, nativeId) {
@@ -359,20 +380,28 @@ const Soft98DownloadQueue = (() => {
         await refreshNative();
         const before = JSON.stringify(state);
         let result;
+        let cue;
         const action = message.action;
-        if (action === "add") result = add(message);
-        else if (action === "configure") {
+        if (action === "add") {
+          result = add(message);
+          if (result.added || result.scheduled) cue = "queued";
+        } else if (action === "configure") {
           if (message.limit !== undefined && (!Number.isInteger(message.limit) || message.limit < 1 || message.limit > MAX_PARALLEL)) fail("invalid-limit");
+          if (message.soundVolume !== undefined && message.soundVolume !== 0 && !audio.valid("complete", message.soundVolume)) fail("not-allowed");
           if (message.limit !== undefined) state.limit = message.limit;
           if (typeof message.held === "boolean") state.held = message.held;
           if (typeof message.notifications === "boolean") state.notifications = message.notifications;
+          if ((message.soundEnabled === false && state.soundEnabled === true) || (message.soundVolume === 0 && state.soundVolume !== 0)) cue = "mute";
+          if (typeof message.soundEnabled === "boolean") state.soundEnabled = message.soundEnabled;
+          if (message.soundVolume !== undefined) state.soundVolume = message.soundVolume;
         } else if (action === "clear") {
           state.jobs = state.jobs.filter((job) => !TERMINAL.has(job.status) || (job.status === "interrupted" && job.resumable));
-        } else if (action !== "list") await itemAction(action, message.id);
+        } else if (action !== "list") cue = await itemAction(action, message.id);
         try { await save(); } catch (error) {
           state = JSON.parse(before);
           throw error;
         }
+        if (cue) emitSound(cue);
         await notifyChanges();
         await advance();
         return { ...view(), ...result };

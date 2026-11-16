@@ -80,6 +80,41 @@
     return { ok: result !== "failed", result };
   }
 
+  const audioDocument = "download-audio-offscreen.html";
+  const playLocalSound = typeof Audio === "function" ? Soft98DownloadAudio.createPlayer((path) => api.runtime.getURL(path)) : null;
+  let openingAudioDocument;
+
+  async function ensureAudioDocument(create) {
+    if (openingAudioDocument) {
+      const open = await openingAudioDocument;
+      return !open && create ? ensureAudioDocument(true) : open;
+    }
+    const url = api.runtime.getURL(audioDocument);
+    openingAudioDocument = (async () => {
+      const open = api.runtime.getContexts
+        ? (await api.runtime.getContexts({ contextTypes: ["OFFSCREEN_DOCUMENT"], documentUrls: [url] })).length > 0
+        : (await self.clients.matchAll()).some((client) => client.url === url);
+      if (!open && create) await api.offscreen.createDocument({
+        url: audioDocument, reasons: ["AUDIO_PLAYBACK"], justification: "Play optional download status sounds while the manager is closed.",
+      });
+      return open || create;
+    })().finally(() => { openingAudioDocument = null; });
+    return openingAudioDocument;
+  }
+
+  async function playDownloadSound(payload) {
+    if (playLocalSound) return playLocalSound(payload);
+    if (!api.offscreen || !await ensureAudioDocument(!payload.mute)) return false;
+    const message = { ...payload, type: Soft98DownloadAudio.CHANNEL };
+    try {
+      return (await call(api.runtime, "sendMessage", message))?.ok === true;
+    } catch (error) {
+      // Chromium can close the idle audio document between discovery and delivery.
+      if (payload.mute || !await ensureAudioDocument(true)) throw error;
+      return (await call(api.runtime, "sendMessage", message))?.ok === true;
+    }
+  }
+
   const queue = Soft98DownloadQueue.create({
     extensionId: api.runtime.id,
     storage: {
@@ -90,6 +125,7 @@
     notify: (job) => createDownloadNotification(`soft98-download-${job.id}`,
       text(job.status === "complete" ? "downloadNotificationComplete" : "downloadNotificationReview"),
       (job.name || Soft98DownloadLinks.describe(job.url).name).slice(0, 160)),
+    sound: playDownloadSound,
   });
 
   function createDownloadNotification(id, title, message) {
@@ -412,11 +448,20 @@
       sendResponse(pending && pending.expires > Date.now() ? { urls: pending.urls, source: pending.source } : null);
       return false;
     }
-    if (["soft98:download-details", "soft98:test-download-notification", Soft98DownloadQueue.CHANNEL].includes(message.type)) {
+    if (["soft98:download-details", "soft98:test-download-notification", "soft98:test-download-sound", Soft98DownloadQueue.CHANNEL].includes(message.type)) {
       if (!Soft98DownloadQueue.trustedSender(sender, api.runtime.id, downloadPage) &&
           !Soft98DownloadQueue.trustedSender(sender, api.runtime.id, downloadPopup)) return false;
       if (message.type === "soft98:test-download-notification") {
         testDownloadNotification().then(sendResponse, () => sendResponse({ ok: false, error: "notificationFailed" }));
+        return true;
+      }
+      if (message.type === "soft98:test-download-sound") {
+        const { cue, volume } = message;
+        if (!Soft98DownloadAudio.valid(cue, volume)) {
+          sendResponse({ ok: false });
+          return false;
+        }
+        playDownloadSound({ cue, volume, preview: true }).then((ok) => sendResponse({ ok }), () => sendResponse({ ok: false }));
         return true;
       }
       if (message.type === "soft98:download-details") {

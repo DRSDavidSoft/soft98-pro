@@ -11,6 +11,8 @@ const { test } = require("node:test");
 const { create, directUrl, articleFileUrl, relativeFilename, trustedSender, pageSnapshot } = require("../src/download-queue");
 const links = require("../src/download-links");
 const probe = require("../src/download-probe");
+const audio = require("../src/download-audio");
+const { downloadSounds } = require("../tools/download-sounds");
 
 const EXTENSION_ID = "soft98-test";
 const PREFIX = "https://example.test/";
@@ -130,7 +132,7 @@ test("both built extensions package the internal manager without exposing it to 
   }
 });
 
-function fixture(notify) {
+function fixture(notify, sound) {
   let record;
   let next = 0;
   let browserId = 0;
@@ -165,7 +167,7 @@ function fixture(notify) {
     resume: async (id) => Object.assign(items.get(id), { paused: false, canResume: false, state: "in_progress", error: "" }),
     cancel: async (id) => Object.assign(items.get(id), { state: "interrupted", error: "USER_CANCELED" }),
   };
-  const restart = () => create({ storage, downloads, notify, extensionId: EXTENSION_ID, now: () => ++tick, makeId: () => `job-${++next}` });
+  const restart = () => create({ storage, downloads, notify, sound, extensionId: EXTENSION_ID, now: () => ++tick, makeId: () => `job-${++next}` });
   return { q: restart(), restart, storage, downloads, items, starts, waits, native, blockWrites: (block) => { writeFailure = block; } };
 }
 
@@ -231,6 +233,100 @@ test("queue preserves only valid source links and emits a completion notificatio
   await muted.request({ action: "list" }, jobs[1].browserId);
   await configure(restart(), { notifications: true });
   assert.equal(notifications.length, 1);
+});
+
+test("download cues are opt-in, independent of notifications, and only report real queue changes", async () => {
+  const sounds = [];
+  const notifications = [];
+  const { q, items, restart } = fixture((job) => notifications.push(job), (event) => sounds.push(event));
+  assert.deepEqual((await listing(q)).sounds, { enabled: false, volume: 40 });
+  await add(q, ["silent.zip"], { defer: true });
+  assert.deepEqual(sounds, []);
+  await configure(q, { notifications: false, soundEnabled: true, soundVolume: 45, held: true });
+  await assert.rejects(configure(q, { soundVolume: 101 }), { queueCode: "not-allowed" });
+  const { jobs } = await add(q, ["cue.zip", "completed.zip", "blocked.zip"]);
+  await add(q, ["cue.zip"]);
+  await action(q, "pause", jobs[1]);
+  await action(q, "resume", jobs[1]);
+  await action(q, "cancel", jobs[1]);
+  await configure(q, { held: false });
+  const active = (await eventually(q, (files) => files.filter((job) => job.status === "downloading").length === 2)).jobs;
+  Object.assign(items.get(active[2].browserId), { state: "complete" });
+  await listing(q);
+  Object.assign(items.get(active[3].browserId), { state: "interrupted", error: "NETWORK_FAILED" });
+  await listing(q);
+  let restored = restart();
+  assert.deepEqual((await listing(restored)).sounds, { enabled: true, volume: 45 });
+  assert.deepEqual(sounds.filter(({ cue }) => cue === "started"), [{ cue: "started", volume: 45 }, { cue: "started", volume: 45 }]);
+  assert.deepEqual(sounds.filter(({ cue }) => cue !== "started"), ["queued", "paused", "resumed", "canceled", "complete", "attention"]
+    .map(cue => ({ cue, volume: 45 })));
+  assert.deepEqual(notifications, []);
+  assert.deepEqual((await configure(restored, { soundVolume: 0 })).sounds, { enabled: true, volume: 0 });
+  await add(restored, ["other.zip"], { defer: true });
+  assert.deepEqual(sounds.at(-1), { mute: true });
+  assert.equal(sounds.length, 9);
+});
+
+test("the seven packaged sounds are short, distinct, unclipped PCM cues with silence at both edges", () => {
+  const generated = downloadSounds();
+  assert.deepEqual(generated.map(([file]) => file), audio.cues.map((cue) => cue + ".wav"));
+  assert.equal(new Set(generated.map(([, buffer]) => buffer.toString("base64"))).size, generated.length);
+  for (const [file, buffer] of generated) {
+    assert.equal(buffer.toString("ascii", 0, 4), "RIFF");
+    assert.equal(buffer.toString("ascii", 8, 12), "WAVE");
+    assert.equal(buffer.readUInt16LE(22), 1);
+    const rate = buffer.readUInt32LE(24);
+    const length = buffer.readUInt32LE(40) / 2;
+    assert.ok(length / rate > 0.12 && length / rate < 0.5);
+    const samples = Array.from({ length }, (_, i) => buffer.readInt16LE(44 + i * 2));
+    assert.equal(samples[0], 0);
+    assert.equal(samples.at(-1), 0);
+    const peak = Math.max(...samples.map(Math.abs));
+    assert.ok(peak > 5000 && peak < 21000, file);
+    for (const browser of ["chromium", "firefox"])
+      assert.deepEqual(fs.readFileSync(path.join(DIST, browser, "assets", "download-sounds", file)), buffer);
+  }
+});
+
+test("the audio player prioritizes outcomes, never overlaps cues, and mutes pending playback", async () => {
+  const playback = [];
+  let player;
+  class MockAudio {
+    paused = true;
+    ended = false;
+    listeners = {};
+    constructor() { player = this; }
+    addEventListener(type, handler) { this.listeners[type] = handler; }
+    pause() { this.paused = true; }
+    async play() {
+      assert.equal(this.paused, true);
+      this.paused = false;
+      this.ended = false;
+      playback.push([this.src.split("/").at(-1), this.volume]);
+    }
+    finish() { this.ended = true; this.listeners.ended(); }
+  }
+  const originalAudio = global.Audio;
+  global.Audio = MockAudio;
+  try {
+    const dispatch = audio.createPlayer((path) => path);
+    for (const cue of ["queued", "started", "complete", "complete", "started"]) dispatch({ cue, volume: 40 });
+    await sleep(170);
+    assert.deepEqual(playback, [["complete.wav", 0.4]]);
+    dispatch({ cue: "complete", volume: 40 });
+    dispatch({ cue: "attention", volume: 40 });
+    assert.equal(playback.length, 1);
+    player.finish();
+    await sleep(170);
+    assert.deepEqual(playback[1], ["attention.wav", 0.4]);
+    dispatch({ cue: "started", volume: 20 });
+    dispatch({ mute: true });
+    assert.equal(player.paused, true);
+    assert.equal(await dispatch({ cue: "paused", volume: 25, preview: true }), true);
+    player.finish();
+    await sleep(170);
+    assert.deepEqual(playback, [["complete.wav", 0.4], ["attention.wav", 0.4], ["paused.wav", 0.25]]);
+  } finally { global.Audio = originalAudio; }
 });
 
 test("only accepts the extension's own top-level non-private manager page", () => {
@@ -524,6 +620,17 @@ async function verifyNativeQueue(browser, chromium) {
       await post("/moz/context", { context: "content" });
     }
     await until(() => evaluate("return document.getElementById('limit')?.disabled === false"), "manager ready");
+    assert.equal(await evaluate("return document.getElementById('download-sounds').checked"), false);
+    assert.equal(await evaluate("return document.getElementById('sound-cue').options.length"), audio.cues.length);
+    await evaluate(`document.getElementById("preview-sound").click()`);
+    await until(() => evaluate(`return ["Preview played", "صدای نمونه پخش شد."].includes(document.getElementById("feedback").value)`), "packaged sound preview plays through the background");
+    await evaluate(`const volume = document.getElementById("sound-volume"); volume.value = "25";
+      volume.dispatchEvent(new Event("input")); volume.dispatchEvent(new Event("change"));`);
+    await until(() => evaluate(`return (typeof browser !== "undefined" ? browser : chrome).storage.local.get("soft98DownloadQueue")
+      .then(({ soft98DownloadQueue }) => soft98DownloadQueue?.soundVolume === 25)`), "preview volume persists");
+    await evaluate(`document.getElementById("download-sounds").click()`);
+    await until(() => evaluate(`return (typeof browser !== "undefined" ? browser : chrome).storage.local.get("soft98DownloadQueue")
+      .then(({ soft98DownloadQueue }) => soft98DownloadQueue?.soundEnabled === true)`), "automatic sounds enabled");
     await evaluate("const limit = document.getElementById('limit'); limit.value = '2'; limit.dispatchEvent(new Event('change')); ");
     await until(() => evaluate(`return (typeof browser !== "undefined" ? browser : chrome).storage.local.get("soft98DownloadQueue")
       .then(({ soft98DownloadQueue }) => soft98DownloadQueue?.limit === 2)`), "configure works on the settings route");
@@ -583,6 +690,7 @@ async function verifyNativeQueue(browser, chromium) {
       document.getElementById("settings-tab").click();
       document.getElementById("limit-trigger").click();
       return document.body.clientHeight === height && document.getElementById("limit").hidden &&
+        document.getElementById("download-sounds").checked && document.getElementById("sound-volume").value === "25" &&
         document.getElementById("limit-choices").matches(":popover-open")
     `), true);
     await evaluate(`document.querySelector("#limit-choices [role=option]").click()`);

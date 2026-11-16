@@ -10,6 +10,9 @@
   const number = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
   const latin = new Intl.NumberFormat("en", { maximumFractionDigits: 1 });
   const percent = new Intl.NumberFormat("en", { style: "percent", maximumFractionDigits: 1 });
+  const soundPercent = new Intl.NumberFormat(locale, { style: "percent" });
+  let movingSoundSlider = false;
+  let previewingSound = false;
   const durations = Object.fromEntries(["hour", "minute", "second"].map(unit =>
     [unit, new Intl.NumberFormat(locale, { style: "unit", unit, unitDisplay: "short" })]));
   const calendarKey = "soft98DownloadDateCalendar";
@@ -258,6 +261,7 @@
     hold.hidden = hold.disabled = !hasQueueWork;
     $("limit").disabled = !state;
     $("native-notifications").disabled = !state;
+    $("download-sounds").disabled = $("sound-volume").disabled = !state;
     if (!state) return;
     if ($("limit").options.length !== state.maxParallel)
       $("limit").replaceChildren(...Array.from({ length: state.maxParallel }, (_, index) => option(index + 1, number.format(index + 1))));
@@ -265,6 +269,9 @@
     selectControls.sync($("limit"));
     selectControls.sync($("filter"));
     $("native-notifications").checked = state.notifications !== false;
+    $("download-sounds").checked = state.sounds?.enabled === true;
+    if (!movingSoundSlider) $("sound-volume").value = state.sounds?.volume ?? Soft98DownloadAudio.DEFAULT_VOLUME;
+    renderSoundLevel();
     $("clear").disabled = !state.jobs.some((job) => states.finished.has(job.status) && !(job.status === "interrupted" && job.resumable));
     buttonContent(hold, state.held ? "unhold" : "hold", state.held ? "player-play" : "player-pause");
     $("notice").textContent = state.held && hasQueueWork ? text("held") : "";
@@ -574,6 +581,9 @@
   document.title = `${text("title")} | Soft98 Pro`;
   for (const node of document.querySelectorAll("[data-copy]")) node.textContent = text(node.dataset.copy);
   for (const key of ["all", ...Object.keys(states)]) $("filter").append(option(key, text(key)));
+  for (const cue of Soft98DownloadAudio.cues) $("sound-cue").append(option(cue, text(`sound_${cue}`)));
+  $("sound-cue").value = "complete";
+  renderSoundLevel();
   $("search").placeholder = text("search");
   $("empty").textContent = text("loading");
   setIcon($("empty-icon"), "download");
@@ -635,6 +645,15 @@
   buttonContent($("hold"), "hold", "player-pause");
   buttonContent($("clear"), "clear", "trash");
   buttonContent($("test-notification"), "testNotification", "bell");
+  setIcon($("sound-icon"), "volume");
+  buttonContent($("preview-sound"), "previewSound", "player-play");
+  function renderSoundLevel() {
+    const slider = $("sound-volume");
+    const reading = soundPercent.format(Number(slider.value) / 100);
+    $("sound-level").value = reading;
+    slider.setAttribute("aria-valuetext", reading);
+    $("preview-sound").disabled = previewingSound || Number(slider.value) === 0;
+  }
   $("hold").addEventListener("click", event => {
     if (!event.currentTarget.hidden) void request("configure", { held: !state?.held });
   });
@@ -658,6 +677,31 @@
     }
   });
   $("clear").addEventListener("click", () => request("clear"));
+  $("download-sounds").addEventListener("change", async (event) => {
+    if (!await request("configure", { soundEnabled: event.target.checked })) render();
+  });
+  $("sound-volume").addEventListener("input", () => {
+    movingSoundSlider = true;
+    renderSoundLevel();
+  });
+  $("sound-volume").addEventListener("change", async (event) => {
+    const volume = Number(event.target.value);
+    movingSoundSlider = false;
+    if (!await request("configure", { soundVolume: volume })) render();
+  });
+  $("preview-sound").addEventListener("click", async () => {
+    previewingSound = true;
+    renderSoundLevel();
+    try {
+      const { ok } = await send({ type: "soft98:test-download-sound", cue: $("sound-cue").value, volume: Number($("sound-volume").value) });
+      report(text(ok ? "soundPlayed" : "soundFailed"), !ok);
+    } catch {
+      report(text("soundFailed"), true);
+    } finally {
+      previewingSound = false;
+      renderSoundLevel();
+    }
+  });
   $("empty-action").addEventListener("click", () => {
     if (!state?.jobs.length) $("open-import").click();
     else {
