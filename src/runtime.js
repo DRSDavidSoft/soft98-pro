@@ -29,7 +29,6 @@
   const COMPATIBILITY = __SOFT98_COMPATIBILITY__;
   const BRAND_ASSETS = __SOFT98_BRAND_ASSETS__;
   const PAGE_ICONS = __SOFT98_PAGE_ICONS__;
-  const UTILITY_PATH_ICONS = __SOFT98_UTILITY_PATH_ICONS__;
   const OPTION_PREVIEWS = __SOFT98_OPTION_PREVIEWS__;
   const LISTING_NAVIGATION_CSS = __SOFT98_LISTING_NAVIGATION_CSS__;
   const COMMENTS_CSS = __SOFT98_COMMENTS_CSS__;
@@ -107,6 +106,12 @@
   const dialogState = new WeakMap();
   const articlePreviewCache = new Map();
   const articlePreviewTriggers = new WeakSet();
+  const postArtwork = Soft98PostArtwork.create({ fetchPage: nativeFetch, document, storage: () => localStorage, origin: location.origin });
+  const artworkRows = new WeakMap();
+  const pendingArtwork = new Map();
+  const artworkObserver = typeof IntersectionObserver === "function" ? new IntersectionObserver((entries) => {
+    for (const entry of entries) if (entry.isIntersecting && settings.pro) loadPostArtwork(entry.target);
+  }, { rootMargin: "140px 0px" }) : null;
   const contentTabs = new Map();
   let audioContext;
   let audioAt = 0;
@@ -1182,13 +1187,6 @@
       .soft98-pro-theme [data-soft98-pro-tone=body]{color:var(--s98p-text)!important}
       .soft98-pro-theme a[data-soft98-pro-tone=action]{background:var(--s98p-surface-2)!important;border-color:var(--s98p-border-soft)!important;color:var(--s98p-text)!important}
       .soft98-pro-theme a[data-soft98-pro-tone=action]:hover{background:var(--s98p-soft)!important}
-      .soft98-pro-theme [data-soft98-pro-utility-icon]{background-color:var(--s98p-surface-2)!important;border-color:var(--s98p-border-soft)!important;box-shadow:none!important;filter:none!important}
-      :root.soft98-pro-theme [data-soft98-pro-utility-icon][data-soft98-pro-icon-host]{display:grid!important;place-items:center;background-image:none!important}
-      :root.soft98-pro-theme [data-soft98-pro-utility-icon][data-soft98-pro-icon-host]::before,
-      :root.soft98-pro-theme [data-soft98-pro-utility-icon][data-soft98-pro-icon-host]::after{display:none!important;content:none!important}
-      :root.soft98-pro-theme [data-soft98-pro-utility-icon] > [data-soft98-pro-page-icon]{width:32px;height:32px;margin:0;background:transparent!important;--icon-color:#b8cee5}
-      :root.soft98-pro-theme [data-soft98-pro-utility-icon] svg{width:27px;height:27px}
-      :root.soft98-pro-theme [data-soft98-pro-utility-icon] img{display:block;max-width:32px;max-height:32px;object-fit:contain;filter:none!important}
       .soft98-pro-theme [data-soft98-pro-utility-card] > footer{background:var(--s98p-surface-2)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border)!important}
       .soft98-pro-theme [data-soft98-pro-utility-card] > footer:hover{background:var(--s98p-soft)!important}
       .soft98-pro-theme [data-soft98-pro-utility-header],.soft98-pro-theme [data-soft98-pro-utility-header] :is(h1,h2,h3,h4,h5,h6){border-color:var(--s98p-border)!important;text-shadow:none!important}
@@ -1475,7 +1473,6 @@
       :root.soft98-pro-theme [data-soft98-pro-dialog-header]{position:sticky;inset-block-start:0;z-index:1;background:var(--s98p-elevated)!important;color:var(--s98p-text)!important;border-block-end:1px solid var(--s98p-border)!important;padding:12px 16px}
       :root.soft98-pro-theme [data-soft98-pro-dialog="notice"] :is([role=document],[data-soft98-pro-dialog-panel]){transition:opacity .16s ease!important;transform:none!important;animation:none!important}
       :root.soft98-pro-theme [data-soft98-pro-dialog]:not([open])[data-soft98-pro-native-dialog]{display:none!important}
-      :root.soft98-pro-theme dialog[data-soft98-pro-native-dialog]::backdrop{background:#060a105e;backdrop-filter:blur(7px)}
       :root.soft98-pro-theme dialog[data-soft98-pro-native-dialog]{margin:auto;padding:0;color:var(--s98p-text);direction:inherit;inset:auto 0;max-inline-size:min(680px,calc(100vw - 24px))}
       :root.soft98-pro-theme dialog[aria-labelledby=soft98-pro-utility-title]{position:fixed;inset:0;inline-size:min(560px,calc(100vw - 24px));max-block-size:calc(100dvh - 32px);overscroll-behavior:contain}
       :root.soft98-pro-theme dialog[aria-labelledby=soft98-pro-utility-title] > header{display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:8;isolation:isolate}
@@ -1511,12 +1508,10 @@
       :root.soft98-pro-light dd:nth-child(odd){background:var(--s98p-surface-2)!important}
       :root.soft98-pro-light [data-soft98-pro-download-group] a[data-soft98-pro-icon-host=download]:is(:hover,:focus-visible){color:#06554e!important}
       :root.soft98-pro-light [data-soft98-pro-page-icon]:is([data-soft98-pro-page-icon=windows],[data-soft98-pro-page-icon=apple],[data-soft98-pro-page-icon=android],[data-soft98-pro-page-icon=linux]){--icon-color:#395665}
-      :root.soft98-pro-light [data-soft98-pro-utility-icon] > [data-soft98-pro-page-icon]{--icon-color:#395665}
       :root.soft98-pro-light [data-soft98-pro-latest] li a[data-soft98-pro-news-link] [data-soft98-pro-news-counter]{color:var(--s98p-faint)!important}
       :root.soft98-pro-light [role=alert]{background:#fff4db!important;border-color:#e1bd78!important;color:#664214!important}
       :root.soft98-pro-light :is(pre,code){background:#e8f1f4!important;color:#244958!important}
       :root.soft98-pro-light ::selection{background:#bce6de;color:#123b38}
-      :root.soft98-pro-light [data-soft98-pro-dialog],:root.soft98-pro-light [data-soft98-pro-native-dialog]::backdrop{background:#223c5147!important}
       :root.soft98-pro-light [data-soft98-pro-dialog-panel]{box-shadow:0 20px 60px #16283936,0 1px #fff inset!important}
       @media(max-width:560px){:root.soft98-pro-theme [data-soft98-pro-nav-item=icon]{width:clamp(32px,9vw,40px);margin-inline:1px}}
       @media(max-width:560px){:root.soft98-pro-theme [data-soft98-pro-surface=tab-list]{gap:2px 4px;padding-inline:6px!important}:root.soft98-pro-theme [data-soft98-pro-surface=tab-list]>:is(li,div){flex:1 1 calc(50% - 4px)!important}:root.soft98-pro-theme [data-soft98-pro-surface=tab-list] :is([role=tab],[data-toggle=tab]){width:100%!important;padding-inline:7px!important}}
@@ -2284,7 +2279,11 @@
     for (const heading of document.querySelectorAll("section > header > :is(h2,h3,h4,h5,h6)")) {
       if (normalizedPersian(heading.textContent || "") !== "مطالبمشابه") continue;
       const card = heading.parentElement.parentElement;
-      if (card.querySelector(":scope > :is(ul,ol) > li > a[href]")) card.setAttribute("data-soft98-pro-related", "");
+      const links = card.querySelectorAll(":scope > :is(ul,ol) > li > a[href]");
+      if (links.length) {
+        card.setAttribute("data-soft98-pro-related", "");
+        for (const link of links) preparePostArtwork(link);
+      }
     }
     syncWideLayout();
     const nav = document.querySelector('nav:has([data-toggle="night-mode"]),header nav');
@@ -2362,6 +2361,10 @@
     styleSiteDialogs();
     syncDownloadManagerEntry(nav);
     syncUtilityPlacement(nav);
+    for (const tile of pendingArtwork.keys()) {
+      if (!tile.isConnected) discardPostArtwork(tile);
+      else if (!artworkObserver && tile.getClientRects().length) loadPostArtwork(tile);
+    }
     renderSiteFooter();
     document.documentElement.setAttribute("data-soft98-pro-chrome", "");
     if (nav?.querySelector('[data-toggle="night-mode"]')) {
@@ -2607,7 +2610,9 @@
     heading.textContent = text("utilityTitle");
     const close = document.createElement("button");
     close.type = "button";
+    close.setAttribute("data-s98p-dialog-close", "");
     close.textContent = text("close");
+    decorateIcon(close, "close");
     close.addEventListener("click", () => dialog.close());
     header.append(heading, close);
     const item = document.createElement("li");
@@ -2626,7 +2631,10 @@
     document.body.append(dialog);
     proDialogs.set("utility", dialog);
     button.addEventListener("click", () => {
-      if (!dialog.open) dialog.showModal();
+      if (!dialog.open) {
+        button.focus({ preventScroll: true });
+        dialog.showModal();
+      }
       styleSiteDialogs();
     });
     dialog.addEventListener("click", (event) => {
@@ -4302,8 +4310,8 @@
         for (const item of items) {
           const link = item.matches("a[href]") ? item : item.querySelector(":scope > a[href]");
           if (!link || link.children.length < 2) continue;
-          const children = [...link.children];
-          const media = children.find(isCompactMediaNode);
+          const children = [...link.children].filter((node) => !node.hasAttribute("data-s98p-post-art"));
+          const media = children.find((node) => node.hasAttribute("data-s98p-stock-utility-art")) || children.find(isCompactMediaNode);
           const copy = children.find((node) => node !== media && node.textContent.trim());
           if (!media || !copy) continue;
           rows.push({ link, copy, media });
@@ -4326,20 +4334,69 @@
           row.link.setAttribute("data-soft98-pro-list-row", "true");
           row.copy.setAttribute("data-soft98-pro-list-copy", "true");
           if (utilityCard) {
-            row.media.setAttribute("data-soft98-pro-utility-icon", "");
-            themeUtilityIcon(row.media, row.link);
+            preparePostArtwork(row.link, row.media);
           }
         }
       }
     }
   }
 
-  function themeUtilityIcon(icon, link) {
-    const path = link.origin === location.origin && /^https?:$/.test(link.protocol)
-      ? link.pathname.toLowerCase().replaceAll("%2b", "+") : "";
-    const kind = Object.hasOwn(UTILITY_PATH_ICONS, path) ? UTILITY_PATH_ICONS[path] : "desktop";
-    decorateIcon(icon, kind);
-    icon.setAttribute("data-soft98-pro-utility-art", "ready");
+  function preparePostArtwork(link, original) {
+    const destination = Soft98PostArtwork.destination(link.href, location.origin);
+    const previous = artworkRows.get(link);
+    if (previous?.destination === destination && previous.original === original && previous.tile.parentElement === link) return;
+    if (previous) {
+      discardPostArtwork(previous.tile);
+      previous.tile.remove();
+      previous.original?.removeAttribute("data-s98p-stock-utility-art");
+    }
+    if (!original && !link.querySelector(":scope > [data-s98p-related-copy]")) {
+      const copy = document.createElement("span");
+      copy.setAttribute("data-s98p-related-copy", "");
+      copy.append(...link.childNodes);
+      link.append(copy);
+    }
+    const tile = document.createElement("span");
+    tile.setAttribute("data-s98p-post-art", "");
+    tile.setAttribute("aria-hidden", "true");
+    tile.innerHTML = PAGE_ICONS[destination ? "desktop" : "folder"];
+    original?.setAttribute("data-s98p-stock-utility-art", "");
+    if (original) original.before(tile);
+    else link.prepend(tile);
+    artworkRows.set(link, { destination, original, tile });
+    if (destination) {
+      pendingArtwork.set(tile, destination);
+      artworkObserver?.observe(tile);
+    }
+  }
+
+  function discardPostArtwork(tile) {
+    artworkObserver?.unobserve(tile);
+    pendingArtwork.delete(tile);
+  }
+
+  function loadPostArtwork(tile) {
+    const destination = pendingArtwork.get(tile);
+    discardPostArtwork(tile);
+    if (!destination || !tile.isConnected) return;
+    const hint = Soft98PostArtwork.imageUrl(tile.parentElement.getAttribute("data-image"), destination);
+    function show(url, onError) {
+      const image = document.createElement("img");
+      image.alt = "";
+      image.referrerPolicy = "no-referrer";
+      image.decoding = "async";
+      image.addEventListener("load", () => { if (tile.isConnected) tile.append(image); }, { once: true });
+      if (onError) image.addEventListener("error", onError, { once: true });
+      image.src = url;
+    }
+    void postArtwork.get(destination).then((url) => {
+      if (!tile.isConnected) return;
+      if (!url) { if (hint) show(hint); return; }
+      show(url, () => {
+        postArtwork.unavailable(destination);
+        if (hint && hint !== url && tile.isConnected) show(hint);
+      });
+    });
   }
 
 

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<meta charset="utf-8">
+<title>Soft98 post artwork fixture</title>
+<script>
+  const settings = { pro: true, utilityInHeader: true, darkDesign: !location.search.includes("light") };
+  localStorage.setItem("soft98-ad-blocker.settings", JSON.stringify(settings));
+  const requests = window.artworkRequests = [];
+  const nativeFetch = window.fetch.bind(window);
+  const icon = "/src/assets/linux-penguin.svg";
+  window.fetch = (input, options) => {
+    const url = new URL(input, location.href);
+    if (!/^\/fixtures\/\d+-.*\.html$/.test(url.pathname)) return nativeFetch(input, options);
+    requests.push({ path: url.pathname, search: url.search, credentials: options?.credentials, mode: options?.mode, at: performance.now() });
+    if (url.pathname === "/fixtures/42-dialog.html") {
+      if (requests.filter(entry => entry.path === url.pathname).length === 1)
+        return Promise.resolve(new Response("", { status: 429, headers: { "Retry-After": "1" } }));
+      return nativeFetch(input, options);
+    }
+    const id = url.pathname.split("/").at(-1).split("-")[0];
+    const pageType = id === "45" ? "website" : "article";
+    const head = '<meta property="og:type" content="' + pageType + '">' + (id === "41" ? "" :
+      '<meta property="og:image" content="' + (id === "44" ? "https://soft98.ir.invalid/bad.svg" :
+        id === "46" ? "/fixture-does-not-exist.png" : icon + "?id=" + id) + '">');
+    const body = '<article><header><h1>Title</h1>' + (id === "41" ? '<img itemprop="image" src="' + icon + '?id=41">' : '') +
+      '</header><img src="/fixture-unwanted-ad.png"></article><scr' + 'ipt>window.artworkScriptRan=true</scr' + 'ipt>';
+    return Promise.resolve(new Response('<html><head>' + head + '</head><body>' + body, { headers: { "content-type": "text/html" } }));
+  };
+</script>
+<header><nav><ul><li><button data-toggle="search">Search</button></li></ul></nav></header>
+<main><article><h1>Article</h1><p>The post content</p></article>
+  <section id="related">
+    <header><h2>مطالـب مشابه</h2></header>
+    <ul>
+      <li><a id="duplicate" href="/fixtures/41-cached.html?track=1#details">نرم‌افزار <bdi>Sample A</bdi></a></li>
+      <li><a id="invalid" href="/fixtures/44-foreign.html">Foreign image</a></li>
+      <li><a id="collection" href="/fixtures/45-collection.html">Collection</a></li>
+      <li><a id="broken" href="/fixtures/46-broken.html">Broken image</a></li>
+    </ul>
+  </section>
+</main>
+<aside><section>
+  <header><h2>لیسـت نرم‌افزارهای کاربردی</h2></header>
+  <ul id="primary-tools">
+    <li><a href="/fixtures/41-cached.html"><i class="stock-art"></i><span>Cached application</span></a></li>
+    <li><a href="/fixtures/42-dialog.html"><i class="stock-art"></i><span>Dialog application</span></a></li>
+    <li><a href="/tags/download+manager/"><i class="stock-art"></i><span>Category</span></a></li>
+  </ul>
+  <ul id="extra-tools">
+    <li><a href="/fixtures/43-expanded.html"><i class="stock-art"></i><span>Extra application</span></a></li>
+    <li><a href="/fixtures/41-cached.html"><i class="stock-art"></i><span>Cached application</span></a></li>
+    <li><a href="/tags/remote/"><i class="stock-art"></i><span>Category</span></a></li>
+  </ul>
+  <footer data-toggle="collapse" aria-controls="extra-tools" aria-expanded="false"><button>More</button></footer>
+</section></aside>
+<script src="/soft98-pro.user.js"></script>
+</html>

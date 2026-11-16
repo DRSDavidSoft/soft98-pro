@@ -873,6 +873,71 @@ async function verifyAppearanceBridge(client) {
   }
 }
 
+async function verifyPostArtwork(client) {
+  const run = (expression) => evaluate(client, expression);
+  const url = `http://127.0.0.1:${PORT}/test/post-artwork.html`;
+  const check = (label, value, expected) => assertEqual("post artwork", label, JSON.stringify(value), JSON.stringify(expected));
+  const until = async (expression) => {
+    for (let attempt = 0; attempt < 40; attempt++) {
+      if (await run(expression).catch(() => false)) return;
+      await delay(70);
+    }
+    throw new Error(`Artwork did not settle: ${expression}`);
+  };
+  const dialog = 'document.querySelector("dialog[aria-labelledby=soft98-pro-utility-title]")';
+  const trigger = 'document.querySelector("nav [aria-haspopup=dialog]")';
+  const artwork = '[data-s98p-post-art] img';
+  const cached = 'JSON.parse(localStorage.getItem("soft98-pro.post-artwork.v1") || "{}")';
+  const settingsKey = "soft98-ad-blocker.settings";
+  const previousSettings = await run(`localStorage.getItem(${JSON.stringify(settingsKey)})`);
+  await client.send("Emulation.setDeviceMetricsOverride", { width: 1024, height: 820, deviceScaleFactor: 1, mobile: false });
+  try {
+    await client.send("Page.navigate", { url });
+    await until(`${dialog} && document.querySelector('#duplicate ${artwork}') && Object.keys(${cached}).length === 4`);
+    check("post fetches omit credentials, query and fragments, and stay same-origin", await run(`artworkRequests.every(row =>
+      row.credentials === "omit" && row.mode === "same-origin" && !row.search)`), true);
+    check("closed dialog makes no additional HTML requests", await run("artworkRequests.length"), 4);
+    check("no wrong artwork on bad, non-post or missing images", await run(`!document.querySelector('#invalid img,#collection img,#broken img')`), true);
+    check("parsing does not execute scripts or load unrelated embedded images", await run(`!window.artworkScriptRan &&
+      !performance.getEntriesByType("resource").some(entry => entry.name.endsWith("/fixture-unwanted-ad.png"))`), true);
+    check("link and inline label markup survive", await run(`document.querySelector("#duplicate").getAttribute("href").endsWith("?track=1#details") &&
+      document.querySelector("#duplicate bdi").textContent === "Sample A"`), true);
+    const open = await run(`(() => {
+      ${trigger}.click();
+      const sheet = ${dialog};
+      const shade = getComputedStyle(sheet, "::backdrop");
+      const close = sheet.querySelector("[data-s98p-dialog-close]");
+      return { open: sheet.open, opacity: shade.opacity, blur: shade.backdropFilter, transform: shade.transform,
+        animation: shade.animationName, icon: !!close.querySelector("svg"), closeHeight: close.getBoundingClientRect().height };
+    })()`);
+    check("the backdrop is already blurred and only the tint animates on the opening frame",
+      { ...open, closeHeight: open.closeHeight >= 36 }, { open: true, opacity: "1", blur: "blur(7px)", transform: "none",
+        animation: "s98p-dialog-tint-in", icon: true, closeHeight: true });
+    await until(`document.querySelectorAll('#primary-tools ${artwork}').length === 2`);
+    check("a same-origin redirect resolves its new post artwork", await run(`[...document.querySelectorAll('#primary-tools ${artwork}')].some(img => img.src.endsWith("?id=42"))`), true);
+    check("the dialog reuses the related-post entry and categories do not fetch", await run("artworkRequests.length"), 6);
+    check("a throttled post retries after the server's delay", await run(`artworkRequests.filter(row => row.path.endsWith("42-dialog.html")).map(row => row.at)
+      .reduce((a,b) => b-a) >= 1000`), true);
+    await run(`${dialog}.querySelector("footer button").click()`);
+    await until(`document.querySelectorAll('#extra-tools ${artwork}').length === 2`);
+    check("expanded entries fetch when shown", await run("artworkRequests.length"), 7);
+    await run(`${dialog}.querySelector("[data-s98p-dialog-close]").click()`);
+    await until(`!${dialog}.open && !location.hash`);
+    check("close restores focus to the opener", await run(`document.activeElement === ${trigger}`), true);
+    await client.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 760, deviceScaleFactor: 1, mobile: true });
+    await client.send("Page.navigate", { url: url + "?light" });
+    await until(`${dialog} && document.querySelector('#duplicate ${artwork}')`);
+    await run(`${trigger}.click()`);
+    await until(`document.querySelectorAll('#primary-tools ${artwork}').length === 2`);
+    check("reload uses the persistent cache and light dialog fits on mobile", await run(`artworkRequests.length === 0 &&
+      document.documentElement.classList.contains("soft98-pro-light") && ${dialog}.getBoundingClientRect().width < innerWidth`), true);
+  } finally {
+    await run(previousSettings === null ? `localStorage.removeItem(${JSON.stringify(settingsKey)})`
+      : `localStorage.setItem(${JSON.stringify(settingsKey)}, ${JSON.stringify(previousSettings)})`);
+    await client.send("Emulation.clearDeviceMetricsOverride");
+  }
+}
+
 async function verifyWideLayout(client) {
   const run = (expression) => evaluate(client, expression);
   const until = async (expression) => {
@@ -1010,7 +1075,10 @@ async function verifyWideLayout(client) {
     await until('document.querySelector("#legacy footer").hasAttribute("data-s98p-dialog-footer")');
     check("legacy modal shell does not scale its shade", await run('getComputedStyle(document.querySelector("#legacy")).transform'), "none");
     check("modal footer uses the Pro palette", await run('getComputedStyle(document.querySelector("#legacy footer")).backgroundColor !== "rgb(39, 39, 39)"'), true);
-    check("backdrop fades independently", await run('getComputedStyle(document.querySelector("#legacy"), "::before").animationName'), "s98p-shade-in");
+    check("the legacy backdrop animates only its tint", await run(`(() => {
+      const shade = getComputedStyle(document.querySelector("#legacy"), "::before");
+      return [shade.animationName, shade.opacity, shade.backdropFilter].join("|");
+    })()`), "s98p-dialog-tint-in|1|blur(7px)");
     await run('document.querySelector("#legacy").setAttribute("aria-hidden","true"); document.body.classList.add("night-mode"); Soft98Pro.scan()');
     await until('document.querySelector("#unlabelled-quote").dataset.soft98ProCallout === "quote"');
     const callouts = `(() => {
@@ -2065,6 +2133,7 @@ async function main() {
     await verifyIssue16(client);
     await verifyAppearanceBridge(client);
     await verifyWideLayout(client);
+    await verifyPostArtwork(client);
     await verifyTopbar(client);
     await verifyLinkdoni(client);
     console.log("Soft98 runtime browser acceptance passed");

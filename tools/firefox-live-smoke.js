@@ -1424,25 +1424,30 @@ async function main() {
           return list && dialog.contains(list);
         });
         expand?.click();
-        setTimeout(() => {
-          const icons = [...dialog?.querySelectorAll('[data-soft98-pro-utility-icon][data-soft98-pro-icon-host]') || []]
-            .map(node => ({name:node.getAttribute('data-soft98-pro-icon-host'), visible:node.checkVisibility?.({checkVisibilityCSS:true}) ?? !!node.getClientRects().length}));
-          const box = dialog?.getBoundingClientRect();
+        const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+        (async () => {
+          const before = dialog?.querySelector('ul');
+          const images = root => [...root?.querySelectorAll('[data-s98p-post-art] img') || []];
+          const untilArtwork = async root => {
+            for (let i=0; i<40; i++) {
+              if (images(root).length) return true;
+              await wait(150);
+            }
+            return false;
+          };
+          const initial = await untilArtwork(before);
+          const extra = document.getElementById(expand?.getAttribute('aria-controls') || '');
           if (dialog) dialog.scrollTop = dialog.scrollHeight;
-          const sample = dialog?.querySelector('[data-soft98-pro-icon-host=parsinegar]');
-          const iconBox = sample?.getBoundingClientRect();
-          done({icons, expanded:expand?.getAttribute('aria-expanded') === 'true' && !!iconBox?.width && !!iconBox.height &&
-            iconBox.top >= box.top && iconBox.bottom <= box.bottom,
-            centered:!!box && box.top >= 0 && box.bottom <= innerHeight + 1 && box.left >= 0 && box.right <= innerWidth + 1,
-            detail:[expand?.outerHTML.slice(0,250), dialog?.scrollTop, dialog?.scrollHeight, iconBox?.top, box?.top, box?.bottom,
-              [...dialog?.querySelectorAll('footer') || []].map(node => node.outerHTML.slice(0,250))]});
-        }, 500);
+          const expanded = await untilArtwork(extra);
+          const box = dialog?.getBoundingClientRect();
+          done({ initial, expanded, icons:images(dialog).map(node => node.currentSrc),
+            close:!!dialog?.querySelector('[data-s98p-dialog-close] svg'),
+            centered:!!box && box.top >= 0 && box.bottom <= innerHeight + 1 && box.left >= 0 && box.right <= innerWidth + 1 });
+        })().catch(error => done({ error: String(error) }));
       ` });
-      if (!artwork.centered) throw new Error("Expanded software dialog was outside the viewport");
-      if (!artwork.expanded) throw new Error("Expanded artwork did not scroll into view: " + JSON.stringify(artwork.detail));
-      for (const name of ["java-duke", "parsinegar", "foxit-reader-token", "net-disabler-token", "utility-disc"]) {
-        if (!artwork.icons.some((icon) => icon.name === name && icon.visible)) throw new Error("Expanded software list is missing visible " + name);
-      }
+      if (!artwork.centered || !artwork.close || !artwork.initial || !artwork.expanded ||
+          artwork.icons.some(url => !/^https:\/\/(?:[^/]+\.)?soft98\.ir\//.test(url)))
+        throw new Error("Live software artwork or dialog failed: " + JSON.stringify(artwork));
       console.log(JSON.stringify({ utilityArtwork: artwork }));
       await new Promise((resolve) => setTimeout(resolve, 250));
       await screenshot(session, process.env.SOFT98_UTILITY_ARTWORK_SCREENSHOT);

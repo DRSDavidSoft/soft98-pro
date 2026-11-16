@@ -23,8 +23,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Added a test button for browser notifications in Download Manager settings.
 - Added shared theme, accent color, animated RGB, and Control Center settings to Download Manager.
 - Added optional download sounds with volume control and a preview for each event, shared by the Download Manager and toolbar popup.
+- Related posts and the useful-software list now show the artwork published on linked posts, with a browser cache and a neutral fallback.
 
 ### Fixed
+
+- Matched the useful-software dialog's Close button to both themes and removed the flash from its blurred backdrop.
 
 - Kept Persian userscript labels readable in legacy decoders, restored mixed download lists on reload, and removed leftover sidebar ad cards and neutral gray surfaces.
 

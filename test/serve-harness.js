@@ -71,6 +71,16 @@ http
   .createServer(async (request, response) => {
     try {
       const requestUrl = new URL(request.url, "http://127.0.0.1");
+      if (requestUrl.pathname === "/fixtures/42-dialog.html") {
+        response.writeHead(302, { Location: "/test/42-dialog-current.html" }).end();
+        return;
+      }
+      if (requestUrl.pathname === "/test/42-dialog-current.html") {
+        response.writeHead(200, { "content-type": "text/html" }).end('<!doctype html><html><head>' +
+          '<meta property="og:type" content="article"><meta property="og:image" content="../src/assets/linux-penguin.svg?id=42">' +
+          '</head><body><article><h1>Current post</h1></article></body></html>');
+        return;
+      }
       if (request.method === "HEAD" && /^\/test\/download-fixture\//.test(requestUrl.pathname)) {
         const sizes = { "Artwork.part01.rar": 67108864, "Artwork.part02.rar": 48234496, "Notes.pdf": 94208, "Assets.zip": 12582912 };
         const name = requestUrl.pathname.split("/").pop();

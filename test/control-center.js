@@ -18,7 +18,6 @@ const substitutions = {
   MESSAGES: source("src/messages.json"),
   COMPATIBILITY: source("src/compatibility/soft98-scripts.json"),
   PAGE_ICONS: "{}",
-  UTILITY_PATH_ICONS: "{}",
   LISTING_NAVIGATION_CSS: '""',
   COMMENTS_CSS: '""',
   CHROME_CSS: '""',
@@ -28,7 +27,7 @@ const substitutions = {
   OPTION_PREVIEWS: JSON.stringify({ rgbMode: { files: ["dark-on.webp", "rgb.webp", "rgb-still.webp"].map((file) =>
     "data:image/webp;base64," + fs.readFileSync(path.join(root, "docs", "assets", "settings", file)).toString("base64")), illustrated: false } }),
 };
-const runtime = ["src/patch-engine.js", "src/listing-navigation.js", "src/comments.js", "src/download-links.js"].map(source).join("\n") + "\n" + source("src/runtime.js").replace(/__SOFT98_([A-Z_]+)__/g,
+const runtime = ["src/patch-engine.js", "src/listing-navigation.js", "src/comments.js", "src/download-links.js", "src/post-artwork.js"].map(source).join("\n") + "\n" + source("src/runtime.js").replace(/__SOFT98_([A-Z_]+)__/g,
   (token, name) => Object.hasOwn(substitutions, name) ? substitutions[name] : token);
 
 async function verify() {

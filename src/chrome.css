@@ -806,13 +806,49 @@
   z-index: -1;
   inset: 0;
   pointer-events: none;
-  background: var(--s98p-dialog-shade, #060a1080);
+}
+:root.soft98-pro-theme [data-soft98-pro-dialog]:not(dialog)::before,
+:root.soft98-pro-theme dialog[data-soft98-pro-native-dialog]::backdrop {
+  background-color: var(--s98p-dialog-shade, #060a1080);
   backdrop-filter: blur(7px);
-  animation: s98p-shade-in .19s ease-out both;
+  transform: none !important;
+  transition: none !important;
+  animation: s98p-dialog-tint-in .18s ease-out both;
 }
 :root.soft98-pro-light { --s98p-dialog-shade: #24364959; }
-:root.soft98-pro-theme dialog[data-soft98-pro-native-dialog]::backdrop { transform: none !important; animation: s98p-shade-in .19s ease-out both; }
-@keyframes s98p-shade-in { from { opacity: 0; } to { opacity: 1; } }
+/* Keep the backdrop's blurred layer fully composited; fade only its tint. */
+@keyframes s98p-dialog-tint-in {
+  from { background-color: color-mix(in srgb,var(--s98p-dialog-shade,#060a1080) 42%,transparent); }
+  to { background-color: var(--s98p-dialog-shade,#060a1080); }
+}
+:root.soft98-pro-theme [data-soft98-pro-dialog-header] > [data-s98p-dialog-close],
+:root.soft98-pro-theme [data-s98p-dialog-footer] > button[data-dismiss] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: none;
+  min-block-size: 36px;
+  margin: 0;
+  padding: 4px 11px;
+  border: 1px solid var(--s98p-border) !important;
+  border-radius: 7px;
+  background: var(--s98p-surface-2) !important;
+  color: var(--s98p-text) !important;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background-color .14s ease, border-color .14s ease;
+}
+:root.soft98-pro-theme [data-soft98-pro-dialog-header] > [data-s98p-dialog-close]:is(:hover,:focus-visible),
+:root.soft98-pro-theme [data-s98p-dialog-footer] > button[data-dismiss]:is(:hover,:focus-visible) {
+  background: var(--s98p-soft) !important;
+  border-color: var(--s98p-accent) !important;
+}
+:root.soft98-pro-theme [data-s98p-dialog-close] > [data-soft98-pro-page-icon] {
+  inline-size: 16px; block-size: 16px; margin: 0; background: transparent !important;
+}
+:root.soft98-pro-theme [data-s98p-dialog-close] svg { inline-size: 16px; block-size: 16px; }
 @media(prefers-reduced-motion:reduce) {
   :root.soft98-pro-theme [data-s98p-news-reveal], [data-s98p-news-toggle] svg { transition: none; }
   :root.soft98-pro-theme [data-soft98-pro-dialog]:not(dialog)::before, :root.soft98-pro-theme dialog[data-soft98-pro-native-dialog]::backdrop { animation: none; }
@@ -1655,6 +1691,50 @@
   background: none !important;
   color: var(--s98p-muted) !important;
   transition: background-color .14s ease,color .14s ease;
+}
+
+:root:not(.soft98-pro-theme) [data-s98p-post-art],
+:root.soft98-pro-theme [data-s98p-stock-utility-art] {
+  display: none !important;
+}
+:root.soft98-pro-theme [data-s98p-post-art] {
+  display: inline-grid !important;
+  place-items: center;
+  flex: none;
+  box-sizing: border-box;
+  inline-size: 36px;
+  block-size: 36px;
+  overflow: hidden;
+  border: 1px solid var(--s98p-border-soft);
+  border-radius: 7px;
+  background: var(--s98p-surface-2) !important;
+  color: var(--s98p-faint);
+}
+:root.soft98-pro-theme [data-s98p-post-art] svg {
+  inline-size: 18px;
+  block-size: 18px;
+}
+:root.soft98-pro-theme [data-s98p-post-art]:has(> img) svg { display: none !important; }
+:root.soft98-pro-theme [data-s98p-post-art] img {
+  display: block;
+  inline-size: 30px;
+  block-size: 30px;
+  object-fit: contain;
+  margin: 0 !important;
+  border-radius: 4px;
+  box-shadow: none !important;
+  filter: none !important;
+}
+:root.soft98-pro-theme [data-soft98-pro-related] li > a:has(> [data-s98p-post-art]) {
+  display: grid !important;
+  grid-template-columns: 36px minmax(0,1fr);
+  align-items: center;
+  gap: 9px;
+}
+:root.soft98-pro-theme [data-soft98-pro-related] li > a:has(> [data-s98p-post-art])::before,
+:root.soft98-pro-theme [data-soft98-pro-related] li > a:has(> [data-s98p-post-art])::after {
+  content: none !important;
+  display: none !important;
 }
 
 :root.soft98-pro-theme [data-s98p-related-rail] [data-soft98-pro-related] li > a::before,
