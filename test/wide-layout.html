@@ -4,6 +4,7 @@
 <title>Soft98 layout fixture</title>
 <style>
   body { margin: 0; direction: rtl; }
+  #article-frame { background: #272727; box-shadow: 0 2px 5px #0004; }
   #workspace { display: flex; width: calc(100% - 36px); margin-inline: auto; }
   main { flex: 1; min-height: 500px; }
   #workspace > aside { width: 270px; }
@@ -33,7 +34,7 @@
     <div><ul><li><a href="/story/1">Latest story</a></li><li><a href="/story/2">Second story</a></li><li><a href="/story/3">Third story</a></li></ul></div>
   </section>
 </div>
-<div id="workspace">
+<div id="article-frame"><div id="workspace">
   <main>
     <article>
       <h1>Firewall Control</h1>
@@ -68,7 +69,7 @@
     <section><header><h2>مطالــب  مشابه</h2></header><ul><li><a href="/related">Related story</a></li></ul></section>
   </main>
   <aside><section><header>Site tools</header><a href="/tools">Browse</a></section></aside>
-</div>
+</div></div>
 <div id="legacy" role="dialog" aria-hidden="true">
   <div role="document"><div><header><h2>Download help</h2></header><p>Article instructions.</p><footer><button data-dismiss="mbd">Close</button></footer></div></div>
 </div>

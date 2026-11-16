@@ -44,6 +44,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Put download section actions beside their titles, with adjustable layouts and button labels, remembered collapse state, and confirmation before starting small bulk downloads.
 - Styled the Download All confirmation header and action buttons and added a close control.
 - Fixed repeated download sizes, aligned status badges without shifting row buttons, and restored the hover border on file-help buttons.
+- Removed stray backgrounds around content cards and synchronized the sidebar download box with the original, fading it in proportion to the original's visibility.
 
 ### Removed
 

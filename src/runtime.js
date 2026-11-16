@@ -117,6 +117,8 @@
   let siteThemeReady = false;
   const downloadRows = new WeakMap();
   const downloadHeadings = new WeakMap();
+  const downloadSectionModels = new WeakMap();
+  const mirroredDownloadHeadings = new WeakMap();
   const downloadDeviceOS = Soft98DownloadLinks.deviceOS(navigator);
   let downloadRowId = 0;
   let downloadToastTimer;
@@ -1818,7 +1820,6 @@
         const direction = document.documentElement.dir || getComputedStyle(container).direction;
         container.setAttribute("data-soft98-pro-layout", "content-grid");
         container.setAttribute("data-soft98-pro-reading", direction === "rtl" ? "rtl" : "ltr");
-        if (container.parentElement?.matches("div")) container.parentElement.setAttribute("data-soft98-pro-page-surface", "");
         for (let wrapper = container.parentElement, depth = 0; wrapper && wrapper !== document.body && depth < 3; wrapper = wrapper.parentElement, depth += 1) {
           const max = Number.parseFloat(getComputedStyle(wrapper).maxWidth);
           if (wrapper === container.parentElement || (max >= 1100 && max <= 2200)) {
@@ -1852,12 +1853,18 @@
     return { node, anchor, rail };
   }
 
+  function removeDownloadMirror(download) {
+    if (!download) return;
+    download.resize?.disconnect();
+    download.rail.remove();
+  }
+
   function syncWideLayout() {
     const enabled = settings.pro && settings.compactLayout && settings.wideColumns && relatedViewport.matches;
     for (const [grid, state] of wideLayouts) {
       if (enabled && grid.isConnected) continue;
       restoreDock(state.related);
-      state.download?.rail.remove();
+      removeDownloadMirror(state.download);
       grid.removeAttribute("data-s98p-wide-layout");
       wideLayouts.delete(grid);
     }
@@ -1871,7 +1878,7 @@
         state.related = null;
       }
       if (state.download && (!downloadsViewport.matches || !primary.contains(state.download.source) || state.download.rail.parentNode !== sidebar)) {
-        state.download.rail.remove();
+        removeDownloadMirror(state.download);
         state.download = null;
       }
       if (!state.related) {
@@ -1902,7 +1909,9 @@
           rail.append(header, mirror);
           rail.setAttribute("aria-label", title.textContent);
           sidebar.prepend(rail);
-          state.download = { source: list, rail, mirror, signature: "" };
+          const resize = typeof ResizeObserver === "function" ? new ResizeObserver(scheduleContentGridUpdate) : null;
+          resize?.observe(list);
+          state.download = { source: list, rail, mirror, signature: "", resize };
         }
       }
       if (state.download) syncDownloadMirror(state.download);
@@ -1920,8 +1929,10 @@
 
   function syncDownloadMirror(state) {
     const rows = [];
+    const sourceHeadings = [];
     for (const row of state.source.children) {
       if (row.tagName === "DT") {
+        sourceHeadings.push(row);
         const fallback = row.querySelector(":scope > [data-s98p-download-heading-fallback]");
         const label = row.querySelector(":scope > [data-s98p-download-heading-label]");
         rows.push(["heading", (fallback || label || row).textContent.trim(), Boolean(fallback)]);
@@ -1943,7 +1954,14 @@
         link.getAttribute("download"), link.getAttribute("data-soft98-pro-inline-size")]);
     }
     const signature = JSON.stringify(rows);
-    if (state.signature === signature) return;
+    const pairHeadings = () => {
+      [...state.mirror.children].filter(row => row.tagName === "DT").forEach((row, index) =>
+        mirroredDownloadHeadings.set(row, sourceHeadings[index]));
+    };
+    if (state.signature === signature) {
+      pairHeadings();
+      return;
+    }
     state.signature = signature;
     const fragment = document.createDocumentFragment();
     for (const [kind, value, title, target, rel, download, size] of rows) {
@@ -1970,12 +1988,47 @@
       fragment.append(row);
     }
     state.mirror.replaceChildren(fragment);
+    pairHeadings();
+  }
+
+  function updateDownloadMirrorOpacity() {
+    if (![...wideLayouts.values()].some(state => state.download)) return;
+    const viewport = controlViewport();
+    const bar = document.querySelector("[data-s98p-topbar-shell]")?.getBoundingClientRect();
+    const top = bar?.top <= viewport.top + 1 ? Math.max(viewport.top, bar.bottom) : viewport.top;
+    for (const { download } of wideLayouts.values()) {
+      if (!download) continue;
+      const { source, rail } = download;
+      const box = source.getBoundingClientRect();
+      const viewHeight = Math.min(box.height, viewport.bottom - top);
+      const intersection = box.right > viewport.left && box.left < viewport.right
+        ? Math.max(0, Math.min(box.bottom, viewport.bottom) - Math.max(box.top, top)) : 0;
+      const opacity = viewHeight > 0 ? 1 - Math.min(1, intersection / viewHeight) : 1;
+      const value = opacity.toFixed(4);
+      if (rail.style.getPropertyValue("--s98p-download-rail-opacity") !== value) {
+        rail.style.setProperty("--s98p-download-rail-opacity", value);
+        gridStyles.set(rail, rail.getAttribute("style"));
+      }
+      const hidden = opacity === 0;
+      if (hidden && rail.contains(document.activeElement)) {
+        const current = document.activeElement;
+        const original = mirroredDownloadHeadings.get(current.closest("dt"));
+        const role = current.hasAttribute("data-s98p-download-toggle") ? "[data-s98p-download-toggle]" :
+          current.dataset.soft98ProDownloadManager === "section" ? "[data-soft98-pro-download-manager=section]" :
+          "[data-soft98-pro-download-actions] > button:last-child";
+        const replacement = original?.querySelector(role) || source.querySelector("[data-s98p-download-toggle]");
+        replacement?.focus({ preventScroll: true });
+      }
+      rail.inert = hidden;
+      rail.toggleAttribute("data-s98p-download-rail-faded", hidden);
+    }
   }
 
   function scheduleContentGridUpdate() {
     if (gridFrame) return;
     gridFrame = requestAnimationFrame(() => {
       gridFrame = 0;
+      updateDownloadMirrorOpacity();
       const enabled = settings.pro && settings.compactLayout && settings.expandMain && innerWidth > 820;
       const checkContents = sidebarContentsDirty;
       sidebarContentsDirty = false;
@@ -2720,8 +2773,11 @@
 
   function enhanceDownloadSections() {
     const panes = new Set();
-    const listPositions = { article: 0, rail: 0 };
-    for (const list of document.querySelectorAll(":is(article [role=tabpanel],[data-s98p-download-rail]) dl:has(> dt):has(> dd > a:is([href],[data-key]))")) {
+    let sourceIndex = 0;
+    const listSelector = "dl:has(> dt):has(> dd > a:is([href],[data-key]))";
+    const sourceLists = document.querySelectorAll("article [role=tabpanel] " + listSelector);
+    const mirrorLists = document.querySelectorAll("[data-s98p-download-rail] " + listSelector);
+    for (const list of [...sourceLists, ...mirrorLists]) {
       if (!list.hasAttribute("data-soft98-pro-download-group") &&
           ![...list.querySelectorAll(":scope > dd > a:is([href],[data-key])")].some((link) => directDownloadUrl(link.getAttribute("href")) ||
             (list.hasAttribute("data-json") && link.hasAttribute("data-key")) ||
@@ -2748,10 +2804,10 @@
       }
       let heading;
       let entries = [];
-      const placement = list.closest("[data-s98p-download-rail]") ? "rail" : "article";
-      const listIndex = listPositions[placement]++;
+      const mirror = Boolean(list.closest("[data-s98p-download-rail]"));
+      const listIndex = mirror ? null : sourceIndex++;
       const titles = new Map();
-      const finish = () => { if (heading && entries.length) enhanceDownloadHeading(heading, entries, placement, listIndex, titles); };
+      const finish = () => { if (heading && entries.length) enhanceDownloadHeading(heading, entries, mirror, listIndex, titles); };
       for (const item of list.children) {
         if (item.tagName === "DT") {
           finish();
@@ -2867,7 +2923,9 @@
     } catch (_error) { return new Map(); }
   }
 
-  function enhanceDownloadHeading(heading, entries, placement, listIndex, titles) {
+  function enhanceDownloadHeading(heading, entries, mirror, listIndex, titles) {
+    let section = mirror && downloadSectionModels.get(mirroredDownloadHeadings.get(heading));
+    if (mirror && !section) return;
     let state = downloadHeadings.get(heading);
     if (!state?.controls.isConnected) {
       heading.querySelectorAll(":scope > :is([data-soft98-pro-download-actions],[data-s98p-download-toggle])").forEach((node) => node.remove());
@@ -2913,12 +2971,14 @@
       downloadHeadings.set(heading, state);
       toggle.addEventListener("click", (event) => {
         event.stopPropagation();
-        state.collapsed = !state.collapsed;
+        const section = state.section;
+        if (!section) return;
+        const collapsed = !section.collapsed;
         const saved = savedDownloadSections();
-        saved.delete(state.key);
-        saved.set(state.key, state.collapsed);
+        saved.delete(section.key);
+        saved.set(section.key, collapsed);
         try { localStorage.setItem(DOWNLOAD_SECTIONS_KEY, JSON.stringify([...saved].slice(-250))); } catch (_error) {}
-        syncDownloadCollapse(state, true);
+        applyDownloadSectionState(section, collapsed, true);
       });
       copy.addEventListener("click", async (event) => {
         event.stopPropagation();
@@ -2933,15 +2993,27 @@
         }
       });
     }
-    const title = state.label.textContent.trim();
-    const normalized = normalizedPersian(title);
-    const occurrence = titles.get(normalized) || 0;
-    titles.set(normalized, occurrence + 1);
-    const key = JSON.stringify([location.pathname, placement, listIndex, normalized, occurrence]);
-    if (state.key !== key) {
-      state.key = key;
-      const targets = Soft98DownloadLinks.headingOS(title);
-      state.collapsed = savedDownloadSections().get(key) ?? Boolean(downloadDeviceOS && targets.length && !targets.includes(downloadDeviceOS));
+    if (!mirror) {
+      const title = state.label.textContent.trim();
+      const normalized = normalizedPersian(title);
+      const occurrence = titles.get(normalized) || 0;
+      titles.set(normalized, occurrence + 1);
+      const key = JSON.stringify([location.pathname, "article", listIndex, normalized, occurrence]);
+      section = downloadSectionModels.get(heading);
+      if (section?.key !== key) {
+        const saved = savedDownloadSections();
+        const legacyKey = listIndex === 0 ? JSON.stringify([location.pathname, "rail", 0, normalized, occurrence]) : null;
+        const targets = Soft98DownloadLinks.headingOS(title);
+        const defaultCollapsed = Boolean(downloadDeviceOS && targets.length && !targets.includes(downloadDeviceOS));
+        section = { key, legacyKey, defaultCollapsed, collapsed: saved.get(key) ?? saved.get(legacyKey) ?? defaultCollapsed, views: new Set() };
+        downloadSectionModels.set(heading, section);
+      }
+    }
+    if (state.section !== section) {
+      state.section?.views.delete(state);
+      state.section = section;
+      for (const view of section.views) if (!view.toggle.isConnected) section.views.delete(view);
+      section.views.add(state);
     }
     heading.dataset.s98pDownloadHeaderLayout = settings.downloadHeaderLayout === "toggle" ? "toggle" : "actions";
     heading.dataset.s98pDownloadHeaderButtons = settings.downloadHeaderButtons === "text" ? "text" : "icons";
@@ -2962,15 +3034,25 @@
     syncDownloadCollapse(state);
   }
 
+  function applyDownloadSectionState(section, collapsed, animate = false) {
+    if (section.collapsed === collapsed) return;
+    section.collapsed = collapsed;
+    for (const view of section.views) {
+      if (view.toggle.isConnected) syncDownloadCollapse(view, animate);
+      else section.views.delete(view);
+    }
+    scheduleContentGridUpdate();
+  }
+
   function syncDownloadCollapse(state, animate = false) {
     if (animate) animateDownloadRows(state);
     else for (const row of state.entries) {
-      if (!downloadRowMotion.has(row)) row.toggleAttribute("data-soft98-pro-download-collapsed", state.collapsed);
+      if (!downloadRowMotion.has(row)) row.toggleAttribute("data-soft98-pro-download-collapsed", state.section.collapsed);
     }
-    const expanded = String(!state.collapsed);
+    const expanded = String(!state.section.collapsed);
     if (state.toggle.getAttribute("aria-expanded") === expanded) return;
-    const label = text(state.collapsed ? "downloadExpandGroup" : "downloadCollapseGroup");
-    const icon = state.collapsed ? "plus" : "minus";
+    const label = text(state.section.collapsed ? "downloadExpandGroup" : "downloadCollapseGroup");
+    const icon = state.section.collapsed ? "plus" : "minus";
     state.toggle.dataset.s98pDownloadToggle = icon;
     state.toggle.innerHTML = PAGE_ICONS[icon];
     state.toggle.firstElementChild.setAttribute("aria-hidden", "true");
@@ -2983,7 +3065,7 @@
     "border-block-start-width", "border-block-end-width"];
 
   function animateDownloadRows(state) {
-    const to = state.collapsed ? 0 : 1;
+    const to = state.section.collapsed ? 0 : 1;
     const canAnimate = !matchMedia("(prefers-reduced-motion: reduce)").matches &&
       typeof CSS.registerProperty === "function" && typeof Element.prototype.animate === "function";
     const rows = state.entries.map(row => {
@@ -3001,7 +3083,7 @@
     });
     for (const { row, current, dimensions } of measured) {
       if (!dimensions) {
-        row.toggleAttribute("data-soft98-pro-download-collapsed", state.collapsed);
+        row.toggleAttribute("data-soft98-pro-download-collapsed", state.section.collapsed);
         continue;
       }
       const inert = row.inert;
@@ -3013,7 +3095,7 @@
       const finish = () => {
         if (downloadRowMotion.get(row)?.animation !== animation) return;
         downloadRowMotion.delete(row);
-        row.toggleAttribute("data-soft98-pro-download-collapsed", state.collapsed);
+        row.toggleAttribute("data-soft98-pro-download-collapsed", state.section.collapsed);
         row.removeAttribute("data-s98p-download-row-motion");
         row.inert = inert;
         for (const key of downloadRowDimensions) row.style.removeProperty("--s98p-row-" + key);
@@ -5825,12 +5907,23 @@
     if (!settings.pro || event.defaultPrevented || event.button !== (event.type === "auxclick" ? 1 : 0)) return;
     const link = event.target?.closest?.("a[data-soft98-pro-download-row]");
     if (!link?.querySelector("[data-soft98-pro-download-check]") || link.closest('[aria-disabled="true"],[inert]')) return;
-    clearTimeout(downloadFeedbackTimers.get(link));
-    link.setAttribute("data-soft98-pro-download-activated", "");
-    downloadFeedbackTimers.set(link, setTimeout(() => {
-      link.removeAttribute("data-soft98-pro-download-activated");
-      downloadFeedbackTimers.delete(link);
-    }, 1600));
+    const list = link.closest("dl[data-soft98-pro-download-group]");
+    const copies = [link];
+    for (const { download } of wideLayouts.values()) {
+      if (!download || (list !== download.source && list !== download.mirror)) continue;
+      const other = list === download.source ? download.mirror : download.source;
+      for (const candidate of other.querySelectorAll("dd > a[data-soft98-pro-download-row][href]")) {
+        if (candidate.href === link.href) copies.push(candidate);
+      }
+    }
+    for (const copy of copies) {
+      clearTimeout(downloadFeedbackTimers.get(copy));
+      copy.setAttribute("data-soft98-pro-download-activated", "");
+      downloadFeedbackTimers.set(copy, setTimeout(() => {
+        copy.removeAttribute("data-soft98-pro-download-activated");
+        downloadFeedbackTimers.delete(copy);
+      }, 1600));
+    }
   }
 
   function installObserver() {
@@ -6030,11 +6123,21 @@
     init();
     bindSiteChromeEvents();
     document.addEventListener("scroll", scheduleContentGridUpdate, { passive: true });
+    window.visualViewport?.addEventListener("scroll", scheduleContentGridUpdate, { passive: true });
+    window.visualViewport?.addEventListener("resize", scheduleContentGridUpdate, { passive: true });
     window.addEventListener("resize", () => {
       sidebarContentsDirty = true;
       scheduleContentGridUpdate();
     }, { passive: true });
     document.addEventListener("focusin", scheduleContentGridUpdate);
+    window.addEventListener("storage", (event) => {
+      if (event.key !== DOWNLOAD_SECTIONS_KEY || !settings.pro) return;
+      const saved = savedDownloadSections();
+      for (const heading of document.querySelectorAll("article dt[data-soft98-pro-download-heading]")) {
+        const section = downloadSectionModels.get(heading);
+        if (section) applyDownloadSectionState(section, saved.get(section.key) ?? saved.get(section.legacyKey) ?? section.defaultCollapsed);
+      }
+    });
     window.setTimeout(exposePublicApi, 0);
     window.setTimeout(exposePublicApi, 1000);
   }

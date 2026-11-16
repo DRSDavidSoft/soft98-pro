@@ -743,6 +743,17 @@ async function verifyWideLayout(client) {
       const right = document.querySelector("[data-s98p-download-rail]").getBoundingClientRect();
       return left.right <= main.left && main.right <= right.left && document.documentElement.scrollWidth <= innerWidth;
     })()`), true);
+    check("layout wrappers are transparent without removing the card surfaces", await run(`(() => {
+      const chrome=["#article-frame","#workspace","[data-soft98-pro-column=primary]","[data-soft98-pro-column=secondary]","[data-s98p-related-rail]"];
+      const cards=["article","[data-soft98-pro-related]","[data-s98p-download-rail]"];
+      return chrome.every(selector=>{
+        const style=getComputedStyle(document.querySelector(selector));
+        return style.backgroundColor==="rgba(0, 0, 0, 0)" && style.backgroundImage==="none" && style.boxShadow==="none";
+      }) && cards.every(selector=>{
+        const style=getComputedStyle(document.querySelector(selector));
+        return style.backgroundColor!=="rgba(0, 0, 0, 0)" || style.backgroundImage!=="none";
+      });
+    })()`), true);
     check("the original native download list stays in its pane", await run('window.originalDownloadList === document.querySelector("#files dl") && !!window.originalDownloadList.querySelector("a[data-key=package]")'), true);
     check("both boxes use the same original destination", await run(`(() => {
       const link = document.querySelector("#files a[data-key=package]");
@@ -761,14 +772,37 @@ async function verifyWideLayout(client) {
         stars.every(node => node.querySelectorAll("[data-s98p-stars] > span").length === 5 &&
           Math.round(parseFloat(node.querySelector("[data-s98p-stars] > span:last-child").style.getPropertyValue("--s98p-star-fill"))) === 60);
     })()`), true);
-    await run('document.querySelector("[data-s98p-download-rail] [data-s98p-download-toggle]").click()');
-    check("sidebar collapse uses plus without collapsing the in-article list", await run(`(() => {
-      const toggle = document.querySelector("[data-s98p-download-rail] [data-s98p-download-toggle]");
-      return toggle.dataset.s98pDownloadToggle === "plus" && toggle.getAttribute("aria-expanded") === "false" &&
-        !document.querySelector("#files dd:first-of-type").hasAttribute("data-soft98-pro-download-collapsed");
-    })()`), true);
-    await run('document.querySelector("[data-s98p-download-rail] [data-s98p-download-toggle]").click()');
-    await until('!document.querySelector("[data-s98p-download-rail] [data-s98p-download-row-motion]")');
+    await run(`(() => {
+      const spacer=document.createElement("div");
+      spacer.style.height=innerHeight+"px";
+      document.querySelector("article").prepend(spacer);
+      const tail=spacer.cloneNode();
+      document.querySelector("#article-frame").after(tail);
+      window.downloadSourceAt=top=>{
+        const source=document.querySelector("#files dl");
+        scrollBy({top:source.getBoundingClientRect().top-top,behavior:"instant"});
+      };
+    })()`);
+    const rail = 'document.querySelector("[data-s98p-download-rail]")';
+    const originalToggle = 'document.querySelector("#files [data-s98p-download-toggle]")';
+    const railToggle = `${rail}.querySelector("[data-s98p-download-toggle]")`;
+    const opacity = `Number(getComputedStyle(${rail}).opacity)`;
+    await run('downloadSourceAt(innerHeight+30)');
+    await until(`${opacity}===1 && !${rail}.inert`);
+    await run('downloadSourceAt(innerHeight - document.querySelector("#files dl").getBoundingClientRect().height/2)');
+    await until(`Math.abs(${opacity}-.5)<.02`);
+    check("rail opacity follows scroll position without a timed transition", await run(`getComputedStyle(${rail}).transitionProperty`), "none");
+    await run(`${railToggle}.focus(); downloadSourceAt(innerHeight/2 - document.querySelector("#files dl").getBoundingClientRect().height/2)`);
+    await until(`${opacity}===0 && ${rail}.inert`);
+    check("focused duplicate hands focus to the original before going inert", await run(`document.activeElement===${originalToggle}`), true);
+    await run('downloadSourceAt(innerHeight+30)');
+    await until(`${opacity}===1 && !${rail}.inert`);
+    await run(`${railToggle}.click()`);
+    check("the sidebar toggle updates both copies", await run(`[${railToggle},${originalToggle}].every(button=>button.getAttribute("aria-expanded")==="false")`), true);
+    await until('document.querySelector("#files dd:first-of-type").hasAttribute("data-soft98-pro-download-collapsed")');
+    await run(`${originalToggle}.click()`);
+    check("the original toggle updates the sidebar", await run(`[${railToggle},${originalToggle}].every(button=>button.getAttribute("aria-expanded")==="true")`), true);
+    await until('!document.querySelector("[data-s98p-download-row-motion]")');
     const tipButton = await run(`(() => {
       const button = document.querySelector("[data-s98p-download-rail] [data-soft98-pro-download-actions] button");
       button.scrollIntoView({block:"center"});
@@ -787,6 +821,7 @@ async function verifyWideLayout(client) {
     await client.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 1, y: 1 });
     await run('document.querySelector("#requirements-tab").click()');
     await until('document.querySelector("#requirements").dataset.soft98ProContentPane === "active"');
+    await until(`${opacity}===1 && !${rail}.inert`);
     await resize(740, 880);
     await until('document.querySelector("#files dl") && document.querySelector("main [data-soft98-pro-related]")');
     check("only the mirror is removed below its breakpoint", await run('!document.querySelector("[data-s98p-download-rail]") && window.originalDownloadList === document.querySelector("#files dl")'), true);

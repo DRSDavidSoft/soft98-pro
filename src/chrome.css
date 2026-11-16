@@ -406,12 +406,33 @@
   visibility: visible !important;
 }
 :root.soft98-pro-compact [data-s98p-wide-layout="left"] > [data-soft98-pro-column="secondary"] { display: none !important; }
+:root.soft98-pro-theme :is([data-soft98-pro-content-frame],[data-soft98-pro-layout="content-grid"],[data-soft98-pro-column],[data-s98p-related-rail]):not([data-soft98-pro-utility-card],[data-soft98-pro-related],[data-s98p-download-rail]) {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
 :root.soft98-pro-theme [data-s98p-wide-layout] > :is([data-s98p-related-rail],[data-soft98-pro-column="secondary"]:has(> [data-s98p-download-rail])) {
   margin: 0 !important;
   padding: 0 !important;
 }
 :root.soft98-pro-theme [data-s98p-related-rail] > [data-soft98-pro-related] { margin: 0 !important; min-inline-size: 0; }
-:root.soft98-pro-theme [data-s98p-download-rail] { margin: 0 0 18px !important; min-inline-size: 0; }
+:root.soft98-pro-theme [data-s98p-download-rail] {
+  margin: 0 0 18px !important;
+  min-inline-size: 0;
+  opacity: var(--s98p-download-rail-opacity,1);
+  transition: none !important;
+}
+:root.soft98-pro-theme [data-s98p-download-rail-faded] { visibility: hidden; pointer-events: none; }
+:root.soft98-pro-compact [data-s98p-wide-layout] > [data-soft98-pro-column="secondary"]:has(> [data-s98p-download-rail]:only-child) {
+  align-self: stretch;
+}
+:root.soft98-pro-compact [data-s98p-wide-layout] [data-s98p-download-rail]:only-child {
+  position: sticky;
+  inset-block-start: calc(var(--s98p-topbar-height) + 14px);
+  max-block-size: calc(100dvh - var(--s98p-topbar-height) - 28px);
+}
+:root.soft98-pro-theme [data-s98p-wide-layout] [data-s98p-download-rail]:only-child { overflow-y: auto; }
 :root.soft98-pro-theme [data-s98p-download-rail] > dl {
   float: none !important;
   box-sizing: border-box;
