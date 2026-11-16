@@ -8,7 +8,6 @@
 }
 :root.soft98-pro-light[data-s98p-accent] {
   --s98p-accent: var(--s98p-choice-light);
-  --s98p-link: var(--s98p-choice-light);
 }
 :root.soft98-pro-theme[data-s98p-ld-page][data-s98p-accent] { --ld-accent: var(--s98p-accent); }
 :root[data-s98p-accent] #soft98-pro-control:is([data-theme="light"],[data-theme="dark"]) {
@@ -16,3 +15,31 @@
   --c-accent-soft: color-mix(in srgb,var(--c-accent) 15%,var(--c-bg));
 }
 :root[data-s98p-accent] #soft98-pro-control[data-theme="light"] { --c-accent: var(--s98p-choice-light); }
+[data-theme="light"]:is(:root,#soft98-pro-control),
+:root.soft98-pro-light {
+  --s98p-day-canvas: #edf2e9;
+  --s98p-day-paper: #ffffff;
+  --s98p-day-field: #f7f9f4;
+  --s98p-day-raised: #eef3e9;
+  --s98p-day-hover: #e4ede0;
+  --s98p-day-ink: #202e24;
+  --s98p-day-muted: #4e5d50;
+  --s98p-day-faint: #5d6b60;
+  --s98p-day-line: #cfdbcb;
+  --s98p-day-edge: #97aa94;
+  --s98p-day-action: #2b681e;
+  --s98p-day-action-hover: #1e5215;
+  --s98p-day-action-wash: #e3f1db;
+  --s98p-day-success: #087042;
+  --s98p-day-success-wash: #e4f4e9;
+  --s98p-day-info: #1e5a8a;
+  --s98p-day-info-hover: #174469;
+  --s98p-day-info-wash: #e8f3fc;
+  --s98p-day-warning: #89500a;
+  --s98p-day-warning-wash: #fff0d6;
+  --s98p-day-danger: #a4333f;
+  --s98p-day-danger-wash: #fce9e7;
+  --s98p-day-related: #6b4888;
+  --s98p-day-related-wash: #f1ebf8;
+  --s98p-day-shadow: 0 8px 24px #2137200d, 0 1px 3px #21372012;
+}

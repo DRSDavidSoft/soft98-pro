@@ -11,8 +11,9 @@
 }
 
 :root.soft98-pro-light {
-  --s98p-topbar-base: #f8fbff;
-  --s98p-topbar-shadow: 0 8px 28px #2b61af22;
+  --s98p-topbar-bg: var(--s98p-day-paper);
+  --s98p-topbar-active: var(--s98p-day-action-wash);
+  --s98p-topbar-shadow: var(--s98p-day-shadow);
 }
 
 :root.soft98-pro-rgb {
@@ -847,7 +848,7 @@
   transition: none !important;
   animation: s98p-dialog-tint-in .18s ease-out both;
 }
-:root.soft98-pro-light { --s98p-dialog-shade: #24364959; }
+:root.soft98-pro-light { --s98p-dialog-shade: #21342759; }
 /* Keep the backdrop's blurred layer fully composited; fade only its tint. */
 @keyframes s98p-dialog-tint-in {
   from { background-color: color-mix(in srgb,var(--s98p-dialog-shade,#060a1080) 42%,transparent); }
@@ -1135,10 +1136,6 @@
   margin: 0 !important;
 }
 
-:root.soft98-pro-theme.soft98-pro-light [data-soft98-pro-tech-news] li:nth-child(odd) > a[data-soft98-pro-news-story] {
-  background-color: #f0f5ff !important;
-}
-
 :root.soft98-pro-theme [data-soft98-pro-latest][data-soft98-pro-tech-news] li > a[data-soft98-pro-news-link][data-soft98-pro-news-story]:is(:hover,:focus-visible) {
   background-color: var(--s98p-news-row-accent) !important;
   color: var(--s98p-link) !important;
@@ -1181,66 +1178,78 @@
 }
 
 :root.soft98-pro-light {
-  --s98p-bg: #eef4ff;
-  --s98p-bg-2: #f3f7ff;
-  --s98p-nav: #f9fbff;
-  --s98p-surface-2: #eaf2ff;
-  --s98p-elevated: #e4efff;
-  --s98p-soft: #dbe8ff;
-  --s98p-text: #14284a;
-  --s98p-muted: #365071;
-  --s98p-faint: #536a8b;
-  --s98p-border: #a9c0e5;
-  --s98p-border-soft: #d8e5f8;
-  --s98p-accent: #1460dc;
-  --s98p-accent-2: #097552;
-  --s98p-link: #1455be;
-  --s98p-control-bg: linear-gradient(180deg, #fff, #edf4ff);
-  --s98p-control-hover: linear-gradient(180deg, #f3f8ff, #deebff);
-  --s98p-control-edge: #8db2ee;
-  --s98p-light-shadow: 0 10px 30px #225abb13, 0 1px 4px #173b6a0a;
-}
-
-:root.soft98-pro-light body {
-  background: linear-gradient(135deg, #e6f1ff 0, #f7fbff 44%, #eafaf4 100%) #eef4ff !important;
-  background-attachment: fixed !important;
+  color-scheme: light;
+  --s98p-bg: var(--s98p-day-canvas);
+  --s98p-bg-2: var(--s98p-day-field);
+  --s98p-nav: var(--s98p-day-paper);
+  --s98p-surface: var(--s98p-day-paper);
+  --s98p-surface-2: var(--s98p-day-raised);
+  --s98p-elevated: var(--s98p-day-raised);
+  --s98p-soft: var(--s98p-day-hover);
+  --s98p-text: var(--s98p-day-ink);
+  --s98p-muted: var(--s98p-day-muted);
+  --s98p-faint: var(--s98p-day-faint);
+  --s98p-border: var(--s98p-day-edge);
+  --s98p-border-soft: var(--s98p-day-line);
+  --s98p-accent: var(--s98p-day-action);
+  --s98p-accent-2: var(--s98p-day-warning);
+  --s98p-link: var(--s98p-day-info);
+  --s98p-danger: var(--s98p-day-danger);
+  --s98p-control-bg: var(--s98p-surface);
+  --s98p-control-hover: var(--s98p-soft);
+  --s98p-control-edge: var(--s98p-border);
+  --s98p-control-shadow: 0 1px 2px #21372012;
 }
 
 :root.soft98-pro-light [data-soft98-pro-surface="nav-shell"]:not([data-s98p-topbar-shell]) {
-  background: #f8fbfff2 !important;
-  border-block-end: 1px solid #c9dcf5 !important;
-  box-shadow: 0 8px 28px #2b61af22 !important;
+  background: var(--s98p-topbar-bg) !important;
+  border-block-end: 1px solid var(--s98p-topbar-line) !important;
+  box-shadow: var(--s98p-topbar-shadow) !important;
 }
 
 :root.soft98-pro-light [data-soft98-pro-nav-group] {
-  border-color: #d6e5fa;
+  border-color: var(--s98p-border-soft);
+}
+
+:root.soft98-pro-light [data-s98p-topbar-categories] [data-s98p-category-icon]:is([data-s98p-category-icon="desktop"],[data-s98p-category-icon="apps"]) {
+  color: var(--s98p-day-info) !important;
+}
+
+:root.soft98-pro-light [data-s98p-topbar-categories] :is([data-s98p-category-icon="phone"],[data-s98p-category-icon="androidOutline"]) {
+  color: var(--s98p-day-success) !important;
+}
+
+:root.soft98-pro-light [data-s98p-topbar-categories] [data-s98p-category-icon="headphones"] {
+  color: var(--s98p-day-related) !important;
+}
+
+:root.soft98-pro-light [data-s98p-topbar-categories] :is([data-s98p-category-icon="book"],[data-s98p-category-icon="support"]) {
+  color: var(--s98p-day-warning) !important;
 }
 
 :root.soft98-pro-light nav :is([data-soft98-pro-nav-item],[data-soft98-pro-mega-trigger],[data-toggle="dropdown"])[aria-expanded="true"]:not(:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li > :is(a,button)),
 :root.soft98-pro-light nav li:has(> [data-soft98-pro-mega-trigger][aria-expanded="true"]):not(:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li) > :is(a,button),
 :root.soft98-pro-light nav li:has(> [data-soft98-pro-mega-trigger][aria-expanded="true"]):not(:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li) > :is(a,button) > :is(span,b,strong,i,svg) {
-  color: #123f92 !important;
-  -webkit-text-fill-color: #123f92 !important;
+  color: var(--s98p-accent) !important;
+  -webkit-text-fill-color: currentColor !important;
 }
 
 :root.soft98-pro-light nav :is([data-soft98-pro-nav-item],[data-soft98-pro-mega-trigger],[data-toggle="dropdown"])[aria-expanded="true"]:not(#soft98-pro-control *,:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li > :is(a,button)),
 :root.soft98-pro-light nav li:has(> [data-soft98-pro-mega-trigger][aria-expanded="true"]):not(:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li) > :is(a,button):not(#soft98-pro-control *) {
-  background: #d6e7ff !important;
-  background-image: none !important;
-  border-color: #8bb5f1 !important;
-  box-shadow: 0 1px #ffffffb3 inset, 0 -3px #2568dc inset !important;
-  --s98p-text: #123f92;
+  background: var(--s98p-topbar-active) !important;
+  border-color: var(--s98p-border) !important;
+  box-shadow: inset 0 -2px var(--s98p-accent) !important;
   transition: box-shadow .16s ease !important;
   opacity: 1 !important;
 }
 
 :root.soft98-pro-light nav li:has(> [data-soft98-pro-mega-trigger][aria-expanded="true"]) > :is(a,button)::before {
-  color: #123f92 !important;
-  -webkit-text-fill-color: #123f92 !important;
+  color: var(--s98p-accent) !important;
+  -webkit-text-fill-color: currentColor !important;
 }
 
 :root.soft98-pro-light nav [aria-expanded="true"] > [data-soft98-pro-nav-indicator] {
-  background: #1459bf;
+  background: var(--s98p-accent);
 }
 
 :root.soft98-pro-light nav [data-soft98-pro-menu] :is(a[href],button) {
@@ -1254,21 +1263,99 @@
 }
 
 :root.soft98-pro-light article > :is([data-soft98-pro-article-header],[data-soft98-pro-article-meta]) {
-  --s98p-article-band: linear-gradient(100deg,#e9f2ff,#f5faff 65%,#e4f7ef);
+  --s98p-article-band: var(--s98p-day-action-wash);
+  --s98p-heading-mark: var(--s98p-day-action);
 }
 
-:root.soft98-pro-light [data-soft98-pro-surface="tab-list"] :is([role="tab"],[data-toggle="tab"]):is([aria-selected="true"],[aria-expanded="true"],[data-soft98-pro-tab-active="true"]:not([aria-selected="false"],[aria-expanded="false"])) {
-  background: linear-gradient(135deg,#e6efff,#d3e4ff) !important;
-  color: #124baf !important;
+:root.soft98-pro-light article > [data-soft98-pro-article-header] :is(h1,h2,h3,a) {
+  color: var(--s98p-day-action-hover) !important;
+}
+
+:root.soft98-pro-light [data-soft98-pro-heading-divider]::before {
+  background: var(--s98p-heading-mark,var(--s98p-day-action)) !important;
+  box-shadow: none !important;
+}
+
+:root.soft98-pro-light [data-soft98-pro-utility-card] > [data-soft98-pro-utility-header] {
+  background: var(--s98p-day-action-wash) !important;
+  border-color: var(--s98p-border-soft) !important;
+}
+
+:root.soft98-pro-light [data-soft98-pro-tech-news] [data-soft98-pro-latest-header="news"] {
+  background: var(--s98p-day-warning-wash) !important;
+}
+
+:root.soft98-pro-light [data-soft98-pro-tech-news] [data-soft98-pro-news-title] > [data-soft98-pro-page-icon] {
+  --icon-color: var(--s98p-day-warning);
+}
+
+:root.soft98-pro-light [data-soft98-pro-tech-news] {
+  --s98p-news-row-accent: var(--s98p-day-warning-wash);
+}
+
+:root.soft98-pro-light [data-soft98-pro-surface="tab-list"] :is([role="tab"],[data-toggle="tab"]) {
+  --tab-ink: var(--s98p-accent);
+  --tab-fill: color-mix(in srgb,var(--tab-ink) 12%,var(--s98p-surface));
+}
+
+:root.soft98-pro-light [data-soft98-pro-latest-tabs] [data-s98p-latest-topic="software"] {
+  --tab-ink: var(--s98p-day-info);
+  --tab-fill: var(--s98p-day-info-wash);
+}
+
+:root.soft98-pro-light [data-soft98-pro-latest-tabs] [data-s98p-latest-topic="android"] {
+  --tab-ink: var(--s98p-day-success);
+  --tab-fill: var(--s98p-day-success-wash);
+}
+
+:root.soft98-pro-light [data-soft98-pro-latest-tabs] [data-s98p-latest-topic="news"] {
+  --tab-ink: var(--s98p-day-related);
+  --tab-fill: var(--s98p-day-related-wash);
+}
+
+:root.soft98-pro-light [data-soft98-pro-latest-tabs] [data-s98p-latest-topic] :is(i,svg) {
+  color: var(--tab-ink) !important;
+}
+
+:root.soft98-pro-light [data-soft98-pro-surface="tab-list"] :is([role="tab"],[data-toggle="tab"]):is([aria-selected="true"],[aria-expanded="true"],.active,.active>[data-toggle="tab"],[data-soft98-pro-tab-active="true"]:not([aria-selected="false"],[aria-expanded="false"])) {
+  background: var(--tab-fill) !important;
+  color: var(--tab-ink) !important;
+  border-color: color-mix(in srgb,var(--tab-ink) 35%,var(--s98p-border-soft)) !important;
+  box-shadow: inset 0 -2px var(--tab-ink) !important;
 }
 
 :root.soft98-pro-light [data-soft98-pro-download-group] [data-soft98-pro-download-row][data-soft98-pro-icon-host="download"] {
-  color: #096547 !important;
-  background-color: #e9f8ef !important;
+  color: var(--s98p-day-success) !important;
 }
 
-:root.soft98-pro-light [data-soft98-pro-download-group] [data-soft98-pro-download-row][data-soft98-pro-icon-host="download"]:is(:hover,:focus-visible) {
-  background-color: #d9f2e3 !important;
+:root.soft98-pro-light [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]:is(:hover,:focus-within):has(> [data-soft98-pro-icon-host="download"]) {
+  background: var(--s98p-day-success-wash) !important;
+}
+
+:root.soft98-pro-light [data-soft98-pro-download-group] [data-soft98-pro-download-row][data-soft98-pro-icon-host]:not([data-soft98-pro-icon-host="download"]) {
+  color: var(--s98p-link) !important;
+}
+
+:root.soft98-pro-light [data-soft98-pro-download-row] :is([data-soft98-pro-download-copy],[data-soft98-pro-download-title]) {
+  color: inherit !important;
+}
+
+:root.soft98-pro-light [data-soft98-pro-page-icon="download"] {
+  --icon-color: var(--s98p-day-success);
+}
+
+:root.soft98-pro-light [data-soft98-pro-page-icon="lock"] { --icon-color: var(--s98p-day-warning); }
+
+:root.soft98-pro-light .s98p-file-actions button[data-s98p-file-status="complete"] {
+  --file-status-color: var(--s98p-day-success);
+}
+
+:root.soft98-pro-light.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status="review"] {
+  --file-status-color: var(--s98p-day-warning);
+}
+
+:root.soft98-pro-light.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status="interrupted"] {
+  --file-status-color: var(--s98p-day-danger);
 }
 
 :root.soft98-pro-theme :is([data-soft98-pro-mega-frame],[data-s98p-topbar-categories] > li > [data-soft98-pro-menu]) {
@@ -1525,6 +1612,43 @@
   --callout-icon: url("__CALLOUT_ICON_alertTriangle__");
 }
 
+:root.soft98-pro-light :is([role="alert"],.alert):not([data-soft98-pro-callout]) {
+  background: var(--notice-fill,var(--s98p-day-warning-wash)) !important;
+  border-color: color-mix(in srgb,var(--notice-ink,var(--s98p-day-warning)) 32%,var(--notice-fill,var(--s98p-day-warning-wash))) !important;
+  color: var(--notice-ink,var(--s98p-day-warning)) !important;
+}
+
+:root.soft98-pro-light :is(.alert-primary,.alert-info) {
+  --notice-ink: var(--s98p-day-info);
+  --notice-fill: var(--s98p-day-info-wash);
+}
+
+:root.soft98-pro-light .alert-success {
+  --notice-ink: var(--s98p-day-success);
+  --notice-fill: var(--s98p-day-success-wash);
+}
+
+:root.soft98-pro-light .alert-danger {
+  --notice-ink: var(--s98p-day-danger);
+  --notice-fill: var(--s98p-day-danger-wash);
+}
+
+:root.soft98-pro-light [data-soft98-pro-callout] {
+  --callout-accent: var(--s98p-day-info);
+  --callout-fill: var(--s98p-day-info-wash);
+  background: var(--callout-fill) !important;
+}
+
+:root.soft98-pro-light [data-soft98-pro-callout="quote"] {
+  --callout-accent: var(--s98p-day-related);
+  --callout-fill: var(--s98p-day-related-wash);
+}
+
+:root.soft98-pro-light [data-soft98-pro-callout="danger"] {
+  --callout-accent: var(--s98p-day-danger);
+  --callout-fill: var(--s98p-day-danger-wash);
+}
+
 :root.soft98-pro-theme [data-soft98-pro-callout]::before {
   content: "" !important;
   display: block !important;
@@ -1693,6 +1817,16 @@
   line-height: 1.45 !important;
 }
 
+:root.soft98-pro-light [data-soft98-pro-related] > header {
+  --s98p-heading-mark: var(--s98p-day-related);
+  background: var(--s98p-day-related-wash) !important;
+}
+
+:root.soft98-pro-light [data-s98p-download-rail] > header {
+  --s98p-heading-mark: var(--s98p-day-success);
+  background: var(--s98p-day-success-wash) !important;
+}
+
 :root.soft98-pro-theme [data-soft98-pro-related] > :is(ul,ol) {
   margin: 0;
   padding: 4px 10px 10px !important;
@@ -1799,10 +1933,10 @@
 }
 
 :root.soft98-pro-light [data-soft98-pro-footer] {
-  --foot-action: #1c57bf;
-  --foot-action-ink: #fff;
-  --foot-crest: #e0ecff;
-  --foot-crest-ink: #194d9d;
+  --foot-action: var(--s98p-day-action);
+  --foot-action-ink: var(--s98p-day-paper);
+  --foot-crest: var(--s98p-day-action-wash);
+  --foot-crest-ink: var(--s98p-day-action);
 }
 
 :root.soft98-pro-rgb [data-soft98-pro-footer] {
@@ -1931,7 +2065,7 @@
 }
 
 :root.soft98-pro-theme.soft98-pro-light [data-soft98-pro-footer] .s98p-footer-brand > button:is(:hover,:focus-visible) {
-  background: #16489e !important;
+  background: var(--s98p-day-action-hover) !important;
 }
 
 :root.soft98-pro-rgb [data-soft98-pro-footer] .s98p-footer-brand > button {

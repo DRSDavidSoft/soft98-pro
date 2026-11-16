@@ -26,6 +26,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Related posts and the useful-software list now show the artwork published on linked posts, with a browser cache and a neutral fallback.
 - Added a sticky-header download dropdown with live file progress and status. Ctrl-click, Command-click, and middle-click open the full manager.
 
+### Changed
+
+- Reworked the light theme with a sage canvas, flat card headings, and distinct colors for links, downloads, and notices. The Control Center, Download Manager, and Linkdoni now share the same palette.
+
 ### Fixed
 
 - Recovered the original article and download links when the userscript encounters an early page clear on ordinary reload.

@@ -22,22 +22,23 @@
 
 :root[data-theme="light"] {
   color-scheme: light;
-  --page: #edf4fa;
-  --panel: #ffffff;
-  --field: #f7fafc;
-  --button: #edf6ff;
-  --button-hover: #dceeff;
-  --line: #c3d3e0;
-  --ink: #172c3f;
-  --muted: #466074;
-  --mint: #08765e;
-  --mint-on: #ffffff;
-  --mint-hover: #06654f;
-  --sky: #125c99;
-  --amber: #87500a;
-  --rose: #a62249;
-  --page-top: #f7fbff;
-  --edge: #8ca8bf;
+  --page: var(--s98p-day-canvas);
+  --panel: var(--s98p-day-paper);
+  --field: var(--s98p-day-field);
+  --button: var(--s98p-day-raised);
+  --button-hover: var(--s98p-day-hover);
+  --line: var(--s98p-day-line);
+  --ink: var(--s98p-day-ink);
+  --muted: var(--s98p-day-muted);
+  --mint: var(--s98p-day-action);
+  --mint-on: var(--s98p-day-paper);
+  --mint-hover: var(--s98p-day-action-hover);
+  --sky: var(--s98p-day-info);
+  --amber: var(--s98p-day-warning);
+  --rose: var(--s98p-day-danger);
+  --success: var(--s98p-day-success);
+  --page-top: var(--s98p-day-field);
+  --edge: var(--s98p-day-edge);
 }
 
 :root[data-s98p-accent]:not([data-theme="rgb"]) {
@@ -49,6 +50,7 @@
 :root[data-s98p-accent][data-theme="light"] {
   --mint: var(--s98p-choice-light);
   --mint-hover: color-mix(in srgb,var(--mint) 80%,black);
+  --sky: var(--s98p-day-info);
 }
 
 @property --s98p-ui-hue { syntax: "<angle>"; inherits: true; initial-value: 155deg; }

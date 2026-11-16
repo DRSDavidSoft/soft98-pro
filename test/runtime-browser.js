@@ -889,6 +889,7 @@ async function verifyAppearanceBridge(client) {
       const center = document.getElementById("soft98-pro-control");
       return root.classList.contains("soft98-pro-light") && center.hidden &&
         getComputedStyle(root).getPropertyValue("--s98p-accent").trim() === "#783db1" &&
+        getComputedStyle(root).getPropertyValue("--s98p-link").trim() === "#1e5a8a" &&
         getComputedStyle(center).getPropertyValue("--c-accent").trim() === "#783db1";
     })()`));
     await send({ darkDesign: false, rgbMode: true, accentColor: "orchid", controlCenter: true });
@@ -1019,6 +1020,27 @@ async function verifyThemeRestore(client) {
       await run('Soft98Pro.configure({darkDesign:false})');
       await until('document.documentElement.classList.contains("soft98-pro-light")');
       check(mode + " light mode does not reload", await run("fixtureVisit"), 1);
+      check(mode + " uses one solid fill across the article title and metadata", await run(`(() => {
+        const styles = ["[data-soft98-pro-article-header]","[data-soft98-pro-article-meta]"]
+          .map(selector => getComputedStyle(document.querySelector(selector)));
+        return styles.every(style => style.backgroundImage === "none" && style.backgroundColor === "rgb(227, 241, 219)");
+      })()`), true);
+      check(mode + " gives alert types distinct, readable colors", await run(`(() => {
+        const styles = ["warning","danger","success"].map(kind => getComputedStyle(document.querySelector(".alert-" + kind)));
+        const luminance = color => color.match(/[0-9]+/g).slice(0,3).map(Number)
+          .map(channel => channel / 255).map(level => level <= .04045 ? level / 12.92 : ((level + .055) / 1.055) ** 2.4)
+          .reduce((total, level, index) => total + level * [.2126,.7152,.0722][index], 0);
+        const colors = styles.map(style => style.color);
+        return colors.join("|") === "rgb(137, 80, 10)|rgb(164, 51, 63)|rgb(8, 112, 66)" &&
+          new Set(styles.map(style => style.backgroundColor)).size === 3 &&
+          styles.every(style => (luminance(style.backgroundColor) + .05) / (luminance(style.color) + .05) >= 4.5);
+      })()`), true);
+      await until(`(() => {
+        const link = document.querySelector("#downloads dd > a");
+        const label = link?.querySelector("[data-soft98-pro-download-title]");
+        return label && getComputedStyle(label).color === "rgb(8, 112, 66)";
+      })()`);
+      check(mode + " retains the download URL", await run('document.querySelector("#downloads dd > a").href'), "https://files.example.test/AnyDesk.zip");
       await run(`document.querySelector('[role=tab][href="#requirements"]').click(); document.getElementById("stock-draft").value = "Keep this draft";`);
       await until('document.querySelector("#requirements").getAttribute("data-soft98-pro-content-pane") === "active"');
       await run('scrollTo({top:420,behavior:"instant"})');
@@ -1606,8 +1628,8 @@ function assertCase(name, results, expected) {
     assertEqual(name, "light tab card", results.tabTheme.cardBackground, "rgb(255, 255, 255)");
     assertEqual(name, "light tab structure", results.tabTheme.cardSurface, "tab-card");
     assertEqual(name, "light color scheme", results.colorScheme, "light");
-    assertEqual(name, "light control panel", results.controlBackground, "rgb(245, 249, 255)");
-    assertEqual(name, "light control text", results.controlForeground, "rgb(20, 40, 74)");
+    assertEqual(name, "light control panel", results.controlBackground, "rgb(247, 249, 244)");
+    assertEqual(name, "light control text", results.controlForeground, "rgb(32, 46, 36)");
   }
 }
 
@@ -1654,6 +1676,7 @@ async function main() {
     if (process.argv.includes("--theme-restore-only")) {
       await verifyThemeRestore(client);
       await verifyWideLayout(client);
+      await verifyAppearanceBridge(client);
       console.log("Soft98 theme restoration and article layout passed");
       return;
     }

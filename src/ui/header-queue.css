@@ -74,7 +74,8 @@ main { position: relative; overflow: auto; overscroll-behavior: contain; scrollb
 .facts { display: flex; align-items: center; flex-wrap: wrap; column-gap: 8px; color: var(--muted); font-size: 11px; }
 .facts bdi { font-variant-numeric: tabular-nums; }
 .facts .transfer-state { color: var(--muted); }
-li[data-group=active] .transfer-state, li[data-state=complete] .transfer-state { color: var(--mint); }
+li[data-group=active] .transfer-state { color: var(--mint); }
+li[data-state=complete] .transfer-state { color: var(--success,var(--mint)); }
 li:is([data-state=interrupted],[data-state=review],[data-state=missing]) .transfer-state { color: var(--amber); }
 progress { display: block; inline-size: 100%; block-size: 5px; margin-block: 3px 2px; accent-color: var(--mint); }
 progress[value] { appearance: none; overflow: hidden; border: 0; border-radius: 5px; background: var(--line); }

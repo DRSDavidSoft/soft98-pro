@@ -20,16 +20,16 @@
 }
 
 :root[data-s98p-ld-page].soft98-pro-light {
-  --ld-bg: #edf5f5;
-  --ld-panel: #fff;
-  --ld-field: #f6fafb;
-  --ld-hover: #eef8f6;
-  --ld-ink: #142933;
-  --ld-muted: #4e6470;
-  --ld-line: #cbdde1;
-  --ld-accent: #087b65;
-  --ld-mark: #9a4d0d;
-  --ld-mark-bg: #ffefd9;
+  --ld-bg: var(--s98p-day-canvas);
+  --ld-panel: var(--s98p-day-paper);
+  --ld-field: var(--s98p-day-field);
+  --ld-hover: var(--s98p-day-hover);
+  --ld-ink: var(--s98p-day-ink);
+  --ld-muted: var(--s98p-day-muted);
+  --ld-line: var(--s98p-day-line);
+  --ld-accent: var(--s98p-day-action);
+  --ld-mark: var(--s98p-day-warning);
+  --ld-mark-bg: var(--s98p-day-warning-wash);
 }
 
 :root[data-s98p-ld-page].soft98-pro-rgb { --ld-accent: var(--s98p-accent); }
