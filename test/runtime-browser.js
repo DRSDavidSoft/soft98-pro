@@ -898,6 +898,13 @@ async function verifyTopbar(client) {
   const check = (label, actual, expected) => assertEqual("sticky header", label, actual, expected);
   const run = (expression) => evaluate(client, expression);
   const resize = (width, height) => client.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: false });
+  const until = async (expression) => {
+    for (let attempt = 0; attempt < 35; attempt++) {
+      if (await run(expression).catch(() => false)) return;
+      await delay(75);
+    }
+    throw new Error("Sticky header did not settle: " + expression);
+  };
   await resize(1600, 900);
   await client.send("Page.navigate", { url: `http://127.0.0.1:${PORT}/test/topbar.html` });
   try {
@@ -906,7 +913,29 @@ async function verifyTopbar(client) {
       if (i === 39) throw new Error("Test header was not styled");
       await delay(75);
     }
-    await run("scrollTo(0, 600)");
+    const brand = 'document.querySelector("[data-s98p-topbar-brand]")';
+    await resize(1240, 850);
+    await until(`${brand} && ${brand}.getBoundingClientRect().width===0`);
+    check("categories use the hidden logo space without wrapping at scroll zero", await run(`(() => {
+      const items=[...document.querySelectorAll("[data-s98p-topbar-categories] > li > :is(a,button)")].filter(node=>node.getClientRects().length);
+      const nav=document.querySelector("nav").getBoundingClientRect();
+      const first=items[0]?.getBoundingClientRect();
+      const actions=document.querySelector("#actions").getBoundingClientRect();
+      return scrollY===0 && items.length===7 && nav.right-first.right<=10 &&
+        items.every(node=>{
+          const box=node.getBoundingClientRect();
+          return Math.abs(first.top-box.top)<1 && box.left>=actions.right;
+        });
+    })()`), true);
+    await run("scrollTo({top:600,behavior:'instant'})");
+    await until(`${brand}.getBoundingClientRect().width===96 && getComputedStyle(${brand}).opacity==="1"`);
+    await run("scrollTo({top:0,behavior:'instant'})");
+    await until(`${brand}.getBoundingClientRect().width===0`);
+    check("the brand releases its slot again after scrolling back to the top", await run("scrollY"), 0);
+    await run(`${brand}.style.setProperty("opacity","1","important")`);
+    await until(`${brand}.getBoundingClientRect().width===96 && getComputedStyle(${brand}).opacity==="1"`);
+    await run(`${brand}.style.removeProperty("opacity"); scrollTo({top:600,behavior:'instant'})`);
+    await resize(1600, 900);
     check("shell stays fixed at the top", await run('document.querySelector("[data-s98p-topbar-shell]").getBoundingClientRect().top'), 0);
     check("shell has no top border", await run('getComputedStyle(document.querySelector("[data-s98p-topbar-shell]")).borderTopWidth'), "0px");
     check("shell uses the established dark palette without tinting the page underneath", await run(`(() => {
@@ -1502,16 +1531,23 @@ async function main() {
               unrelatedHidden: !pane.querySelector('[data-test=unrelated-hidden]').getClientRects().length,
               originalHref: new URL(link.href).pathname === '/file/sample.zip',
             });
+            const afterReveal = async () => {
+              for (let attempt = 0; attempt < 40; attempt++) {
+                const current = state();
+                if (current.visible) return current;
+                await new Promise(resolve => setTimeout(resolve, 25));
+              }
+              return state();
+            };
             const before = state();
             downloads.click();
-            await Promise.resolve();
-            const clicked = state();
+            const clicked = await afterReveal();
             requirements.click();
             await Promise.resolve();
             const away = state();
             history.replaceState(null, '', '#harness.downloads');
             dispatchEvent(new HashChangeEvent('hashchange'));
-            const fragment = state();
+            const fragment = await afterReveal();
             history.replaceState(null, '', location.pathname + location.search);
             return { before, clicked, away, fragment };
           })()

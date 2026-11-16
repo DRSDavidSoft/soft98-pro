@@ -3,7 +3,8 @@
 <meta charset="utf-8">
 <title>Soft98 sticky header fixture</title>
 <style>
-  body { margin: 0; min-height: 1400px; }
+  body { margin: 0; }
+  #fixture-content { min-block-size: 1400px; }
   header > div { position: fixed; inset: 0 0 auto; z-index: 10; background: #333; border-block-start: 3px solid #66aaff; }
   nav { display: flex; align-items: center; width: 100%; box-shadow: inset 0 2px blue; }
   nav ul { display: flex; list-style: none; padding: 0; }
@@ -13,7 +14,8 @@
   #category-bar :is(.compact-link,.compact-dropdown) { display: none; }
   #category-bar .desktop-dropdown::after { content: "legacy triangle"; }
   #category-bar [role=menu] { position: absolute; inset-block-start: 100%; inline-size: 270px; min-height: 55px; }
-  nav .brand { min-inline-size: 85px; }
+  nav .brand { min-inline-size: 85px; opacity: 0; transition: opacity .12s; }
+  :root[data-fixture-scrolled] nav .brand { opacity: 1; }
   @media (max-width: 991px) {
     nav > button { display: inline-flex; }
     #category-bar { position: fixed; inset-block-start: 59px; inset-inline-start: 0; width: 280px; min-height: 200px; }
@@ -52,7 +54,9 @@
     </nav>
   </div>
 </header>
+<main id="fixture-content">Page content</main>
 <script>
+  window.addEventListener("scroll", () => document.documentElement.toggleAttribute("data-fixture-scrolled", scrollY > 0), { passive: true });
   document.querySelector("button[aria-controls]").addEventListener("click", (event) => {
     const button = event.currentTarget;
     button.setAttribute("aria-expanded", String(button.getAttribute("aria-expanded") !== "true"));

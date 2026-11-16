@@ -157,6 +157,7 @@
   let settings = readSettings();
   let compatibilityState = null;
   let gridFrame = 0;
+  let topbarNav, topbarBrand;
   let sidebarContentsDirty = true;
   const gridStyles = new WeakMap();
   let integrityScheduled = false;
@@ -1610,6 +1611,10 @@
     shell.setAttribute("data-s98p-topbar-shell", "");
     const brand = nav.querySelector(':scope > a[rel~="home"], :scope > [data-soft98-brand-compact]');
     brand?.setAttribute("data-s98p-topbar-brand", "");
+    if (topbarNav !== nav) topbarNav?.removeAttribute("data-s98p-topbar-no-brand");
+    topbarNav = nav;
+    topbarBrand = brand;
+    syncTopbarBrandSpace();
     const setStructure = (node, name) => {
       if (!node) return;
       node.setAttribute("data-s98p-topbar-" + name, "");
@@ -1635,6 +1640,16 @@
       if (group === actions || group.childElementCount < 2 || !group.querySelector(":scope > li > a[href]")) continue;
       setStructure(group, "categories");
     }
+  }
+
+  function syncTopbarBrandSpace() {
+    if (!topbarNav?.isConnected) return;
+    let hidden = false;
+    if (settings.pro && window.scrollY <= 0 && topbarBrand?.isConnected) {
+      const style = getComputedStyle(topbarBrand);
+      hidden = Number(style.opacity) <= 0.01 || style.visibility === "hidden";
+    }
+    topbarNav.toggleAttribute("data-s98p-topbar-no-brand", hidden);
   }
 
   function categoryIcon(control) {
@@ -2028,6 +2043,7 @@
     if (gridFrame) return;
     gridFrame = requestAnimationFrame(() => {
       gridFrame = 0;
+      syncTopbarBrandSpace();
       updateDownloadMirrorOpacity();
       const enabled = settings.pro && settings.compactLayout && settings.expandMain && innerWidth > 820;
       const checkContents = sidebarContentsDirty;
@@ -6123,6 +6139,9 @@
     init();
     bindSiteChromeEvents();
     document.addEventListener("scroll", scheduleContentGridUpdate, { passive: true });
+    document.addEventListener("transitionend", (event) => {
+      if (event.target === topbarBrand && event.propertyName === "opacity") syncTopbarBrandSpace();
+    });
     window.visualViewport?.addEventListener("scroll", scheduleContentGridUpdate, { passive: true });
     window.visualViewport?.addEventListener("resize", scheduleContentGridUpdate, { passive: true });
     window.addEventListener("resize", () => {

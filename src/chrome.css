@@ -251,6 +251,9 @@
 
 @media (min-width: 992px) {
   :root.soft98-pro-theme [data-soft98-pro-nav-chrome] > [data-s98p-topbar-toggle] { display: none !important; }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome][data-s98p-topbar-no-brand] > [data-s98p-topbar-brand] {
+    display: none !important;
+  }
 }
 
 @media (min-width: 992px) and (max-width: 1599px) {
@@ -274,6 +277,41 @@
   :root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-categories] {
     --s98p-topbar-label-height: 27px;
     row-gap: 0 !important;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1249px) {
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome][data-s98p-topbar-no-brand] {
+    gap: 4px;
+    padding-inline: 6px !important;
+  }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome][data-s98p-topbar-no-brand] [data-s98p-topbar-actions] {
+    --s98p-topbar-icon-size: clamp(28px,calc(31px + (100vw - 1025px) / 9),40px);
+    gap: 0 !important;
+    padding-inline-start: 4px !important;
+  }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome][data-s98p-topbar-no-brand] [data-s98p-topbar-categories] {
+    gap: 1px !important;
+  }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome][data-s98p-topbar-no-brand] [data-s98p-topbar-categories] > li > :is(a,button) {
+    font-size: .8125rem !important;
+    padding-inline: 4px !important;
+  }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome][data-s98p-topbar-no-brand] [data-s98p-topbar-categories] > li > :is(a,button):has(> [data-s98p-category-icon]) {
+    padding-inline-start: 19px !important;
+  }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome][data-s98p-topbar-no-brand] [data-s98p-topbar-categories] > li > :is(a,button):has(> [data-s98p-topbar-chevron]) {
+    padding-inline-end: 14px !important;
+  }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome][data-s98p-topbar-no-brand] [data-s98p-topbar-categories] > li > :is(a,button) > [data-s98p-category-icon] {
+    inset-inline-start: 3px;
+    inline-size: 13px;
+    block-size: 13px;
+  }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome][data-s98p-topbar-no-brand] [data-s98p-topbar-categories] > li > :is(a,button) > [data-s98p-topbar-chevron] {
+    inset-inline-end: 2px;
+    inline-size: 10px;
+    block-size: 10px;
   }
 }
 
