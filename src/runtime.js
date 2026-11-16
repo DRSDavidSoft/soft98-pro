@@ -2329,7 +2329,7 @@
         const original = mirroredDownloadHeadings.get(current.closest("dt"));
         const role = current.hasAttribute("data-s98p-download-toggle") ? "[data-s98p-download-toggle]" :
           current.dataset.soft98ProDownloadManager === "section" ? "[data-soft98-pro-download-manager=section]" :
-          "[data-soft98-pro-download-actions] > button:last-child";
+          "[data-s98p-download-copy-all]";
         const replacement = original?.querySelector(role) || source.querySelector("[data-s98p-download-toggle]");
         replacement?.focus({ preventScroll: true });
       }
@@ -3491,10 +3491,12 @@
       const toggle = downloadButton("minus");
       toggle.setAttribute("data-s98p-download-toggle", "");
       const copy = downloadButton("copy");
+      copy.setAttribute("data-s98p-download-copy-all", "");
       const copyLabel = document.createElement("span");
       copyLabel.textContent = text("downloadCopyAll");
       copy.append(copyLabel);
       setDownloadHint(copy, text("downloadCopyAllHint"), true);
+      controls.append(copy);
       let review;
       if (IS_EXTENSION) {
         review = downloadButton("download");
@@ -3505,9 +3507,8 @@
         setDownloadHint(review, text("downloadAllHint"), true);
         controls.append(review);
       }
-      controls.append(copy);
       heading.setAttribute("data-soft98-pro-download-heading", "");
-      heading.append(toggle, controls);
+      heading.append(controls, toggle);
       state = { controls, toggle, copy, review, label, entries: [] };
       downloadHeadings.set(heading, state);
       toggle.addEventListener("click", (event) => {
@@ -3556,7 +3557,10 @@
       for (const view of section.views) if (!view.toggle.isConnected) section.views.delete(view);
       section.views.add(state);
     }
-    heading.dataset.s98pDownloadHeaderLayout = settings.downloadHeaderLayout === "toggle" ? "toggle" : "actions";
+    const toggleFirst = settings.downloadHeaderLayout === "toggle";
+    heading.dataset.s98pDownloadHeaderLayout = toggleFirst ? "toggle" : "actions";
+    if (toggleFirst && state.toggle.nextElementSibling !== state.controls) state.controls.before(state.toggle);
+    else if (!toggleFirst && state.controls.nextElementSibling !== state.toggle) state.toggle.before(state.controls);
     heading.dataset.s98pDownloadHeaderButtons = settings.downloadHeaderButtons === "text" ? "text" : "icons";
     state.entries = entries;
     const ids = entries.filter((row) => !row.hasAttribute("data-s98p-download-rule")).map((row) => {

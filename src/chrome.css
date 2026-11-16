@@ -744,20 +744,20 @@
   display: grid !important;
   grid-template: "label . toggle" auto / minmax(0,max-content) minmax(0,1fr) auto;
   align-items: center;
-  gap: 6px;
+  gap: 6px 9px;
   padding: 8px !important;
 }
 :root.soft98-pro-theme [data-soft98-pro-download-heading]:has(> [data-soft98-pro-download-actions]:not([hidden])) {
-  grid-template: "label actions . toggle" auto / minmax(0,max-content) auto minmax(0,1fr) auto;
+  grid-template: "label . actions toggle" auto / minmax(0,max-content) minmax(0,1fr) auto auto;
 }
 :root.soft98-pro-theme [data-soft98-pro-download-heading][data-s98p-download-header-layout="toggle"]:has(> [data-soft98-pro-download-actions]:not([hidden])) {
   grid-template: "label toggle . actions" auto / minmax(0,max-content) auto minmax(0,1fr) auto;
 }
 :root.soft98-pro-theme [data-s98p-download-rail] [data-soft98-pro-download-heading]:has(> [data-s98p-download-heading-fallback]) {
-  grid-template: "actions . toggle" auto / auto minmax(0,1fr) auto;
+  grid-template: ". actions toggle" auto / minmax(0,1fr) auto auto;
 }
 :root.soft98-pro-theme [data-s98p-download-rail] [data-soft98-pro-download-heading][data-s98p-download-header-layout="toggle"]:has(> [data-s98p-download-heading-fallback]) {
-  grid-template-areas: "toggle . actions";
+  grid-template: "toggle . actions" auto / auto minmax(0,1fr) auto;
 }
 :root.soft98-pro-theme [data-s98p-download-heading-label] {
   grid-area: label;

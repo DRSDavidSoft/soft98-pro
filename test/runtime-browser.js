@@ -340,13 +340,26 @@ async function verifyFileActions(client) {
   const section = '[data-soft98-pro-download-manager="section"]';
   const responsive = `(() => {
     const heading = document.querySelector(${JSON.stringify(section)}).closest("dt");
-    const t = heading.querySelector("[data-s98p-download-toggle]").getBoundingClientRect();
-    const l = heading.querySelector("[data-s98p-download-heading-label]").getBoundingClientRect();
-    const [d,c] = Array.from(heading.querySelectorAll("[data-soft98-pro-download-actions] button"), b => b.getBoundingClientRect());
-    return Math.abs(t.y-d.y)<2 && Math.abs(d.y-c.y)<2 && Math.abs((l.top+l.bottom)-(d.top+d.bottom))<4 &&
-      l.right>d.right && d.right>c.right && c.right>t.right;
+    const label = heading.querySelector("[data-s98p-download-heading-label]");
+    const toggle = heading.querySelector("[data-s98p-download-toggle]");
+    const group = heading.querySelector("[data-soft98-pro-download-actions]");
+    const copy = group.querySelector("[data-s98p-download-copy-all]");
+    const download = group.querySelector(${JSON.stringify(section)});
+    if (group.nextElementSibling !== toggle || group.firstElementChild !== copy || copy.nextElementSibling !== download) return false;
+    const layout = (rtl) => {
+      const [l,c,d,t] = [label, copy, download, toggle].map(node => node.getBoundingClientRect());
+      const horizontal = rtl ? [l.left-c.right, c.left-d.right, d.left-t.right] :
+        [c.left-l.right, d.left-c.right, t.left-d.right];
+      return Math.abs(t.y-d.y)<2 && Math.abs(d.y-c.y)<2 && Math.abs((l.top+l.bottom)-(d.top+d.bottom))<4 &&
+        horizontal[0]>=16 && horizontal[1]>=4 && horizontal[2]>=8 && t.left>=0 && t.right<=innerWidth;
+    };
+    const rtl = layout(true);
+    heading.dir = "ltr";
+    const ltr = layout(false);
+    heading.removeAttribute("dir");
+    return rtl && ltr;
   })()`;
-  check("default RTL heading fits title, Download, Copy, and collapse in one row", await run(responsive), true);
+  check("Copy and Download sit at the end beside collapse in RTL and LTR, including keyboard order", await run(responsive), true);
   await run(`(() => {
     for (const [name, value] of [["downloadHeaderLayout","toggle"],["downloadHeaderButtons","text"]]) {
       const select = document.querySelector("select[name="+name+"]");
@@ -357,7 +370,7 @@ async function verifyFileActions(client) {
   check("alternative layout persists and text labels are visible", await run(`(() => {
     const d=document.querySelector(${JSON.stringify(section)}), t=d.closest("dt").querySelector("[data-s98p-download-toggle]");
     return getComputedStyle(d.querySelector("span")).display!=="none" && t.getBoundingClientRect().right > d.getBoundingClientRect().right &&
-      fileActionsFixture.settings.downloadHeaderButtons==="text";
+      t.nextElementSibling === d.parentElement && fileActionsFixture.settings.downloadHeaderButtons==="text";
   })()`), true);
   check("non-matching OS sections collapse but matching multi-OS sections stay open", await run(`
     document.querySelector("#linux-file").hasAttribute("data-soft98-pro-download-collapsed") &&
@@ -1479,6 +1492,13 @@ async function verifyWideLayout(client) {
     await run(`${railToggle}.focus(); downloadSourceAt(innerHeight/2 - document.querySelector("#files dl").getBoundingClientRect().height/2)`);
     await until(`${opacity}===0 && ${rail}.inert`);
     check("focused duplicate hands focus to the original before going inert", await run(`document.activeElement===${originalToggle}`), true);
+    await run('downloadSourceAt(innerHeight+30)');
+    await until(`${opacity}===1 && !${rail}.inert`);
+    await run(`${rail}.querySelector("[data-s98p-download-copy-all]").focus({preventScroll:true});
+      downloadSourceAt(innerHeight/2 - document.querySelector("#files dl").getBoundingClientRect().height/2)`);
+    await until(`${opacity}===0 && ${rail}.inert`);
+    check("focused sidebar Copy All hands off to the original Copy All", await run(
+      'document.activeElement === document.querySelector("#files [data-s98p-download-copy-all]")'), true);
     await run('downloadSourceAt(innerHeight+30)');
     await until(`${opacity}===1 && !${rail}.inert`);
     await run(`${railToggle}.click()`);

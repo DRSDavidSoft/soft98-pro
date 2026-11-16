@@ -30,6 +30,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Grouped Copy All and Download All beside the expand/collapse button, with space between the title and the controls.
+
 - Search results open at the first match, and individual software pages open at the product heading without waiting for the full page to load.
 
 - Download All lets you search the batch, check or uncheck individual files, and see the selected count and size before starting.
