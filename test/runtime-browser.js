@@ -237,7 +237,7 @@ async function verifyDownloadManager(client) {
       }
       const state = { limit: 3, maxParallel: 6, held: false, notifications: true, jobs: [
         { id: "part2", url: ${JSON.stringify(part(2))}, source: ${JSON.stringify(origin)}, status: "paused", manualStart: true, total: 48234496 },
-        { id: "part1", url: ${JSON.stringify(part(1))}, source: ${JSON.stringify(origin)}, status: "complete", total: 67108864, bytes: 67108864, browserId: 11, exists: true },
+        { id: "part1", url: ${JSON.stringify(part(1))}, source: ${JSON.stringify(origin)}, status: "complete", total: 67108864, bytes: 67108864, browserId: 11, exists: true, startedAt: 1790000000000, endedAt: 1790000000700 },
       ] };
       window.managerCommands = [];
       window.setManagerJob = (id, changes) => {
@@ -279,9 +279,10 @@ async function verifyDownloadManager(client) {
     check("multipart parts sort numerically", await run('document.querySelector(".job-group .job strong").textContent'), "Artwork.part01.rar");
     check("source page is navigable", await run('document.querySelector(".source a").href'), origin);
     check("a queued-only file has a Start button", await run('document.querySelectorAll(".job")[1].querySelector("[data-action=resume]").dataset.label'), "start");
-    check("completed sizes are not repeated", await run(`(() => {
+    check("completed rows replace progress and elapsed time with a status", await run(`(() => {
       const row = document.querySelector(".job[data-state=complete]");
-      return row.querySelector("[data-metric=percent]").textContent === "100%" &&
+      return row.querySelector(".state").textContent === "Completed" &&
+        row.querySelector("[data-metric=percent]").hidden && row.querySelector("[data-metric=elapsed]").hidden &&
         row.querySelector("[data-metric=bytes]").textContent === "64 MiB" && row.querySelector("[data-metric=total]").hidden;
     })()`), true);
     check("downloaded archives have an icon", await run('document.querySelector(".job .file-mark").dataset.icon'), "file-zip");
@@ -324,11 +325,17 @@ async function verifyDownloadManager(client) {
     await run('document.body.style.minHeight = "200vh"; scrollTo(0, 450)');
     check("the manager header stays pinned when scrolling", await run('scrollY > 400 && document.querySelector(".masthead").getBoundingClientRect().top === 0'), true);
     await run('document.body.style.minHeight = ""; scrollTo(0, 0)');
-    await run('window.idleIcon = document.querySelector("#manager-favicon").href; setManagerJob("part2", { status: "downloading", bytes: 24117248 })');
+    await run('window.idleIcon = document.querySelector("#manager-favicon").href; setManagerJob("part2", { status: "downloading", bytes: 24117248, startedAt: Date.now() - 2000 })');
     await until('document.documentElement.dataset.downloadIndicator === "active"');
+    check("active rows keep percentage and elapsed time", await run(`(() => {
+      const row = document.querySelector('.job[data-state="downloading"]');
+      return row.querySelector("[data-metric=percent]").textContent === "50%" &&
+        !row.querySelector("[data-metric=elapsed]").hidden;
+    })()`), true);
     check("progress updates the favicon and in-page mark together", await run('document.querySelector("#manager-favicon").href !== idleIcon && document.querySelector("#manager-mark").src === document.querySelector("#manager-favicon").href'), true);
-    await run('Object.defineProperty(document,"hidden",{value:true,configurable:true}); setManagerJob("part2", { status: "complete", bytes: 48234496 })');
+    await run('Object.defineProperty(document,"hidden",{value:true,configurable:true}); setManagerJob("part2", { status: "complete", bytes: 48234496, endedAt: Date.now() })');
     await until('document.documentElement.dataset.downloadIndicator === "complete"');
+    check("finishing clears the live timer", await run('document.querySelector(".job[data-id=part2] [data-metric=elapsed]").hidden'), true);
     await until('document.documentElement.dataset.downloadIndicator === "idle"');
     await run('delete document.hidden; setManagerJob("part2", { status: "paused", bytes: 0 })');
     await until('document.querySelector("[data-id=part2]").dataset.state === "paused"');
@@ -378,6 +385,7 @@ async function verifyDownloadManager(client) {
     check("the import hash clears after success", await run('location.hash'), "");
     await client.send("Page.navigate", { url: page + "/dist/chromium/downloads.html?fa=1" });
     await until('document.querySelector(".job[data-state=complete]")');
+    check("natural Persian completion label", await run('document.querySelector(".job[data-state=complete] .state").textContent'), "دانلود شد");
     check("English file-size digits and tabular figures in Persian", await run(`(() => {
       const element = document.querySelector("[data-state=complete] [data-metric=bytes] bdi");
       return document.documentElement.dir === "rtl" && element.textContent === "64 MiB" &&

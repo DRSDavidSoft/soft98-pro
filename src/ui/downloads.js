@@ -54,6 +54,7 @@
     const received = job.bytes || 0;
     const known = Number.isFinite(job.total) && job.total >= 0;
     const active = job.status === "downloading";
+    const complete = job.status === "complete";
     let sample = nodes.sample;
     if (!active || !sample || sample.browserId !== job.browserId || received < sample.bytes) {
       const started = active && !sample && job.startedAt && now > job.startedAt && now - job.startedAt < 30000;
@@ -66,16 +67,17 @@
       sample.bytes = received;
     }
     nodes.sample = sample;
-    const ratio = job.status === "complete" ? 1 : known && job.total > 0 ? Math.min(received / job.total, 1) : null;
+    const ratio = !complete && known && job.total > 0 ? Math.min(received / job.total, 1) : null;
+    const showTotal = known && !complete && received !== job.total;
     const estimated = job.estimatedEndAt > now ? (job.estimatedEndAt - now) / 1000 :
       known && sample?.speed > 0 ? (job.total - received) / sample.speed : null;
     const facts = {
       percent: ratio !== null ? percent.format(ratio) : "",
       bytes: known || active || received ? bytes(received) : "",
-      total: known && ratio !== 1 && received !== job.total ? bytes(job.total) : "",
+      total: showTotal ? bytes(job.total) : "",
       speed: active && sample?.speed > 0 ? `${bytes(sample.speed)}/s` : "",
       eta: active ? estimated !== null ? text("eta", { duration:duration(estimated) }) : text("etaUnknown") : "",
-      elapsed: job.startedAt ? text("elapsed", { duration:duration(((job.endedAt || now) - job.startedAt) / 1000) }) : "",
+      elapsed: active && job.startedAt ? text("elapsed", { duration:duration((now - job.startedAt) / 1000) }) : "",
     };
     for (const node of nodes.metrics.children) {
       const key = node.dataset.metric;
@@ -86,8 +88,8 @@
     }
     nodes.metrics.dataset.received = received;
     nodes.metrics.dataset.total = known ? job.total : "";
-    nodes.metrics.title = known ? (ratio === 1 || received === job.total ? `${latin.format(received)} B` :
-      text("bytes", { received:`${latin.format(received)} B`, total:`${latin.format(job.total)} B` })) : "";
+    nodes.metrics.title = showTotal ? text("bytes", { received:`${latin.format(received)} B`, total:`${latin.format(job.total)} B` }) :
+      known ? `${latin.format(received)} B` : "";
   }
 
   function setIcon(node, icon) {
