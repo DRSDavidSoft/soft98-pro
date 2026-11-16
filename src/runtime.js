@@ -61,6 +61,7 @@
     compactLayout: true,
     expandMain: false,
     wideColumns: true,
+    downloadRailReappearsAfterSource: false,
     utilityInHeader: true,
     quickNavigation: false,
     soundFeedback: false,
@@ -2313,6 +2314,7 @@
     const visibleHeight = viewport.bottom - top;
     const lead = Math.min(360, visibleHeight / 3);
     const finalOpacity = .3;
+    const reappear = settings.downloadRailReappearsAfterSource === true;
     for (const { download } of wideLayouts.values()) {
       if (!download) continue;
       const { source, rail } = download;
@@ -2321,11 +2323,12 @@
       let opacity = 1;
       let inactive = false;
       if (viewHeight > 0 && box.right > viewport.left && box.left < viewport.right) {
-        const distance = Math.max(0, box.top - viewport.bottom, top - box.bottom);
+        const distance = Math.max(0, box.top - viewport.bottom, reappear ? top - box.bottom : 0);
         inactive = distance === 0;
         if (inactive) {
-          const overlap = Math.min(box.bottom, viewport.bottom) - Math.max(box.top, top);
-          opacity = finalOpacity * (1 - Math.min(1, overlap / viewHeight));
+          // Keep the fade pinned at zero after the box passes unless the return fade is enabled.
+          const travelled = Math.min(box.bottom, viewport.bottom) - (reappear ? Math.max(box.top, top) : box.top);
+          opacity = finalOpacity * (1 - Math.min(1, travelled / viewHeight));
         } else if (distance < lead) {
           // Ease out the first 70% before contact; the rest follows the visible overlap directly.
           opacity = finalOpacity + (1 - finalOpacity) * (distance / lead) ** 2;

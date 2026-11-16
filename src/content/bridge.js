@@ -12,6 +12,7 @@
     compactLayout: true,
     expandMain: false,
     wideColumns: true,
+    downloadRailReappearsAfterSource: false,
     utilityInHeader: true,
     quickNavigation: false,
     soundFeedback: false,

@@ -30,7 +30,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
-- The sidebar download box starts fading before the in-article box arrives. The final 30% follows its visibility and cannot intercept input.
+- The sidebar download box starts fading before the in-article box arrives. The final 30% follows the scroll position and cannot intercept input. The sidebar stays hidden as you scroll farther down.
 
 - Grouped Copy All and Download All beside the expand/collapse button, with space between the title and the controls.
 
