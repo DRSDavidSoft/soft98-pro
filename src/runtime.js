@@ -11,6 +11,7 @@
   const CONTROL_POSITION_KEY = "soft98-ad-blocker.control-position";
   const DOWNLOAD_METADATA_KEY = "soft98-pro.download-metadata";
   const DOWNLOAD_SECTIONS_KEY = "soft98-pro.download-sections";
+  const NEWS_COLLAPSE_KEY = "soft98-pro.news-collapsed";
   const COMPATIBILITY_DISMISS_KEY = "soft98-pro.compatibility-dismissed";
   const CONTROL_MARGIN = 12;
   const CONTROL_GRAVITY = 76;
@@ -91,6 +92,8 @@
   const FILE_STATES = new Set(["manual", "queued", "starting", "resuming", "downloading", "paused", "resume-queued", "complete", "interrupted", "canceled", "review", "missing"]);
   const wideLayouts = new Map();
   const newsPanels = new Map();
+  let newsControls;
+  let newsCollapsed = readNewsCollapsed();
   const relatedViewport = matchMedia("(min-width: 1280px)");
   const downloadsViewport = matchMedia("(min-width: 2200px), (min-width: 1720px) and (min-aspect-ratio: 2/1)");
   const savedHref = new WeakMap();
@@ -1173,7 +1176,6 @@
         headerDownloads?.close();
         document.documentElement.removeAttribute("data-soft98-pro-chrome");
         syncWideLayout();
-        for (const state of newsPanels.values()) syncNewsPanel(state);
         restoreUtilityPlacement();
         for (const [footer, previous] of stockFooters) {
           if (footer.isConnected) footer.style.setProperty("display", ...previous);
@@ -4139,9 +4141,17 @@
     }
     if (latestCards.size > 1) {
       const cards = [...latestCards];
+      const onlyNews = node => latestCards.has(node) || (node.matches("div,section") && !node.hasAttribute("role") &&
+        ![...node.childNodes].some(child => child.nodeType === Node.TEXT_NODE && child.textContent.trim()) &&
+        [...node.children].every(onlyNews));
       for (let frame = cards[0].parentElement, depth = 0; frame && frame !== document.body && depth < 4; frame = frame.parentElement, depth += 1) {
         if (cards.every((card) => frame.contains(card)) && !frame.querySelector("main")) {
           frame.setAttribute("data-soft98-pro-latest-frame", "");
+          const dedicated = onlyNews(frame);
+          frame.toggleAttribute("data-s98p-news-group", dedicated);
+          if (frame.parentElement && frame.parentElement !== document.body) {
+            frame.parentElement.toggleAttribute("data-s98p-news-group", dedicated && frame.parentElement.childElementCount === 1 && onlyNews(frame.parentElement));
+          }
           if (frame.parentElement?.children.length === 1 && frame.parentElement.matches("div")) {
             frame.parentElement.setAttribute("data-soft98-pro-page-surface", "");
           }
@@ -4177,19 +4187,88 @@
     syncPageVisibility();
   }
 
-  function syncNewsPanel(state) {
-    const collapsed = settings.pro && state.collapsed;
-    state.card.toggleAttribute("data-s98p-news-collapsed", collapsed);
-    state.reveal.inert = collapsed;
-    state.toggle.setAttribute("aria-expanded", String(!collapsed));
-    const label = text(collapsed ? "expandNews" : "collapseNews");
-    state.toggle.setAttribute("aria-label", label);
-    state.toggle.title = label;
+  function readNewsCollapsed() {
+    try {
+      return (localStorage.getItem(NEWS_COLLAPSE_KEY) ??
+        localStorage.getItem(NEWS_COLLAPSE_KEY + ".news") ??
+        localStorage.getItem(NEWS_COLLAPSE_KEY + ".tabs")) === "true";
+    } catch (_error) { return false; }
+  }
+
+  function setNewsCollapsed(value) {
+    newsCollapsed = value;
+    try { localStorage.setItem(NEWS_COLLAPSE_KEY, String(value)); } catch (_error) {}
+    syncNewsPanels();
+  }
+
+  function hideLatestNews() {
+    const focused = newsControls?.contains(document.activeElement);
+    writeSettings({ ...settings, showLatest: false });
+    const launcher = controlPanel?.wrap.querySelector("button:is([data-role=toggle],[data-role=restore]):not([hidden])");
+    if (focused && !controlPanel?.wrap.hidden) launcher?.focus({ preventScroll: true });
+    const action = document.createElement("a");
+    const useCenter = settings.controlCenter !== false;
+    action.href = "#soft98-pro-control";
+    action.textContent = text(useCenter ? "newsOpenAppearance" : "newsUndoHide");
+    action.addEventListener("click", (event) => {
+      event.preventDefault();
+      const toast = action.closest("[data-soft98-pro-copy-toast]");
+      if (toast) dismissProToast(toast);
+      if (useCenter) renderControlPanel()?.openAppearance();
+      else writeSettings({ ...settings, showLatest: true });
+    });
+    const message = document.createDocumentFragment();
+    message.append(text("newsHidden"), " ", action);
+    showProToast(message, { tone: "info", duration: 6500 });
+  }
+
+  function syncNewsPanels() {
+    const panels = [];
+    for (const [card, panel] of newsPanels) {
+      if (!card.isConnected || panel.reveal.parentElement !== card) {
+        newsPanels.delete(card);
+        continue;
+      }
+      const collapsed = settings.pro && newsCollapsed;
+      card.toggleAttribute("data-s98p-news-collapsed", collapsed);
+      panel.reveal.inert = collapsed;
+      panels.push(panel);
+    }
+    if (!panels.length || !settings.pro) {
+      newsControls?.remove();
+      return;
+    }
+    const owner = panels.find(panel => panel.kind === "news" && panel.header.getClientRects().length) ??
+      panels.find(panel => panel.header.getClientRects().length) ?? panels.find(panel => panel.kind === "news") ?? panels[0];
+    if (!newsControls) {
+      newsControls = document.createElement("div");
+      newsControls.setAttribute("data-s98p-news-controls", "");
+      const close = downloadButton("close");
+      close.setAttribute("data-s98p-news-hide", "");
+      close.setAttribute("aria-label", text("hideNews"));
+      close.title = text("hideNews");
+      close.addEventListener("click", hideLatestNews);
+      const toggle = downloadButton("chevronDown");
+      toggle.setAttribute("data-s98p-news-toggle", "");
+      toggle.addEventListener("click", () => setNewsCollapsed(!newsCollapsed));
+      newsControls.append(close, toggle);
+    }
+    if (newsControls.parentElement !== owner.header) {
+      const active = document.activeElement;
+      owner.header.append(newsControls);
+      if (newsControls.contains(active)) active.focus({ preventScroll: true });
+    }
+    const toggle = newsControls.lastElementChild;
+    const expanded = String(!newsCollapsed);
+    if (toggle.getAttribute("aria-expanded") !== expanded) toggle.setAttribute("aria-expanded", expanded);
+    toggle.setAttribute("aria-controls", panels.map(panel => panel.reveal.id).join(" "));
+    const label = text(newsCollapsed ? "expandNews" : "collapseNews");
+    toggle.setAttribute("aria-label", label);
+    toggle.title = label;
   }
 
   function bindNewsCollapse(card) {
-    if (newsPanels.has(card)) return syncNewsPanel(newsPanels.get(card));
-    for (const node of newsPanels.keys()) if (!node.isConnected) newsPanels.delete(node);
+    if (newsPanels.get(card)?.reveal.parentElement === card) return;
     let header = card.querySelector(":scope > [data-soft98-pro-latest-header]");
     if (!header || !header.nextElementSibling) return;
     const stockHeader = header;
@@ -4211,34 +4290,23 @@
     while (header.nextSibling) content.append(header.nextSibling);
     reveal.append(content);
     header.after(reveal);
-    const toggle = downloadButton("chevronDown");
-    toggle.setAttribute("data-s98p-news-toggle", "");
-    toggle.setAttribute("aria-controls", reveal.id);
-    header.append(toggle);
-    const key = `soft98-pro.news-collapsed.${kind}`;
-    const state = { card, toggle, reveal, collapsed: false };
     const listeners = new AbortController();
     undoWithTheme(reveal, () => {
       listeners.abort();
-      toggle.remove();
+      if (newsControls?.parentElement === header) newsControls.remove();
       reveal.replaceWith(...content.childNodes);
       if (stockHeader !== header) header.replaceWith(stockHeader);
       else header.removeAttribute("data-s98p-news-toolbar");
       card.removeAttribute("data-s98p-news-collapsed");
       newsPanels.delete(card);
     });
-    try { state.collapsed = localStorage.getItem(key) === "true"; } catch (_error) {}
-    const set = (value) => {
-      state.collapsed = value;
-      try { localStorage.setItem(key, String(value)); } catch (_error) {}
-      syncNewsPanel(state);
+    const expandFromTab = (event) => {
+      if (!newsCollapsed || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey ||
+          !event.target.closest?.("[role=tab],[data-toggle=tab]")) return;
+      if (event.type === "click" ? event.button === 0 : event.key === "Enter" || event.key === " ") setNewsCollapsed(false);
     };
-    toggle.addEventListener("click", () => set(!state.collapsed));
-    header.addEventListener("click", (event) => {
-      if (state.collapsed && event.target.closest?.("[role=tab],[data-toggle=tab]")) set(false);
-    }, { capture: true, signal: listeners.signal });
-    newsPanels.set(card, state);
-    syncNewsPanel(state);
+    for (const event of ["click", "keydown"]) header.addEventListener(event, expandFromTab, { capture: true, signal: listeners.signal });
+    newsPanels.set(card, { header, reveal, kind });
   }
 
   function newsShortcutIcon(link) {
@@ -4323,6 +4391,7 @@
   }
 
   function syncPageVisibility() {
+    document.documentElement.toggleAttribute("data-s98p-hide-news", settings.pro && !settings.showLatest);
     for (const [list, { tabs, panes, listeners, original, originalPaneHidden }] of contentTabs) {
       if (settings.pro && list.isConnected && tabs.every((tab) => list.contains(tab)) &&
           panes.every((pane, i) => tabTarget(tabs[i]) === pane)) continue;
@@ -4362,6 +4431,7 @@
         hiddenPageDisplays.delete(node);
       }
     }
+    syncNewsPanels();
   }
 
   function downloadIcon(node) {
@@ -5908,7 +5978,11 @@
     window.visualViewport?.addEventListener("resize", refreshViewport, { signal });
     window.visualViewport?.addEventListener("scroll", { handleEvent: refreshViewport }, { signal });
     document.body.appendChild(wrap);
-    controlPanel = { wrap, form, abort, open: () => setOpen(true), close: () => setOpen(false) };
+    controlPanel = { wrap, form, abort, open: () => setOpen(true), close: () => setOpen(false), openAppearance: () => {
+      setOpen(true);
+      selectSection("experience", false);
+      form.querySelector('input[name="showLatest"]')?.focus();
+    } };
     updateLauncher();
     layout();
     if (wasOpen) setOpen(true);
@@ -6631,9 +6705,14 @@
     window.addEventListener("resize", () => {
       sidebarContentsDirty = true;
       scheduleContentGridUpdate();
+      syncNewsPanels();
     }, { passive: true });
     document.addEventListener("focusin", scheduleContentGridUpdate);
     window.addEventListener("storage", (event) => {
+      if (event.key === NEWS_COLLAPSE_KEY) {
+        newsCollapsed = readNewsCollapsed();
+        syncNewsPanels();
+      }
       if (event.key !== DOWNLOAD_SECTIONS_KEY || !settings.pro) return;
       const saved = savedDownloadSections();
       for (const heading of document.querySelectorAll("article dt[data-soft98-pro-download-heading]")) {

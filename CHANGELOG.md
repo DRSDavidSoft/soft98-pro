@@ -12,7 +12,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Added configurable download buttons that can queue a file, start it immediately, or copy the link, with one-time actions in the context menu.
 - Added a review dialog for pasted links and text files, with file details, filters, sorting, and resizable columns.
 - Grouped multipart downloads, preserved their source pages, and added native download notifications and progress back on the article.
-- Added independently collapsible news panels and adaptive side columns for related posts and downloads.
+- Added adaptive side columns for related posts and downloads.
 - Added category icons to the sticky header and redesigned its menus to match the rest of Soft98 Pro.
 - Kept the full download box in the article even when a second copy appears in the sidebar.
 - Redesigned Linkdoni with light and dark themes and a date-grouped archive, retaining its original search and article links.
@@ -27,6 +27,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Added a sticky-header download dropdown with live file progress and status. Ctrl-click, Command-click, and middle-click open the full manager.
 
 ### Changed
+
+- The updates and technology news cards share one collapse button and remember their state. Hide both with the close button and bring them back from the Control Center.
 
 - Reworked the light theme with a sage canvas, flat card headings, and distinct colors for links, downloads, and notices. The Control Center, Download Manager, and Linkdoni now share the same palette.
 

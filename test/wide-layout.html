@@ -13,7 +13,7 @@
   #legacy [role=document] { width: 260px; margin: 32px auto; }
   #legacy footer { background: #272727; }
   #legacy[aria-hidden=true] { display: none; }
-  #updates { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  #updates { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); border-block-end: 1px solid; }
   .legacy-glyph::before { content: "legacy icon" !important; }
   .night-mode :is(.quote,.quote-danger,.fixture-unlabelled) {
     background: linear-gradient(45deg, #272727, #242424) !important;
@@ -22,17 +22,22 @@
   }
   .night-mode .alert-secondary { color: #b7b7b7; background: #171717; border: 1px solid #212121; }
   #unlabelled-faq details p::before { content: "✓"; color: #7bad49; }
-  @media (max-width: 820px) { #workspace { display: block; } }
+  @media (max-width: 820px) {
+    #workspace { display: block; }
+    #updates { grid-template-columns: 1fr; }
+    #updates > div:last-child { display: none; }
+  }
 </style>
 <div id="updates">
-  <section>
+  <div><section>
     <header><ul role="tablist"><li><a role="tab" aria-controls="software" href="#software">مطالب نرم‌افزار</a></li><li><a role="tab" aria-controls="android" href="#android">مطالب اندروید</a></li></ul></header>
     <div><div id="software" role="tabpanel"><ul><li><a href="/software">Software update</a></li></ul></div><div id="android" role="tabpanel"><ul><li><a href="/android">Android update</a></li></ul></div></div>
-  </section>
-  <section>
+  </section></div>
+  <div hidden></div>
+  <div><section>
     <header><h2>خبرهای تکنولوژی</h2></header>
     <div><ul><li><a href="/story/1">Latest story</a></li><li><a href="/story/2">Second story</a></li><li><a href="/story/3">Third story</a></li></ul></div>
-  </section>
+  </section></div>
 </div>
 <div id="article-frame"><div id="workspace">
   <main>

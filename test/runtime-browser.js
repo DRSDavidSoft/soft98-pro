@@ -1243,21 +1243,50 @@ async function verifyWideLayout(client) {
     check("trailing separator hidden", await run('getComputedStyle(document.querySelector("#separator-edge")).display'), "none");
     check("separator is not a download row", await run('document.querySelector("#separator-a").hasAttribute("data-soft98-pro-download-entry")'), false);
     check("stock hidden section title remains hidden", await run('getComputedStyle(document.querySelector("#hidden-heading [data-s98p-hidden-download-heading]")).display'), "none");
-    await until('document.querySelectorAll("[data-s98p-news-toggle]").length === 2');
-    const news = 'document.querySelector("[data-soft98-pro-tech-news]")';
-    const control = `${news}.querySelector("[data-s98p-news-toggle]")`;
-    const pane = `${news}.querySelector("[data-s98p-news-reveal]")`;
-    const openHeight = await run(`${pane}.getBoundingClientRect().height`);
-    if (openHeight < 20) throw new Error("News body is clipped while open");
+    const control = 'document.querySelector("[data-s98p-news-toggle]")';
+    const hide = 'document.querySelector("[data-s98p-news-hide]")';
+    const switcher = 'document.querySelector(\'#soft98-pro-control input[name="showLatest"]\')';
+    const panes = '[...document.querySelectorAll("[data-s98p-news-reveal]")]';
+    const collapsed = `${control}?.getAttribute("aria-expanded") === "false" && ${panes}.length === 2 && ${panes}.every(pane => pane.inert && pane.getBoundingClientRect().height === 0)`;
+    const hidden = 'document.querySelector("[data-s98p-news-group]")?.getBoundingClientRect().height === 0';
+    await until(`${control} && ${panes}.length === 2`);
+    check("the Tech News header is the only owner of both actions", await run(`
+      document.querySelectorAll("[data-s98p-news-toggle]").length === 1 &&
+      document.querySelectorAll("[data-s98p-news-hide]").length === 1 &&
+      Boolean(${control}.closest("[data-soft98-pro-tech-news]")) &&
+      ${control}.getAttribute("aria-controls") === ${panes}.map(pane => pane.id).join(" ")`), true);
+    await until(`${panes}.every(pane => pane.getBoundingClientRect().height > 20)`);
     await run(`${control}.click()`);
-    check("collapsing takes hidden links out of the tab order", await run(`${pane}.inert`), true);
-    await until(`${pane}.getBoundingClientRect().height === 0`);
-    check("the software card remains expanded", await run('document.querySelector("[data-soft98-pro-latest-tabs]").closest("[data-soft98-pro-latest]").hasAttribute("data-s98p-news-collapsed")'), false);
-    await client.send("Page.reload");
-    await until(`!${pane} || ${pane}.inert`);
-    await until(`${control}.getAttribute("aria-expanded") === "false"`);
+    check("collapsing takes links in both cards out of the tab order", await run(`${panes}.every(pane => pane.inert)`), true);
+    await until(collapsed);
+    const reload = async () => {
+      const before = await run("performance.timeOrigin");
+      await client.send("Page.reload");
+      await until(`performance.timeOrigin !== ${before} && !!window.Soft98Pro && ${control}`);
+    };
+    await reload();
+    await until(collapsed);
+    check("one collapse state survives reload", await run('localStorage.getItem("soft98-pro.news-collapsed")'), "true");
+    await run(`${hide}.focus(); ${hide}.click()`);
+    await until(hidden);
+    check("closing both cards leaves the restoration toast and returns focus to the launcher", await run(`
+      document.activeElement.matches("#soft98-pro-control [data-role=toggle]") &&
+      document.querySelector("[data-soft98-pro-copy-toast][data-visible]").textContent.includes("مرکز کنترل")`), true);
+    await run('document.querySelector("[data-soft98-pro-copy-toast][data-visible] [data-role=message] a").click()');
+    check("the toast opens Appearance at the matching switch", await run(`
+      document.activeElement === ${switcher} && !${switcher}.checked &&
+      document.querySelector("#soft98-pro-control").dataset.open === "true"`), true);
+    await reload();
+    await until(hidden);
+    await run(`Soft98Pro.openPanel(); document.querySelector('#soft98-pro-control [data-section=experience]').click(); ${switcher}.click()`);
+    await until(`!(${hidden}) && (${collapsed})`);
+    await run(`document.querySelector("[data-soft98-pro-latest-tabs] [role=tab]").dispatchEvent(new KeyboardEvent("keydown", {key:" ",bubbles:true,cancelable:true}))`);
+    await until(`${panes}.every(pane => !pane.inert && pane.getBoundingClientRect().height > 20)`);
+    await resize(390, 740);
+    await until(`${control}.closest('[data-soft98-pro-latest-header="tabs"]') && ${control}.getClientRects().length > 0`);
     await run(`${control}.click()`);
-    await until(`${pane}.getBoundingClientRect().height >= ${openHeight - 1}`);
+    await until(collapsed);
+    await run(`${control}.click()`);
     await resize(1440, 900);
     await until('document.querySelector("[data-s98p-related-rail] [data-soft98-pro-related]")');
     check("downloads stay inline at normal desktop ratios", await run('!document.querySelector("[data-s98p-download-rail]")'), true);
@@ -2032,11 +2061,14 @@ async function main() {
             const actions = shortcuts[0].closest("[data-soft98-pro-news-actions]");
             const toolbar = actions.closest('[data-soft98-pro-latest-header="news"]');
             const collapse = toolbar.querySelector("[data-s98p-news-toggle]");
+            const controls = toolbar.querySelector("[data-s98p-news-controls]");
+            const close = controls.querySelector("[data-s98p-news-hide]").getBoundingClientRect();
             const title = toolbar.querySelector("[data-soft98-pro-news-title]");
             const edge = collapse.getBoundingClientRect();
             const shares = actions.getBoundingClientRect();
-            const collapseLast = toolbar.lastElementChild === collapse && edge.left - toolbar.getBoundingClientRect().left < 16 &&
-              edge.right <= shares.left && shares.left - edge.right < 16 && shares.right <= title.getBoundingClientRect().left;
+            const collapseLast = toolbar.lastElementChild === controls && controls.lastElementChild === collapse &&
+              edge.left - toolbar.getBoundingClientRect().left < 16 && edge.right <= close.left &&
+              close.right <= shares.left && shares.left - close.right < 16 && shares.right <= title.getBoundingClientRect().left;
             return { initial, click, rtl, focused, home, centered, collapseLast, shortcuts:shortcuts.length };
           })()
         `);
