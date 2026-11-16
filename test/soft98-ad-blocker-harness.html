@@ -59,6 +59,8 @@
       }
     </style>
     <script>
+      // The fixture exercises controls in a Windows download section on any host.
+      Object.defineProperty(navigator, "userAgentData", { value: { platform: "Windows" } });
       var harnessParams = new URLSearchParams(location.search);
       localStorage.removeItem("soft98-ad-blocker.control-position");
       localStorage.setItem(
