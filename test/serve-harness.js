@@ -85,6 +85,11 @@ http
         response.end("<!doctype html><title>Full-page fallback</title><p>Normal browser navigation completed.</p>");
         return;
       }
+      if (requestUrl.pathname === "/test/issue16-parser-delay.js") {
+        await new Promise(resolve => setTimeout(resolve, 350));
+        response.writeHead(200, { "content-type": "text/javascript; charset=utf-8" }).end("");
+        return;
+      }
       if (requestUrl.pathname === "/page/3/") {
         response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
         response.end("<!doctype html><title>Archive native fallback</title><p>Archive loaded by the browser.</p>");

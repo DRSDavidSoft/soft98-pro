@@ -25,6 +25,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Kept Persian userscript labels readable in legacy decoders, restored mixed download lists on reload, and removed leftover sidebar ad cards and neutral gray surfaces.
+
 - Kept Download Manager tabs stable when switching views and replaced native dropdowns with keyboard-friendly menus.
 
 - Unified the sticky header without changing the previous palette, centered the new inline chevrons, and removed the accent stripe from rounded navigation buttons.

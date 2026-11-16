@@ -66,16 +66,30 @@ const Soft98DownloadLinks = (() => {
     return url.protocol === "https:" && !url.port && (FILE.test(url.pathname) || Boolean(describe(url.href).group));
   }
 
+  function encodedRecordOrder(records, keys) {
+    const entries = Object.keys(records);
+    if (!entries.every(key => /^[A-Za-z_][\w-]{0,63}$/.test(key))) return null;
+    const suffixes = new Map(entries.map(key => [[...btoa(key)].reverse().join(""), key]));
+    const matches = [];
+    // The site prefixes reversed Base64 identifiers. The prefix may change; require a shared, one-to-one match.
+    for (const suffix of suffixes.keys()) {
+      if (!keys[0].endsWith(suffix)) continue;
+      const prefix = keys[0].slice(0, keys[0].length - suffix.length);
+      if (!/^[A-Za-z][\w-]{0,31}$/.test(prefix)) continue;
+      const candidate = keys.map(key => key.startsWith(prefix) && suffixes.get(key.slice(prefix.length)));
+      if (candidate.every(Boolean) && new Set(candidate).size === keys.length) matches.push(candidate);
+    }
+    return matches.length === 1 ? matches[0].map(key => records[key]) : null;
+  }
+
   function declaredArticleLinks(raw, keys) {
     if (typeof raw !== "string" || raw.length > MAX_TEXT || !keys.length || keys.length > MAX_IMPORT ||
-        keys.some(key => !key) || new Set(keys).size !== keys.length) return null;
+        keys.some(key => typeof key !== "string" || !key || key.length > 128) || new Set(keys).size !== keys.length) return null;
     let records;
     try { records = JSON.parse(raw); } catch (_error) { return null; }
     if (!records || typeof records !== "object" || Array.isArray(records) || Object.keys(records).length !== keys.length) return null;
-    let ordered;
-    if (keys.every(key => Object.hasOwn(records, key))) {
-      ordered = keys.map(key => records[key]);
-    } else {
+    let ordered = keys.every(key => Object.hasOwn(records, key)) ? keys.map(key => records[key]) : encodedRecordOrder(records, keys);
+    if (!ordered) {
       // Soft98's numbered records are emitted in row order, even when platform sections leave gaps.
       const numbered = Object.keys(records).map(key => /^([A-Za-z_][\w-]*?)([1-9]\d{0,3})$/.exec(key));
       if (numbered.some(entry => !entry || entry[1] !== numbered[0][1])) return null;

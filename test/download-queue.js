@@ -79,13 +79,19 @@ test("article downloads require review at the file or group limit and for unknow
   assert.equal(await probe.planArticleDownloads(files, 100, () => new Promise(() => {}), 5, links), null);
 });
 
-test("article download fallback accepts explicit row mappings and ordered numbered records only", () => {
+test("article download fallback accepts explicit, encoded, and ordered numbered row mappings", () => {
   const direct = { proto: "https", pathname: "/file.zip", domain: "files.example.test" };
   const wrapped = { host: "href.li", a: "/", b: "https://example.test/linux?edition=desktop", c: "https" };
   const records = { link1: direct, link9: wrapped };
   const parse = (value, keys = ["rotating-id-a", "rotating-id-b"]) => links.declaredArticleLinks(JSON.stringify(value), keys);
   assert.deepEqual(parse(records), ["https://files.example.test/file.zip", "https://href.li/?https://example.test/linux?edition=desktop"]);
   assert.deepEqual(parse(records, ["link9", "link1"]), ["https://href.li/?https://example.test/linux?edition=desktop", "https://files.example.test/file.zip"]);
+  const key = (name, prefix = "rotated_") => prefix + [...btoa(name)].reverse().join("");
+  const mixedRecords = { link1: direct, portable: wrapped };
+  assert.deepEqual(parse(mixedRecords, [key("portable"), key("link1")]),
+    ["https://href.li/?https://example.test/linux?edition=desktop", "https://files.example.test/file.zip"]);
+  assert.equal(parse(mixedRecords, [key("portable"), key("link1", "different_")]), null);
+  assert.equal(parse(mixedRecords, [key("portable"), key("unmatched")]), null);
   assert.equal(parse({ link9: wrapped, link1: direct }), null);
   assert.equal(parse({ ...records, link10: wrapped }), null);
   assert.equal(parse(records, ["same-key", "same-key"]), null);

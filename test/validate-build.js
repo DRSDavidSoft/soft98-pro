@@ -106,6 +106,12 @@ if (!chromium.permissions.includes("scripting")) throw new Error("Chromium build
 if (!chromium.permissions.includes("webRequest") || !firefox.permissions.includes("webRequest")) throw new Error("Extension builds must observe Soft98 script responses");
 
 const runtime = fs.readFileSync(path.join(DIST, "chromium", "assets", "runtime.page.js"), "utf8");
+const userscriptBytes = fs.readFileSync(path.join(DIST, "userscript", "soft98-pro.user.js"));
+const stripLicense = source => source.replace(/\/\*!\n[\s\S]*?\n\*\/\n/, "");
+const userscriptCode = stripLicense(userscriptBytes.toString("utf8"));
+if (/[^\x00-\x7f]/.test(userscriptCode) || stripLicense(new TextDecoder("windows-1252").decode(userscriptBytes)) !== userscriptCode) {
+  throw new Error("Userscript transport decoders disagree");
+}
 const userscript = fs.readFileSync(path.join(ROOT, "soft98-pro.user.js"), "utf8");
 assert.match(userscript, /rgbMode:\{files:\["data:image\/webp;base64,/);
 assert.ok(!userscript.includes("/docs/assets/settings/"), "The userscript must not load its previews remotely");
@@ -202,8 +208,10 @@ for (const file of ["README.md", "README.fa.md", "docs/wiki/fa/Installation.md"]
 }
 
 if (messages.schemaVersion !== 1 || !messages.locales.en || !messages.locales.fa) throw new Error("Bilingual message catalog is incomplete");
+const decodeUnicodeEscapes = source => source.replace(/\\u([0-9a-f]{4})/gi, (_, hex) => String.fromCharCode(Number.parseInt(hex, 16)));
+const decodedUserscript = decodeUnicodeEscapes(userscript);
 for (const phrase of [messages.locales.en.runtime.successLog, messages.locales.fa.runtime.successLog]) {
-  if (!runtime.includes(phrase) || !userscript.includes(phrase)) throw new Error(`Message catalog value was not inlined: ${phrase}`);
+  if (!runtime.includes(phrase) || !decodedUserscript.includes(phrase)) throw new Error(`Message catalog value was not inlined: ${phrase}`);
 }
 for (const placeholder of ["__SOFT98_VERSION__", "__SOFT98_MESSAGES__", "__SOFT98_BRAND_ASSETS__", "__SOFT98_COMPATIBILITY__", "__SOFT98_RECOMMEND_EXTENSION__"]) {
   if (runtime.includes(placeholder) || userscript.includes(placeholder)) throw new Error(`Unresolved build placeholder: ${placeholder}`);

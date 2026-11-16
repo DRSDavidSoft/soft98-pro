@@ -773,6 +773,65 @@ async function verifyDownloadManager(client) {
   }
 }
 
+async function verifyIssue16(client) {
+  await client.send("Emulation.setTimezoneOverride", { timezoneId: "Asia/Tehran" });
+  await client.send("Page.navigate", { url: `http://127.0.0.1:${PORT}/test/issue16.html` });
+  for (const pass of ["first navigation", "reload"]) {
+    let actual;
+    for (let attempt = 0; attempt < 30; attempt++) {
+      actual = await evaluate(client, `(() => {
+        if (location.pathname !== "/test/issue16.html" || document.readyState !== "complete") return null;
+        const layout = document.querySelector("#layout"), utility = document.querySelector("#utility-footer");
+        const color = node => node && getComputedStyle(node).backgroundColor;
+        const article = document.querySelector("main article");
+        return { content: Boolean(layout && article?.getClientRects().length && utility?.getClientRects().length),
+          erasedOnlyAsideAds: !document.querySelector("#ad-shell,#sponsor-shell,#ad-rule,#sponsor-rule"),
+          palette: Boolean(layout && utility && color(layout) !== "rgb(38, 38, 38)" && color(utility) !== "rgb(66, 66, 66)"),
+          urls: [...document.querySelectorAll("article dd a[data-key]")].map(a => a.href).join(","),
+          localized: [...document.querySelectorAll("[data-soft98-pro-download-actions] button")].some(button => /کپی/.test(button.textContent))
+        };
+      })()`).catch(() => null);
+      if (actual?.localized && actual?.erasedOnlyAsideAds && actual?.palette && actual?.content) break;
+      await delay(100);
+    }
+    const expected = { content: true, erasedOnlyAsideAds: true, palette: true,
+      urls: "https://files.example.test/setup.exe,https://files.example.test/portable.zip", localized: true };
+    assertEqual("issue 16", pass, JSON.stringify(actual), JSON.stringify(expected));
+    if (pass === "first navigation") {
+      const preserved = await evaluate(client, `(async () => {
+        const frame = document.getElementById("layout");
+        const replacement = document.createElement("div");
+        replacement.textContent = "Replacement content";
+        frame.replaceChildren(replacement);
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        return frame.firstElementChild === replacement && !frame.querySelector("article");
+      })()`);
+      assertEqual("issue 16", "legitimate replacement content is preserved", preserved, true);
+      await client.send("Page.reload");
+    } else {
+      const restored = await evaluate(client, `(async () => {
+        const frame = document.getElementById("layout");
+        const article = frame.querySelector("article");
+        const notice = document.createElement("p");
+        notice.setAttribute("role", "alert");
+        notice.textContent = "Please disable ad-block";
+        frame.replaceChildren(notice);
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        let same = frame.querySelector("article") === article;
+        for (let attempt = 0; attempt < 2; attempt++) {
+          frame.replaceChildren();
+          await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          same &&= frame.querySelector("article") === article;
+        }
+        frame.replaceChildren();
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        return same && frame.childElementCount === 0;
+      })()`);
+      assertEqual("issue 16", "article recovery is bounded after repeated clears", restored, true);
+    }
+  }
+}
+
 async function verifyAppearanceBridge(client) {
   const runtime = fs.readFileSync(path.join(ROOT, "dist", "chromium", "assets", "runtime.page.js"), "utf8");
   const { identifier } = await client.send("Page.addScriptToEvaluateOnNewDocument", { source: runtime });
@@ -2003,6 +2062,7 @@ async function main() {
     }
     await verifyFileActions(client);
     await verifyDownloadManager(client);
+    await verifyIssue16(client);
     await verifyAppearanceBridge(client);
     await verifyWideLayout(client);
     await verifyTopbar(client);

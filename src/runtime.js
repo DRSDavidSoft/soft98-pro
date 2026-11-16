@@ -14,6 +14,7 @@
   const COMPATIBILITY_DISMISS_KEY = "soft98-pro.compatibility-dismissed";
   const CONTROL_MARGIN = 12;
   const CONTROL_GRAVITY = 76;
+  const MAX_ARTICLE_RESTORES = 3;
   const enqueueMicrotask = window.queueMicrotask ? window.queueMicrotask.bind(window) : (callback) => Promise.resolve().then(callback);
   const nativeEval = typeof window.eval === "function" ? window.eval : null;
   const nativeFetch = window.fetch ? window.fetch.bind(window) : null;
@@ -159,6 +160,7 @@
   let compatibilityState = null;
   let gridFrame = 0;
   let topbarNav, topbarBrand;
+  let articleSnapshot;
   let sidebarContentsDirty = true;
   const gridStyles = new WeakMap();
   let integrityScheduled = false;
@@ -218,7 +220,8 @@
     /(?:افزونه\s+حذف|ﺗﺒﻠﻴﻐﺎت|Dark Reader|disableDownloadLink|setNullLinkAttributes|checkadBlocker|advertisementrk|text_add_firewall|kaprila|adguard|location\.reload|location\.hash|document\.title|alert-warning|adblock)/i;
   const SCROLL_EVENTS = /^(?:scroll|wheel|mousewheel|touchmove)$/i;
   const AD_SIZE = /^(?:728x90|970x90|468x60|300x250|336x280|240x90|160x600)$/;
-  const NAMED_AD_TEXT = /(?:asiatech|iranicard|آسیا[\u0640\s\u200c-]*تک|آ[\u0640\s\u200c-]*س[\u0640\s\u200c-]*ی[\u0640\s\u200c-]*ا[\u0640\s\u200c-]*ت[\u0640\s\u200c-]*ک)/i;
+  const NAMED_AD_TEXT = /(?:asiatech|iranicard|آسیات(?:ی)?ک|ایرانیکارت)/i;
+  const AD_CARD_HEADING = /^(?:تبلیغات|آسیات(?:ی)?ک|ایرانیکارت|asiatech|iranicard)$/i;
 
   function onReady(callback) {
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", callback, { once: true });
@@ -475,16 +478,20 @@
 
   function headingCardFromSignals(heading) {
     if (!heading || !/^H[1-6]$/.test(heading.tagName)) return null;
-    const header = heading.closest("header");
-    const card = header?.parentElement;
-    if (!card || card === document.body || card === document.documentElement || isProtectedContentContainer(card)) return null;
+    const header = heading.closest("header") || heading;
+    const card = header.parentElement;
+    if (!card?.matches("div,section,aside") || isOwnedInterface(card) || isProtectedContentContainer(card)) return null;
     const title = normalizedPersian(heading.textContent || "");
-    if (title === "تبلیغات" && card !== header && !card.matches("main,article") &&
-        (card.matches("section,aside") || card.closest("aside") || card.querySelector("iframe,img,object,embed"))) return card;
+    const siblingHeading = card.querySelectorAll("h1,h2,h3,h4,h5,h6").length > 1;
+    if (siblingHeading) return null;
     const headingLength = title.length;
     const cardTextLength = String(card.textContent || "").replace(/\s+/g, " ").trim().length;
     if (!headingLength || headingLength > 40 || cardTextLength > 220) return null;
     if (card.querySelector("p,ul,ol,dl,table,form,pre,code,audio,video")) return null;
+    if (AD_CARD_HEADING.test(title) && (card.closest("aside") || card.matches("section") ||
+        precedingCardSeparator(card) || card.querySelector("img,iframe,object,embed") ||
+        normalizedPersian(card.textContent || "") === title)) return card;
+    if (header === heading) return null;
 
     const media = [...card.querySelectorAll("iframe,img,picture,object,embed")];
     const adShapedMedia = media.filter((node) => {
@@ -507,7 +514,7 @@
       .trim();
     const emptyShell = !bodyText && !card.querySelector("a[href],button,input,textarea,select");
     const compactCardLength = String(card.textContent || "").normalize("NFKC").replace(/[\u0640\u200c\u200d\s]+/g, "").length;
-    const orphanedMediaShell = emptyShell && Boolean(precedingCardSeparator(card)) && compactCardLength === headingLength;
+    const orphanedMediaShell = emptyShell && Boolean(card.closest("aside") && precedingCardSeparator(card)) && compactCardLength === headingLength;
     return (adShapedMedia.length > 0 && externalMedia.length > 0) || orphanedMediaShell ? card : null;
   }
 
@@ -544,7 +551,8 @@
       card.remove();
       if (separator && document.contains(separator)) separator.remove();
       if (next?.matches("hr") && !isLiveSidebarCard(next.previousElementSibling)) next.remove();
-      if (parent && parent !== document.body && !parent.textContent.trim() && !parent.querySelector(":scope > :not(hr)")) parent.remove();
+      if (parent?.matches("div,section") && !isProtectedContentContainer(parent) &&
+          !parent.textContent.trim() && !parent.querySelector(":scope > :not(hr)")) parent.remove();
       stats.adsRemoved += 1;
       log("info", text("logs.adCardRemoved"), { tag: card.tagName, media: card.querySelectorAll("iframe,img,picture,object,embed").length });
     }
@@ -552,7 +560,7 @@
 
   function hasNamedAdMarker(node) {
     const value = adComparableText(node);
-    return NAMED_AD_TEXT.test(value);
+    return NAMED_AD_TEXT.test(normalizedPersian(value));
   }
 
   function isLikelyNamedAdFrame(node) {
@@ -632,7 +640,7 @@
   }
 
   function normalizedPersian(value) {
-    return value.normalize("NFKC").replace(/[\s\u0640\u200c\u200d]+/gu, "").replace(/ي/g, "ی");
+    return value.normalize("NFKC").replace(/[\s\u0640\u200c\u200d]+/gu, "").replace(/[يى]/g, "ی").replace(/ك/g, "ک");
   }
 
   function isIranicardBanner(node) {
@@ -761,6 +769,8 @@
 
   function removeExternalAds(root) {
     if (!settings.blockAds) return;
+    // The parser may not have added the article yet. Only the early stylesheet acts before the layout exists.
+    if (document.readyState === "loading") return;
     if (isOwnedInterface(root)) return;
     removeHeadingAdCards(root);
     const element = asElement(root) || document;
@@ -943,6 +953,48 @@
     applyProThemeHeuristics(root);
   }
 
+  function rememberArticleFrame() {
+    if (IS_EXTENSION || !settings.blockAds || !settings.patchScripts || document.readyState === "loading") return;
+    const url = location.pathname + location.search;
+    if (articleSnapshot?.url === url && articleSnapshot.article.isConnected) return;
+    const main = document.querySelector("main");
+    const articles = main?.querySelectorAll("article:has(h1):has(dl[data-json] dd a[data-key])");
+    if (articles?.length !== 1 || articleSnapshot?.url === url && articleSnapshot.restores) return;
+    const article = articles[0];
+    const slots = new Map();
+    for (let node = article, depth = 0; node.parentElement?.matches("main,div,section") && depth < 6; depth++, node = node.parentElement) {
+      slots.set(node.parentElement, node);
+    }
+    articleSnapshot = { url, article, slots, restores: 0 };
+  }
+
+  function noticeClearedArticle(mutations) {
+    const snapshot = articleSnapshot;
+    if (!snapshot || snapshot.restores >= MAX_ARTICLE_RESTORES || snapshot.article.isConnected || !settings.blockAds || !settings.patchScripts ||
+        snapshot.url !== location.pathname + location.search) return;
+    for (const { type, target, removedNodes } of mutations) {
+      const node = type === "childList" && snapshot.slots.get(target);
+      if (!node || !target.isConnected || ![...removedNodes].includes(node) || !node.contains(snapshot.article)) continue;
+      snapshot.cleared = { target, node };
+      schedule(document);
+      break;
+    }
+  }
+
+  function restoreClearedArticle() {
+    const snapshot = articleSnapshot;
+    if (!snapshot?.cleared) return;
+    const { target, node } = snapshot.cleared;
+    snapshot.cleared = null;
+    // Check after this scan has cleared any transient notice, without replacing real content.
+    if (snapshot.restores >= MAX_ARTICLE_RESTORES || snapshot.article.isConnected || !settings.blockAds || !settings.patchScripts ||
+        snapshot.url !== location.pathname + location.search || !target.isConnected || target.childElementCount ||
+        target.textContent.trim() || document.querySelector("main article")) return;
+    snapshot.restores++;
+    target.appendChild(node);
+    schedule(document);
+  }
+
   function schedule(root) {
     if (!root || root === document || pendingRoots.size >= 32) {
       pendingRoots.clear();
@@ -958,6 +1010,7 @@
       sidebarContentsDirty = true;
       ensureStyleIntegrity();
       for (const item of unique) processRoot(item);
+      restoreClearedArticle();
       comments.sync({ enabled: settings.pro, text });
       if (linkdoni) linkdoni.sync({ enabled: settings.pro, dark: settings.darkDesign || settings.rgbMode });
       if (settings.pro && !linkdoni) {
@@ -981,6 +1034,7 @@
         if (document.contains(link)) restoreLink(link);
         else trackedLinks.delete(link);
       }
+      rememberArticleFrame();
       announceSuccess();
       refreshControlTelemetry();
     });
@@ -1523,8 +1577,9 @@
       }
       const backgroundColor = style.backgroundColor;
       const background = colorMetrics(backgroundColor);
-      if (/^rgb\((37|38|39), \1, \1\)$/.test(backgroundColor) &&
+      if (/^rgb\((37|38|39|43|66), \1, \1\)$/.test(backgroundColor) &&
           (node.matches("main,aside,article,section,blockquote,:is(main,article,[role=dialog]) :is(div,footer),[role=tabpanel]") ||
+            node.matches("div:not([role=dialog]):has(> :is(main,article,aside)),aside footer") ||
             (backgroundColor === "rgb(39, 39, 39)" && node.matches("div:not([role=dialog])")))) {
         if (!node.hasAttribute("data-soft98-pro-surface")) node.setAttribute("data-soft98-pro-surface", "raised");
         continue;
@@ -5978,6 +6033,7 @@
 
   function installObserver() {
     const observer = new MutationObserver((mutations) => {
+      noticeClearedArticle(mutations);
       for (const mutation of mutations) {
         if (mutation.type === "attributes") {
           if (mutation.attributeName === "style" && gridStyles.has(mutation.target) &&
@@ -6114,6 +6170,7 @@
     document.documentElement.setAttribute("data-soft98-runtime-ready", VERSION);
     if (IS_EXTENSION) receiveExtensionSettings();
     onReady(() => {
+      rememberArticleFrame();
       renderControlPanel();
       inspectPageScripts();
       originalTitle = WARNING_TITLE.test(document.title) ? originalTitle : document.title;

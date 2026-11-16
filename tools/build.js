@@ -227,10 +227,11 @@ async function buildUserscript() {
   const result = await terser.minify(runtimeSource("userscript"), {
     compress: { passes: 2, unsafe: false },
     mangle: { keep_fnames: /soft98AdBlocker|patchSoft98Code/ },
-    format: { ascii_only: false, comments: false },
+    format: { ascii_only: true, comments: false },
   });
   if (result.error) throw result.error;
   const output = `${meta}\n\n${ICON_NOTICE}\n${result.code}\n`;
+  if (/[^\x00-\x7f]/.test(meta + result.code)) throw new Error("Userscript metadata and executable code must be ASCII-safe");
   fs.writeFileSync(USERSCRIPT_OUT, output, "utf8");
   mkdir(path.join(DIST, "userscript"));
   fs.writeFileSync(path.join(DIST, "userscript", "soft98-pro.user.js"), output, "utf8");
