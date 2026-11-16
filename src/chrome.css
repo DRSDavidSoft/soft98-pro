@@ -160,7 +160,7 @@
   [data-s98p-topbar-toggle], [data-s98p-topbar-actions] > li > :is(a,button), [data-s98p-topbar-categories] > li > :is(a,button)
 ):is([aria-expanded=true],[aria-current=page],:active) {
   background: var(--s98p-topbar-active) !important;
-  box-shadow: inset 0 -2px var(--s98p-accent) !important;
+  box-shadow: none !important;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-nav-chrome] :is([data-s98p-topbar-toggle],[data-s98p-topbar-actions] > li > :is(a,button),
@@ -214,8 +214,7 @@
 
 :root.soft98-pro-rgb [data-soft98-pro-nav-chrome] :is([data-s98p-topbar-toggle],[data-s98p-topbar-actions] > li > :is(a,button),
   [data-s98p-topbar-categories] > li > :is(a,button)):is([aria-expanded=true],[aria-current=page],:active) {
-  background: var(--s98p-neon-line) center bottom / 100% 2px no-repeat,var(--s98p-topbar-active) !important;
-  box-shadow: none !important;
+  background: color-mix(in srgb,var(--s98p-neon) 12%,var(--s98p-topbar-active)) !important;
 }
 
 @media (min-width: 992px) {

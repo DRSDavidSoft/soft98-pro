@@ -442,6 +442,15 @@ async function verifyTopbar(client) {
     await delay(200);
     check("drawer is not styled as a megamenu", await run('document.querySelector("#category-bar").hasAttribute("data-soft98-pro-menu")'), false);
     check("compact chevron is inline even when the menu is expanded", await chevronPosition(".compact-dropdown"), true);
+    const openControls = `[...document.querySelectorAll("[data-s98p-topbar-toggle],.compact-dropdown")].every(node => {
+      const style = getComputedStyle(node);
+      return node.getAttribute("aria-expanded") === "true" && style.boxShadow === "none" &&
+        style.backgroundImage === "none" && parseFloat(style.borderRadius) > 0;
+    })`;
+    check("open controls use a fill instead of a stripe", await run(openControls), true);
+    await run("Soft98Pro.configure({rgbMode:true})");
+    check("RGB controls use a fill instead of a stripe", await run(openControls), true);
+    await run("Soft98Pro.configure({rgbMode:false})");
     const controls = `(() => {
       const elements = [document.querySelector("[data-s98p-topbar-toggle]"), document.querySelector("[data-s98p-topbar-brand]"),
         ...document.querySelectorAll("#actions button")];
