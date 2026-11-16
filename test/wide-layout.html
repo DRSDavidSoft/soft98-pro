@@ -13,6 +13,7 @@
   #legacy footer { background: #272727; }
   #legacy[aria-hidden=true] { display: none; }
   #updates { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .legacy-glyph::before { content: "legacy icon" !important; }
   @media (max-width: 820px) { #workspace { display: block; } }
 </style>
 <div id="updates">
@@ -40,6 +41,9 @@
             <dd id="separator-b"><hr></dd>
             <dd><a href="https://files.example.test/mirror.zip">Official link</a></dd>
             <dd id="separator-edge"><hr></dd>
+            <dt><span class="legacy-glyph">اطلاعات بیشتر</span></dt>
+            <dd id="rating"><span>(۴٫۶/۵)</span></dd>
+            <dd><a href="/about-tool">Website</a></dd>
           </dl>
           <button id="open-legacy" data-target="#legacy" data-toggle="mbd" onclick="document.getElementById('legacy').removeAttribute('aria-hidden')">Help</button>
         </div>

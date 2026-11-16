@@ -14,6 +14,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Grouped multipart downloads, preserved their source pages, and added native download notifications and progress back on the article.
 - Added independently collapsible news panels and adaptive side columns for related posts and downloads.
 - Added category icons to the sticky header and redesigned its menus to match the rest of Soft98 Pro.
+- Kept the full download box in the article even when a second copy appears in the sidebar.
 
 ### Fixed
 
@@ -23,6 +24,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Replaced legacy gray article callouts with the Pro palette.
 - Made download rows and their action buttons highlight together without moving on hover.
 - Removed repeated download rules and separated the dialog backdrop fade from the panel entrance.
+- Matched the sidebar cards and updated download controls, tooltips, and user ratings.
 
 ### Removed
 

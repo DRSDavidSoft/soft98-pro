@@ -353,19 +353,60 @@ async function verifyWideLayout(client) {
     await resize(1440, 900);
     await until('document.querySelector("[data-s98p-related-rail] [data-soft98-pro-related]")');
     check("downloads stay inline at normal desktop ratios", await run('!document.querySelector("[data-s98p-download-rail]")'), true);
+    await run('window.originalDownloadList = document.querySelector("#files dl")');
     await resize(2560, 1080);
-    await until('document.querySelector("[data-s98p-download-rail] a[data-key]")');
+    await until('document.querySelector("[data-s98p-download-rail] [data-soft98-pro-download-row]")');
     check("related left, article center, downloads right in RTL", await run(`(() => {
       const left = document.querySelector("[data-s98p-related-rail]").getBoundingClientRect();
       const main = document.querySelector("main").getBoundingClientRect();
       const right = document.querySelector("[data-s98p-download-rail]").getBoundingClientRect();
       return left.right <= main.left && main.right <= right.left && document.documentElement.scrollWidth <= innerWidth;
     })()`), true);
-    check("download destination remains unchanged", await run('document.querySelector("[data-s98p-download-rail] a[data-key]").href'), "https://files.example.test/tool.zip");
+    check("the original native download list stays in its pane", await run('window.originalDownloadList === document.querySelector("#files dl") && !!window.originalDownloadList.querySelector("a[data-key=package]")'), true);
+    check("both boxes use the same original destination", await run(`(() => {
+      const link = document.querySelector("#files a[data-key=package]");
+      const copy = document.querySelector("[data-s98p-download-rail] [data-soft98-pro-download-row]");
+      return link !== copy && link.href === copy.href && !copy.hasAttribute("data-key");
+    })()`), true);
+    check("related posts and downloads share their header sizing", await run(`(() => {
+      const left = document.querySelector("[data-s98p-related-rail] header").getBoundingClientRect();
+      const right = document.querySelector("[data-s98p-download-rail] header").getBoundingClientRect();
+      return left.top === right.top && left.height === right.height;
+    })()`), true);
+    check("old info icon is hidden and partial stars are preserved in both boxes", await run(`(() => {
+      const glyph = document.querySelector('#files [data-soft98-pro-icon-host="info"]');
+      const stars = [...document.querySelectorAll("[data-s98p-rating-display]")];
+      return getComputedStyle(glyph, "::before").content === "none" && stars.length === 2 &&
+        stars.every(node => node.querySelectorAll("[data-s98p-stars] > span").length === 5 &&
+          Math.round(parseFloat(node.querySelector("[data-s98p-stars] > span:last-child").style.getPropertyValue("--s98p-star-fill"))) === 60);
+    })()`), true);
+    await run('document.querySelector("[data-s98p-download-rail] [data-s98p-download-toggle]").click()');
+    check("sidebar collapse uses plus without collapsing the in-article list", await run(`(() => {
+      const toggle = document.querySelector("[data-s98p-download-rail] [data-s98p-download-toggle]");
+      return toggle.dataset.s98pDownloadToggle === "plus" && toggle.getAttribute("aria-expanded") === "false" &&
+        !document.querySelector("#files dd:first-of-type").hasAttribute("data-soft98-pro-download-collapsed");
+    })()`), true);
+    await run('document.querySelector("[data-s98p-download-rail] [data-s98p-download-toggle]").click()');
+    const tipButton = await run(`(() => {
+      const button = document.querySelector("[data-s98p-download-rail] [data-soft98-pro-download-actions] button");
+      button.scrollIntoView({block:"center"});
+      const box = button.getBoundingClientRect();
+      return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+    })()`);
+    await delay(60);
+    await client.send("Input.dispatchMouseEvent", { type: "mouseMoved", ...tipButton });
+    await until('document.querySelector("#soft98-pro-download-tooltip[data-visible]")');
+    check("hover uses the custom tooltip instead of a native title", await run(`(() => {
+      const button = document.querySelector("[data-s98p-download-rail] [data-soft98-pro-download-actions] button");
+      const tip = document.querySelector('[role="tooltip"][data-visible]');
+      return !button.title && button.getAttribute("aria-describedby") === tip.id && tip.textContent === button.dataset.s98pTooltip;
+    })()`), true);
+    await client.send("Input.dispatchMouseEvent", { type: "mouseMoved", x: 1, y: 1 });
     await run('document.querySelector("#requirements-tab").click()');
     await until('document.querySelector("#requirements").dataset.soft98ProContentPane === "active"');
     await resize(740, 880);
     await until('document.querySelector("#files dl") && document.querySelector("main [data-soft98-pro-related]")');
+    check("only the mirror is removed below its breakpoint", await run('!document.querySelector("[data-s98p-download-rail]") && window.originalDownloadList === document.querySelector("#files dl")'), true);
     check("phone grid is a single track", await run('getComputedStyle(document.querySelector("#workspace")).gridTemplateColumns.trim().split(" ").length'), 1);
     await run('document.querySelector("#files-tab").click(); document.querySelector("#open-legacy").click()');
     await until('document.querySelector("#legacy footer").hasAttribute("data-s98p-dialog-footer")');
@@ -939,7 +980,7 @@ async function main() {
           (async () => {
             const article = document.querySelector('[data-test="download-article"]');
             const [group, more] = article.querySelectorAll('[data-soft98-pro-download-actions]');
-            const button = group.querySelector('[aria-expanded]');
+            const button = group.parentElement.querySelector('[data-s98p-download-toggle]');
             const linked = button.getAttribute('aria-controls').split(' ').map(id => document.getElementById(id));
             const outside = article.querySelector('[data-test="article-placeholder"]');
             const row = article.querySelector('[data-test="download-copy"]');

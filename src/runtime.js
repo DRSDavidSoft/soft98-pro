@@ -1105,8 +1105,8 @@
       .soft98-pro-theme [data-soft98-pro-page-icon=download]{--icon-color:var(--s98p-accent)}
       .soft98-pro-theme [data-soft98-pro-page-icon=lock]{--icon-color:var(--s98p-accent-2)}
       .soft98-pro-theme [data-soft98-pro-icon-host]::before,.soft98-pro-theme [data-soft98-pro-icon-host]::after,.soft98-pro-theme [data-soft98-pro-faq] summary div::before,.soft98-pro-theme [data-soft98-pro-faq] summary div::after{content:none!important}
-      :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-download-group] [data-soft98-pro-icon-host]::before,
-      :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-download-group] [data-soft98-pro-icon-host]::after,
+      :root.soft98-pro-theme :is(article [role=tabpanel],[data-s98p-download-rail]) [data-soft98-pro-download-group] [data-soft98-pro-icon-host]::before,
+      :root.soft98-pro-theme :is(article [role=tabpanel],[data-s98p-download-rail]) [data-soft98-pro-download-group] [data-soft98-pro-icon-host]::after,
       :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-icon-host]:is([data-soft98-pro-password],[data-soft98-pro-annoyance])::before,
       :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-icon-host]:is([data-soft98-pro-password],[data-soft98-pro-annoyance])::after{content:none!important;display:none!important}
       .soft98-pro-theme [data-soft98-pro-download-group] > dt{background:var(--s98p-surface)!important;border-color:var(--s98p-border-soft)!important}
@@ -1130,13 +1130,16 @@
       :root.soft98-pro-theme dd[data-soft98-pro-download-entry]:has(>.s98p-file-actions){display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:stretch}
       :root.soft98-pro-theme dd[data-soft98-pro-download-collapsed]:has(>.s98p-file-actions){display:none!important}
       :root:not(.soft98-pro-theme) :is([data-soft98-pro-download-manager],.s98p-file-actions,.s98p-file-menu){display:none!important}
-      .soft98-pro-theme .s98p-file-actions{display:inline-flex;align-self:stretch;align-items:center;margin-inline-end:8px;min-width:0}
-      :root.soft98-pro-theme .s98p-file-actions button{display:grid;place-items:center;min-width:0;width:36px;height:34px;padding:0;margin:0;border:1px solid var(--s98p-border)!important;border-start-start-radius:6px;border-end-start-radius:6px;border-start-end-radius:0;border-end-end-radius:0;background:transparent!important;color:var(--s98p-text)!important;cursor:pointer;transform:none!important}
-      :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-more]{width:28px;border-inline-start:0!important;border-radius:0;border-start-end-radius:6px;border-end-end-radius:6px}
+      .soft98-pro-theme .s98p-file-actions{display:inline-flex;align-self:stretch;align-items:center;gap:3px;margin-inline-end:8px;min-width:0}
+      :root.soft98-pro-theme .s98p-file-actions button{display:grid;place-items:center;min-width:0;width:34px;height:34px;padding:0;margin:0;border:1px solid var(--s98p-border)!important;border-radius:6px;background:transparent!important;color:var(--s98p-text)!important;cursor:pointer;transform:none!important}
+      :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-more]{width:28px;border-color:transparent!important;transition:opacity .14s ease,color .14s ease}
+      @media (hover:hover) and (pointer:fine){
+        :root.soft98-pro-theme .s98p-file-actions:not(:hover,:focus-within) [data-s98p-file-more]:not([aria-expanded=true]){opacity:0;pointer-events:none}
+      }
       :root.soft98-pro-theme .s98p-file-actions button:is(:hover,:focus-visible,[aria-expanded=true]){background:color-mix(in srgb,var(--s98p-accent) 15%,transparent)!important;color:var(--s98p-accent)!important}
       .soft98-pro-theme .s98p-file-actions button:focus-visible{outline:2px solid var(--s98p-accent);outline-offset:-2px}
       .soft98-pro-theme .s98p-file-actions svg,.soft98-pro-theme .s98p-file-menu svg{width:18px;height:18px;flex:none;pointer-events:none}
-      .soft98-pro-theme .s98p-file-actions [data-s98p-file-more] svg{width:14px;transform:rotate(-90deg)}
+      .soft98-pro-theme .s98p-file-actions [data-s98p-file-more] svg{width:14px;height:14px}
       :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status]{--file-status-color:var(--s98p-link);width:auto;min-width:28px;max-width:75px;height:24px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-inline-end:5px;padding:0 5px;border-radius:5px;border-color:color-mix(in srgb,var(--file-status-color) 43%,var(--s98p-border))!important;background:color-mix(in srgb,var(--file-status-color) 10%,transparent)!important;color:var(--file-status-color)!important;font:inherit;font-size:11px;font-weight:680;text-align:center;font-variant-numeric:tabular-nums}
       :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status][hidden]{display:none!important}
       :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status=complete]{--file-status-color:var(--s98p-accent)}
@@ -1156,14 +1159,6 @@
       .soft98-pro-theme [data-soft98-pro-download-title]{min-width:0;color:inherit}
       .soft98-pro-theme [data-soft98-pro-download-meta]{min-width:0;color:var(--s98p-muted)!important;font-size:.82em;font-weight:400}
       .soft98-pro-theme [data-soft98-pro-download-meta]:empty{display:none}
-      .soft98-pro-theme [data-soft98-pro-download-heading]{display:flex!important;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 8px;padding:6px 8px!important}
-      .soft98-pro-theme [data-soft98-pro-download-actions]{display:inline-flex;align-items:center;gap:4px;margin-inline-start:auto}
-      .soft98-pro-theme [data-soft98-pro-download-actions] > button{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:32px;min-width:32px;padding:4px 7px;border:1px solid var(--s98p-border);border-radius:6px;background:var(--s98p-control-bg,var(--s98p-surface-2));color:var(--s98p-text);font:inherit;line-height:1.25;cursor:pointer}
-      .soft98-pro-theme [data-soft98-pro-download-actions] > button[hidden]{display:none!important}
-      .soft98-pro-theme [data-soft98-pro-download-actions] > button:is(:hover,:focus-visible){background:var(--s98p-control-hover,var(--s98p-soft));border-color:var(--s98p-faint)}
-      .soft98-pro-theme [data-soft98-pro-download-actions] > button svg{width:16px;height:16px;flex:none;pointer-events:none}
-      .soft98-pro-theme [data-soft98-pro-download-actions] [aria-expanded] svg{transform:rotate(-90deg);transition:transform .16s ease}
-      .soft98-pro-theme [data-soft98-pro-download-actions] [aria-expanded="false"] svg{transform:none}
       .soft98-pro-theme [data-soft98-pro-password-shell]{display:grid;grid-template-columns:auto minmax(max-content,1fr) auto;align-items:center;gap:6px;padding:8px;background:var(--s98p-surface-2)!important;border:1px solid var(--s98p-border);border-radius:8px}
       :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-password-shell]>[data-soft98-pro-password]{display:contents!important;color:var(--s98p-text)!important;text-shadow:none!important}
       .soft98-pro-theme [data-soft98-pro-password] span:not([aria-hidden=true]){color:inherit!important}
@@ -1190,7 +1185,7 @@
       :root.soft98-pro-theme [data-soft98-pro-copy-toast] button:is(:hover,:focus-visible){background:var(--s98p-soft)!important;color:var(--s98p-text)!important}
       .soft98-pro-theme [data-soft98-pro-copy-toast] svg{width:18px;height:18px;pointer-events:none}
       @starting-style{.soft98-pro-theme [data-soft98-pro-copy-toast][data-visible]{opacity:0;transform:translateY(6px)}}
-      @media (prefers-reduced-motion:reduce){.soft98-pro-theme :is([data-soft98-pro-download-row],[data-soft98-pro-download-actions] [aria-expanded] svg,[data-soft98-pro-copy-toast]){transition:none!important}}
+      @media (prefers-reduced-motion:reduce){.soft98-pro-theme :is([data-soft98-pro-download-row],[data-soft98-pro-copy-toast]){transition:none!important}}
       .soft98-pro-theme [data-soft98-pro-faq] > summary{display:flex!important;align-items:center;gap:9px;list-style:none!important;padding-inline-start:0!important;color:var(--s98p-text)!important}
       .soft98-pro-theme [data-soft98-pro-faq] > summary::-webkit-details-marker{display:none}
       .soft98-pro-theme [data-soft98-pro-faq]{box-sizing:border-box;overflow:hidden!important;margin-block-end:0!important}
@@ -1790,7 +1785,6 @@
     if (!item) return;
     if (item.anchor.isConnected && item.node.parentNode === item.rail) item.anchor.replaceWith(item.node);
     else item.anchor.remove();
-    item.jump?.remove();
     item.rail.remove();
   }
 
@@ -1806,7 +1800,7 @@
     for (const [grid, state] of wideLayouts) {
       if (enabled && grid.isConnected) continue;
       restoreDock(state.related);
-      restoreDock(state.download);
+      state.download?.rail.remove();
       grid.removeAttribute("data-s98p-wide-layout");
       wideLayouts.delete(grid);
     }
@@ -1819,8 +1813,8 @@
         restoreDock(state.related);
         state.related = null;
       }
-      if (state.download && (!downloadsViewport.matches || !state.download.anchor.isConnected || state.download.node.parentNode !== state.download.rail)) {
-        restoreDock(state.download);
+      if (state.download && (!downloadsViewport.matches || !primary.contains(state.download.source) || state.download.rail.parentNode !== sidebar)) {
+        state.download.rail.remove();
         state.download = null;
       }
       if (!state.related) {
@@ -1839,29 +1833,22 @@
             [...list.querySelectorAll("dd > a[href]")].some((link) => downloadDestination(link)));
         const list = lists.length === 1 && lists[0];
         if (list) {
-          const pane = list.closest("[role=tabpanel]");
           const rail = document.createElement("section");
           rail.setAttribute("data-s98p-download-rail", "");
-          rail.tabIndex = -1;
           const header = document.createElement("header");
           const title = document.createElement("h2");
+          title.setAttribute("data-soft98-pro-heading-divider", "");
           title.textContent = text("articlePreview");
+          const mirror = document.createElement("dl");
+          mirror.setAttribute("data-soft98-pro-download-group", "");
           header.append(title);
-          rail.append(header);
+          rail.append(header, mirror);
           rail.setAttribute("aria-label", title.textContent);
           sidebar.prepend(rail);
-          state.download = dockContent(list, rail);
-          const jump = downloadButton("download");
-          jump.setAttribute("data-s98p-download-jump", "");
-          jump.append(text("wideDownloadsJump"));
-          jump.addEventListener("click", () => {
-            rail.focus({ preventScroll: true });
-            rail.scrollIntoView({ block: "nearest", behavior: "instant" });
-          });
-          pane.prepend(jump);
-          state.download.jump = jump;
+          state.download = { source: list, rail, mirror, signature: "" };
         }
       }
+      if (state.download) syncDownloadMirror(state.download);
       const right = state.download || hasSidebarContent(sidebar);
       const mode = state.related ? (right ? "three" : "left") : state.download ? "right" : "";
       if (mode) {
@@ -1872,6 +1859,60 @@
         wideLayouts.delete(grid);
       }
     }
+  }
+
+  function syncDownloadMirror(state) {
+    const rows = [];
+    for (const row of state.source.children) {
+      if (row.tagName === "DT") {
+        const fallback = row.querySelector(":scope > [data-s98p-download-heading-fallback]");
+        const label = row.querySelector(":scope > [data-s98p-download-heading-label]");
+        rows.push(["heading", (fallback || label || row).textContent.trim(), Boolean(fallback)]);
+        continue;
+      }
+      if (row.tagName !== "DD" || row.hidden || row.style.display === "none") continue;
+      if (row.hasAttribute("data-s98p-rating")) {
+        rows.push(["rating", row.getAttribute("data-s98p-rating")]);
+        continue;
+      }
+      if (row.getAttribute("data-s98p-download-rule") === "show") {
+        rows.push(["divider"]);
+        continue;
+      }
+      const link = row.querySelector(":scope > a[href]:not([hidden])");
+      if (!link || isBadHref(link.getAttribute("href")) || !/^https?:$/i.test(link.protocol)) continue;
+      const title = link.querySelector(":scope > [data-soft98-pro-download-copy] > [data-soft98-pro-download-title]");
+      rows.push(["link", link.href, (title || link).textContent.trim(), link.target, link.rel,
+        link.getAttribute("download"), link.getAttribute("data-soft98-pro-inline-size")]);
+    }
+    const signature = JSON.stringify(rows);
+    if (state.signature === signature) return;
+    state.signature = signature;
+    const fragment = document.createDocumentFragment();
+    for (const [kind, value, title, target, rel, download, size] of rows) {
+      const row = document.createElement(kind === "heading" ? "dt" : "dd");
+      if (kind === "heading") {
+        const label = document.createElement("span");
+        if (title) label.setAttribute("data-s98p-download-heading-fallback", "");
+        label.textContent = value;
+        row.append(label);
+      } else if (kind === "rating") {
+        row.textContent = `(${value}/5)`;
+      } else if (kind === "divider") {
+        row.append(document.createElement("hr"));
+      } else {
+        const link = document.createElement("a");
+        link.href = value;
+        link.textContent = title;
+        if (target) link.target = target;
+        if (rel) link.rel = rel;
+        if (download !== null) link.setAttribute("download", download);
+        if (size) link.setAttribute("data-soft98-pro-inline-size", size);
+        row.append(link);
+      }
+      fragment.append(row);
+    }
+    state.mirror.replaceChildren(fragment);
   }
 
   function scheduleContentGridUpdate() {
@@ -2636,6 +2677,7 @@
         } else if (item.tagName === "DD") {
           entries.push(item);
           const links = item.querySelectorAll(":scope > a:is([href],[data-key])");
+          if (!links.length) enhanceDownloadRating(item);
           if (links.length !== 1) continue;
           const [link] = links;
           item.setAttribute("data-soft98-pro-download-entry", "");
@@ -2659,6 +2701,44 @@
         }
       }
     }
+  }
+
+  function enhanceDownloadRating(row) {
+    if (row.hasAttribute("data-s98p-rating") || row.querySelector("a,button,input,hr")) return;
+    const number = row.textContent.normalize("NFKC")
+      .replace(/[\u0660-\u0669\u06f0-\u06f9]/g, digit => String(digit.charCodeAt(0) & 15))
+      .replace(/\u066b/g, ".");
+    const match = /^\s*\(?\s*([0-5](?:\.\d+)?)\s*\/\s*5\s*\)?\s*$/.exec(number);
+    if (!match || Number(match[1]) > 5) return;
+    const score = Number(match[1]);
+    const format = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 2 });
+    const original = document.createElement("span");
+    original.setAttribute("data-s98p-rating-original", "");
+    original.append(...row.childNodes);
+    const rating = localizeElement(document.createElement("span"));
+    rating.setAttribute("data-s98p-rating-display", "");
+    rating.setAttribute("role", "img");
+    const name = text("userRating");
+    const value = text("userRatingScore", { score: format.format(score), total: format.format(5) });
+    rating.setAttribute("aria-label", `${name}: ${value}`);
+    const label = document.createElement("span");
+    label.setAttribute("data-s98p-rating-label", "");
+    label.textContent = name;
+    const stars = document.createElement("span");
+    stars.setAttribute("data-s98p-stars", "");
+    stars.setAttribute("aria-hidden", "true");
+    for (let index = 0; index < 5; index++) {
+      const star = document.createElement("span");
+      star.style.setProperty("--s98p-star-fill", `${Math.max(0, Math.min(1, score - index)) * 100}%`);
+      star.innerHTML = PAGE_ICONS.star + PAGE_ICONS.starFill;
+      stars.append(star);
+    }
+    const badge = document.createElement("bdi");
+    badge.setAttribute("data-s98p-rating-value", "");
+    badge.textContent = value;
+    rating.append(label, stars, badge);
+    row.setAttribute("data-s98p-rating", String(score));
+    row.append(original, rating);
   }
 
   function markDownloadDividers(list) {
@@ -2696,7 +2776,7 @@
   function enhanceDownloadHeading(heading, entries) {
     let state = downloadHeadings.get(heading);
     if (!state?.controls.isConnected) {
-      heading.querySelectorAll(":scope > [data-soft98-pro-download-actions]").forEach((node) => node.remove());
+      heading.querySelectorAll(":scope > :is([data-soft98-pro-download-actions],[data-s98p-download-toggle])").forEach((node) => node.remove());
       if (!heading.hasAttribute("data-soft98-pro-download-heading") && getComputedStyle(heading).display === "none") {
         const stock = document.createElement("span");
         stock.setAttribute("data-s98p-hidden-download-heading", "");
@@ -2706,22 +2786,31 @@
         title.textContent = text("articlePreview");
         heading.append(stock, title);
       }
+      let label = heading.querySelector(":scope > span:not([data-s98p-hidden-download-heading])");
+      if (!label) {
+        label = document.createElement("span");
+        label.append(...heading.childNodes);
+        heading.append(label);
+      }
+      label.setAttribute("data-s98p-download-heading-label", "");
       const controls = localizeElement(document.createElement("span"));
       controls.setAttribute("data-soft98-pro-download-actions", "");
-      const toggle = downloadButton("chevron");
+      const toggle = downloadButton("minus");
+      toggle.setAttribute("data-s98p-download-toggle", "");
       const copy = downloadButton("copy");
       copy.append(text("downloadCopyAll"));
+      setDownloadHint(copy, text("downloadCopyAllHint"));
+      controls.append(copy);
       let review;
       if (IS_EXTENSION) {
         review = downloadButton("download");
         review.dataset.soft98ProDownloadManager = "section";
-        review.title = text("downloadReview");
-        review.setAttribute("aria-label", review.title);
+        review.append(text("downloadAll"));
+        setDownloadHint(review, text("downloadAllHint"));
         controls.append(review);
       }
-      controls.append(copy, toggle);
       heading.setAttribute("data-soft98-pro-download-heading", "");
-      heading.append(controls);
+      heading.append(toggle, controls);
       state = { controls, toggle, copy, review, entries: [], collapsed: false };
       downloadHeadings.set(heading, state);
       toggle.addEventListener("click", (event) => {
@@ -2755,6 +2844,7 @@
     const noLinks = !directSectionLinks(entries).length;
     if (state.copy.hidden !== noLinks) state.copy.hidden = noLinks;
     if (state.review && state.review.hidden !== noLinks) state.review.hidden = noLinks;
+    if (state.controls.hidden !== noLinks) state.controls.hidden = noLinks;
     syncDownloadCollapse(state);
   }
 
@@ -2763,9 +2853,12 @@
     const expanded = String(!state.collapsed);
     if (state.toggle.getAttribute("aria-expanded") === expanded) return;
     const label = text(state.collapsed ? "downloadExpandGroup" : "downloadCollapseGroup");
+    const icon = state.collapsed ? "plus" : "minus";
+    state.toggle.dataset.s98pDownloadToggle = icon;
+    state.toggle.innerHTML = PAGE_ICONS[icon];
+    state.toggle.firstElementChild.setAttribute("aria-hidden", "true");
     state.toggle.setAttribute("aria-expanded", expanded);
-    state.toggle.setAttribute("aria-label", label);
-    state.toggle.title = label;
+    setDownloadHint(state.toggle, label, true);
   }
 
   function downloadButton(icon) {
@@ -2774,6 +2867,72 @@
     button.innerHTML = PAGE_ICONS[icon];
     button.firstElementChild.setAttribute("aria-hidden", "true");
     return button;
+  }
+
+  function setDownloadHint(button, label, iconOnly = false) {
+    if (button.dataset.s98pTooltip !== label) button.dataset.s98pTooltip = label;
+    if (iconOnly && button.getAttribute("aria-label") !== label) button.setAttribute("aria-label", label);
+  }
+
+  function installDownloadHints() {
+    const selector = "[data-s98p-tooltip]";
+    let tip, target, timer, oldDescription;
+    const dismiss = () => {
+      clearTimeout(timer);
+      if (tip) tip.removeAttribute("data-visible");
+      if (target && target.getAttribute("aria-describedby")?.split(/\s+/).includes(tip?.id)) {
+        if (oldDescription === null) target.removeAttribute("aria-describedby");
+        else target.setAttribute("aria-describedby", oldDescription);
+      }
+      target = null;
+    };
+    const reveal = (button, delay) => {
+      if (!settings.pro || target === button) return;
+      dismiss();
+      target = button;
+      oldDescription = button.getAttribute("aria-describedby");
+      timer = setTimeout(() => {
+        if (!settings.pro || !button.isConnected || !button.getClientRects().length) return dismiss();
+        if (!tip) {
+          tip = localizeElement(document.createElement("span"));
+          tip.id = "soft98-pro-download-tooltip";
+          tip.setAttribute("role", "tooltip");
+        }
+        if (!tip.isConnected) document.body.append(tip);
+        tip.textContent = button.dataset.s98pTooltip;
+        const view = controlViewport();
+        const anchor = button.getBoundingClientRect();
+        const { width, height } = tip.getBoundingClientRect();
+        const center = (anchor.left + anchor.right) / 2;
+        const left = Math.max(view.left + 8, Math.min(center - width / 2, view.right - width - 8));
+        const below = anchor.top < view.top + height + 15;
+        const top = below ? anchor.bottom + 8 : anchor.top - height - 8;
+        tip.style.left = `${left}px`;
+        tip.style.top = `${Math.max(view.top + 8, Math.min(top, view.bottom - height - 8))}px`;
+        tip.style.setProperty("--s98p-tip-arrow", `${Math.max(12, Math.min(center - left, width - 12))}px`);
+        tip.dataset.side = below ? "below" : "above";
+        tip.setAttribute("data-visible", "");
+        if (button.getAttribute("aria-label") !== tip.textContent) {
+          button.setAttribute("aria-describedby", [oldDescription, tip.id].filter(Boolean).join(" "));
+        }
+      }, delay);
+    };
+    document.addEventListener("pointerover", (event) => {
+      const button = event.target.closest?.(selector);
+      if (button && event.pointerType !== "touch") reveal(button, 350);
+    });
+    document.addEventListener("pointerout", (event) => {
+      if (target?.contains(event.target) && !(event.relatedTarget instanceof Node && target.contains(event.relatedTarget)) &&
+          !target.matches(":focus-visible")) dismiss();
+    });
+    document.addEventListener("focusin", (event) => {
+      if (event.target.matches?.(selector + ":focus-visible")) reveal(event.target, 120);
+    });
+    document.addEventListener("focusout", (event) => { if (target === event.target) dismiss(); });
+    document.addEventListener("pointerdown", dismiss, true);
+    document.addEventListener("keydown", (event) => { if (event.key === "Escape") dismiss(); });
+    window.addEventListener("scroll", dismiss, { capture: true, passive: true });
+    window.addEventListener("resize", dismiss);
   }
 
   function defaultFileAction() {
@@ -2787,10 +2946,9 @@
     do { action.id = `soft98-pro-file-${++downloadRowId}`; } while (document.getElementById(action.id));
     action.dataset.soft98ProDownloadManager = "file";
     action.setAttribute("aria-keyshortcuts", "Shift+F10 ContextMenu");
-    const more = downloadButton("chevron");
+    const more = downloadButton("chevronDown");
     more.dataset.s98pFileMore = "";
-    more.title = text("downloadFileActions");
-    more.setAttribute("aria-label", more.title);
+    setDownloadHint(more, text("downloadFileActions"), true);
     more.setAttribute("aria-haspopup", "menu");
     more.setAttribute("aria-expanded", "false");
     group.append(action, more);
@@ -2817,10 +2975,7 @@
     if (badge.textContent !== value) badge.textContent = value;
     if (badge.dataset.s98pFileStatus !== key) badge.dataset.s98pFileStatus = key;
     const title = numeric ? `${label} · ${value}` : label;
-    if (badge.title !== title) {
-      badge.title = title;
-      badge.setAttribute("aria-label", `${title} · ${text("controlOpenDownloads")}`);
-    }
+    setDownloadHint(badge, `${title} · ${text("controlOpenDownloads")}`, true);
   }
 
   function closeFileMenu(restoreFocus = false) {
@@ -2987,8 +3142,7 @@
           const { icon: actionIcon, label } = FILE_ACTIONS[action];
           button.innerHTML = PAGE_ICONS[actionIcon];
           button.firstElementChild.setAttribute("aria-hidden", "true");
-          button.title = text(label);
-          button.setAttribute("aria-label", button.title);
+          setDownloadHint(button, text(label), true);
         }
       } else if (existing) {
         existing.remove();
@@ -5407,6 +5561,7 @@
     receiveExtensionPatchedScript();
     installProStyle();
     installClickRepair();
+    installDownloadHints();
     document.addEventListener("click", showDownloadActivation, true);
     document.addEventListener("auxclick", showDownloadActivation, true);
     setPersistentStyle("soft98-pro-listing-style", LISTING_NAVIGATION_CSS);

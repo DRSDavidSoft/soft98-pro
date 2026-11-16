@@ -406,21 +406,170 @@
   visibility: visible !important;
 }
 :root.soft98-pro-compact [data-s98p-wide-layout="left"] > [data-soft98-pro-column="secondary"] { display: none !important; }
-:root.soft98-pro-theme [data-s98p-related-rail] > [data-soft98-pro-related] { margin: 0 !important; min-width: 0; }
-:root.soft98-pro-theme [data-s98p-related-rail] li > a { white-space: normal !important; overflow-wrap: anywhere; line-height: 1.55; }
-:root.soft98-pro-theme [data-s98p-download-rail] {
-  margin-block-end: 16px;
-  border: 1px solid var(--s98p-border);
-  border-radius: 8px;
-  background: var(--s98p-surface);
+:root.soft98-pro-theme [data-s98p-wide-layout] > :is([data-s98p-related-rail],[data-soft98-pro-column="secondary"]:has(> [data-s98p-download-rail])) {
+  margin: 0 !important;
+  padding: 0 !important;
 }
-:root.soft98-pro-theme [data-s98p-download-rail] > header { padding: 11px 13px; border-block-end: 1px solid var(--s98p-border); }
-:root.soft98-pro-theme [data-s98p-download-rail] > header h2 { margin: 0; font-size: 1rem; }
-:root.soft98-pro-theme [data-s98p-download-rail] > dl { float: none !important; inline-size: 100% !important; max-inline-size: none !important; margin: 0 !important; }
-:root.soft98-pro-theme [data-s98p-hidden-download-heading], :root.soft98-pro-theme [data-s98p-download-rail] [data-s98p-download-heading-fallback] { display: none !important; }
+:root.soft98-pro-theme [data-s98p-related-rail] > [data-soft98-pro-related] { margin: 0 !important; min-inline-size: 0; }
+:root.soft98-pro-theme [data-s98p-download-rail] { margin: 0 0 18px !important; min-inline-size: 0; }
+:root.soft98-pro-theme [data-s98p-download-rail] > dl {
+  float: none !important;
+  box-sizing: border-box;
+  inline-size: 100% !important;
+  max-inline-size: none !important;
+  margin: 0 !important;
+  padding: 4px 10px 10px !important;
+}
+:root.soft98-pro-theme [data-s98p-hidden-download-heading],
+:root.soft98-pro-theme [data-s98p-download-rail] [data-s98p-download-heading-fallback] { display: none !important; }
 :root.soft98-pro-theme [data-s98p-download-rail] [data-soft98-pro-download-row] { padding-inline: 8px !important; }
-:root.soft98-pro-theme [data-s98p-download-jump] { display: inline-flex; align-items: center; gap: 6px; margin: 8px; padding: 5px 8px; border: 1px solid var(--s98p-border); border-radius: 6px; }
-[data-s98p-download-jump] svg { inline-size: 16px; block-size: 16px; }
+
+:root:not(.soft98-pro-theme) :is([data-soft98-pro-download-actions],[data-s98p-download-toggle],[data-s98p-rating-display]) { display: none !important; }
+
+:root.soft98-pro-theme [data-soft98-pro-download-heading] {
+  display: grid !important;
+  grid-template: "label toggle" auto / minmax(0,1fr) auto;
+  align-items: center;
+  gap: 6px 12px;
+  padding: 8px !important;
+}
+:root.soft98-pro-theme [data-soft98-pro-download-heading]:has(> [data-soft98-pro-download-actions]:not([hidden])) {
+  grid-template-areas: "label toggle" "actions actions";
+}
+:root.soft98-pro-theme [data-s98p-download-rail] [data-soft98-pro-download-heading]:has(> [data-s98p-download-heading-fallback]) {
+  grid-template-areas: "actions toggle";
+}
+:root.soft98-pro-theme [data-s98p-download-heading-label] {
+  grid-area: label;
+  display: inline-flex;
+  align-items: center;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+:root.soft98-pro-theme :is(article [role=tabpanel],[data-s98p-download-rail]) [data-soft98-pro-download-group] > [data-soft98-pro-download-heading] > [data-s98p-download-heading-label][data-soft98-pro-icon-host]::before,
+:root.soft98-pro-theme :is(article [role=tabpanel],[data-s98p-download-rail]) [data-soft98-pro-download-group] > [data-soft98-pro-download-heading] > [data-s98p-download-heading-label][data-soft98-pro-icon-host]::after {
+  content: none !important;
+  display: none !important;
+}
+:root.soft98-pro-theme [data-soft98-pro-download-actions] {
+  display: inline-flex;
+  grid-area: actions;
+  justify-self: start;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-inline-size: 100%;
+  direction: inherit;
+}
+:root.soft98-pro-theme :is([data-soft98-pro-download-actions],[data-soft98-pro-download-actions] > button)[hidden] { display: none !important; }
+:root.soft98-pro-theme [data-s98p-download-toggle] { grid-area: toggle; }
+:root.soft98-pro-theme [data-soft98-pro-download-heading] :is([data-s98p-download-toggle],[data-soft98-pro-download-actions] > button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-block-size: 32px;
+  min-inline-size: 32px;
+  padding: 4px 8px;
+  border: 1px solid var(--s98p-border-soft) !important;
+  border-radius: 6px;
+  background: var(--s98p-surface-2) !important;
+  color: var(--s98p-text) !important;
+  font: inherit;
+  line-height: 1.35;
+  cursor: pointer;
+}
+:root.soft98-pro-theme [data-soft98-pro-download-heading] :is([data-s98p-download-toggle],[data-soft98-pro-download-actions] > button):is(:hover,:focus-visible) {
+  background: var(--s98p-soft) !important;
+  border-color: var(--s98p-border) !important;
+}
+:root.soft98-pro-theme [data-soft98-pro-download-heading] button svg { inline-size: 16px; block-size: 16px; flex: none; pointer-events: none; }
+
+:root.soft98-pro-theme [data-soft98-pro-download-group] > [data-s98p-rating] {
+  display: block !important;
+  block-size: auto !important;
+  max-block-size: none !important;
+  box-sizing: border-box;
+  padding: 7px 8px !important;
+}
+:root.soft98-pro-theme [data-soft98-pro-download-group] > [data-s98p-rating][data-soft98-pro-download-collapsed] { display: none !important; }
+:root.soft98-pro-theme [data-soft98-pro-download-group] > [data-s98p-rating]::before,
+:root.soft98-pro-theme [data-soft98-pro-download-group] > [data-s98p-rating]::after,
+:root.soft98-pro-theme [data-s98p-rating-original] { content: none !important; display: none !important; }
+:root.soft98-pro-theme [data-s98p-rating-display] {
+  --s98p-rating-ink: #ffc776;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 9px;
+  padding: 7px 9px;
+  border: 1px solid var(--s98p-border-soft);
+  border-radius: 7px;
+  background: var(--s98p-surface-2);
+  color: var(--s98p-text);
+  font-size: .85em;
+}
+:root.soft98-pro-light [data-s98p-rating-display] { --s98p-rating-ink: #995315; }
+[data-s98p-rating-label] { margin-inline-end: auto; font-weight: 650; }
+[data-s98p-stars] { display: flex; gap: 2px; direction: ltr; }
+[data-s98p-stars] > span { position: relative; display: block; inline-size: 14px; block-size: 14px; color: var(--s98p-faint); }
+[data-s98p-stars] svg { display: block; inline-size: 100%; block-size: 100%; }
+[data-s98p-stars] svg + svg {
+  position: absolute;
+  inset: 0;
+  clip-path: inset(0 calc(100% - var(--s98p-star-fill)) 0 0);
+  color: var(--s98p-rating-ink);
+}
+[data-s98p-rating-value] {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--s98p-bg-2);
+  color: var(--s98p-rating-ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+#soft98-pro-download-tooltip {
+  position: fixed;
+  z-index: 2147483002;
+  box-sizing: border-box;
+  max-inline-size: min(310px,calc(100vw - 16px));
+  padding: 6px 10px;
+  border: 1px solid var(--s98p-border);
+  border-radius: 7px;
+  background: color-mix(in srgb,var(--s98p-elevated) 96%,transparent);
+  color: var(--s98p-text);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 6px 18px #0003;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  text-align: start;
+  line-height: 1.65;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .14s ease,visibility 0s linear .14s;
+}
+.soft98-pro-theme #soft98-pro-download-tooltip[data-visible] { opacity: 1; visibility: visible; transition-delay: 0s; }
+#soft98-pro-download-tooltip::before {
+  content: "";
+  position: absolute;
+  left: var(--s98p-tip-arrow);
+  inline-size: 6px;
+  block-size: 6px;
+  background: var(--s98p-elevated);
+  border: solid var(--s98p-border);
+  border-width: 0 1px 1px 0;
+  translate: -50% 0;
+}
+#soft98-pro-download-tooltip[data-side="above"]::before { bottom: -4px; rotate: 45deg; }
+#soft98-pro-download-tooltip[data-side="below"]::before { top: -4px; rotate: 225deg; }
+@media (prefers-reduced-motion: reduce) {
+  #soft98-pro-download-tooltip, .soft98-pro-theme .s98p-file-actions [data-s98p-file-more] { transition: none !important; }
+}
 
 :root.soft98-pro-theme [data-s98p-dialog-footer] {
   background: var(--s98p-elevated) !important;
@@ -1024,7 +1173,7 @@
   display: none !important;
 }
 
-:root.soft98-pro-theme [data-soft98-pro-related] {
+:root.soft98-pro-theme :is([data-soft98-pro-related],[data-s98p-download-rail]) {
   background: var(--s98p-surface) !important;
   border: 1px solid var(--s98p-border-soft) !important;
   border-radius: 8px;
@@ -1032,22 +1181,29 @@
   backdrop-filter: none !important;
 }
 
-:root.soft98-pro-theme [data-soft98-pro-related] > header {
+:root.soft98-pro-theme :is([data-soft98-pro-related],[data-s98p-download-rail]) > header {
   background: var(--s98p-surface-2) !important;
   border-block-end: 1px solid var(--s98p-border-soft) !important;
   color: var(--s98p-text) !important;
-  padding: 12px 16px !important;
+  display: flex;
+  align-items: center;
+  min-block-size: 46px;
+  box-sizing: border-box;
+  padding: 10px 13px !important;
 }
 
-:root.soft98-pro-theme [data-soft98-pro-related] > header :is(h2,h3,h4,h5,h6) {
+:root.soft98-pro-theme :is([data-soft98-pro-related],[data-s98p-download-rail]) > header :is(h2,h3,h4,h5,h6) {
   background: transparent !important;
   color: var(--s98p-text) !important;
-  margin: 0;
+  margin: 0 !important;
+  border: 0 !important;
+  font-size: .925rem !important;
+  line-height: 1.45 !important;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-related] > :is(ul,ol) {
   margin: 0;
-  padding: 5px 12px 8px;
+  padding: 4px 10px 10px !important;
   background: var(--s98p-surface) !important;
   list-style: none;
 }
@@ -1062,11 +1218,25 @@
 }
 
 :root.soft98-pro-theme [data-soft98-pro-related] li > a {
-  display: block;
-  padding: 7px 6px;
+  display: block !important;
+  box-sizing: border-box;
+  block-size: auto !important;
+  min-block-size: 42px;
+  max-block-size: none !important;
+  padding: 7px 8px !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  line-height: 1.55;
   background: none !important;
   color: var(--s98p-muted) !important;
   transition: background-color .14s ease,color .14s ease;
+}
+
+:root.soft98-pro-theme [data-s98p-related-rail] [data-soft98-pro-related] li > a::before,
+:root.soft98-pro-theme [data-s98p-related-rail] [data-soft98-pro-related] li > a::after {
+  content: none !important;
+  display: none !important;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-related] li > a::before {
