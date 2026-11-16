@@ -791,6 +791,38 @@
   color: var(--s98p-text) !important;
   border-block-start-color: var(--s98p-border) !important;
 }
+
+#soft98-pro-header-queue[hidden],
+:root:not(.soft98-pro-theme) #soft98-pro-header-queue { display: none !important; }
+:root.soft98-pro-theme #soft98-pro-header-queue:not([hidden]) {
+  position: fixed;
+  z-index: 2147483600;
+  inset: auto;
+  box-sizing: border-box;
+  inline-size: var(--queue-width, 390px);
+  block-size: var(--queue-height, 390px);
+  max-inline-size: none;
+  max-block-size: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--s98p-border);
+  border-radius: 8px;
+  background: var(--s98p-surface);
+  box-shadow: 0 13px 36px #080d1559;
+  animation: s98p-header-queue-in .15s ease-out both;
+}
+#soft98-pro-header-queue:focus { outline: none; }
+#soft98-pro-header-queue > iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+@keyframes s98p-header-queue-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  :root.soft98-pro-theme #soft98-pro-header-queue:not([hidden]) { animation: none; }
+}
 :root.soft98-pro-theme [data-s98p-site-backdrop] { opacity: 0 !important; transition: none !important; }
 :root.soft98-pro-theme [data-soft98-pro-dialog]:not(dialog) {
   background: transparent !important;

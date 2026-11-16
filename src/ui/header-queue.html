@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="typography.css">
+  <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="header-queue.css">
+  <script src="theme.js"></script>
+  <script src="download-ui-catalog.js" defer></script>
+  <script src="download-view.js" defer></script>
+  <script src="header-queue.js" defer></script>
+</head>
+<body>
+  <header>
+    <span id="header-mark" class="queue-mark" aria-hidden="true"></span>
+    <div class="heading">
+      <h1 id="queue-title" data-copy="queue"></h1>
+      <div id="counts" class="counts"></div>
+    </div>
+    <button id="close-queue" class="icon-button" type="button"></button>
+  </header>
+  <main>
+    <p id="held" data-copy="queuePaused" hidden></p>
+    <p id="status" role="status" data-copy="loading"></p>
+    <ul id="items" aria-labelledby="queue-title"></ul>
+  </main>
+  <footer>
+    <a id="full-manager" href="downloads.html" target="_blank" rel="noopener">
+      <span data-copy="openManager"></span><span id="manager-mark" aria-hidden="true"></span>
+    </a>
+  </footer>
+</body>
+</html>

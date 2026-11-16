@@ -24,6 +24,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Added shared theme, accent color, animated RGB, and Control Center settings to Download Manager.
 - Added optional download sounds with volume control and a preview for each event, shared by the Download Manager and toolbar popup.
 - Related posts and the useful-software list now show the artwork published on linked posts, with a browser cache and a neutral fallback.
+- Added a sticky-header download dropdown with live file progress and status. Ctrl-click, Command-click, and middle-click open the full manager.
 
 ### Fixed
 

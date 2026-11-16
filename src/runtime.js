@@ -85,6 +85,7 @@
   let fileMenu;
   let fileStates = new Map();
   let downloadSnapshot;
+  let headerDownloads;
   const FILE_STATES = new Set(["manual", "queued", "starting", "resuming", "downloading", "paused", "resume-queued", "complete", "interrupted", "canceled", "review", "missing"]);
   const wideLayouts = new Map();
   const newsPanels = new Map();
@@ -358,7 +359,7 @@
 
   function isOwnedInterface(node) {
     const element = asElement(node);
-    return Boolean(element && element.closest("#soft98-pro-control,#soft98-pro-compatibility,#soft98-extension-recommendation,#soft98-ad-blocker-taunt,[data-soft98-pro-download-actions],[data-soft98-pro-password-actions],[data-soft98-pro-copy-toast],[data-soft98-pro-footer],[data-s98p-download-confirm]"));
+    return Boolean(element && element.closest("#soft98-pro-control,#soft98-pro-compatibility,#soft98-extension-recommendation,#soft98-ad-blocker-taunt,[data-soft98-pro-download-actions],[data-soft98-pro-password-actions],[data-soft98-pro-copy-toast],[data-soft98-pro-footer],[data-s98p-download-confirm],#soft98-pro-header-queue"));
   }
 
   function localizeElement(element) {
@@ -1026,6 +1027,7 @@
         applyPagePreferences();
         applySiteChrome();
       } else if (!settings.pro) {
+        headerDownloads?.close();
         document.documentElement.removeAttribute("data-soft98-pro-chrome");
         syncWideLayout();
         for (const state of newsPanels.values()) syncNewsPanel(state);
@@ -2646,20 +2648,86 @@
   }
 
   function syncDownloadManagerEntry(nav) {
-    if (!IS_EXTENSION || !nav || nav.querySelector('[data-soft98-pro-download-manager="open"]')) return;
+    if (!IS_EXTENSION || !document.documentElement.hasAttribute("data-s98p-header-queue-available")) return;
+    if (headerDownloads?.button.isConnected && headerDownloads.panel.isConnected && nav?.contains(headerDownloads.button)) return;
+    headerDownloads?.dispose();
+    headerDownloads = null;
+    if (!nav) return;
     const list = nav.querySelector('[data-toggle="search"]')?.closest("li")?.parentElement;
     if (!list) return;
     const item = document.createElement("li");
     const button = document.createElement("button");
     button.type = "button";
-    button.dataset.soft98ProDownloadManager = "open";
+    button.dataset.soft98ProDownloadManager = "header";
     button.setAttribute("data-soft98-pro-nav-item", "icon");
     button.setAttribute("data-soft98-pro-header-icon", "");
-    button.setAttribute("aria-label", text("articlePreview"));
-    button.title = text("articlePreview");
+    button.setAttribute("aria-label", text("headerDownloads"));
+    button.setAttribute("aria-expanded", "false");
+    button.title = text("headerDownloads");
     decorateIcon(button, "download");
+    const panel = document.createElement("section");
+    panel.id = "soft98-pro-header-queue";
+    panel.hidden = true;
+    panel.tabIndex = -1;
+    panel.setAttribute("aria-label", text("headerDownloads"));
+    panel.setAttribute("data-soft98-pro-owned", "header-queue");
+    button.setAttribute("aria-controls", panel.id);
+    if (typeof panel.showPopover === "function") panel.setAttribute("popover", "manual");
+
+    const listeners = new AbortController();
+    const observe = { signal: listeners.signal };
+    const toggleFrame = () => document.dispatchEvent(new Event("soft98-pro:header-queue-toggle"));
+    function position() {
+      const anchor = button.getBoundingClientRect();
+      const width = document.documentElement.clientWidth;
+      const height = window.innerHeight;
+      const panelWidth = Math.min(390, width - 16);
+      const top = Math.max(8, anchor.bottom + 8);
+      const left = Math.max(8, Math.min(anchor.left, width - panelWidth - 8));
+      panel.style.setProperty("--queue-width", panelWidth + "px");
+      panel.style.setProperty("--queue-height", Math.max(0, Math.min(390, height - top - 8)) + "px");
+      panel.style.left = left + "px";
+      panel.style.top = top + "px";
+    }
+    function close(restoreFocus = false) {
+      if (panel.hidden) return;
+      if (panel.hasAttribute("popover")) panel.hidePopover();
+      panel.hidden = true;
+      button.setAttribute("aria-expanded", "false");
+      toggleFrame();
+      if (restoreFocus && button.isConnected) button.focus({ preventScroll: true });
+    }
+    button.addEventListener("click", event => {
+      if (!settings.pro || event.ctrlKey || event.metaKey || event.button !== 0 || event.defaultPrevented) return;
+      if (!panel.hidden) return close(true);
+      position();
+      panel.hidden = false;
+      button.setAttribute("aria-expanded", "true");
+      if (panel.hasAttribute("popover")) panel.showPopover();
+      toggleFrame();
+      panel.focus({ preventScroll: true });
+    }, observe);
+    document.addEventListener("pointerdown", event => {
+      if (!panel.hidden && !panel.contains(event.target) && !button.contains(event.target)) close();
+    }, { ...observe, capture: true });
+    document.addEventListener("keydown", event => {
+      if (event.key !== "Escape" || panel.hidden) return;
+      event.preventDefault();
+      event.stopPropagation();
+      close(true);
+    }, { ...observe, capture: true });
+    document.addEventListener("soft98-pro:header-queue-close", () => close(true), observe);
+    window.addEventListener("resize", () => { if (!panel.hidden) position(); }, observe);
+    window.addEventListener("scroll", () => { if (!panel.hidden) position(); }, { ...observe, passive: true });
     item.append(button);
     list.append(item);
+    document.body.append(panel);
+    headerDownloads = { button, panel, close, dispose() {
+      close();
+      listeners.abort();
+      item.remove();
+      panel.remove();
+    } };
   }
 
   function renderSiteFooter() {

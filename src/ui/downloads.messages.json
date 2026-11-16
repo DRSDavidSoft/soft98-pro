@@ -2,6 +2,7 @@
   "en": {
     "settings": "Settings", "history": "Download history", "managerPages": "Download Manager views", "actions": "Actions", "resetFilters": "Clear filters",
     "openFullManager": "Open in a tab", "proSettings": "Soft98 Pro settings",
+    "openManager": "Open Download Manager", "queuePaused": "Queue on hold", "queueUnavailable": "Could not load the download queue.",
     "appearance": "Appearance", "appearanceTheme": "Theme", "themeLight": "Light", "themeDark": "Dark",
     "appearanceAccent": "Accent color", "accent_default": "Soft98 Pro", "accent_sky": "Sky blue", "accent_orchid": "Orchid", "accent_amber": "Amber",
     "appearanceRgb": "Animated RGB", "controlCenter": "Control Center", "controlCenterVisible": "Show on Soft98 pages", "controlCenterSound": "Sound feedback",
@@ -46,6 +47,7 @@
   "fa": {
     "settings": "تنظیمات", "history": "سابقهٔ دانلودها", "managerPages": "بخش‌های مدیر دانلود", "actions": "گزینه‌ها", "resetFilters": "پاک کردن فیلترها",
     "openFullManager": "باز کردن در تب", "proSettings": "تنظیمات سافت‌۹۸ پرو",
+    "openManager": "باز کردن مدیر دانلود", "queuePaused": "صف دانلود در حالت توقف", "queueUnavailable": "صف دانلود بارگذاری نشد.",
     "appearance": "ظاهر", "appearanceTheme": "حالت نمایش", "themeLight": "روشن", "themeDark": "تاریک",
     "appearanceAccent": "رنگ رابط", "accent_default": "پیش‌فرض سافت‌۹۸ پرو", "accent_sky": "آبی آسمونی", "accent_orchid": "بنفش", "accent_amber": "کهربایی",
     "appearanceRgb": "افکت RGB متحرک", "controlCenter": "مرکز کنترل", "controlCenterVisible": "نمایش در صفحه‌های سافت‌۹۸", "controlCenterSound": "صدای دکمه‌ها",

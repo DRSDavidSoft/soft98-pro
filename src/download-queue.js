@@ -41,6 +41,15 @@ const Soft98DownloadQueue = (() => {
       (sender.frameId === undefined || sender.frameId === 0) && !sender.incognito && !sender.tab?.incognito);
   }
 
+  function trustedHeaderSender(sender, extensionId, frameUrl) {
+    if (sender?.id !== extensionId || sender.url !== frameUrl || !Number.isInteger(sender.frameId) || sender.frameId <= 0 ||
+        !Number.isInteger(sender.tab?.id) || sender.incognito || sender.tab.incognito) return false;
+    try {
+      const top = new URL(sender.tab.url);
+      return /^https?:$/.test(top.protocol) && /(?:^|\.)soft98\.ir$/i.test(top.hostname);
+    } catch { return false; }
+  }
+
   function articleFileUrl(input) {
     const url = new URL(directUrl(input));
     if (!links.articleFile(url)) fail("invalid-url");
@@ -86,6 +95,29 @@ const Soft98DownloadQueue = (() => {
     }
     const hasQueueWork = counts.active > 0 || jobs.some(job => job.status === "queued" || job.status === "resume-queued");
     return { counts, transfer, held: held === true && hasQueueWork, files: [...files.values()] };
+  }
+
+  function headerSnapshot({ jobs, held }) {
+    const counts = { active: 0, waiting: 0, finished: 0 };
+    const rank = { active: 0, waiting: 1, finished: 2 };
+    const ranked = jobs.map((job) => {
+      const group = ACTIVE.has(job.status) ? "active" : TERMINAL.has(job.status) ? "finished" : "waiting";
+      counts[group]++;
+      return { job, group };
+    }).sort((a, b) => {
+      return rank[a.group] - rank[b.group] || (a.group === "finished" ?
+        (b.job.endedAt || b.job.createdAt || 0) - (a.job.endedAt || a.job.createdAt || 0) : 0);
+    });
+    const size = value => Number.isSafeInteger(value) && value >= 0 ? value : null;
+    return { counts, held: held === true && (counts.active > 0 || jobs.some(job => ["queued", "resume-queued"].includes(job.status))),
+      items: ranked.map(({ job, group }) => {
+        const fallback = links.describe(job.url);
+        const name = (job.name || job.filename || fallback.name).split(/[\\/]/).at(-1)
+          .replace(/[\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/gu, "").slice(0, 255) || fallback.name.slice(0, 255);
+        return { id: job.id, name, group, status: job.manualStart ? "manual" : job.status,
+          type: links.fileType(name) || job.metadata?.type || fallback.type, mime: job.mime || job.metadata?.mime || "",
+          bytes: size(job.bytes), total: size(job.total) ?? size(job.metadata?.size), eta: job.estimatedEndAt };
+      }) };
   }
 
   function applyNative(job, item) {
@@ -411,7 +443,7 @@ const Soft98DownloadQueue = (() => {
     return { request };
   }
 
-  return { CHANNEL, STORAGE_KEY, directUrl, articleFileUrl, articleJobs, pageSnapshot, relativeFilename, trustedSender, create };
+  return { CHANNEL, STORAGE_KEY, directUrl, articleFileUrl, articleJobs, pageSnapshot, headerSnapshot, relativeFilename, trustedSender, trustedHeaderSender, create };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = Soft98DownloadQueue;

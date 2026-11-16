@@ -132,6 +132,41 @@
   }
 
   if (!(api.extension && api.extension.inIncognitoContext)) {
+    const advertiseHeaderQueue = () => document.documentElement.setAttribute("data-s98p-header-queue-available", "");
+    if (document.documentElement) advertiseHeaderQueue();
+    else document.addEventListener("DOMContentLoaded", advertiseHeaderQueue, { once: true });
+    const headerQueueUrl = api.runtime.getURL("header-queue.html");
+    let headerQueueFrame;
+    document.addEventListener("soft98-pro:header-queue-toggle", () => {
+      const host = document.querySelector("#soft98-pro-header-queue:not([hidden])");
+      if (!host) {
+        headerQueueFrame?.remove();
+        headerQueueFrame = null;
+        return;
+      }
+      if (headerQueueFrame?.parentElement === host) return;
+      headerQueueFrame?.remove();
+      headerQueueFrame = document.createElement("iframe");
+      headerQueueFrame.src = headerQueueUrl;
+      headerQueueFrame.title = host.getAttribute("aria-label");
+      host.append(headerQueueFrame);
+    });
+    window.addEventListener("message", event => {
+      if (headerQueueFrame?.isConnected && event.source === headerQueueFrame.contentWindow &&
+          event.origin === new URL(headerQueueUrl).origin && event.data === "soft98-pro:header-queue-close") {
+        document.dispatchEvent(new Event("soft98-pro:header-queue-close"));
+      }
+    });
+    const headerButton = event => event.target instanceof Element &&
+      event.target.closest('button[data-soft98-pro-download-manager="header"]:not(:disabled)');
+    document.addEventListener("mousedown", event => {
+      if (event.isTrusted && event.button === 1 && headerButton(event)) event.preventDefault();
+    }, true);
+    document.addEventListener("auxclick", event => {
+      if (!event.isTrusted || event.button !== 1 || event.defaultPrevented || !headerButton(event)) return;
+      event.preventDefault();
+      sendRuntime({ type: "soft98:open-downloads" });
+    });
     const panelVisible = () => document.querySelector('#soft98-pro-control[data-open="true"] [data-panel="downloads"]:not([hidden])');
     let snapshotTimer, snapshotPending = false, snapshotDirty = false;
     function refreshDownloads() {
@@ -198,6 +233,13 @@
       }
       const control = event.target instanceof Element && event.target.closest("button[data-soft98-pro-download-manager],button[data-s98p-file-command]");
       if (!control || control.disabled || control.closest("[hidden]")) return;
+      if (control.dataset.soft98ProDownloadManager === "header") {
+        if (event.ctrlKey || event.metaKey) {
+          event.preventDefault();
+          sendRuntime({ type: "soft98:open-downloads" });
+        }
+        return;
+      }
       if (control.dataset.soft98ProDownloadManager === "open") {
         sendRuntime({ type: "soft98:open-downloads", file: control.dataset.s98pManagedUrl });
         return;

@@ -225,6 +225,7 @@ function chromiumManifest() {
       "https://objects.githubusercontent.com/*",
     ],
     background: { service_worker: "assets/background.js" },
+    web_accessible_resources: [{ resources: ["header-queue.html"], matches: ["*://*.soft98.ir/*"] }],
     action: { default_title: "__MSG_extensionName__", default_popup: "popup.html", default_icon: TOOLBAR_ICONS },
     options_page: "options.html",
     content_scripts: [
@@ -275,7 +276,7 @@ function firefoxManifest() {
     background: { scripts: ["assets/release-client.js", "assets/background.js"], persistent: false },
     browser_action: { default_title: "__MSG_extensionName__", default_popup: "popup.html", default_icon: TOOLBAR_ICONS },
     options_ui: { page: "options.html", open_in_tab: true },
-    web_accessible_resources: ["assets/runtime.page.js", "assets/upstream-gateway.js"],
+    web_accessible_resources: ["assets/runtime.page.js", "assets/upstream-gateway.js", "header-queue.html"],
     content_scripts: [
       {
         matches: ["*://*.soft98.ir/*"],
@@ -292,7 +293,7 @@ function copyUi(target) {
   if (JSON.stringify(Object.keys(catalog.en).sort()) !== JSON.stringify(Object.keys(catalog.fa).sort())) throw new Error("Download catalogs must have identical keys");
   const icons = Object.fromEntries(["download", "plus", "player-play", "player-pause", "x", "rotate-clockwise", "folder-open", "trash", "file-upload", "clipboard", "list-details", "settings", "dots", "external-link", "file", "file-zip", "file-text", "photo", "video", "music", "package", "link", "square-check", "square", "help-circle",
     "chevron-down", "tag", "database", "calendar", "grip-vertical", "sort-ascending", "sort-descending", "arrow-left", "arrow-right",
-    "file-type-pdf", "table", "presentation", "terminal-2", "disc", "code", "device-mobile", "lock-open", "bell", "check", "sun", "moon", "volume"].map((name) => [name,
+    "file-type-pdf", "table", "presentation", "terminal-2", "disc", "code", "device-mobile", "lock-open", "bell", "check", "sun", "moon", "volume", "chevron-right"].map((name) => [name,
     fs.readFileSync(path.join(TABLER_ROOT, "icons", "outline", `${name}.svg`), "utf8")]));
   for (const file of ["options.html", "options.js", "styles.css"]) {
     const from = path.join(SRC, "ui", file);
@@ -309,7 +310,8 @@ function copyUi(target) {
       copyFile(from, to);
     }
   }
-  for (const file of ["downloads.html", "downloads.css", "downloads-link.css", "download-import.js", "download-view.js", "download-select.js", "download-manager.svg", "typography.css", "theme.js", "theme.css"]) {
+  for (const file of ["downloads.html", "downloads.js", "downloads.css", "downloads-link.css", "download-import.js", "download-view.js", "download-select.js", "download-manager.svg", "typography.css", "theme.js", "theme.css",
+    "header-queue.html", "header-queue.css", "header-queue.js"]) {
     copyFile(path.join(SRC, "ui", file), path.join(target, file));
   }
   copyFile(path.join(SRC, "appearance.css"), path.join(target, "appearance.css"));
@@ -326,10 +328,7 @@ function copyUi(target) {
     const font = `vazirmatn-${subset}-wght-normal.woff2`;
     copyFile(path.join(VAZIRMATN_ROOT, "files", font), path.join(target, "assets", font));
   }
-  const downloads = fs.readFileSync(path.join(SRC, "ui", "downloads.js"), "utf8")
-    .replace("__SOFT98_DOWNLOAD_MESSAGES__", () => JSON.stringify(catalog))
-    .replace("__SOFT98_DOWNLOAD_ICONS__", () => JSON.stringify(icons));
-  fs.writeFileSync(path.join(target, "downloads.js"), downloads, "utf8");
+  fs.writeFileSync(path.join(target, "download-ui-catalog.js"), `const Soft98DownloadCatalog = ${JSON.stringify({ catalog, icons })};\n`, "utf8");
 }
 
 async function zipDirectory(source, output) {

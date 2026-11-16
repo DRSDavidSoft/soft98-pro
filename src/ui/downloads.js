@@ -3,8 +3,7 @@
 
   const api = typeof browser !== "undefined" ? browser : chrome;
   const usesPromises = typeof browser !== "undefined";
-  const catalog = __SOFT98_DOWNLOAD_MESSAGES__;
-  const icons = __SOFT98_DOWNLOAD_ICONS__;
+  const { catalog, icons } = Soft98DownloadCatalog;
   const locale = [navigator.language, ...(navigator.languages || [])].some((lang) => /^fa(?:-|$)/i.test(lang)) ||
     Intl.DateTimeFormat().resolvedOptions().timeZone === "Asia/Tehran" ? "fa" : "en";
   const number = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
@@ -43,11 +42,7 @@
       .replace(/\{(\w+)\}/g, (_, name) => typeof values[name] === "number" ? number.format(values[name]) : values[name] ?? "");
   }
 
-  function bytes(value) {
-    const units = ["B", "KiB", "MiB", "GiB", "TiB"];
-    const unit = value > 0 ? Math.min(units.length - 1, Math.floor(Math.log(value) / Math.log(1024))) : 0;
-    return `${latin.format(value / 1024 ** unit)} ${units[unit]}`;
-  }
+  const bytes = Soft98DownloadView.fileBytes;
 
   function duration(seconds) {
     const remaining = Math.ceil(Math.max(0, seconds));

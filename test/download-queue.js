@@ -8,7 +8,7 @@ const { Script } = require("node:vm");
 const { once } = require("node:events");
 const { setTimeout: sleep } = require("node:timers/promises");
 const { test } = require("node:test");
-const { create, directUrl, articleFileUrl, relativeFilename, trustedSender, pageSnapshot } = require("../src/download-queue");
+const { create, directUrl, articleFileUrl, relativeFilename, trustedSender, trustedHeaderSender, pageSnapshot, headerSnapshot } = require("../src/download-queue");
 const links = require("../src/download-links");
 const probe = require("../src/download-probe");
 const audio = require("../src/download-audio");
@@ -116,7 +116,11 @@ test("both built extensions package the internal manager without exposing it to 
     assert.match(read("options.html"), /href="downloads\.html"/);
     assert.match(read("downloads.html"), /src="downloads\.js"/);
     assert.doesNotMatch(read("downloads.html"), /<textarea/i);
-    for (const file of ["downloads.js", "download-links.js", "download-import.js", "download-view.js", "download-select.js"])
+    assert.match(read("header-queue.html"), /src="header-queue\.js"/);
+    if (target === "chromium") assert.deepEqual(manifest.web_accessible_resources,
+      [{ resources: ["header-queue.html"], matches: ["*://*.soft98.ir/*"] }]);
+    else assert.ok(manifest.web_accessible_resources.includes("header-queue.html"));
+    for (const file of ["downloads.js", "download-links.js", "download-import.js", "download-view.js", "download-select.js", "download-ui-catalog.js", "header-queue.js"])
       new Script(read(file), { filename: file });
     assert.doesNotMatch(read("downloads.js"), /__SOFT98_DOWNLOAD_(MESSAGES|ICONS)__/);
     assert.match(read("assets/background.js"), /soft98:downloads/);
@@ -342,6 +346,28 @@ test("only accepts the extension's own top-level non-private manager page", () =
   }
 });
 
+test("only the embedded extension queue on a Soft98 tab can read the read-only summary", () => {
+  const url = "moz-extension://test/header-queue.html";
+  const sender = { id: EXTENSION_ID, url, frameId: 3, tab: { id: 1, url: "https://soft98.ir/tools/story.html" } };
+  assert.equal(trustedHeaderSender(sender, EXTENSION_ID, url), true);
+  for (const changes of [{ id: "other" }, { frameId: 0 }, { url: "https://soft98.ir" }, { url: url + "#settings" },
+    { incognito: true }, { tab: { ...sender.tab, incognito: true } }, { tab: { ...sender.tab, url: "https://soft98.ir.example.net/" } },
+    { tab: { ...sender.tab, url: "https://example.net/" } }, { tab: { ...sender.tab, url: "file:///tmp/soft98.ir" } }]) {
+    assert.equal(trustedHeaderSender({ ...sender, ...changes }, EXTENSION_ID, url), false);
+  }
+  const snapshot = headerSnapshot({ held: true, jobs: [
+    { id: "complete", url: PREFIX + "past.pdf", status: "complete", total: 5, bytes: 5 },
+    { id: "waiting", url: PREFIX + "example.rar", filename: "PrivateFolder/مرحله.rar", status: "paused", manualStart: true, metadata: { size: 120 } },
+    { id: "running", url: PREFIX + "current.zip?private=token", status: "downloading", total: -1, bytes: 15, browserId: 80, source: "https://soft98.ir/private.html" },
+  ] });
+  assert.deepEqual(snapshot.counts, { active: 1, waiting: 1, finished: 1 });
+  assert.equal(snapshot.held, true);
+  assert.deepEqual(snapshot.items.map(({ id, name, status, bytes, total }) => [id, name, status, bytes, total]), [
+    ["running", "current.zip", "downloading", 15, null], ["waiting", "مرحله.rar", "manual", null, 120], ["complete", "past.pdf", "complete", 5, 5],
+  ]);
+  assert.doesNotMatch(JSON.stringify(snapshot), /PrivateFolder|example\.test|private\.html|browserId|private=token/);
+});
+
 test("the page snapshot returns article-scoped transfer details and only aggregate data elsewhere", () => {
   const page = "https://soft98.ir/tools/story.html";
   const url = PREFIX + "article.zip?sig=example";
@@ -513,7 +539,7 @@ for (const browser of ["Firefox", "Chromium"]) {
   const chromium = browser === "Chromium";
   const enabled = chromium ? process.env.SOFT98_QUEUE_CHROMEDRIVER : process.env.SOFT98_QUEUE_WEBDRIVER;
   test(`packaged ${browser} queue uses native parallel downloads, pause, resume, and relative paths`,
-    { skip: !enabled, timeout: 100000 }, () => verifyNativeQueue(browser, chromium));
+    { skip: !enabled, timeout: 120000 }, () => verifyNativeQueue(browser, chromium));
 }
 
 async function verifyNativeQueue(browser, chromium) {
@@ -525,13 +551,19 @@ async function verifyNativeQueue(browser, chromium) {
   const uuid = "af9b3c6c-35c1-47d1-977d-f4d6d78dea93";
   const requests = [];
   const bytes = Buffer.alloc(1 * 1024 * 1024, 0x47);
+  let peekLimit = 128 * 1024;
   const server = http.createServer((req, res) => {
+    if (req.url === "/header-fixture") {
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" }).end('<!doctype html><html lang="en"><meta charset="utf-8">' +
+        '<header><nav><ul><li><button type="button" data-toggle="search">Search</button></li></ul></nav></header><main><h1>Header queue fixture</h1></main></html>');
+      return;
+    }
     if (req.url === "/confirm.html") {
       res.writeHead(200, { "Content-Type": "text/html", "Content-Disposition": 'attachment; filename="confirmation.html"' });
       res.end("<!doctype html><title>Verification required</title>");
       return;
     }
-    const match = /^\/(one|two|three)\.bin$/.exec(req.url);
+    const match = /^\/(one|two|three|peek)\.bin$/.exec(req.url);
     if (!match) { res.writeHead(404).end(); return; }
     if (req.method === "HEAD") {
       res.writeHead(200, { "Content-Type": "application/octet-stream", "Content-Length": bytes.length }).end();
@@ -550,6 +582,7 @@ async function verifyNativeQueue(browser, chromium) {
     res.flushHeaders();
     let index = offset;
     const timer = setInterval(() => {
+      if (match[1] === "peek" && index >= peekLimit) return;
       res.write(bytes.subarray(index, index + 16384));
       index += 16384;
       if (index >= bytes.length) res.end();
@@ -558,7 +591,8 @@ async function verifyNativeQueue(browser, chromium) {
   });
   let driver, stopDriver;
   async function webdriver(method, endpoint, payload) {
-    const response = await fetch(new URL(endpoint, driver), { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload), redirect: "error", signal: AbortSignal.timeout(15000) });
+    const response = await fetch(new URL(endpoint, driver), { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload), redirect: "error",
+      signal: AbortSignal.timeout(endpoint === "/session" ? 35000 : 15000) });
     const { value } = await response.json();
     assert.equal(response.ok, true, `${endpoint}: ${value?.message}`);
     return value;
@@ -576,6 +610,7 @@ async function verifyNativeQueue(browser, chromium) {
       "goog:chromeOptions": {
         binary: process.env.SOFT98_QUEUE_CHROME || process.env.CHROME_PATH,
         args: ["--headless", "--no-sandbox", "--no-proxy-server", "--window-size=1100,800",
+          "--host-resolver-rules=MAP queue.soft98.ir 127.0.0.1",
           `--load-extension=${path.join(DIST, "chromium")}`],
         prefs: { "download.default_directory": dir, "download.prompt_for_download": false, "extensions.ui.developer_mode": true },
         enableExtensionTargets: true,
@@ -584,6 +619,8 @@ async function verifyNativeQueue(browser, chromium) {
       browserName: "firefox",
       "moz:firefoxOptions": { args: ["-headless"], prefs: {
         "network.proxy.type": 0,
+        "network.dns.localDomains": "queue.soft98.ir",
+        "network.stricttransportsecurity.preloadlist": false,
         "browser.download.folderList": 2,
         "browser.download.dir": dir,
         "browser.download.useDownloadDir": true,
@@ -696,7 +733,74 @@ async function verifyNativeQueue(browser, chromium) {
     await evaluate(`document.querySelector("#limit-choices [role=option]").click()`);
     await until(() => evaluate(`return (typeof browser !== "undefined" ? browser : chrome).storage.local.get("soft98DownloadQueue")
       .then(({ soft98DownloadQueue }) => soft98DownloadQueue?.limit === 1)`), "custom popup selection persists");
-    console.log(`${browser} ${capabilities.browserVersion}: native queue, file bytes, HTML handling, and narrow layout verified`);
+    await evaluate(`return (typeof browser !== "undefined" ? browser : chrome).runtime.sendMessage({
+      type: "soft98:downloads", action: "add", urls: [arguments[0]] })`, base + "/peek.bin");
+    await post("/url", { url: base.replace("127.0.0.1", "queue.soft98.ir") + "/header-fixture" });
+    const launcher = 'document.querySelector(\'[data-soft98-pro-download-manager="header"]\')';
+    const panel = 'document.getElementById("soft98-pro-header-queue")';
+    const handles = () => webdriver("GET", session + "/window/handles");
+    const originalHandle = await webdriver("GET", session + "/window");
+    const originalTabs = await handles();
+    await until(() => evaluate(`return !!${launcher}`), "packaged extension adds the sticky header control");
+    await evaluate(`${launcher}.click()`);
+    assert.equal(await evaluate(`return ${launcher}.getAttribute("aria-expanded")`), "true");
+    assert.deepEqual(await handles(), originalTabs, "ordinary click stays on the current page");
+    const frame = await evaluate(`return ${panel}.querySelector("iframe")`);
+    const bounds = await evaluate(`const r = ${panel}.getBoundingClientRect(); return r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight;`);
+    assert.equal(bounds, true);
+    assert.equal(await evaluate(`return ${panel}.querySelector("iframe").contentDocument === null`), true, "page scripts cannot read private queue data");
+    await post("/frame", { id: frame });
+    await until(() => evaluate('return document.querySelector("#items li:first-child .row-name")?.textContent === "peek.bin"'), "dropdown shows the in-flight job from the full manager");
+    const percent = () => evaluate('return document.querySelector("#items li:first-child progress").value');
+    await until(async () => await percent() > 0 && await percent() < 1, "in-flight progress in the dropdown");
+    const initial = await percent();
+    peekLimit = 512 * 1024;
+    await until(async () => await percent() > initial && await percent() < 1, "progress refreshes in the same dropdown without a page reload");
+    assert.equal(await evaluate('return document.querySelector("#items li").dataset.state'), "downloading");
+    assert.match(await evaluate('return document.querySelector("#items li .row").href'), /downloads\.html#job=[a-f0-9-]{36}$/);
+    peekLimit = bytes.length;
+    await until(() => evaluate('return [...document.querySelectorAll("#items li")].some(row => row.dataset.state === "complete" && row.querySelector(".row-name").textContent === "peek.bin")'), "completion is reflected in the dropdown");
+    const matchJob = '#items li:first-child .row';
+    const jobUrl = await evaluate('return document.querySelector(arguments[0]).href', matchJob);
+    const jobLink = await evaluate('return document.querySelector(arguments[0])', matchJob);
+    await post(`/element/${jobLink["element-6066-11e4-a52e-4f735466cecf"]}/click`, {});
+    let jobTab;
+    await until(async () => (jobTab = (await handles()).find(handle => !originalTabs.includes(handle))), "a dropdown row opens its manager item");
+    await post("/window", { handle: jobTab });
+    await until(() => evaluate('return location.href === arguments[0]', jobUrl), "item deep link uses the existing manager job route");
+    await webdriver("DELETE", session + "/window");
+    await post("/window", { handle: originalHandle });
+    await post("/frame", { id: await evaluate(`return ${panel}.querySelector("iframe")`) });
+    await evaluate('document.getElementById("close-queue").click()');
+    await post("/frame/parent", {});
+    await until(() => evaluate(`return ${panel}.hidden && !${panel}.querySelector("iframe") && document.activeElement === ${launcher}`), "closing the frame restores focus and stops its polling");
+    await evaluate(`${launcher}.click(); document.querySelector("main").dispatchEvent(new PointerEvent("pointerdown", { bubbles: true }));`);
+    assert.equal(await evaluate(`return ${panel}.hidden`), true, "clicking outside dismisses the dropdown");
+    await evaluate(`${launcher}.click()`);
+    await post("/actions", { actions: [{ type: "key", id: "keyboard", actions: [
+      { type: "keyDown", value: "\uE00C" }, { type: "keyUp", value: "\uE00C" },
+    ] }] });
+    await until(() => evaluate(`return ${panel}.hidden && document.activeElement === ${launcher}`), "Escape dismisses the dropdown");
+
+    for (const button of [0, 1]) {
+      const origin = await evaluate(`return ${launcher}`);
+      const actions = [{ type: "pointer", id: "mouse", parameters: { pointerType: "mouse" }, actions: [
+        { type: "pointerMove", duration: 0, origin, x: 0, y: 0 }, { type: "pointerDown", button }, { type: "pointerUp", button }, { type: "pause", duration: 0 },
+      ] }];
+      if (button === 0) actions.push({ type: "key", id: "keyboard", actions: [
+        { type: "keyDown", value: "\uE009" }, { type: "pause", duration: 0 }, { type: "pause", duration: 0 }, { type: "keyUp", value: "\uE009" },
+      ] });
+      await post("/actions", { actions });
+      let opened;
+      await until(async () => (opened = (await handles()).find(handle => !originalTabs.includes(handle))),
+        button === 0 ? "Ctrl-click opens the full manager" : "middle click opens the full manager");
+      await post("/window", { handle: opened });
+      await until(() => evaluate(`return location.href === arguments[0]`, managerOrigin + "/downloads.html"), "shortcut opens the manager route");
+      await webdriver("DELETE", session + "/window");
+      await post("/window", { handle: originalHandle });
+      assert.equal(await evaluate(`return ${panel}.hidden`), true);
+    }
+    console.log(`${browser} ${capabilities.browserVersion}: native queue, narrow layout, private header dropdown, progress, and both click shortcuts verified`);
   } finally {
     if (session) await webdriver("DELETE", session).catch(() => {});
     await stopDriver?.();

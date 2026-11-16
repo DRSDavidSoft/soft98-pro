@@ -21,6 +21,7 @@
   const pendingDownloadConfirmations = new Map();
   const downloadPage = api.runtime.getURL("downloads.html");
   const downloadPopup = api.runtime.getURL("popup.html");
+  const headerQueuePage = api.runtime.getURL("header-queue.html");
   let releaseStatus = null;
   let compatibilityStatus = null;
   let modificationEngineEnabled = true;
@@ -395,6 +396,11 @@
   }
   api.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!message || typeof message !== "object") return false;
+    if (message.type === "soft98:header-queue") {
+      if (!Soft98DownloadQueue.trustedHeaderSender(sender, api.runtime.id, headerQueuePage)) return false;
+      queue.request({ action: "list" }).then(state => sendResponse(Soft98DownloadQueue.headerSnapshot(state)), () => sendResponse(null));
+      return true;
+    }
     if (["soft98:open-downloads", "soft98:download-file", "soft98:confirm-download-all", "soft98:download-snapshot"].includes(message.type)) {
       if (sender.id !== api.runtime.id || sender.frameId !== 0 || !Number.isInteger(sender.tab?.id) || sender.incognito || sender.tab.incognito ||
           !isProtectedPage(sender.url)) return false;

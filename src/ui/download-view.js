@@ -3,6 +3,13 @@
 const Soft98DownloadView = (() => {
   const $ = id => document.getElementById(id);
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+  const latin = new Intl.NumberFormat("en", { maximumFractionDigits: 1 });
+
+  function fileBytes(value) {
+    const units = ["B", "KiB", "MiB", "GiB", "TiB"];
+    const unit = value > 0 ? Math.min(units.length - 1, Math.floor(Math.log(value) / Math.log(1024))) : 0;
+    return `${latin.format(value / 1024 ** unit)} ${units[unit]}`;
+  }
 
   function fileIcon(type, mime = "") {
     if (/^(ZIP|RAR|7Z|TAR|GZ|BZ2|XZ|ZST|PART|TGZ|GZIP|TBZ2|TXZ|LZMA|CAB|001)$/i.test(type) ||
@@ -317,5 +324,5 @@ const Soft98DownloadView = (() => {
     };
   }
 
-  return { create, fileIcon, indicator, setFiltered, dates };
+  return { create, fileIcon, fileBytes, indicator, setFiltered, dates };
 })();

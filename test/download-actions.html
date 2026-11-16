@@ -35,6 +35,7 @@
   window.browser = {
     extension: { inIncognitoContext: false },
     runtime: {
+      getURL: (path) => new URL("/dist/chromium/" + path, location.href).href,
       getManifest: () => ({ manifest_version: 3 }),
       onMessage: { addListener() {} },
       sendMessage: async (message) => {

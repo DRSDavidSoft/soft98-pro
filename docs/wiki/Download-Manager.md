@@ -4,7 +4,9 @@
 
 ## Review links before downloading
 
-Open **Download Manager** from the Soft98 header, footer, or Control Center. Paste with **Ctrl+V** or **Command+V**, or drop a plain text `.txt` file onto the manager. You can also use **Import links** to pick a text file or enter a single address. Nothing downloads until you submit the checked links.
+Click the download icon in the Soft98 header to see the same queue and live file progress without leaving the article. Click a file to jump to it in **Download Manager**, or use **Ctrl-click**, **Command-click**, or middle-click on the header icon to open the full manager in a new tab.
+
+Open **Download Manager** from the dropdown, footer, or Control Center. Paste with **Ctrl+V** or **Command+V**, or drop a plain text `.txt` file onto the manager. You can also use **Import links** to pick a text file or enter a single address. Nothing downloads until you submit the checked links.
 
 Click the Soft98 Pro toolbar icon to open the same queue in a compact view. The arrow in its header opens the full manager in a tab. **Soft98 Pro** still opens the extension's general settings.
 
