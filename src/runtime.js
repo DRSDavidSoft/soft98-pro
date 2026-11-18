@@ -307,6 +307,9 @@
   function restoreStockLayout() {
     if (!document.body) return;
     const position = { left: scrollX, top: scrollY, behavior: "instant" };
+    const root = document.documentElement;
+    const overflowAnchor = [root.style.getPropertyValue("overflow-anchor"), root.style.getPropertyPriority("overflow-anchor")];
+    root.style.setProperty("overflow-anchor", "none", "important");
     closeFileMenu();
     headerDownloads?.dispose();
     headerDownloads = null;
@@ -365,7 +368,26 @@
     currentDialogKey = "";
     // Layout and stock CSS change in the same task, before the browser paints.
     return () => {
-      if (!settings.pro) scrollTo(position);
+      let interrupted = false;
+      const inputs = new AbortController();
+      const cancel = () => { interrupted = true; };
+      for (const name of ["wheel", "touchstart", "pointerdown", "keydown"]) {
+        window.addEventListener(name, cancel, { capture: true, passive: true, signal: inputs.signal });
+      }
+      const restore = () => { if (!settings.pro && !interrupted) scrollTo(position); };
+      restore();
+      // Complete layout callbacks and suppress browser scroll anchoring for this toggle only.
+      requestAnimationFrame(() => {
+        restore();
+        requestAnimationFrame(() => {
+          restore();
+          if (root.style.getPropertyValue("overflow-anchor") === "none") {
+            if (overflowAnchor[0]) root.style.setProperty("overflow-anchor", ...overflowAnchor);
+            else root.style.removeProperty("overflow-anchor");
+          }
+          inputs.abort();
+        });
+      });
     };
   }
 

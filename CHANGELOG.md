@@ -51,6 +51,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Fixed
 
 - Kept text normalization scoped to visible text without interpreting it as markup.
+- Preserved the scroll position while the original page layout settles after turning the Pro theme off, without overriding new scrolling or clicks.
 
 - Collapsed groups of downloads for other platforms when none match the device. More Information starts collapsed only in the sidebar and follows the main box after either copy is toggled.
 

@@ -1303,6 +1303,8 @@ async function verifyThemeRestore(client) {
       const scrollAfter = await run("scrollY");
       const maximumScroll = await run("Math.max(0, document.documentElement.scrollHeight - innerHeight)");
       check(mode + " preserves the scroll position within the restored document", scrollAfter, Math.min(scrollBefore, maximumScroll));
+      await run("new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))");
+      check(mode + " restores the original scroll anchoring policy", await run('document.documentElement.style.getPropertyValue("overflow-anchor")'), "");
       check(mode + " does not turn off ad blocking", await run(`(() => {
         const ad = document.getElementById("kaprila_soft98_ir_related");
         return Soft98Pro.settings.blockAds && (!ad || getComputedStyle(ad).display === "none");
