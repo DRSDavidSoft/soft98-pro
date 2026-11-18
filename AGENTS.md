@@ -4,6 +4,8 @@
 - Keep both delivery formats in sync through the shared runtime. Put extension-only behavior behind the existing browser-specific boundaries.
 - Do not depend on generated Soft98 class names, IDs, or obfuscated symbols for page structure. Prefer semantics, layout, and destination signals. Normal attributes such as `role`, `aria-controls`, or `data-toggle="tab"` can corroborate a match.
 - Preserve original navigation, download destinations, accessibility, and the ability to turn the appearance changes off. For text cleanup, change visible labels only and preserve version numbers, file names, and URLs.
+- Never translate, nudge, or scale controls on hover. Keep hit targets and their contents stationary; use color, border, or shadow to show hover.
+- RGB animates the interface accents, not the content. Never dim, desaturate, tint, or alter media with filters, opacity, blend modes, or overlays on the content or its parents, including on hover. Keep RGB shadows inside UI surfaces so they cannot paint over neighboring artwork. Preserve dark-mode text contrast and verify real artwork and pixel colors with RGB on and off.
 - Keep user-facing copy in `src/messages.json`. Use everyday Persian and English, and test mixed Persian and Latin text. Start Persian documentation sentences and headings in Persian.
 - In Persian, never put a full stop after a verb-less phrase, label, heading, or fragment. Reserve sentence-ending punctuation for complete sentences; prefer short, useful labels over explanatory filler.
 - Keep the two READMEs aligned, with clear language links, the SVG hero before the screenshot, and the existing onboarding, emoji, and SVG assets. Write user-facing changelog entries in English.

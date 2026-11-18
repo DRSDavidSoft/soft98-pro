@@ -4,7 +4,9 @@ const Soft98DownloadQueue = (() => {
   const STORAGE_KEY = "soft98DownloadQueue";
   const CHANNEL = "soft98:downloads";
   const MAX_JOBS = 160;
-  const MAX_BATCH = 30;
+  const links = typeof Soft98DownloadLinks !== "undefined" ? Soft98DownloadLinks : require("./download-links");
+  const audio = typeof Soft98DownloadAudio !== "undefined" ? Soft98DownloadAudio : require("./download-audio");
+  const MAX_BATCH = links.MAX_BATCH;
   const MAX_PARALLEL = 6;
   const ACTIVE = new Set(["starting", "resuming", "downloading"]);
   const TERMINAL = new Set(["complete", "canceled", "interrupted", "missing", "review"]);
@@ -14,16 +16,7 @@ const Soft98DownloadQueue = (() => {
   }
 
   function directUrl(input) {
-    if (typeof input !== "string") fail("invalid-url");
-    const value = input.trim();
-    const authority = /^https?:\/\/([^/?#]+)/i.exec(value)?.[1];
-    if (!authority || authority.includes("@") || value.length > 4096 || /[\s\\\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/u.test(value)) fail("invalid-url");
-    let url;
-    try { url = new URL(value); } catch (_error) { fail("invalid-url"); }
-    if (!url.hostname || url.username || url.password) fail("invalid-url");
-    url.hash = "";
-    if (url.href.length > 4096) fail("invalid-url");
-    return url.href;
+    return links.normalize(input) || fail("invalid-url");
   }
 
   function relativeFilename(input) {
@@ -41,15 +34,90 @@ const Soft98DownloadQueue = (() => {
   }
 
   function trustedSender(sender, extensionId, pageUrl) {
-    return Boolean(sender && sender.id === extensionId && sender.url === pageUrl &&
+    const url = sender?.url;
+    const managerPage = typeof url === "string" && (url === pageUrl || (url.startsWith(pageUrl + "#") &&
+      /^#(?:queue|settings|guide|import|(?:job|import)=[a-f0-9-]{36})$/.test(url.slice(pageUrl.length))));
+    return Boolean(sender && sender.id === extensionId && managerPage &&
       (sender.frameId === undefined || sender.frameId === 0) && !sender.incognito && !sender.tab?.incognito);
+  }
+
+  function trustedHeaderSender(sender, extensionId, frameUrl) {
+    if (sender?.id !== extensionId || sender.url !== frameUrl || !Number.isInteger(sender.frameId) || sender.frameId <= 0 ||
+        !Number.isInteger(sender.tab?.id) || sender.incognito || sender.tab.incognito) return false;
+    try {
+      const top = new URL(sender.tab.url);
+      return /^https?:$/.test(top.protocol) && /(?:^|\.)soft98\.ir$/i.test(top.hostname);
+    } catch { return false; }
   }
 
   function articleFileUrl(input) {
     const url = new URL(directUrl(input));
-    if (url.protocol !== "https:" || url.port ||
-        !/\.(?:zip|rar|7z|exe|msi|msix|appx|dmg|apk|iso|deb|rpm|tar|gz|xz|bz2|bin|img|pkg|001)$/i.test(url.pathname)) fail("invalid-url");
+    if (!links.articleFile(url)) fail("invalid-url");
     return url.href;
+  }
+
+  function articleKey(value) {
+    const normalized = links.normalize(value);
+    if (!normalized) return "";
+    const url = new URL(normalized);
+    return url.origin + url.pathname.replace(/-a\.html$/i, ".html");
+  }
+
+  function articleJobs(jobs, page) {
+    const key = articleKey(page);
+    return key ? jobs.filter(job => job.source && articleKey(job.source) === key) : [];
+  }
+
+  function pageSnapshot({ jobs, held }, page, now = Date.now()) {
+    const counts = { active: 0, waiting: 0, finished: 0, attention: 0 };
+    const transfer = { bytes: 0, total: 0 };
+    const bytesOf = value => Number.isSafeInteger(value) && value >= 0 ? value : null;
+    for (const job of jobs) {
+      if (ACTIVE.has(job.status)) {
+        counts.active++;
+        transfer.bytes += bytesOf(job.bytes) || 0;
+        const total = bytesOf(job.total);
+        transfer.total = transfer.total === null || total === null ? null : transfer.total + total;
+      } else if (TERMINAL.has(job.status)) {
+        counts.finished++;
+        if (["review", "interrupted", "missing"].includes(job.status)) counts.attention++;
+      } else counts.waiting++;
+    }
+    const files = new Map();
+    for (const job of articleJobs(jobs, page)) {
+      let url;
+      try { url = articleFileUrl(job.url); } catch (_error) { continue; }
+      const bytes = bytesOf(job.bytes) || 0;
+      const total = bytesOf(job.total ?? job.metadata?.size);
+      const eta = job.status === "downloading" && Number.isFinite(job.estimatedEndAt) && job.estimatedEndAt > now
+        ? Math.ceil((job.estimatedEndAt - now) / 1000) : null;
+      files.set(url, { url, status: job.manualStart ? "manual" : job.status, bytes, total, eta });
+    }
+    const hasQueueWork = counts.active > 0 || jobs.some(job => job.status === "queued" || job.status === "resume-queued");
+    return { counts, transfer, held: held === true && hasQueueWork, files: [...files.values()] };
+  }
+
+  function headerSnapshot({ jobs, held }) {
+    const counts = { active: 0, waiting: 0, finished: 0 };
+    const rank = { active: 0, waiting: 1, finished: 2 };
+    const ranked = jobs.map((job) => {
+      const group = ACTIVE.has(job.status) ? "active" : TERMINAL.has(job.status) ? "finished" : "waiting";
+      counts[group]++;
+      return { job, group };
+    }).sort((a, b) => {
+      return rank[a.group] - rank[b.group] || (a.group === "finished" ?
+        (b.job.endedAt || b.job.createdAt || 0) - (a.job.endedAt || a.job.createdAt || 0) : 0);
+    });
+    const size = value => Number.isSafeInteger(value) && value >= 0 ? value : null;
+    return { counts, held: held === true && (counts.active > 0 || jobs.some(job => ["queued", "resume-queued"].includes(job.status))),
+      items: ranked.map(({ job, group }) => {
+        const fallback = links.describe(job.url);
+        const name = (job.name || job.filename || fallback.name).split(/[\\/]/).at(-1)
+          .replace(/[\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/gu, "").slice(0, 255) || fallback.name.slice(0, 255);
+        return { id: job.id, name, group, status: job.manualStart ? "manual" : job.status,
+          type: links.fileType(name) || job.metadata?.type || fallback.type, mime: job.mime || job.metadata?.mime || "",
+          bytes: size(job.bytes), total: size(job.total) ?? size(job.metadata?.size), eta: job.estimatedEndAt };
+      }) };
   }
 
   function applyNative(job, item) {
@@ -61,6 +129,7 @@ const Soft98DownloadQueue = (() => {
       return;
     }
     job.name = String(item.filename || "").split(/[/\\]/).pop().slice(0, 255);
+    job.mime = links.metadata({ mime: item.mime?.split(";")[0].trim().toLowerCase() })?.mime;
     job.bytes = Math.max(0, item.bytesReceived || 0);
     job.total = item.totalBytes >= 0 ? item.totalBytes : null;
     job.startedAt = Date.parse(item.startTime) || null;
@@ -87,7 +156,7 @@ const Soft98DownloadQueue = (() => {
     }
   }
 
-  function create({ storage, downloads, extensionId, now = Date.now, makeId = () => crypto.randomUUID() }) {
+  function create({ storage, downloads, extensionId, notify, sound, now = Date.now, makeId = () => crypto.randomUUID() }) {
     let state;
     let persisted;
     let pending = Promise.resolve();
@@ -104,6 +173,10 @@ const Soft98DownloadQueue = (() => {
       if (state) return;
       const saved = await storage.read();
       state = saved?.version === 1 && Array.isArray(saved.jobs) ? saved : { version: 1, limit: 3, held: false, jobs: [] };
+      if (!state.notificationTracking) {
+        for (const job of state.jobs) if (TERMINAL.has(job.status)) job.notifiedStatus = job.status;
+        state.notificationTracking = true;
+      }
     }
 
     async function save() {
@@ -118,8 +191,35 @@ const Soft98DownloadQueue = (() => {
       persisted = encoded;
     }
 
+    function soundSettings() {
+      return { enabled: state.soundEnabled === true, volume: state.soundVolume ?? audio.DEFAULT_VOLUME };
+    }
+
+    function emitSound(cue) {
+      if (!sound) return;
+      const { enabled, volume } = soundSettings();
+      if (cue === "mute") Promise.resolve().then(() => sound({ mute: true })).catch(() => {});
+      else if (enabled && audio.valid(cue, volume)) Promise.resolve().then(() => sound({ cue, volume })).catch(() => {});
+    }
+
+    async function notifyChanges() {
+      if (!notify && !sound) return;
+      const jobs = state.jobs.filter((job) => job.attemptAt && job.notifiedStatus !== job.status &&
+        ["complete", "interrupted", "review"].includes(job.status));
+      if (!jobs.length) return;
+      const previous = jobs.map((job) => job.notifiedStatus);
+      for (const job of jobs) job.notifiedStatus = job.status;
+      try { await save(); } catch (error) {
+        jobs.forEach((job, index) => { job.notifiedStatus = previous[index]; });
+        throw error;
+      }
+      if (notify && state.notifications !== false) for (const job of jobs) Promise.resolve().then(() => notify({ ...job })).catch(() => {});
+      emitSound(jobs.some((job) => job.status !== "complete") ? "attention" : "complete");
+    }
+
     function view() {
-      return { limit: state.limit, maxParallel: MAX_PARALLEL, held: state.held, jobs: state.jobs.map((job) => ({ ...job })) };
+      return { limit: state.limit, maxParallel: MAX_PARALLEL, held: state.held, notifications: state.notifications !== false,
+        sounds: soundSettings(), jobs: state.jobs.map((job) => ({ ...job })) };
     }
 
     async function refreshNative() {
@@ -149,6 +249,7 @@ const Soft98DownloadQueue = (() => {
       const item = authorizedItem(value);
       if (job.status === "resuming" && resuming.has(job.id) && item?.canResume && (item.paused || item.state === "interrupted")) return;
       applyNative(job, item);
+      if (job.status === "downloading" && job.notifiedStatus === "interrupted") delete job.notifiedStatus;
     }
 
     function deferResult(queueId, options) {
@@ -160,12 +261,16 @@ const Soft98DownloadQueue = (() => {
         await save();
         await refreshNative();
         await save();
+        if (job.status === "downloading") emitSound("started");
+        await notifyChanges();
         await advance();
       }), (error) => serial(async () => {
         const job = state.jobs.find((entry) => entry.id === queueId);
         const code = errorCode(error);
         Object.assign(job, { status: code === "USER_CANCELED" ? "canceled" : "interrupted", error: code, resumable: false });
         await save();
+        if (job.status === "canceled") emitSound("canceled");
+        await notifyChanges();
         await advance();
       })).catch(() => {}).finally(() => starting.delete(queueId));
     }
@@ -180,6 +285,7 @@ const Soft98DownloadQueue = (() => {
         const job = state.jobs.find((entry) => entry.id === queueId && entry.browserId === browserId);
         if (error && job && !job.error && job.status === "paused") job.error = errorCode(error);
         await save();
+        await notifyChanges();
         await advance();
       });
       // Firefox resolves resume on completion, not when the transfer begins.
@@ -216,7 +322,8 @@ const Soft98DownloadQueue = (() => {
     }
 
     function add(message) {
-      const { urls, filename, saveAs } = message;
+      const { urls, filename, saveAs, defer, startExisting } = message;
+      const source = links.normalize(message.source);
       if (!Array.isArray(urls) || !urls.length || urls.length > MAX_BATCH) fail("invalid-batch");
       const path = relativeFilename(filename);
       if (path && urls.length !== 1) fail("invalid-path");
@@ -224,9 +331,23 @@ const Soft98DownloadQueue = (() => {
       const existing = new Set(state.jobs.filter((job) => !TERMINAL.has(job.status) || job.resumable).map((job) => job.url));
       const newUrls = normalized.filter((url) => !existing.has(url));
       if (state.jobs.length + newUrls.length > MAX_JOBS) fail("queue-full");
+      let scheduled = 0;
+      if (startExisting === true && defer !== true) {
+        for (const job of state.jobs) {
+          if (!job.manualStart || job.status !== "paused" || !normalized.includes(job.url)) continue;
+          job.status = "queued";
+          delete job.manualStart;
+          scheduled++;
+        }
+      }
       const createdAt = now();
-      state.jobs.push(...newUrls.map((url) => ({ id: makeId(), url, filename: path, saveAs: saveAs === true, status: "queued", createdAt })));
-      return { added: newUrls.length, duplicates: urls.length - newUrls.length };
+      state.jobs.push(...newUrls.map((url) => ({
+        id: makeId(), url, filename: path, saveAs: saveAs === true, status: defer === true ? "paused" : "queued", createdAt,
+        ...(defer === true ? { manualStart: true } : {}),
+        source: links.normalize(message.sources?.[url]) || source || undefined,
+        metadata: links.metadata(message.metadata?.[url]),
+      })));
+      return { added: newUrls.length, duplicates: urls.length - newUrls.length - scheduled, ...(scheduled ? { scheduled } : {}) };
     }
 
     async function itemAction(action, id) {
@@ -237,9 +358,9 @@ const Soft98DownloadQueue = (() => {
         state.jobs.splice(state.jobs.indexOf(job), 1);
       } else if (action === "retry" && ["interrupted", "canceled", "missing", "review"].includes(status) && !job.resumable && job.error !== "html-response") {
         if (state.jobs.some((entry) => entry !== job && entry.url === job.url && (!TERMINAL.has(entry.status) || entry.resumable))) fail("duplicate");
-        const { id, url, filename, saveAs, createdAt } = job;
+        const { id, url, filename, saveAs, createdAt, source, metadata } = job;
         state.jobs.splice(state.jobs.indexOf(job), 1);
-        state.jobs.push({ id, url, filename, saveAs, createdAt, status: "queued" });
+        state.jobs.push({ id, url, filename, saveAs, createdAt, source, metadata, status: "queued" });
       } else if (action === "pause" && (status === "queued" || status === "resume-queued")) {
         job.status = "paused";
       } else if (action === "pause" && status === "downloading") {
@@ -248,6 +369,7 @@ const Soft98DownloadQueue = (() => {
         updateFromBrowser(job, item);
       } else if (action === "resume" && status === "paused" && !Number.isInteger(job.browserId)) {
         job.status = "queued";
+        delete job.manualStart;
       } else if (action === "resume" && ["paused", "interrupted"].includes(status) && job.resumable) {
         job.status = "resume-queued";
       } else if (action === "cancel" && (["queued", "resume-queued", "paused", "downloading"].includes(status) || (status === "interrupted" && job.resumable))) {
@@ -269,7 +391,12 @@ const Soft98DownloadQueue = (() => {
           delete job.browserId;
         }
         Object.assign(job, { status: "canceled", error: "", resumable: false });
+        delete job.manualStart;
       } else fail("not-allowed");
+      if (action === "pause" && job.status === "paused") return "paused";
+      if (action === "resume") return "resumed";
+      if (action === "retry") return "queued";
+      if (action === "cancel" && job.status === "canceled") return "canceled";
     }
 
     function request(message, nativeId) {
@@ -285,19 +412,29 @@ const Soft98DownloadQueue = (() => {
         await refreshNative();
         const before = JSON.stringify(state);
         let result;
+        let cue;
         const action = message.action;
-        if (action === "add") result = add(message);
-        else if (action === "configure") {
+        if (action === "add") {
+          result = add(message);
+          if (result.added || result.scheduled) cue = "queued";
+        } else if (action === "configure") {
           if (message.limit !== undefined && (!Number.isInteger(message.limit) || message.limit < 1 || message.limit > MAX_PARALLEL)) fail("invalid-limit");
+          if (message.soundVolume !== undefined && message.soundVolume !== 0 && !audio.valid("complete", message.soundVolume)) fail("not-allowed");
           if (message.limit !== undefined) state.limit = message.limit;
           if (typeof message.held === "boolean") state.held = message.held;
+          if (typeof message.notifications === "boolean") state.notifications = message.notifications;
+          if ((message.soundEnabled === false && state.soundEnabled === true) || (message.soundVolume === 0 && state.soundVolume !== 0)) cue = "mute";
+          if (typeof message.soundEnabled === "boolean") state.soundEnabled = message.soundEnabled;
+          if (message.soundVolume !== undefined) state.soundVolume = message.soundVolume;
         } else if (action === "clear") {
           state.jobs = state.jobs.filter((job) => !TERMINAL.has(job.status) || (job.status === "interrupted" && job.resumable));
-        } else if (action !== "list") await itemAction(action, message.id);
+        } else if (action !== "list") cue = await itemAction(action, message.id);
         try { await save(); } catch (error) {
           state = JSON.parse(before);
           throw error;
         }
+        if (cue) emitSound(cue);
+        await notifyChanges();
         await advance();
         return { ...view(), ...result };
       });
@@ -306,7 +443,7 @@ const Soft98DownloadQueue = (() => {
     return { request };
   }
 
-  return { CHANNEL, STORAGE_KEY, directUrl, articleFileUrl, relativeFilename, trustedSender, create };
+  return { CHANNEL, STORAGE_KEY, directUrl, articleFileUrl, articleJobs, pageSnapshot, headerSnapshot, relativeFilename, trustedSender, trustedHeaderSender, create };
 })();
 
 if (typeof module !== "undefined" && module.exports) module.exports = Soft98DownloadQueue;

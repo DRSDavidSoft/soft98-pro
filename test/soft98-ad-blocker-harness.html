@@ -9,6 +9,7 @@
       .fixture-report { background-color: #71263b; }
       .night-mode .fixture-install { background: #283e12; }
       .fixture-install::after { content: ""; background: radial-gradient(circle, #315012, #384e21); }
+      [data-test=megamenu-entry]::before, [data-test=platform-row]::after { content: "legacy marker"; }
       details { overflow: hidden; }
       details[open] { margin-block-end: .2rem; }
       details p { margin-block: 0 16px; }
@@ -59,6 +60,8 @@
       }
     </style>
     <script>
+      // The fixture exercises controls in a Windows download section on any host.
+      Object.defineProperty(navigator, "userAgentData", { value: { platform: "Windows" } });
       var harnessParams = new URLSearchParams(location.search);
       localStorage.removeItem("soft98-ad-blocker.control-position");
       localStorage.setItem(
@@ -77,6 +80,7 @@
         })
       );
       window.__soft98HarnessConsoleInfo = console.info;
+      if (harnessParams.has("legacyPopover")) delete HTMLElement.prototype.showPopover;
       const originalFetch = window.fetch.bind(window);
       window.fetch = (input, init) => String(input) === location.origin + "/100-preview.html" ?
         Promise.resolve(new Response('<article><div role="tabpanel" id="test-file-panel"><dl><dt>Files</dt>' +
@@ -86,6 +90,15 @@
         })) : String(input) === location.origin + "/101-keyed.html" ?
         Promise.resolve(new Response('<article><div role="tabpanel"><dl><dd><a data-key="example" href="/101-keyed.html">Keyed file</a></dd>' +
           '<dd><a href="/support.html">Not a file</a></dd></dl></div></article>', { headers: { "Content-Type": "text/html" } })) :
+        String(input) === location.origin + "/102-delayed.html" ?
+        Promise.resolve(new Response('<main><article><div role="tabpanel"><dl data-json=\'' +
+          JSON.stringify({ first: { scheme: "https", host: "dl2.soft98.ir", path: "/files/package.part01.rar" },
+            second: { scheme: "https", host: "dl2.soft98.ir", path: "/files/package.part02.rar" } }) +
+          '\'><dt>Windows x64</dt><dd><a data-key="first" href="/102-delayed.html">Part 1</a></dd>' +
+          '<dt>Windows ARM</dt>' +
+          '<dd><a data-key="second" href="/102-delayed.html">Part 2</a></dd>' +
+          '<dd><a href="https://dl2.soft98.ir/files/package.part02.rar?12345">Duplicate</a></dd>' +
+          '<dd><a href="/support.html">Not a file</a></dd></dl></div></article></main>', { headers: { "Content-Type": "text/html" } })) :
         String(input) === "https://dl2.soft98.ir/files/metadata.zip" && init?.method === "HEAD" ?
         Promise.resolve(new Response(null, { headers: {
           "Content-Type": "application/zip", "Content-Length": "8200000", "Last-Modified": "Fri, 13 Nov 2026 12:00:00 GMT"
@@ -180,7 +193,7 @@
             '<div data-test="megamenu" style="position:absolute;top:58px;left:30px;width:760px;height:180px;background:rgb(245,245,245)">' +
             '<div dir="rtl"><div><h4><a data-test="megamenu-heading-link" href="/software/">نرم‌افزار</a></h4>' +
             '<span data-test="platform-row">ابزار اینترنت ( <a href="/internet/">ویندوز</a> | <a href="/mac/internet-mac/">مکینتاش</a> )</span>' +
-            '<a href="/category/other">سایر ابزارها</a></div><div><h4>Categories</h4>' +
+            '<a data-test="megamenu-entry" href="/category/other">سایر ابزارها</a></div><div><h4>Categories</h4>' +
             Array.from({ length: 15 }, function (_item, index) { return '<a href="/category/' + index + '">Category ' + index + '</a>'; }).join("") +
             "</div></div></div></div></nav>";
           document.body.appendChild(navigationShell);
@@ -224,7 +237,8 @@
 
           var listingPreview = document.createElement("main");
           listingPreview.innerHTML = '<article><a data-test="article-preview-trigger" href="/100-preview.html">ادامه مطلب</a></article>' +
-            '<article><a data-test="keyed-preview-trigger" href="/101-keyed.html">ادامه مطلب</a></article>';
+            '<article><a data-test="keyed-preview-trigger" href="/101-keyed.html">ادامه مطلب</a></article>' +
+            '<article><footer class="rotated-name"><a data-test="delayed-preview-trigger" href="/">ادامــه مطلـب</a></footer></article>';
           document.body.appendChild(listingPreview);
           var pagination = document.createElement("ul");
           pagination.className = "pagination";
@@ -236,6 +250,7 @@
           downloadArticle.setAttribute("data-test", "download-article");
           downloadArticle.dir = "rtl";
           downloadArticle.innerHTML =
+            '<div data-test="legacy-article-callout" style="background:#252525;min-height:48px"><p>An editorial callout must stay visible and use the theme palette.</p></div>' +
             '<details><summary>پرسش درباره anydesk ( windows )</summary><p>پاسخ</p></details>' +
             '<div role="tabpanel"><dl><dt><span>نسخه windows</span></dt>' +
             '<dd><a data-test="download-copy" href="/files/AnyDesk.9.8.3.zip">دانلود ( official link ) ، <span>حجم <strong>1,200</strong> مگابایت</span></a></dd>' +
@@ -257,8 +272,8 @@
             '<li><a role="tab" data-toggle="tab" aria-controls="harness.downloads" href="#harness.downloads" aria-selected="false">Downloads</a></li>' +
             '</ul><div><div role="tabpanel" id="harness.requirements">Requirements</div>' +
             '<div role="tabpanel" id="harness.downloads" aria-hidden="true" style="display:none;opacity:0">' +
-            '<div id="harness-gate" style="display:none"><span data-target="#harness-gate" style="opacity:0;pointer-events:none">' +
-            '<p role="alert">افزونه حذف تبلیغات را غیرفعال کنید</p><dl data-json="{}"><dt>Windows</dt>' +
+            '<div id="harness-gate"><span data-target="#harness-gate" style="display:block;max-height:0;overflow:hidden">' +
+            '<p role="alert">افزونه حذف تبلیغات را غیرفعال کنید</p><dl data-json="{}"><dt>Download files</dt>' +
             '<dd><a data-key="test-key" href="/file/sample.zip" target="_blank">Download ZIP</a></dd></dl></span></div>' +
             '<div data-test="unrelated-hidden" style="display:none">Unrelated hidden content</div></div></div>';
           document.body.appendChild(keyedArticle);
@@ -324,16 +339,14 @@
             api.configure({ taunt: harnessParams.get("taunt") === "1" });
             var brandedLogo = document.querySelector("[data-test='site-logo']");
             api.configure({ pirateLogo: false });
-            var logoRestored =
-              brandedLogo.getAttribute("src") === "data:image/gif;base64,R0lGODlhAQABAAAAACw=" &&
-              brandedLogo.getAttribute("alt") === "Soft98 logo" &&
-              brandedLogo.getAttribute("srcset") === "data:image/gif;base64,R0lGODlhAQABAAAAACw= 1x" &&
-              brandedLogo.getAttribute("sizes") === "220px";
+            var stockLogoSelected = brandedLogo.getAttribute("src").startsWith("data:image/png;base64,") &&
+              brandedLogo.getAttribute("data-soft98-brand-variant") === (api.settings.darkDesign || api.settings.rgbMode ? "stockDark" : "stockLight") &&
+              brandedLogo.getAttribute("alt") === "Soft98 logo";
             api.configure({ pirateLogo: true });
             return {
               tabChanged: Boolean(selectedAfterArrow && selectedAfterArrow !== firstTab),
               outsideCollapsed: control.getAttribute("data-open") === "false" && control.querySelector("form").getAttribute("aria-hidden") === "true",
-              logoRestored: logoRestored,
+              stockLogoSelected: stockLogoSelected,
             };
           })();
           var megamenu = document.querySelector('[data-test="megamenu"]');
@@ -422,7 +435,7 @@
             nestedLightBackground: nestedLightSurface && getComputedStyle(nestedLightSurface).backgroundColor,
             controlTabChanged: controlBehavior.tabChanged,
             controlOutsideCollapsed: controlBehavior.outsideCollapsed,
-            logoRestored: controlBehavior.logoRestored,
+            stockLogoSelected: controlBehavior.stockLogoSelected,
             tabTheme: tabTheme,
             control: (function () {
               var control = document.querySelector("#soft98-pro-control");

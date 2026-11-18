@@ -6,6 +6,110 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-11-18
+
+### Added
+
+- The search results tip now has a “Got it” button that remembers your choice.
+
+- Added a Telegram community link for questions and support.
+- Added configurable download buttons that can queue a file, start it immediately, or copy the link, with one-time actions in the context menu.
+- Added a review dialog for pasted links and text files, with file details, filters, sorting, and resizable columns.
+- Grouped multipart downloads, preserved their source pages, and added native download notifications and progress back on the article.
+- Added adaptive side columns for related posts and downloads.
+- Added category icons to the sticky header and redesigned its menus to match the rest of Soft98 Pro.
+- Kept the full download box in the article even when a second copy appears in the sidebar.
+- Redesigned Linkdoni with light and dark themes and a date-grouped archive, retaining its original search and article links.
+- Added collapsible dates, a link-count badge, and Persian page numbers to Linkdoni. Archive pages now load without a full refresh and support Back and Forward. The Control Center stays visible while scrolling.
+- Added Download Manager settings, file-type icons, context menus, and a built-in guide. Completed files open from their names. The sticky header shows queue progress, and F2 focuses search.
+- Added relative dates for recent downloads and file updates, with an automatic, Solar Hijri, or Gregorian calendar setting.
+- Added the Download Manager to the extension toolbar. Article rows and the Control Center now show live progress, file sizes, and queue state.
+- Added a test button for browser notifications in Download Manager settings.
+- Added shared theme, accent color, animated RGB, and Control Center settings to Download Manager.
+- Added optional download sounds with volume control and a preview for each event, shared by the Download Manager and toolbar popup.
+- Related posts and the useful-software list now show the artwork published on linked posts, with a browser cache and a neutral fallback.
+- Added a sticky-header download dropdown with live file progress and status. Ctrl-click, Command-click, and middle-click open the full manager.
+
+### Changed
+
+- Added [release screenshots and a visual overview](docs/changes/v1.2.3.md).
+
+- Download sections can be expanded or collapsed by clicking anywhere on their heading except the action buttons.
+
+- The sidebar download box starts fading before the in-article box arrives. The final 30% follows the scroll position and cannot intercept input. The sidebar stays hidden as you scroll farther down.
+
+- Grouped Copy All and Download All beside the expand/collapse button, with space between the title and the controls.
+
+- Search results open at the first match, and individual software pages open at the product heading without waiting for the full page to load.
+
+- Download All lets you search the batch, check or uncheck individual files, and see the selected count and size before starting.
+
+- The updates and technology news cards share one collapse button and remember their state. Hide both with the close button and bring them back from the Control Center.
+
+- Light mode now pairs a soft stone backdrop with lighter cards and distinct heading surfaces. Color still marks focus, links, downloads, warnings, errors, and progress rather than tinting entire panels.
+
+### Fixed
+
+- Kept text normalization scoped to visible text without interpreting it as markup.
+- Preserved the scroll position while the original page layout settles after turning the Pro theme off, without overriding new scrolling or clicks.
+
+- Collapsed groups of downloads for other platforms when none match the device. More Information starts collapsed only in the sidebar and follows the main box after either copy is toggled.
+
+- Matched the right-hand download sidebar scrollbar to the active theme.
+
+- Kept technology-news hover fills neutral and removed gradients from the contact menu and form controls.
+
+- “Read more” now reveals actual download links next to the post on listing pages, including links published as structured data.
+
+- Removed the extra scrollbar from the search field, kept suggestions inside the viewport, and improved keyboard focus and mixed-language input.
+
+- The Control Center's three-dot menu opens next to its header button instead of beside the floating launcher.
+
+- The download review shows the file-details permission button only when a selected link needs access. File details still load automatically when access is already available.
+
+- Trimmed excess padding from the Pro logos. Turning off Pirate branding now uses transparent copies of the original header and navbar logos in both themes.
+
+- RGB mode no longer darkens or desaturates artwork. The animated accents stay active without dimming article text.
+
+- Recovered the original article and download links when the userscript encounters an early page clear on ordinary reload.
+
+- Turning off the Pro theme now restores Soft98's original header, layout, and download controls without reloading or disabling ad blocking.
+
+- Matched the useful-software dialog's Close button to both themes and removed the flash from its blurred backdrop.
+
+- Kept Persian userscript labels readable in legacy decoders, restored mixed download lists on reload, and removed leftover sidebar ad cards and neutral gray surfaces.
+
+- Kept Download Manager tabs stable when switching views and replaced native dropdowns with keyboard-friendly menus.
+
+- Unified the sticky header without changing the previous palette, centered the new inline chevrons, and removed the accent stripe from rounded navigation buttons.
+
+- Restored downloads in Chrome when the site left the list clipped to zero height.
+- Replaced legacy gray article callouts with the Pro palette.
+- Made download rows and their action buttons highlight together without moving on hover.
+- Removed repeated download rules and separated the dialog backdrop fade from the panel entrance.
+- Matched the sidebar cards and updated download controls, tooltips, and user ratings.
+- Restored download links from the article's own data when the site leaves them unresolved after a reload.
+- Left-aligned the technology news share buttons.
+- Kept file sizes in English digits even in Persian and stopped repeating the total when a download is complete. Download dialogs now follow the URL and close when clicked outside.
+- Replaced the final percentage and stale elapsed timer with a localized completion status.
+- Fixed access to the download queue when refreshing the manager directly on Settings or another built-in view.
+- Hid empty queue counters and showed queue-wide pause and resume only when there is work to manage.
+- Improved the download review dialog with row selection, animated save options, and reorderable columns with their own menus.
+- Improved file details for downloads, added file-specific icons to the queue and review, and made the review table left to right by default with a direction setting.
+- Simplified article download actions, made copying the default, and added a configurable size limit for review before internal downloads.
+- Restyled article quotes, warnings, and secondary notices to match the Pro themes.
+- Fixed FAQ expand arrows and themed the answer checkmark.
+- Put download section actions beside their titles, with adjustable layouts and button labels, remembered collapse state, and confirmation before starting small bulk downloads.
+- Styled the Download All confirmation header and action buttons and added a close control.
+- Fixed repeated download sizes, aligned status badges without shifting row buttons, and restored the hover border on file-help buttons.
+- Removed stray backgrounds around content cards and synchronized the sidebar download box with the original, fading it in proportion to the original's visibility.
+- Fixed sticky navigation wrapping when the logo is hidden at the top of the page.
+- Replaced legacy category menu chevrons with direction-aware hover and focus arrows, and refined the megamenu's light and dark surfaces.
+
+### Removed
+
+- Removed the Ready badge so preserving or recovering a link no longer makes its download row taller.
+
 ## [1.2.2] - 2026-11-14
 
 ### Fixed
@@ -144,7 +248,8 @@ Soft98 currently serves some download buttons as placeholders and fills in their
 
 - Unified extension and userscript maintenance in the Soft98 Pro repository.
 
-[Unreleased]: https://github.com/DRSDavidSoft/soft98-pro/compare/v1.2.2...HEAD
+[Unreleased]: https://github.com/DRSDavidSoft/soft98-pro/compare/v1.2.3...HEAD
+[1.2.3]: https://github.com/DRSDavidSoft/soft98-pro/compare/v1.2.2...v1.2.3
 [1.2.2]: https://github.com/DRSDavidSoft/soft98-pro/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/DRSDavidSoft/soft98-pro/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/DRSDavidSoft/soft98-pro/compare/v1.1.1...v1.2.0

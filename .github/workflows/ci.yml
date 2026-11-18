@@ -43,34 +43,54 @@ jobs:
       - name: "🔐 Audit critical dependencies"
         run: npm audit --audit-level=critical
 
+      - name: "🌐 Install Chrome for Testing and ChromeDriver"
+        id: browser
+        uses: browser-actions/setup-chrome@39ce663831f86d2ea36cbda0a8143709cdfcc410 # v2.2.0
+        with:
+          install-chromedriver: true
+
       - name: "✅ Build and run acceptance suite"
+        env:
+          CHROME_PATH: ${{ steps.browser.outputs.chrome-path }}
+          SOFT98_QUEUE_CHROMEDRIVER: ${{ steps.browser.outputs.chromedriver-path }}
         run: npm run ci
 
       - name: "🧬 Verify PersianBlocker fixture"
         run: npm run check:persianblocker-upstream
 
       - name: "🧩 Upload Chromium package"
+        id: chromium
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: soft98-pro-chromium-${{ github.sha }}
           path: dist/packages/soft98-pro-chromium-*.zip
+          archive: false
           if-no-files-found: error
           retention-days: 14
 
       - name: "🦊 Upload Firefox package"
+        id: firefox
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: soft98-pro-firefox-${{ github.sha }}
           path: dist/packages/soft98-pro-firefox-*.zip
+          archive: false
           if-no-files-found: error
           retention-days: 14
 
-      - name: "📜 Upload userscript and verification metadata"
+      - name: "📜 Upload installable userscript"
+        id: userscript
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: soft98-pro-userscript-${{ github.sha }}
+          path: soft98-pro.user.js
+          archive: false
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: "🔐 Upload checksums and build metadata"
+        id: metadata
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: soft98-pro-build-metadata-${{ github.sha }}
           path: |
-            soft98-pro.user.js
             dist/packages/soft98-pro-userscript-*.zip
             dist/release/latest.json
             dist/release/SHA256SUMS.txt
@@ -82,6 +102,10 @@ jobs:
         if: always() && hashFiles('dist/release/latest.json') != ''
         env:
           JOB_STATUS: ${{ job.status }}
+          CHROMIUM_ARTIFACT_URL: ${{ steps.chromium.outputs.artifact-url }}
+          FIREFOX_ARTIFACT_URL: ${{ steps.firefox.outputs.artifact-url }}
+          USERSCRIPT_ARTIFACT_URL: ${{ steps.userscript.outputs.artifact-url }}
+          METADATA_ARTIFACT_URL: ${{ steps.metadata.outputs.artifact-url }}
         run: node tools/ci-summary.js build
 
   dependency-review:

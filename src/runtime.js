@@ -10,26 +10,34 @@
   const FAVICON_ID = "soft98-pro-favicon";
   const CONTROL_POSITION_KEY = "soft98-ad-blocker.control-position";
   const DOWNLOAD_METADATA_KEY = "soft98-pro.download-metadata";
+  const DOWNLOAD_SECTIONS_KEY = "soft98-pro.download-sections";
+  const NEWS_COLLAPSE_KEY = "soft98-pro.news-collapsed";
   const COMPATIBILITY_DISMISS_KEY = "soft98-pro.compatibility-dismissed";
   const CONTROL_MARGIN = 12;
   const CONTROL_GRAVITY = 76;
+  const MAX_ARTICLE_RESTORES = 3;
+  const RECOVERABLE_ARTICLE = "article:has(h1):has(dl[data-json] dd a[data-key])";
+  const ARTICLE_CONTAINERS = "body,main,div,section";
   const enqueueMicrotask = window.queueMicrotask ? window.queueMicrotask.bind(window) : (callback) => Promise.resolve().then(callback);
   const nativeEval = typeof window.eval === "function" ? window.eval : null;
   const nativeFetch = window.fetch ? window.fetch.bind(window) : null;
   const NativeStyleSheet = window.CSSStyleSheet;
-  const IS_EXTENSION = "__SOFT98_BUILD_TARGET__" === "extension";
+  const BUILD_TARGET = "__SOFT98_BUILD_TARGET__";
+  const IS_EXTENSION = BUILD_TARGET !== "userscript";
   const STORAGE_KEY = "soft98-ad-blocker.settings";
   const EXTENSION_REPO = "https://github.com/DRSDavidSoft/soft98-pro";
+  const COMMUNITY_URL = "https://t.me/PersianBlocker/1/27859";
   const COMPATIBILITY_ISSUE = `${EXTENSION_REPO}/issues/new?template=soft98-script-update.yml`;
   const CATALOG = __SOFT98_MESSAGES__;
   const COMPATIBILITY = __SOFT98_COMPATIBILITY__;
   const BRAND_ASSETS = __SOFT98_BRAND_ASSETS__;
   const PAGE_ICONS = __SOFT98_PAGE_ICONS__;
-  const UTILITY_PATH_ICONS = __SOFT98_UTILITY_PATH_ICONS__;
   const OPTION_PREVIEWS = __SOFT98_OPTION_PREVIEWS__;
   const LISTING_NAVIGATION_CSS = __SOFT98_LISTING_NAVIGATION_CSS__;
   const COMMENTS_CSS = __SOFT98_COMMENTS_CSS__;
   const CHROME_CSS = __SOFT98_CHROME_CSS__;
+  const APPEARANCE_CSS = __SOFT98_APPEARANCE_CSS__;
+  const LINKDONI_CSS = __SOFT98_LINKDONI_CSS__;
   const EARLY_ADS_CSS = __SOFT98_EARLY_ADS_CSS__;
   const comments = Soft98Comments.create(document);
   const SUCCESS_NOTICE_MS = 6000;
@@ -38,6 +46,12 @@
   const PatchEngine = globalThis.__Soft98PatchEngine;
   const LOCALE = preferredLocale();
   const RTL = LOCALE === "fa";
+  const linkdoni = location.hostname === "linkdoni.soft98.ir" ? Soft98Linkdoni.create(document, {
+    text, icons: PAGE_ICONS, locale: LOCALE,
+    changeTheme: () => writeSettings({ ...settings, darkDesign: !(settings.darkDesign || settings.rgbMode), rgbMode: false }),
+    fetchPage: nativeFetch,
+    afterRender: (title) => { originalTitle = title; schedule(document); },
+  }) : null;
   const STRINGS = CATALOG.locales;
   const DEFAULT_SETTINGS = {
     blockAds: true,
@@ -46,10 +60,11 @@
     darkDesign: true,
     compactLayout: true,
     expandMain: false,
+    wideColumns: true,
+    downloadRailReappearsAfterSource: false,
     utilityInHeader: true,
     quickNavigation: false,
     soundFeedback: false,
-    linkBadges: true,
     pirateLogo: true,
     taunt: false,
     diagnostics: true,
@@ -57,7 +72,32 @@
     rgbMode: false,
     showLatest: true,
     hideAnnoyances: false,
+    hideSearchHint: false,
+    downloadRowAction: "copy",
+    downloadRowContextMenu: true,
+    downloadReviewMB: Soft98DownloadLinks.DEFAULT_REVIEW_MB,
+    downloadHeaderLayout: "actions",
+    downloadHeaderButtons: "icons",
   };
+  const FILE_ACTIONS = {
+    copy: { label: "downloadCopyFile", icon: "copy" },
+    internal: { label: "downloadInternalFile", icon: "download" },
+  };
+  const DOWNLOAD_HEADER_OPTIONS = {
+    downloadHeaderLayout: { label: "downloadHeaderLayout", values: { actions: "downloadHeaderActionsFirst", toggle: "downloadHeaderToggleFirst" } },
+    downloadHeaderButtons: { label: "downloadHeaderButtons", values: { icons: "downloadHeaderIcons", text: "downloadHeaderText" } },
+  };
+  let fileMenu;
+  let fileStates = new Map();
+  let downloadSnapshot;
+  let headerDownloads;
+  const FILE_STATES = new Set(["manual", "queued", "starting", "resuming", "downloading", "paused", "resume-queued", "complete", "interrupted", "canceled", "review", "missing"]);
+  const wideLayouts = new Map();
+  const newsPanels = new Map();
+  let newsControls;
+  let newsCollapsed = readNewsCollapsed();
+  const relatedViewport = matchMedia("(min-width: 1280px)");
+  const downloadsViewport = matchMedia("(min-width: 2200px), (min-width: 1720px) and (min-aspect-ratio: 2/1)");
   const savedHref = new WeakMap();
   const originalLogos = new Map();
   const hiddenPageDisplays = new WeakMap();
@@ -74,6 +114,12 @@
   const dialogState = new WeakMap();
   const articlePreviewCache = new Map();
   const articlePreviewTriggers = new WeakSet();
+  const postArtwork = Soft98PostArtwork.create({ fetchPage: nativeFetch, document, storage: () => localStorage, origin: location.origin });
+  const artworkRows = new WeakMap();
+  const pendingArtwork = new Map();
+  const artworkObserver = typeof IntersectionObserver === "function" ? new IntersectionObserver((entries) => {
+    for (const entry of entries) if (entry.isIntersecting && settings.pro) loadPostArtwork(entry.target);
+  }, { rootMargin: "140px 0px" }) : null;
   const contentTabs = new Map();
   let audioContext;
   let audioAt = 0;
@@ -86,6 +132,9 @@
   let siteThemeReady = false;
   const downloadRows = new WeakMap();
   const downloadHeadings = new WeakMap();
+  const downloadSectionModels = new WeakMap();
+  const mirroredDownloadHeadings = new WeakMap();
+  const downloadDeviceOS = Soft98DownloadLinks.deviceOS(navigator);
   let downloadRowId = 0;
   let downloadToastTimer;
   const downloadProbes = new Map();
@@ -101,6 +150,7 @@
     hostileBrandReplacements: 0,
     linksPreserved: 0,
     linksRestored: 0,
+    articlesRestored: 0,
     scrollDetectorsBlocked: 0,
     patches: [],
     patchFailures: [],
@@ -110,6 +160,7 @@
   const persistentStyles = new Map();
   const executedUpstreamScripts = new Set();
   let scanFrame = 0;
+  let alignInitialContent;
   let recoveryStarted = false;
   let originalTitle = document.title || "";
   let successAnnounced = false;
@@ -120,9 +171,13 @@
   let faviconTimer;
   let controlPanel = null;
   let controlSection = "protection";
+  const stockEdits = new Map();
   let settings = readSettings();
   let compatibilityState = null;
   let gridFrame = 0;
+  let topbarNav, topbarBrand;
+  let articleSnapshot;
+  const initialArticleUrl = location.pathname + location.search;
   let sidebarContentsDirty = true;
   const gridStyles = new WeakMap();
   let integrityScheduled = false;
@@ -182,7 +237,8 @@
     /(?:افزونه\s+حذف|ﺗﺒﻠﻴﻐﺎت|Dark Reader|disableDownloadLink|setNullLinkAttributes|checkadBlocker|advertisementrk|text_add_firewall|kaprila|adguard|location\.reload|location\.hash|document\.title|alert-warning|adblock)/i;
   const SCROLL_EVENTS = /^(?:scroll|wheel|mousewheel|touchmove)$/i;
   const AD_SIZE = /^(?:728x90|970x90|468x60|300x250|336x280|240x90|160x600)$/;
-  const NAMED_AD_TEXT = /(?:asiatech|iranicard|آسیا[\u0640\s\u200c-]*تک|آ[\u0640\s\u200c-]*س[\u0640\s\u200c-]*ی[\u0640\s\u200c-]*ا[\u0640\s\u200c-]*ت[\u0640\s\u200c-]*ک)/i;
+  const NAMED_AD_TEXT = /(?:asiatech|iranicard|آسیات(?:ی)?ک|ایرانیکارت)/i;
+  const AD_CARD_HEADING = /^(?:تبلیغات|آسیات(?:ی)?ک|ایرانیکارت|asiatech|iranicard)$/i;
 
   function onReady(callback) {
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", callback, { once: true });
@@ -220,7 +276,123 @@
     }
   }
 
+  function undoWithTheme(node, undo, key = node) {
+    if (!stockEdits.has(key)) stockEdits.set(key, { node, undo });
+  }
+
+  function restoreStockAttributes(node, names) {
+    const attributes = names.map(name => [name, node.getAttribute(name)]);
+    return () => {
+      for (const [name, value] of attributes) {
+        if (value === null) node.removeAttribute(name);
+        else node.setAttribute(name, value);
+      }
+    };
+  }
+
+  function replaceStockText(node, value) {
+    if (!node || node.nodeType !== Node.TEXT_NODE) return;
+    const previous = node.nodeValue;
+    if (previous === value) return;
+    node.nodeValue = value;
+    undoWithTheme(node.parentElement || node, () => { if (node.nodeValue === value) node.nodeValue = previous; }, Symbol());
+  }
+
+  function removeWithTheme(node) {
+    const marker = document.createComment("Soft98 Pro stock position");
+    node.replaceWith(marker);
+    undoWithTheme(marker, () => marker.replaceWith(node));
+  }
+
+  function restoreStockLayout() {
+    if (!document.body) return;
+    const position = { left: scrollX, top: scrollY, behavior: "instant" };
+    const root = document.documentElement;
+    const overflowAnchor = [root.style.getPropertyValue("overflow-anchor"), root.style.getPropertyPriority("overflow-anchor")];
+    root.style.setProperty("overflow-anchor", "none", "important");
+    closeFileMenu();
+    headerDownloads?.dispose();
+    headerDownloads = null;
+    syncWideLayout();
+    restoreUtilityPlacement();
+    for (const [footer, previous] of stockFooters) {
+      if (footer.isConnected) footer.style.setProperty("display", ...previous);
+    }
+    stockFooters.clear();
+    for (const { node, undo } of [...stockEdits.values()].reverse()) {
+      if (node.isConnected) undo();
+    }
+    stockEdits.clear();
+    const injected = [
+      "[data-soft98-pro-page-icon]", "[data-s98p-category-icon]", "[data-soft98-pro-nav-indicator]", "[data-s98p-menu-arrow]",
+      "[data-s98p-download-toggle]", "[data-soft98-pro-download-actions]", ".s98p-file-actions", "[data-s98p-download-transfer]",
+      "[data-soft98-pro-download-meta]", "[data-s98p-rating-display]", "[data-s98p-download-heading-fallback]",
+      "[data-soft98-pro-footer]", "[data-soft98-pro-copy-toast]",
+    ];
+    for (const node of document.querySelectorAll(injected.join(","))) {
+      if (!node.closest("#soft98-pro-control")) node.remove();
+    }
+    for (const node of document.querySelectorAll("[data-soft98-pro-download-copy],[data-soft98-pro-download-title],[data-s98p-hidden-download-heading],[data-s98p-rating-original],[data-s98p-related-copy],[data-soft98-pro-bidi]")) {
+      node.replaceWith(...node.childNodes);
+    }
+    for (const row of document.querySelectorAll("[data-soft98-pro-download-row]")) {
+      downloadRows.delete(row);
+      for (const name of ["data-soft98-pro-download-row", "data-soft98-pro-inline-size", "data-s98p-managed-size", "data-s98p-file-url"]) row.removeAttribute(name);
+    }
+    for (const row of document.querySelectorAll("[data-s98p-download-row-motion],[data-soft98-pro-download-collapsed]")) {
+      downloadRowMotion.get(row)?.finish();
+      row.removeAttribute("data-soft98-pro-download-collapsed");
+    }
+    for (const faq of document.querySelectorAll("details[data-soft98-pro-faq-motion]")) {
+      faqAnimations.get(faq)?.cancel();
+      faqAnimations.delete(faq);
+      if (faq.hasAttribute("data-soft98-pro-closing")) faq.open = false;
+      faq.removeAttribute("data-soft98-pro-closing");
+      faq.removeAttribute("data-soft98-pro-faq-motion");
+    }
+    for (const item of document.querySelectorAll("[data-soft98-pro-download-heading],[data-s98p-rating],[data-soft98-pro-icon-host]")) {
+      downloadHeadings.delete(item);
+      downloadSectionModels.delete(item);
+      for (const name of ["data-soft98-pro-download-heading", "data-s98p-rating", "data-soft98-pro-icon-host"]) item.removeAttribute(name);
+    }
+    for (const tab of document.querySelectorAll("[data-s98p-latest-topic]")) tab.removeAttribute("data-s98p-latest-topic");
+    for (const image of document.querySelectorAll("[data-s98p-stock-artwork-filter]")) image.removeAttribute("data-s98p-stock-artwork-filter");
+    for (const [tile] of pendingArtwork) discardPostArtwork(tile);
+    document.documentElement.removeAttribute("data-soft98-pro-chrome");
+    if (location.hash.startsWith("#s98p-dialog=")) {
+      const { soft98ProDialog, soft98ProReturn, ...rest } = history.state || {};
+      const fragment = typeof soft98ProReturn === "string" && soft98ProReturn.startsWith("#") &&
+        !soft98ProReturn.startsWith("#s98p-dialog=") ? soft98ProReturn : "";
+      history.replaceState(rest, "", location.pathname + location.search + fragment);
+    }
+    currentDialogKey = "";
+    // Layout and stock CSS change in the same task, before the browser paints.
+    return () => {
+      let interrupted = false;
+      const inputs = new AbortController();
+      const cancel = () => { interrupted = true; };
+      for (const name of ["wheel", "touchstart", "pointerdown", "keydown"]) {
+        window.addEventListener(name, cancel, { capture: true, passive: true, signal: inputs.signal });
+      }
+      const restore = () => { if (!settings.pro && !interrupted) scrollTo(position); };
+      restore();
+      // Complete layout callbacks and suppress browser scroll anchoring for this toggle only.
+      requestAnimationFrame(() => {
+        restore();
+        requestAnimationFrame(() => {
+          restore();
+          if (root.style.getPropertyValue("overflow-anchor") === "none") {
+            if (overflowAnchor[0]) root.style.setProperty("overflow-anchor", ...overflowAnchor);
+            else root.style.removeProperty("overflow-anchor");
+          }
+          inputs.abort();
+        });
+      });
+    };
+  }
+
   function writeSettings(next, { sync = true } = {}) {
+    const wasPro = settings.pro;
     settings = { ...DEFAULT_SETTINGS, ...next };
     document.documentElement.toggleAttribute("data-soft98-pro-ads-off", !settings.blockAds);
     try {
@@ -234,11 +406,26 @@
         document.dispatchEvent(new CustomEvent("soft98-pro:settings-changed"));
       } catch (_error) {}
     }
+    const restoreScroll = wasPro && !settings.pro ? restoreStockLayout() : null;
     installProStyle();
+    if (!settings.pro) {
+      closeFileMenu();
+      document.querySelector("dialog[data-s98p-download-confirm][open]")?.close();
+    }
     syncNativeNightMode();
     renderControlPanel();
     syncSuccessEnhancements();
+    restoreScroll?.();
     schedule(document);
+  }
+
+  function receiveExtensionSettings() {
+    try {
+      const value = document.documentElement.getAttribute("data-soft98-pro-settings");
+      if (!value) return;
+      const next = JSON.parse(decodeURIComponent(value));
+      if (next && typeof next === "object" && !Array.isArray(next)) writeSettings(next, { sync: false });
+    } catch (_error) {}
   }
 
   function safeConsole(level, ...args) {
@@ -301,7 +488,7 @@
 
   function isOwnedInterface(node) {
     const element = asElement(node);
-    return Boolean(element && element.closest("#soft98-pro-control,#soft98-pro-compatibility,#soft98-extension-recommendation,#soft98-ad-blocker-taunt,[data-soft98-pro-download-actions],[data-soft98-pro-password-actions],[data-soft98-pro-copy-toast],[data-soft98-pro-footer]"));
+    return Boolean(element && element.closest("#soft98-pro-control,#soft98-pro-compatibility,#soft98-extension-recommendation,#soft98-ad-blocker-taunt,[data-soft98-pro-download-actions],[data-soft98-pro-password-actions],[data-soft98-pro-copy-toast],[data-soft98-pro-footer],[data-s98p-download-confirm],#soft98-pro-header-queue"));
   }
 
   function localizeElement(element) {
@@ -426,16 +613,20 @@
 
   function headingCardFromSignals(heading) {
     if (!heading || !/^H[1-6]$/.test(heading.tagName)) return null;
-    const header = heading.closest("header");
-    const card = header?.parentElement;
-    if (!card || card === document.body || card === document.documentElement || isProtectedContentContainer(card)) return null;
+    const header = heading.closest("header") || heading;
+    const card = header.parentElement;
+    if (!card?.matches("div,section,aside") || isOwnedInterface(card) || isProtectedContentContainer(card)) return null;
     const title = normalizedPersian(heading.textContent || "");
-    if (title === "تبلیغات" && card !== header && !card.matches("main,article") &&
-        (card.matches("section,aside") || card.closest("aside") || card.querySelector("iframe,img,object,embed"))) return card;
+    const siblingHeading = card.querySelectorAll("h1,h2,h3,h4,h5,h6").length > 1;
+    if (siblingHeading) return null;
     const headingLength = title.length;
     const cardTextLength = String(card.textContent || "").replace(/\s+/g, " ").trim().length;
     if (!headingLength || headingLength > 40 || cardTextLength > 220) return null;
     if (card.querySelector("p,ul,ol,dl,table,form,pre,code,audio,video")) return null;
+    if (AD_CARD_HEADING.test(title) && (card.closest("aside") || card.matches("section") ||
+        precedingCardSeparator(card) || card.querySelector("img,iframe,object,embed") ||
+        normalizedPersian(card.textContent || "") === title)) return card;
+    if (header === heading) return null;
 
     const media = [...card.querySelectorAll("iframe,img,picture,object,embed")];
     const adShapedMedia = media.filter((node) => {
@@ -458,7 +649,7 @@
       .trim();
     const emptyShell = !bodyText && !card.querySelector("a[href],button,input,textarea,select");
     const compactCardLength = String(card.textContent || "").normalize("NFKC").replace(/[\u0640\u200c\u200d\s]+/g, "").length;
-    const orphanedMediaShell = emptyShell && Boolean(precedingCardSeparator(card)) && compactCardLength === headingLength;
+    const orphanedMediaShell = emptyShell && Boolean(card.closest("aside") && precedingCardSeparator(card)) && compactCardLength === headingLength;
     return (adShapedMedia.length > 0 && externalMedia.length > 0) || orphanedMediaShell ? card : null;
   }
 
@@ -495,7 +686,8 @@
       card.remove();
       if (separator && document.contains(separator)) separator.remove();
       if (next?.matches("hr") && !isLiveSidebarCard(next.previousElementSibling)) next.remove();
-      if (parent && parent !== document.body && !parent.textContent.trim() && !parent.querySelector(":scope > :not(hr)")) parent.remove();
+      if (parent?.matches("div,section") && !isProtectedContentContainer(parent) &&
+          !parent.textContent.trim() && !parent.querySelector(":scope > :not(hr)")) parent.remove();
       stats.adsRemoved += 1;
       log("info", text("logs.adCardRemoved"), { tag: card.tagName, media: card.querySelectorAll("iframe,img,picture,object,embed").length });
     }
@@ -503,7 +695,7 @@
 
   function hasNamedAdMarker(node) {
     const value = adComparableText(node);
-    return NAMED_AD_TEXT.test(value);
+    return NAMED_AD_TEXT.test(normalizedPersian(value));
   }
 
   function isLikelyNamedAdFrame(node) {
@@ -532,10 +724,14 @@
     const box = visibleBox(image);
     const size = `${box.width}x${box.height}`;
     const firstPartyAdAsset = /img\.soft98\.ir\/(?:ads?|[0-9]+)\//i.test(src);
-    const adSized = AD_SIZE.test(size) || (box.width === 728 && Math.abs(box.height - 90) <= 2);
+    const naturalSize = `${image.naturalWidth}x${image.naturalHeight}`;
+    const adSized = AD_SIZE.test(size) || (firstPartyAdAsset && AD_SIZE.test(naturalSize)) || (box.width === 728 && Math.abs(box.height - 90) <= 2);
     const backup = image.getAttribute("data-backup") || "";
     const backupMedia = backup && /\.(?:avif|gif|png|webp|jpe?g)(?:[?#]|$)/i.test(backup);
-    return (adSized && (firstPartyAdAsset || isExternalAdHref(href) || (backupMedia && Boolean(link)))) || isGeneratedAdFamily(link, image);
+    const mirroredBanner = firstPartyAdAsset && backupMedia && /\.gif(?:[?#]|$)/i.test(src) &&
+      link?.closest("article") && image.parentElement === link && link.childElementCount === 1 && !link.textContent.trim();
+    return Boolean(mirroredBanner || (adSized && (firstPartyAdAsset || isExternalAdHref(href) || (backupMedia && Boolean(link)))) ||
+      isGeneratedAdFamily(link, image));
   }
 
   function tokenList(node) {
@@ -583,7 +779,7 @@
   }
 
   function normalizedPersian(value) {
-    return value.normalize("NFKC").replace(/[\s\u0640\u200c\u200d]+/gu, "").replace(/ي/g, "ی");
+    return value.normalize("NFKC").replace(/[\s\u0640\u200c\u200d]+/gu, "").replace(/[يى]/g, "ی").replace(/ك/g, "ک");
   }
 
   function isIranicardBanner(node) {
@@ -712,6 +908,8 @@
 
   function removeExternalAds(root) {
     if (!settings.blockAds) return;
+    // The parser may not have added the article yet. Only the early stylesheet acts before the layout exists.
+    if (document.readyState === "loading") return;
     if (isOwnedInterface(root)) return;
     removeHeadingAdCards(root);
     const element = asElement(root) || document;
@@ -732,7 +930,7 @@
     }
     for (const node of nodes) {
       const removable = adRemovalRoot(node);
-      if (removable?.isConnected && !containsKeyedDownloadList(removable)) {
+      if (removable?.isConnected && !isProtectedContentContainer(removable)) {
         const advertiser = isIranicardBanner(node) ? "Iranicard" : undefined;
         removable.remove();
         stats.adsRemoved += 1;
@@ -767,8 +965,8 @@
 
   function isProtectedContentContainer(element) {
     if (!element || !element.querySelectorAll) return false;
-    if (element.matches("html,body,main,article,#content,#main,.content,.main,.entry,.post,.download-list,.download-list-item")) return true;
-    if (element.querySelector("main,article,#content,#main,.content,.main,.entry,.post,.download-list,.download-list-item")) return true;
+    const boundaries = "main,article,[role=main],[role=tabpanel],#content,#main,.content,.main,.entry,.post,.download-list,.download-list-item";
+    if (element.matches("html,body," + boundaries) || element.querySelector(boundaries)) return true;
     if (containsKeyedDownloadList(element)) return true;
     const links = element.querySelectorAll("a[href]");
     if (links.length >= 5) return true;
@@ -894,6 +1092,86 @@
     applyProThemeHeuristics(root);
   }
 
+  function rememberArticleFrame() {
+    if (IS_EXTENSION || !settings.blockAds || !settings.patchScripts || document.readyState === "loading") return;
+    const url = location.pathname + location.search;
+    if (articleSnapshot?.url === url && articleSnapshot.article.isConnected) return;
+    const articles = document.querySelectorAll("main " + RECOVERABLE_ARTICLE);
+    if (articles.length !== 1 || articleSnapshot?.url === url && articleSnapshot.restores) return;
+    articleSnapshot = captureArticleFrame(url, articles[0]);
+  }
+
+  function captureArticleFrame(url, article, detachedRoot, target) {
+    const slots = new Map();
+    for (let node = article, depth = 0; depth < 6; depth++) {
+      const parent = node === detachedRoot ? target : node.parentElement;
+      if (!parent?.matches(ARTICLE_CONTAINERS) || (parent === document.body && node !== detachedRoot)) break;
+      slots.set(parent, node);
+      if (parent === document.body) break;
+      node = parent;
+    }
+    return { url, article, slots, restores: 0 };
+  }
+
+  function findEarlyArticleClear(mutations, url) {
+    if (url !== initialArticleUrl || document.readyState === "complete") return;
+    let candidate;
+    for (const { type, target, removedNodes, nextSibling } of mutations) {
+      if (type !== "childList" || !target.isConnected || !target.matches?.(ARTICLE_CONTAINERS) || isOwnedInterface(target)) continue;
+      const insideMain = target.closest("main");
+      for (const node of removedNodes) {
+        if (node.nodeType !== Node.ELEMENT_NODE || node.isConnected) continue;
+        const matches = insideMain || node.matches("main") ? RECOVERABLE_ARTICLE : "main " + RECOVERABLE_ARTICLE;
+        const articles = node.matches(matches) ? [node] : node.querySelectorAll(matches);
+        if (articles.length > 1 || (articles.length && candidate)) return;
+        if (articles.length === 1) candidate = { article: articles[0], node, target, nextSibling };
+      }
+    }
+    if (!candidate || document.querySelector("main article")) return;
+    const { article, node, target, nextSibling } = candidate;
+    const snapshot = captureArticleFrame(url, article, node, target);
+    if (snapshot.slots.get(target) !== node) return;
+    snapshot.cleared = { target, node, nextSibling };
+    return snapshot;
+  }
+
+  function noticeClearedArticle(mutations) {
+    if (IS_EXTENSION || !settings.blockAds || !settings.patchScripts) return;
+    const url = location.pathname + location.search;
+    if (!articleSnapshot) {
+      articleSnapshot = findEarlyArticleClear(mutations, url);
+      if (articleSnapshot) schedule(document);
+      return;
+    }
+    const snapshot = articleSnapshot;
+    if (snapshot.restores >= MAX_ARTICLE_RESTORES || snapshot.article.isConnected || snapshot.url !== url) return;
+    for (const { type, target, removedNodes, nextSibling } of mutations) {
+      const node = type === "childList" && snapshot.slots.get(target);
+      if (!node || !target.isConnected || ![...removedNodes].includes(node) || !node.contains(snapshot.article)) continue;
+      snapshot.cleared = { target, node, nextSibling };
+      schedule(document);
+      break;
+    }
+  }
+
+  function restoreClearedArticle() {
+    const snapshot = articleSnapshot;
+    if (!snapshot?.cleared) return;
+    const { target, node, nextSibling } = snapshot.cleared;
+    snapshot.cleared = null;
+    // Check after this scan has cleared any transient notice, without replacing real content.
+    if (snapshot.restores >= MAX_ARTICLE_RESTORES || snapshot.article.isConnected || !settings.blockAds || !settings.patchScripts ||
+        snapshot.url !== location.pathname + location.search || !target.isConnected || document.querySelector("main article")) return;
+    const hasContent = [...target.childNodes].some(child =>
+      child.nodeType === Node.TEXT_NODE ? child.textContent.trim() :
+        child.nodeType === Node.ELEMENT_NODE && !child.matches("script,style,link,meta,template") && !isOwnedInterface(child));
+    if (hasContent) return;
+    target.insertBefore(node, nextSibling?.parentNode === target ? nextSibling : null);
+    snapshot.restores++;
+    stats.articlesRestored++;
+    schedule(document);
+  }
+
   function schedule(root) {
     if (!root || root === document || pendingRoots.size >= 32) {
       pendingRoots.clear();
@@ -909,16 +1187,21 @@
       sidebarContentsDirty = true;
       ensureStyleIntegrity();
       for (const item of unique) processRoot(item);
+      restoreClearedArticle();
       comments.sync({ enabled: settings.pro, text });
-      if (settings.pro) {
+      if (linkdoni) linkdoni.sync({ enabled: settings.pro, dark: settings.darkDesign || settings.rgbMode });
+      if (settings.pro && !linkdoni) {
         applyInteractiveSurfaceHeuristics();
         applyProLayoutHeuristics();
       }
-      if (settings.pro) {
+      if (settings.pro && !linkdoni) {
         applyPagePreferences();
         applySiteChrome();
-      } else {
+      } else if (!settings.pro) {
+        repairStockDownloadLists();
+        headerDownloads?.close();
         document.documentElement.removeAttribute("data-soft98-pro-chrome");
+        syncWideLayout();
         restoreUtilityPlacement();
         for (const [footer, previous] of stockFooters) {
           if (footer.isConnected) footer.style.setProperty("display", ...previous);
@@ -929,7 +1212,8 @@
         if (document.contains(link)) restoreLink(link);
         else trackedLinks.delete(link);
       }
-      applyLinkBadges();
+      rememberArticleFrame();
+      alignInitialContent?.();
       announceSuccess();
       refreshControlTelemetry();
     });
@@ -1010,7 +1294,7 @@
     setPersistentStyle("soft98-ad-blocker-style", `
       #kaprila_soft98_ir_related,[id^="kaprila"],[id*="kaprila"],[class*="kaprila"],
       .download-list-item-buysellads,[class*="buysellads"],#footer-bitcoin,iframe[src*="kaprila.com"],
-      .tbd_ibd,.tbdc,.trk_irk,.alert-warning,[role="alert"],
+      .tbd_ibd,.trk_irk,.alert-warning,[role="alert"],
       #soft98-ad-blocker-taunt,#soft98-extension-recommendation{display:none!important}
       :root[data-soft98-pro-chrome] [data-soft98-pro-stock-footer]{display:none!important}
       :root:not([data-soft98-pro-chrome]) [data-soft98-pro-footer]{display:none!important}
@@ -1027,10 +1311,16 @@
       :root:not(.soft98-pro-theme) [data-soft98-pro-password-shell]{display:contents}
       :root:not(.soft98-pro-theme) :is([data-soft98-pro-download-actions],[data-soft98-pro-copy-toast]){display:none!important}
       :root:not(.soft98-pro-theme) [data-soft98-pro-download-meta]{display:none!important}
+      :root:not(.soft98-pro-theme) article [role=tabpanel][data-s98p-stock-download-pane] [data-soft98-pro-download-recovery]{
+        height:auto!important;max-height:none!important;overflow:visible!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;content-visibility:visible!important
+      }
+      :root:not(.soft98-pro-theme) article [role=tabpanel][data-s98p-stock-download-pane] [data-soft98-pro-download-recovery="frame"]{display:block!important}
+      :root:not(.soft98-pro-theme) article [role=tabpanel][data-s98p-stock-download-pane] [data-soft98-pro-download-recovery="row"]{display:flex!important;flex-wrap:wrap}
       a[${DATA_HREF}]{pointer-events:auto}
       a[data-soft98-brand-compact]{min-height:36px!important;min-width:86px;background-size:86px auto!important;background-repeat:no-repeat!important;background-position:center!important}
       img[data-soft98-brand-compact]{width:86px!important;max-width:100%!important;height:38px!important;object-fit:cover!important}
-      [data-soft98-brand-kind=background]{display:block!important;background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important}
+      [data-soft98-brand-kind=background]{display:block!important;background-color:transparent!important;background-size:contain!important;background-repeat:no-repeat!important;background-position:center!important}
+      img[data-soft98-brand-kind=image]{object-fit:contain!important}
       [data-soft98-brand-kind=background]:not([data-soft98-brand-compact]){min-height:104px!important}
       [data-soft98-brand-kind=background]>*{visibility:hidden!important}
       @media(max-width:700px){[data-soft98-brand-kind=background]:not([data-soft98-brand-compact]){min-height:78px!important}}
@@ -1039,6 +1329,11 @@
 
   function installProStyle() {
     const active = settings.pro;
+    const accent = settings.accentColor;
+    if (["sky", "orchid", "amber"].includes(accent)) document.documentElement.dataset.s98pAccent = accent;
+    else document.documentElement.removeAttribute("data-s98p-accent");
+    if (!persistentStyles.has("soft98-pro-appearance"))
+      setPersistentStyle("soft98-pro-appearance", APPEARANCE_CSS);
     document.documentElement.classList.toggle("soft98-pro-theme", active);
     document.documentElement.classList.toggle("soft98-pro-light", active && !settings.darkDesign && !settings.rgbMode);
     document.documentElement.classList.toggle("soft98-pro-rgb", active && settings.rgbMode);
@@ -1059,6 +1354,7 @@
         node.removeAttribute("data-soft98-pro-list-row");
         node.removeAttribute("data-soft98-pro-list-copy");
       });
+      document.querySelectorAll("[data-soft98-pro-callout]").forEach(node => node.removeAttribute("data-soft98-pro-callout"));
       updateFavicon();
       return;
     }
@@ -1071,13 +1367,6 @@
       .soft98-pro-theme [data-soft98-pro-tone=body]{color:var(--s98p-text)!important}
       .soft98-pro-theme a[data-soft98-pro-tone=action]{background:var(--s98p-surface-2)!important;border-color:var(--s98p-border-soft)!important;color:var(--s98p-text)!important}
       .soft98-pro-theme a[data-soft98-pro-tone=action]:hover{background:var(--s98p-soft)!important}
-      .soft98-pro-theme [data-soft98-pro-utility-icon]{background-color:var(--s98p-surface-2)!important;border-color:var(--s98p-border-soft)!important;box-shadow:none!important;filter:none!important}
-      :root.soft98-pro-theme [data-soft98-pro-utility-icon][data-soft98-pro-icon-host]{display:grid!important;place-items:center;background-image:none!important}
-      :root.soft98-pro-theme [data-soft98-pro-utility-icon][data-soft98-pro-icon-host]::before,
-      :root.soft98-pro-theme [data-soft98-pro-utility-icon][data-soft98-pro-icon-host]::after{display:none!important;content:none!important}
-      :root.soft98-pro-theme [data-soft98-pro-utility-icon] > [data-soft98-pro-page-icon]{width:32px;height:32px;margin:0;background:transparent!important;--icon-color:#b8cee5}
-      :root.soft98-pro-theme [data-soft98-pro-utility-icon] svg{width:27px;height:27px}
-      :root.soft98-pro-theme [data-soft98-pro-utility-icon] img{display:block;max-width:32px;max-height:32px;object-fit:contain;filter:none!important}
       .soft98-pro-theme [data-soft98-pro-utility-card] > footer{background:var(--s98p-surface-2)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border)!important}
       .soft98-pro-theme [data-soft98-pro-utility-card] > footer:hover{background:var(--s98p-soft)!important}
       .soft98-pro-theme [data-soft98-pro-utility-header],.soft98-pro-theme [data-soft98-pro-utility-header] :is(h1,h2,h3,h4,h5,h6){border-color:var(--s98p-border)!important;text-shadow:none!important}
@@ -1089,8 +1378,8 @@
       .soft98-pro-theme [data-soft98-pro-page-icon=download]{--icon-color:var(--s98p-accent)}
       .soft98-pro-theme [data-soft98-pro-page-icon=lock]{--icon-color:var(--s98p-accent-2)}
       .soft98-pro-theme [data-soft98-pro-icon-host]::before,.soft98-pro-theme [data-soft98-pro-icon-host]::after,.soft98-pro-theme [data-soft98-pro-faq] summary div::before,.soft98-pro-theme [data-soft98-pro-faq] summary div::after{content:none!important}
-      :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-download-group] [data-soft98-pro-icon-host]::before,
-      :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-download-group] [data-soft98-pro-icon-host]::after,
+      :root.soft98-pro-theme :is(article [role=tabpanel],[data-s98p-download-rail]) [data-soft98-pro-download-group] [data-soft98-pro-icon-host]::before,
+      :root.soft98-pro-theme :is(article [role=tabpanel],[data-s98p-download-rail]) [data-soft98-pro-download-group] [data-soft98-pro-icon-host]::after,
       :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-icon-host]:is([data-soft98-pro-password],[data-soft98-pro-annoyance])::before,
       :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-icon-host]:is([data-soft98-pro-password],[data-soft98-pro-annoyance])::after{content:none!important;display:none!important}
       .soft98-pro-theme [data-soft98-pro-download-group] > dt{background:var(--s98p-surface)!important;border-color:var(--s98p-border-soft)!important}
@@ -1101,38 +1390,58 @@
       .soft98-pro-theme [data-soft98-pro-download-group] a[data-soft98-pro-icon-host]:is(:hover,:focus-visible){color:var(--s98p-link)!important}
       .soft98-pro-theme [data-soft98-pro-download-group] a[data-soft98-pro-icon-host=download]{color:var(--s98p-accent)!important;font-weight:700}
       .soft98-pro-theme [data-soft98-pro-download-group] a[data-soft98-pro-icon-host=download]:is(:hover,:focus-visible){background:color-mix(in srgb,var(--s98p-accent) 10%,var(--s98p-bg-2))!important;color:#b2ffe1!important}
-      :root.soft98-pro-theme article [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]{height:auto!important;max-height:none!important;padding:0!important;overflow:visible!important}
-      :root.soft98-pro-theme article [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]::before,
-      :root.soft98-pro-theme article [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]::after{content:none!important;display:none!important;animation:none!important;transition:none!important}
-      :root.soft98-pro-theme article [data-soft98-pro-download-group] > dd[data-soft98-pro-download-collapsed]{display:none!important}
-      :root.soft98-pro-theme article [data-soft98-pro-download-group] [data-soft98-pro-download-row]{display:grid!important;grid-template-columns:28px minmax(0,1fr);align-items:center;gap:9px;width:100%!important;height:auto!important;min-height:42px;max-height:none!important;margin:0!important;padding:7px 14px!important;box-sizing:border-box;white-space:normal!important;line-height:1.5!important;overflow:visible!important;background-image:none!important;transition:background-color .16s,color .16s}
-      :root.soft98-pro-theme article [data-soft98-pro-download-group] [data-soft98-pro-download-row]:is(:hover,:focus-visible){background-color:var(--s98p-soft)!important}
-      :root.soft98-pro-theme article [data-soft98-pro-download-group] [data-soft98-pro-download-row]:active{background-color:color-mix(in srgb,var(--s98p-accent) 16%,var(--s98p-surface))!important}
+      :root.soft98-pro-theme :is(article,[data-s98p-download-rail]) [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]{height:auto!important;max-height:none!important;padding:0!important;overflow:visible!important;transition:background-color .16s ease}
+      :root.soft98-pro-theme :is(article,[data-s98p-download-rail]) [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]::before,
+      :root.soft98-pro-theme :is(article,[data-s98p-download-rail]) [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]::after{content:none!important;display:none!important;animation:none!important;transition:none!important}
+      :root.soft98-pro-theme :is(article,[data-s98p-download-rail]) [data-soft98-pro-download-group] > dd[data-soft98-pro-download-collapsed]{display:none!important}
+      :root.soft98-pro-theme :is(article,[data-s98p-download-rail]) [data-soft98-pro-download-group] [data-soft98-pro-download-row]{display:grid!important;grid-template-columns:28px minmax(0,1fr);align-items:center;gap:9px;width:100%!important;height:auto!important;min-height:42px;max-height:none!important;margin:0!important;padding:7px 14px!important;box-sizing:border-box;white-space:normal!important;line-height:1.5!important;overflow:visible!important;background-image:none!important;transition:background-color .16s,color .16s}
+      :root.soft98-pro-theme :is(article,[data-s98p-download-rail]) [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]:is(:hover,:focus-within){background:var(--s98p-soft)!important}
+      :root.soft98-pro-theme :is(article,[data-s98p-download-rail]) [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]:has(>[data-soft98-pro-download-row]:active){background:color-mix(in srgb,var(--s98p-accent) 16%,var(--s98p-surface))!important}
+      :root.soft98-pro-theme :is(article,[data-s98p-download-rail]) [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry] > [data-soft98-pro-download-row]{background:transparent!important}
       .soft98-pro-theme [data-soft98-pro-download-row] > *{pointer-events:none}
       .soft98-pro-theme [data-soft98-pro-download-row] > [data-soft98-pro-page-icon]{grid-column:1;grid-row:1;margin:0}
-      .soft98-pro-theme [data-soft98-pro-download-row] > .soft98-pro-link-badge{grid-column:2;justify-self:start;margin:0}
-      :root.soft98-pro-theme dd:has(> [data-soft98-pro-download-manager=file]){display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px}
-      :root.soft98-pro-theme dd[data-soft98-pro-download-collapsed]:has(> [data-soft98-pro-download-manager=file]){display:none!important}
-      :root:not(.soft98-pro-theme) [data-soft98-pro-download-manager]{display:none!important}
-      :root.soft98-pro-theme [data-soft98-pro-download-manager=file]{display:grid;place-items:center;width:34px;height:32px;padding:0;margin-inline-end:6px;border:1px solid var(--s98p-border);border-radius:6px;background:var(--s98p-surface-2);color:var(--s98p-text);cursor:pointer}
-      :root.soft98-pro-theme [data-soft98-pro-download-manager=file]:is(:hover,:focus-visible){border-color:var(--s98p-accent);color:var(--s98p-accent)}
-      [data-soft98-pro-download-manager=file] svg{width:17px;height:17px;pointer-events:none}
+      :root.soft98-pro-theme dd[data-soft98-pro-download-entry]:has(>.s98p-file-actions){display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:stretch}
+      :root.soft98-pro-theme dd[data-soft98-pro-download-collapsed]:has(>.s98p-file-actions){display:none!important}
+      :root:not(.soft98-pro-theme) :is([data-soft98-pro-download-manager],.s98p-file-actions,.s98p-file-menu){display:none!important}
+      .soft98-pro-theme .s98p-file-actions{display:inline-flex;direction:inherit;align-self:stretch;align-items:center;gap:3px;margin-inline-end:8px;min-width:0}
+      :root.soft98-pro-theme .s98p-file-actions button{display:grid;place-items:center;min-width:0;width:34px;height:34px;padding:0;margin:0;border:1px solid var(--s98p-border)!important;border-radius:6px;background:transparent!important;color:var(--s98p-text)!important;cursor:pointer;transform:none!important}
+      :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-more]{order:1;width:28px;border-color:transparent!important;transition:opacity .14s ease,color .14s ease}
+      :root.soft98-pro-theme .s98p-file-actions:dir(rtl) [data-soft98-pro-download-manager=file]{order:2}
+      @media (hover:hover) and (pointer:fine){
+        :root.soft98-pro-theme dd[data-soft98-pro-download-entry]:not(:hover,:focus-within) [data-s98p-file-more]:not([aria-expanded=true]){opacity:0;pointer-events:none}
+      }
+      :root.soft98-pro-theme .s98p-file-actions button:is(:hover,:focus-visible,[aria-expanded=true]){background:color-mix(in srgb,var(--s98p-accent) 15%,transparent)!important;color:var(--s98p-accent)!important}
+      .soft98-pro-theme .s98p-file-actions button:focus-visible{outline:2px solid var(--s98p-accent);outline-offset:-2px}
+      .soft98-pro-theme :is(.s98p-file-actions button,[data-soft98-pro-download-manager=section])[aria-busy=true]{cursor:progress;opacity:.75}
+      .soft98-pro-theme .s98p-file-actions svg,.soft98-pro-theme .s98p-file-menu svg{width:18px;height:18px;flex:none;pointer-events:none}
+      .soft98-pro-theme .s98p-file-actions [data-s98p-file-more] svg{width:14px;height:14px}
+      :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status]{--file-status-color:var(--s98p-link);box-sizing:border-box;inline-size:auto;min-inline-size:28px;max-inline-size:76px;block-size:24px;display:grid;place-items:center;margin-inline-end:3px;padding:0 6px;border-radius:5px;border-color:color-mix(in srgb,var(--file-status-color) 43%,var(--s98p-border))!important;background:color-mix(in srgb,var(--file-status-color) 10%,transparent)!important;color:var(--file-status-color)!important;font:inherit;font-size:11px!important;font-weight:680;line-height:1.2!important;text-align:center;font-variant-numeric:tabular-nums}
+      :root.soft98-pro-theme [data-s98p-file-status] > bdi{display:block;max-inline-size:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:inherit!important}
+      :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status][hidden]{display:none!important}
+      :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status=complete]{--file-status-color:var(--s98p-accent)}
+      :root.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status]:is([data-s98p-file-status=interrupted],[data-s98p-file-status=review]){--file-status-color:var(--s98p-text)}
+      :root.soft98-pro-theme [data-soft98-pro-download-copy] [data-s98p-download-transfer]{display:grid;gap:4px;margin-block-start:3px;color:var(--s98p-muted);font-size:11px;font-variant-numeric:tabular-nums}
+      :root.soft98-pro-theme [data-s98p-download-transfer] > span{display:flex;flex-wrap:wrap;align-items:baseline;gap:3px 8px}
+      :root.soft98-pro-theme [data-s98p-download-transfer] [data-transfer-total]{display:inline-flex;gap:4px}
+      :root.soft98-pro-theme [data-s98p-download-transfer] bdi{font-family:system-ui,sans-serif;font-variant-numeric:tabular-nums}
+      :root.soft98-pro-theme [data-s98p-download-transfer] progress{inline-size:100%;block-size:4px;border:0;border-radius:3px;accent-color:var(--s98p-accent)}
+      :root.soft98-pro-theme [data-s98p-download-transfer][hidden],:root.soft98-pro-theme [data-s98p-download-transfer] [hidden]{display:none!important}
+      :root.soft98-pro-theme [data-soft98-pro-download-manager=file][aria-busy=true]{opacity:.6;cursor:progress}
+      .soft98-pro-theme .s98p-file-menu{position:fixed;z-index:2147483001;display:grid;overflow:auto;overscroll-behavior:contain;box-sizing:border-box;width:246px;padding:5px;border:1px solid var(--s98p-border);border-radius:8px;background:color-mix(in srgb,var(--s98p-elevated) 92%,transparent);backdrop-filter:blur(18px);box-shadow:0 12px 26px #0005;color:var(--s98p-text);font:inherit;text-align:start}
+      .soft98-pro-theme .s98p-file-menu [role=group]+[role=group]{margin-block-start:4px;padding-block-start:4px;border-block-start:1px solid var(--s98p-border)}
+      :root.soft98-pro-theme .s98p-file-menu button{display:flex;width:100%;align-items:center;gap:8px;min-height:32px;padding:4px 8px;border:1px solid transparent!important;border-radius:5px;background:transparent!important;color:var(--s98p-text)!important;font:inherit;text-align:start;cursor:pointer;transform:none!important}
+      :root.soft98-pro-theme .s98p-file-menu button:is(:hover,:focus-visible){border-color:var(--s98p-border)!important;background:var(--s98p-soft)!important;outline:none}
+      .soft98-pro-theme .s98p-file-menu [aria-checked=true]::after{content:"";width:8px;height:8px;margin-inline-start:auto;border-radius:50%;background:var(--s98p-accent)}
       [data-soft98-pro-download-check]{display:none!important}
       .soft98-pro-theme [data-soft98-pro-download-activated] > [data-soft98-pro-page-icon]{--icon-color:var(--s98p-accent)}
       .soft98-pro-theme [data-soft98-pro-download-activated] > [data-soft98-pro-page-icon] > :not([data-soft98-pro-download-check]){display:none!important}
       .soft98-pro-theme [data-soft98-pro-download-activated] [data-soft98-pro-download-check]{display:block!important}
       .soft98-pro-theme [data-soft98-pro-download-copy]{display:grid;gap:2px;min-width:0;overflow-wrap:anywhere}
       .soft98-pro-theme [data-soft98-pro-download-title]{min-width:0;color:inherit}
-      .soft98-pro-theme [data-soft98-pro-download-meta]{min-width:0;color:var(--s98p-muted)!important;font-size:.82em;font-weight:400}
+      .soft98-pro-theme [data-soft98-pro-download-meta]{display:flex;flex-wrap:wrap;gap:2px 10px;min-width:0;color:var(--s98p-muted)!important;font-size:.82em;font-weight:400;font-variant-numeric:tabular-nums}
+      .soft98-pro-theme [data-soft98-pro-download-meta] bdi{font-family:system-ui,sans-serif;font-variant-numeric:tabular-nums}
       .soft98-pro-theme [data-soft98-pro-download-meta]:empty{display:none}
-      .soft98-pro-theme [data-soft98-pro-download-heading]{display:flex!important;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px 8px;padding:6px 8px!important}
-      .soft98-pro-theme [data-soft98-pro-download-actions]{display:inline-flex;align-items:center;gap:4px;margin-inline-start:auto}
-      .soft98-pro-theme [data-soft98-pro-download-actions] > button{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:32px;min-width:32px;padding:4px 7px;border:1px solid var(--s98p-border);border-radius:6px;background:var(--s98p-control-bg,var(--s98p-surface-2));color:var(--s98p-text);font:inherit;line-height:1.25;cursor:pointer}
-      .soft98-pro-theme [data-soft98-pro-download-actions] > button[hidden]{display:none!important}
-      .soft98-pro-theme [data-soft98-pro-download-actions] > button:is(:hover,:focus-visible){background:var(--s98p-control-hover,var(--s98p-soft));border-color:var(--s98p-faint)}
-      .soft98-pro-theme [data-soft98-pro-download-actions] > button svg{width:16px;height:16px;flex:none;pointer-events:none}
-      .soft98-pro-theme [data-soft98-pro-download-actions] [aria-expanded] svg{transform:rotate(-90deg);transition:transform .16s ease}
-      .soft98-pro-theme [data-soft98-pro-download-actions] [aria-expanded="false"] svg{transform:none}
+      :root.soft98-pro-theme [data-s98p-managed-size] [data-soft98-pro-download-meta]:not(:has(time)),:root.soft98-pro-theme [data-s98p-managed-size] [data-soft98-pro-download-meta] bdi{display:none!important}
       .soft98-pro-theme [data-soft98-pro-password-shell]{display:grid;grid-template-columns:auto minmax(max-content,1fr) auto;align-items:center;gap:6px;padding:8px;background:var(--s98p-surface-2)!important;border:1px solid var(--s98p-border);border-radius:8px}
       :root.soft98-pro-theme article [role=tabpanel] [data-soft98-pro-password-shell]>[data-soft98-pro-password]{display:contents!important;color:var(--s98p-text)!important;text-shadow:none!important}
       .soft98-pro-theme [data-soft98-pro-password] span:not([aria-hidden=true]){color:inherit!important}
@@ -1159,7 +1468,7 @@
       :root.soft98-pro-theme [data-soft98-pro-copy-toast] button:is(:hover,:focus-visible){background:var(--s98p-soft)!important;color:var(--s98p-text)!important}
       .soft98-pro-theme [data-soft98-pro-copy-toast] svg{width:18px;height:18px;pointer-events:none}
       @starting-style{.soft98-pro-theme [data-soft98-pro-copy-toast][data-visible]{opacity:0;transform:translateY(6px)}}
-      @media (prefers-reduced-motion:reduce){.soft98-pro-theme :is([data-soft98-pro-download-row],[data-soft98-pro-download-actions] [aria-expanded] svg,[data-soft98-pro-copy-toast]){transition:none!important}}
+      @media (prefers-reduced-motion:reduce){.soft98-pro-theme :is([data-soft98-pro-download-row],[data-soft98-pro-copy-toast]){transition:none!important}}
       .soft98-pro-theme [data-soft98-pro-faq] > summary{display:flex!important;align-items:center;gap:9px;list-style:none!important;padding-inline-start:0!important;color:var(--s98p-text)!important}
       .soft98-pro-theme [data-soft98-pro-faq] > summary::-webkit-details-marker{display:none}
       .soft98-pro-theme [data-soft98-pro-faq]{box-sizing:border-box;overflow:hidden!important;margin-block-end:0!important}
@@ -1171,14 +1480,12 @@
       :root.soft98-pro-theme [data-soft98-pro-utility-card] [data-soft98-pro-utility-extra=closed]:not([data-soft98-pro-utility-motion]){display:none!important}
       .soft98-pro-theme [data-soft98-pro-faq] [data-soft98-pro-page-icon]{margin-inline-end:0}
       .soft98-pro-theme [data-soft98-pro-faq] summary:is(:hover,:focus-visible) [data-soft98-pro-page-icon],.soft98-pro-theme [data-soft98-pro-faq][open] [data-soft98-pro-page-icon]{--icon-color:var(--s98p-accent)}
-      .soft98-pro-theme [data-soft98-pro-faq]:dir(ltr) svg{transform:scaleX(-1)}
-      .soft98-pro-theme [data-soft98-pro-faq][open] svg{transform:rotate(-90deg)}
       .soft98-pro-theme [data-soft98-pro-latest] li a:not([role=tab]){color:var(--s98p-muted)!important}
       .soft98-pro-theme [data-soft98-pro-latest] li a:not([role=tab]):is(:hover,:focus-visible){color:var(--s98p-link)!important}
       :root.soft98-pro-theme [data-soft98-pro-latest] li a[data-soft98-pro-news-link]::before{color:var(--s98p-faint)!important;text-shadow:none!important}
       :root.soft98-pro-theme [data-soft98-pro-latest] li a[data-soft98-pro-news-link]:not(:hover,:focus-visible){color:var(--s98p-muted)!important}
       [data-soft98-pro-bidi]{direction:ltr!important;unicode-bidi:isolate!important}
-      .soft98-pro-theme a{color:var(--s98p-link)!important;text-decoration-color:color-mix(in srgb,var(--s98p-link) 42%,transparent);transition:color .16s ease,text-decoration-color .16s ease,background-color .16s ease,border-color .16s ease,transform .16s ease,box-shadow .2s ease}
+      .soft98-pro-theme a{color:var(--s98p-link)!important;text-decoration-color:color-mix(in srgb,var(--s98p-link) 42%,transparent);transition:color .16s ease,text-decoration-color .16s ease,background-color .16s ease,border-color .16s ease,box-shadow .2s ease}
       .soft98-pro-theme a:hover{color:#d4efff!important;text-decoration-color:var(--s98p-accent)}
       .soft98-pro-theme a:focus-visible,.soft98-pro-theme button:focus-visible,.soft98-pro-theme input:focus-visible,.soft98-pro-theme select:focus-visible,.soft98-pro-theme textarea:focus-visible{outline:2px solid var(--s98p-accent)!important;outline-offset:3px!important}
       :root.soft98-pro-theme hr{height:1px!important;min-height:1px!important;border:0!important;background:var(--s98p-border)!important;opacity:1!important;box-shadow:none!important}
@@ -1206,16 +1513,15 @@
       .soft98-pro-theme dt,.soft98-pro-theme dd{background:rgba(13,20,27,.72)!important;border-color:rgba(124,224,189,.16)!important;color:var(--s98p-text)!important}
       .soft98-pro-theme dd:nth-child(odd){background:rgba(23,38,49,.72)!important}
       .soft98-pro-theme [role=alert]{background:rgba(255,209,102,.12)!important;border-color:rgba(255,209,102,.36)!important;color:#ffe6a3!important}
-      .soft98-pro-theme button,.soft98-pro-theme [role=button],.soft98-pro-theme input[type=button],.soft98-pro-theme input[type=submit]{border-color:var(--s98p-border)!important;background:linear-gradient(180deg,var(--s98p-soft),#19272f)!important;color:var(--s98p-text)!important;transition:transform .15s ease,border-color .16s ease,background-color .16s ease,box-shadow .2s ease}
-      .soft98-pro-theme button:hover,.soft98-pro-theme [role=button]:hover{background:linear-gradient(180deg,#2a4149,#1d2f37)!important;border-color:rgba(124,224,189,.5)!important;color:#fff!important;transform:translateY(-1px)}
-      .soft98-pro-theme button:active,.soft98-pro-theme [role=button]:active{transform:translateY(0) scale(.98)}
+      .soft98-pro-theme button,.soft98-pro-theme [role=button],.soft98-pro-theme input[type=button],.soft98-pro-theme input[type=submit]{border-color:var(--s98p-border)!important;background:linear-gradient(180deg,var(--s98p-soft),#19272f)!important;color:var(--s98p-text)!important;transition:border-color .16s ease,background-color .16s ease,box-shadow .2s ease}
+      .soft98-pro-theme button:hover,.soft98-pro-theme [role=button]:hover{background:linear-gradient(180deg,#2a4149,#1d2f37)!important;border-color:rgba(124,224,189,.5)!important;color:#fff!important}
+      .soft98-pro-theme button:active,.soft98-pro-theme [role=button]:active{box-shadow:none}
       .soft98-pro-theme button *,.soft98-pro-theme [role=button] *,.soft98-pro-theme button:before,.soft98-pro-theme [role=button]:before{background-color:transparent!important;color:inherit!important}
       .soft98-pro-theme input,.soft98-pro-theme textarea,.soft98-pro-theme select{border-color:var(--s98p-border)!important;background:var(--s98p-bg-2)!important;color:var(--s98p-text)!important;transition:border-color .16s ease,box-shadow .16s ease,background-color .16s ease}
       .soft98-pro-theme table,.soft98-pro-theme thead,.soft98-pro-theme tbody,.soft98-pro-theme tr,.soft98-pro-theme th,.soft98-pro-theme td{background-color:transparent!important;border-color:var(--s98p-border-soft)!important;color:var(--s98p-text)!important}
-      .soft98-pro-theme img{filter:saturate(.96) contrast(1.02)}
+      :root.soft98-pro-theme:not(.soft98-pro-light) img[data-s98p-stock-artwork-filter]{filter:none!important}
       .soft98-pro-theme pre,.soft98-pro-theme code{background:#071018!important;border-color:var(--s98p-border)!important;color:#d8f8ff!important}
       .soft98-pro-theme ::selection{background:rgba(116,224,176,.32);color:#fff}
-      .soft98-pro-link-badge{display:inline-block;white-space:nowrap;word-break:normal;overflow-wrap:normal;margin-inline-start:.45em;padding:.12em .45em;border:1px solid rgba(112,225,178,.42);border-radius:999px;color:#baffd8;background:rgba(112,225,178,.12);font-size:.78em;vertical-align:middle}
       .soft98-pro-compact [data-soft98-pro-layout=content-grid]{display:grid!important;grid-template-columns:minmax(0,2fr) minmax(270px,1fr)!important;align-items:start!important;gap:18px!important}
       @media(min-width:821px){
         .soft98-pro-compact [data-soft98-pro-layout=content-grid]>[data-soft98-pro-column]{grid-row:1!important}
@@ -1261,17 +1567,14 @@
         --s98p-neon-line:linear-gradient(90deg,var(--s98p-neon-stops));
         --s98p-neon-edge:linear-gradient(105deg,color-mix(in srgb,var(--s98p-neon) 60%,#111519),color-mix(in srgb,var(--s98p-neon-2) 55%,#111519),color-mix(in srgb,var(--s98p-neon-3) 60%,#111519));
         --s98p-neon-soft:hsl(var(--s98p-neon-hue) 86% 58% / .18);
-        --s98p-bg:#020304;--s98p-bg-2:#050607;--s98p-nav:#060708;--s98p-surface:#080a0b;--s98p-surface-2:#0b0d0f;--s98p-elevated:#101315;--s98p-soft:#15191b;--s98p-border:var(--s98p-neon);--s98p-border-soft:color-mix(in srgb,var(--s98p-neon) 25%,#1b2023);--s98p-text:#d5dadd;--s98p-muted:#858c91;--s98p-faint:#656b70;--s98p-accent:var(--s98p-neon);--s98p-accent-2:var(--s98p-neon-2);--s98p-link:color-mix(in srgb,var(--s98p-neon) 78%,#dce1e4);animation:soft98-pro-neon 16s linear infinite
+        --s98p-bg:#020304;--s98p-bg-2:#050607;--s98p-nav:#060708;--s98p-surface:#080a0b;--s98p-surface-2:#0b0d0f;--s98p-elevated:#101315;--s98p-soft:#15191b;--s98p-border:var(--s98p-neon);--s98p-border-soft:color-mix(in srgb,var(--s98p-neon) 25%,#1b2023);--s98p-accent:var(--s98p-neon);--s98p-accent-2:var(--s98p-neon-2);animation:soft98-pro-neon 16s linear infinite
       }
       .soft98-pro-rgb{background-color:var(--s98p-bg)!important}
       .soft98-pro-rgb body{background:linear-gradient(180deg,var(--s98p-nav),var(--s98p-bg) 30rem)!important}
-      .soft98-pro-rgb nav,.soft98-pro-rgb [role=navigation],.soft98-pro-rgb [data-soft98-pro-surface=nav],.soft98-pro-rgb [data-soft98-pro-surface=nav-shell]{background:linear-gradient(165deg,var(--s98p-elevated),var(--s98p-nav))!important;border-color:color-mix(in srgb,var(--s98p-neon) 38%,#202427)!important;box-shadow:0 16px 46px rgba(0,0,0,.62),0 0 18px var(--s98p-neon-soft)!important}
-      .soft98-pro-rgb article,.soft98-pro-rgb aside,.soft98-pro-rgb [role=dialog],.soft98-pro-rgb [role=menu],.soft98-pro-rgb [role=listbox],.soft98-pro-rgb [data-soft98-pro-surface=raised],.soft98-pro-rgb [data-soft98-pro-surface=tab-card],.soft98-pro-rgb [data-soft98-pro-surface=tab-content],.soft98-pro-rgb [data-soft98-pro-surface=tab-pane],.soft98-pro-rgb [data-soft98-pro-surface=menu],.soft98-pro-rgb [data-soft98-pro-surface=megamenu]{background:linear-gradient(160deg,var(--s98p-surface-2),var(--s98p-bg-2)) var(--s98p-surface)!important;border-color:color-mix(in srgb,var(--s98p-neon) 28%,#202427)!important;box-shadow:0 20px 52px rgba(0,0,0,.58),0 0 16px color-mix(in srgb,var(--s98p-neon) 10%,transparent)!important;backdrop-filter:blur(18px) saturate(75%)}
-      .soft98-pro-rgb article:hover,.soft98-pro-rgb aside:hover,.soft98-pro-rgb [data-soft98-pro-surface=raised]:hover,.soft98-pro-rgb button:hover,.soft98-pro-rgb [role=button]:hover{border-color:color-mix(in srgb,var(--s98p-neon) 72%,#303639)!important;box-shadow:0 22px 58px rgba(0,0,0,.66),0 0 24px var(--s98p-neon-soft)!important}
+      .soft98-pro-rgb nav,.soft98-pro-rgb [role=navigation],.soft98-pro-rgb [data-soft98-pro-surface=nav],.soft98-pro-rgb [data-soft98-pro-surface=nav-shell]{background:linear-gradient(165deg,var(--s98p-elevated),var(--s98p-nav))!important;border-color:color-mix(in srgb,var(--s98p-neon) 38%,#202427)!important;box-shadow:inset 0 -1px var(--s98p-neon-soft)!important}
+      .soft98-pro-rgb article,.soft98-pro-rgb aside,.soft98-pro-rgb [role=dialog],.soft98-pro-rgb [role=menu],.soft98-pro-rgb [role=listbox],.soft98-pro-rgb [data-soft98-pro-surface=raised],.soft98-pro-rgb [data-soft98-pro-surface=tab-card],.soft98-pro-rgb [data-soft98-pro-surface=tab-content],.soft98-pro-rgb [data-soft98-pro-surface=tab-pane],.soft98-pro-rgb [data-soft98-pro-surface=menu],.soft98-pro-rgb [data-soft98-pro-surface=megamenu]{background:linear-gradient(160deg,var(--s98p-surface-2),var(--s98p-bg-2)) var(--s98p-surface)!important;border-color:color-mix(in srgb,var(--s98p-neon) 28%,#202427)!important;box-shadow:inset 0 0 0 1px var(--s98p-neon-soft)!important}
+      .soft98-pro-rgb article:hover,.soft98-pro-rgb aside:hover,.soft98-pro-rgb [data-soft98-pro-surface=raised]:hover,.soft98-pro-rgb button:hover,.soft98-pro-rgb [role=button]:hover{border-color:color-mix(in srgb,var(--s98p-neon) 72%,#303639)!important;box-shadow:inset 0 0 0 1px var(--s98p-neon-soft)!important}
       :root.soft98-pro-rgb :is([role=tab][aria-selected=true],[data-toggle=tab][aria-expanded=true],[data-soft98-pro-tab-active=true],[aria-current=page]){background:linear-gradient(160deg,color-mix(in srgb,var(--s98p-neon) 11%,var(--s98p-elevated)),color-mix(in srgb,var(--s98p-neon-2) 8%,var(--s98p-bg-2)))!important;border-color:var(--s98p-neon)!important;color:#f3f6f7!important;box-shadow:0 0 0 1px color-mix(in srgb,var(--s98p-neon) 28%,transparent) inset,0 0 18px var(--s98p-neon-soft)!important}
-      .soft98-pro-rgb img:not([data-soft98-brand-kind]){filter:saturate(.18) brightness(.72) contrast(1.08)!important;transition:filter .2s ease}
-      .soft98-pro-rgb a:hover img:not([data-soft98-brand-kind]){filter:saturate(.38) brightness(.82) contrast(1.08)!important}
-      .soft98-pro-rgb .soft98-pro-link-badge{border-color:var(--s98p-neon);background:#0c0f10;box-shadow:0 0 16px var(--s98p-neon-soft)}
       :root.soft98-pro-theme{--s98p-control-bg:linear-gradient(180deg,#253341,#1a2430);--s98p-control-hover:linear-gradient(180deg,#344757,#233342);--s98p-control-edge:#415265;--s98p-control-shadow:0 1px 0 #ffffff12 inset,0 2px 4px #0004}
       @media(min-width:821px){:root.soft98-pro-scroll-width{overflow-anchor:none}}
       :root.soft98-pro-rgb{--s98p-control-bg:linear-gradient(180deg,#191d20,#0b0d0e);--s98p-control-hover:linear-gradient(180deg,#21262a,#15191b);--s98p-control-edge:#343c41}
@@ -1312,7 +1615,6 @@
       :root.soft98-pro-theme [data-soft98-pro-article-meta] a:not(:hover,:focus-visible){color:var(--s98p-link)!important}
       :root.soft98-pro-theme article:has(>[data-soft98-pro-article-header]){--s98p-article-band:linear-gradient(90deg,var(--s98p-elevated),var(--s98p-surface))}
       :root.soft98-pro-theme article > :is([data-soft98-pro-article-header],[data-soft98-pro-article-meta]){background:var(--s98p-article-band)!important}
-      :root.soft98-pro-theme [data-soft98-pro-nav-chrome]{background:linear-gradient(165deg,color-mix(in srgb,var(--s98p-elevated) 92%,transparent),color-mix(in srgb,var(--s98p-nav) 85%,transparent))!important;box-shadow:0 1px #ffffff17 inset,0 10px 28px #0006!important;backdrop-filter:blur(18px) saturate(135%)}
       :root.soft98-pro-theme [data-soft98-pro-nav-item]{transition:background .16s ease,box-shadow .16s ease,color .16s ease!important}
       :root.soft98-pro-theme [data-soft98-pro-nav-item]:is(:hover,:focus-visible,[aria-expanded=true]){box-shadow:0 1px #ffffff24 inset,0 -2px color-mix(in srgb,var(--s98p-accent) 64%,transparent) inset!important}
       :root.soft98-pro-theme [data-soft98-pro-header-icon] > :not([data-soft98-pro-page-icon]):not([data-soft98-pro-nav-indicator]){display:none!important}
@@ -1335,25 +1637,16 @@
       :root.soft98-pro-theme [data-soft98-pro-news-counter] svg{width:12px;height:12px;color:inherit!important}
       :root.soft98-pro-theme details[data-soft98-pro-faq] > summary{transition:color .18s ease,background .18s ease;border-radius:6px}
       :root.soft98-pro-theme details[data-soft98-pro-faq] > summary:is(:hover,:focus-visible){background:var(--s98p-surface-2)!important}
-      :root.soft98-pro-theme details[data-soft98-pro-faq] > summary svg{transition:transform .22s cubic-bezier(.2,.8,.2,1)}
-      :root.soft98-pro-theme details[data-soft98-pro-faq][open]:not([data-soft98-pro-closing]) > summary [data-soft98-pro-page-icon=chevron]{rotate:-90deg}
-      :root.soft98-pro-theme details[data-soft98-pro-faq]:dir(ltr)[open]:not([data-soft98-pro-closing]) > summary [data-soft98-pro-page-icon=chevron]{rotate:90deg}
-      :root.soft98-pro-theme details[data-soft98-pro-faq] > summary [data-soft98-pro-page-icon=chevron]{transition:rotate .24s cubic-bezier(.2,.8,.2,1)}
       :root.soft98-pro-theme [data-soft98-pro-utility-card]>footer [data-soft98-pro-page-icon=chevron]{transition:rotate .24s cubic-bezier(.2,.8,.2,1)}
       :root.soft98-pro-theme [data-soft98-pro-utility-card]>footer[aria-expanded=true] [data-soft98-pro-page-icon=chevron]{rotate:180deg}
       :root.soft98-pro-theme [data-soft98-pro-read-more]{display:inline-flex!important;gap:8px;align-items:center;padding:6px 12px!important;border:1px solid var(--s98p-border)!important;border-radius:6px;background:var(--s98p-control-bg)!important;color:var(--s98p-text)!important;text-decoration:none!important;min-height:36px}
       :root.soft98-pro-theme [data-soft98-pro-read-more] > [data-soft98-pro-page-icon]{order:1;margin:0}
       :root.soft98-pro-theme [data-soft98-pro-read-more]:is(:hover,:focus-visible){background:var(--s98p-control-hover)!important;border-color:var(--s98p-accent)!important}
-      :root.soft98-pro-theme [data-soft98-pro-search]{max-inline-size:min(720px,calc(100vw - 20px))!important;max-block-size:calc(100dvh - 66px);overflow:auto!important}
-      :root.soft98-pro-theme [data-soft98-pro-search] :is(form,input,div){box-sizing:border-box;max-inline-size:100%}
-      :root.soft98-pro-theme [data-soft98-pro-search] img{background:var(--s98p-surface-2)!important;border-radius:5px;mix-blend-mode:normal}
-      :root.soft98-pro-theme [data-soft98-pro-search] img[data-soft98-pro-search-art]{object-fit:contain;padding:2px}
       :root.soft98-pro-theme [data-soft98-pro-dialog]{background:rgba(4,8,12,.34)!important;backdrop-filter:blur(7px);overscroll-behavior:contain}
       :root.soft98-pro-theme [data-soft98-pro-dialog-panel]{background:color-mix(in srgb,var(--s98p-surface) 96%,transparent)!important;border:1px solid var(--s98p-border)!important;border-radius:8px!important;box-shadow:0 16px 55px #0008,0 1px #ffffff15 inset!important;max-block-size:calc(100dvh - 32px);max-inline-size:calc(100vw - 26px);overflow:auto}
       :root.soft98-pro-theme [data-soft98-pro-dialog-header]{position:sticky;inset-block-start:0;z-index:1;background:var(--s98p-elevated)!important;color:var(--s98p-text)!important;border-block-end:1px solid var(--s98p-border)!important;padding:12px 16px}
       :root.soft98-pro-theme [data-soft98-pro-dialog="notice"] :is([role=document],[data-soft98-pro-dialog-panel]){transition:opacity .16s ease!important;transform:none!important;animation:none!important}
       :root.soft98-pro-theme [data-soft98-pro-dialog]:not([open])[data-soft98-pro-native-dialog]{display:none!important}
-      :root.soft98-pro-theme dialog[data-soft98-pro-native-dialog]::backdrop{background:#060a105e;backdrop-filter:blur(7px)}
       :root.soft98-pro-theme dialog[data-soft98-pro-native-dialog]{margin:auto;padding:0;color:var(--s98p-text);direction:inherit;inset:auto 0;max-inline-size:min(680px,calc(100vw - 24px))}
       :root.soft98-pro-theme dialog[aria-labelledby=soft98-pro-utility-title]{position:fixed;inset:0;inline-size:min(560px,calc(100vw - 24px));max-block-size:calc(100dvh - 32px);overscroll-behavior:contain}
       :root.soft98-pro-theme dialog[aria-labelledby=soft98-pro-utility-title] > header{display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:8;isolation:isolate}
@@ -1364,40 +1657,29 @@
       :root.soft98-pro-theme [data-soft98-pro-legacy-accent~="background-color"]{background-color:color-mix(in srgb,var(--s98p-accent) 23%,var(--s98p-surface))!important}
       :root.soft98-pro-theme [data-soft98-pro-legacy-accent~="border-block-start-color"]{border-block-start-color:var(--s98p-accent)!important}
       :root.soft98-pro-theme [data-soft98-pro-legacy-accent~="border-inline-start-color"]{border-inline-start-color:var(--s98p-accent)!important}
-      :root.soft98-pro-theme [data-soft98-pro-read-preview]{position:relative;display:inline-block;margin-inline-start:6px}
-      :root.soft98-pro-theme [data-soft98-pro-read-preview] > button{min-height:36px;padding-inline:9px}
-      :root.soft98-pro-theme [data-soft98-pro-preview-panel]{position:absolute;inset-inline-start:0;inset-block-end:100%;z-index:8;min-width:min(250px,75vw);max-width:min(340px,85vw);display:grid;gap:5px;padding:12px;border:1px solid var(--s98p-border);border-radius:7px;background:var(--s98p-elevated);box-shadow:0 8px 25px #0008}
-      :root.soft98-pro-theme [data-soft98-pro-preview-panel][hidden],:root:not(.soft98-pro-theme) [data-soft98-pro-read-preview]{display:none!important}
-      @media(prefers-reduced-motion:reduce){:root.soft98-pro-theme :is(details[data-soft98-pro-faq] > summary svg,[data-soft98-pro-page-icon=chevron]){transition:none}}
+      @media(prefers-reduced-motion:reduce){:root.soft98-pro-theme [data-soft98-pro-page-icon=chevron]{transition:none}}
       :root.soft98-pro-theme [data-soft98-pro-heading-divider]{border-inline-start:0!important;padding-inline-start:14px!important;position:relative!important}
       :root.soft98-pro-theme [data-soft98-pro-heading-divider]::before{content:""!important;position:absolute!important;inset-inline-start:0!important;inset-block-start:50%!important;transform:translateY(-50%)!important;width:4px!important;height:1.15em!important;border:0!important;border-radius:3px!important;background:linear-gradient(180deg,var(--s98p-link),color-mix(in srgb,var(--s98p-link) 40%,var(--s98p-border)))!important;box-shadow:0 0 8px color-mix(in srgb,var(--s98p-link) 15%,transparent)!important;pointer-events:none!important}
-      :root.soft98-pro-light{color-scheme:light;--s98p-bg:#e9eff2;--s98p-bg-2:#f2f6f8;--s98p-nav:#f5faf9;--s98p-surface:#fff;--s98p-surface-2:#edf4f5;--s98p-elevated:#e5f0f0;--s98p-soft:#deecee;--s98p-border:#a8bdc6;--s98p-border-soft:#d4e0e5;--s98p-text:#172e39;--s98p-muted:#435e6b;--s98p-faint:#556f7c;--s98p-accent:#087468;--s98p-accent-2:#8a5318;--s98p-link:#205b88;--s98p-danger:#a6294b;--s98p-control-bg:linear-gradient(180deg,#fff,#e9f3f4);--s98p-control-hover:linear-gradient(180deg,#f1faf9,#d7ebeb);--s98p-control-edge:#9cbac0;--s98p-control-shadow:0 1px #fff inset,0 1px 2px #14323f14;--s98p-light-shadow:0 8px 24px #153d4d14,0 1px 3px #153d4d0e}
       :root.soft98-pro-light{background:var(--s98p-bg)!important}
-      :root.soft98-pro-light body{background:linear-gradient(180deg,#edf7f6 0,var(--s98p-bg) 32rem)!important}
+      :root.soft98-pro-light body{background:var(--s98p-bg)!important}
+      :root.soft98-pro-light:not([data-s98p-ld-page]),:root.soft98-pro-light:not([data-s98p-ld-page]) body{background:var(--s98p-day-site-backdrop)!important}
       :root.soft98-pro-light :is(h1,h2,h3,h4,h5,h6,strong){color:var(--s98p-text)!important}
-      :root.soft98-pro-light a:hover{color:#143e62!important}
-      :root.soft98-pro-light :is(article,aside,[data-soft98-pro-surface=raised]){background:var(--s98p-surface)!important;box-shadow:var(--s98p-light-shadow)}
+      :root.soft98-pro-light a:hover{color:var(--s98p-day-info-hover)!important}
+      :root.soft98-pro-light :is(article,aside,[role=dialog],[role=menu],[role=listbox],[data-soft98-pro-surface=raised]){background:var(--s98p-surface)!important;box-shadow:var(--s98p-day-shadow)}
       :root.soft98-pro-light :is([data-soft98-pro-surface=tab-card],[data-soft98-pro-surface=tab-content],[data-soft98-pro-surface=tab-pane]){background:var(--s98p-surface)!important;color:var(--s98p-text)!important}
       :root.soft98-pro-light [data-soft98-pro-surface=tab-list]{background:var(--s98p-bg-2)!important}
       :root.soft98-pro-light :is([role=tab][aria-selected=true],[data-toggle=tab][aria-expanded=true],[data-soft98-pro-tab-active=true],[aria-current=page]){background:var(--s98p-surface-2)!important;color:var(--s98p-text)!important;border-color:var(--s98p-control-edge)!important}
-      :root.soft98-pro-light [data-soft98-pro-surface=nav-shell]{background:#f1f8f7ed!important;box-shadow:0 7px 22px #153d4d20!important}
-      :root.soft98-pro-light [data-soft98-pro-nav-chrome]{box-shadow:0 1px #fffb inset,0 6px 22px #18343e18!important}
-      :root.soft98-pro-light :is([data-soft98-pro-surface=menu],[data-soft98-pro-surface=megamenu]){background:linear-gradient(145deg,#fffffff5,#e9f3f3f2)!important;border-color:var(--s98p-border-soft)!important;box-shadow:0 16px 38px #16334229,0 1px #fff inset!important}
+      :root.soft98-pro-light :is([data-soft98-pro-surface=menu],[data-soft98-pro-surface=megamenu]){background:var(--s98p-surface)!important;border-color:var(--s98p-border-soft)!important;box-shadow:var(--s98p-day-shadow)!important}
       :root.soft98-pro-light :is([data-soft98-pro-surface=menu],[data-soft98-pro-surface=megamenu]) :is(a,button):is(:hover,:focus-visible){background:var(--s98p-soft)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border-soft)!important}
-      :root.soft98-pro-light :is(button,[role=button],input[type=button],input[type=submit]):not(#soft98-pro-control *,[data-soft98-pro-footer] *,.list-group-item-light,[data-soft98-pro-help-action]){background:var(--s98p-control-bg)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border)!important}
-      :root.soft98-pro-light :is(button,[role=button]):not(#soft98-pro-control *,[data-soft98-pro-footer] *,.list-group-item-light,[data-soft98-pro-help-action]):is(:hover,:focus-visible){background:var(--s98p-control-hover)!important;color:var(--s98p-text)!important;border-color:var(--s98p-control-edge)!important}
+      :root.soft98-pro-light:not([data-s98p-ld-page]) :is(button,[role=button],input[type=button],input[type=submit]):not(#soft98-pro-control *,[data-soft98-pro-footer] *,[data-s98p-download-confirm] *,.s98p-file-actions *,.list-group-item-light,[data-soft98-pro-help-action],[data-s98p-topbar-toggle],:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li > :is(a,button)){background:var(--s98p-control-bg)!important;color:var(--s98p-text)!important;border-color:var(--s98p-border)!important}
+      :root.soft98-pro-light:not([data-s98p-ld-page]) :is(button,[role=button]):not(#soft98-pro-control *,[data-soft98-pro-footer] *,[data-s98p-download-confirm] *,.s98p-file-actions *,.list-group-item-light,[data-soft98-pro-help-action],[data-s98p-topbar-toggle],:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li > :is(a,button)):is(:hover,:focus-visible){background:var(--s98p-control-hover)!important;color:var(--s98p-text)!important;border-color:var(--s98p-control-edge)!important}
       :root.soft98-pro-light :is(dt,dd){background:var(--s98p-bg-2)!important;border-color:var(--s98p-border-soft)!important}
       :root.soft98-pro-light dd:nth-child(odd){background:var(--s98p-surface-2)!important}
-      :root.soft98-pro-light [data-soft98-pro-download-group] a[data-soft98-pro-icon-host=download]:is(:hover,:focus-visible){color:#06554e!important}
-      :root.soft98-pro-light [data-soft98-pro-page-icon]:is([data-soft98-pro-page-icon=windows],[data-soft98-pro-page-icon=apple],[data-soft98-pro-page-icon=android],[data-soft98-pro-page-icon=linux]){--icon-color:#395665}
-      :root.soft98-pro-light [data-soft98-pro-utility-icon] > [data-soft98-pro-page-icon]{--icon-color:#395665}
+      :root.soft98-pro-light [data-soft98-pro-page-icon]:is([data-soft98-pro-page-icon=windows],[data-soft98-pro-page-icon=apple],[data-soft98-pro-page-icon=android],[data-soft98-pro-page-icon=linux]){--icon-color:var(--s98p-muted)}
       :root.soft98-pro-light [data-soft98-pro-latest] li a[data-soft98-pro-news-link] [data-soft98-pro-news-counter]{color:var(--s98p-faint)!important}
-      :root.soft98-pro-light [role=alert]{background:#fff4db!important;border-color:#e1bd78!important;color:#664214!important}
-      :root.soft98-pro-light :is(pre,code){background:#e8f1f4!important;color:#244958!important}
-      :root.soft98-pro-light ::selection{background:#bce6de;color:#123b38}
-      :root.soft98-pro-light .soft98-pro-link-badge{background:#e1f5ef;color:#0d574f;border-color:#9acabd}
-      :root.soft98-pro-light [data-soft98-pro-dialog],:root.soft98-pro-light [data-soft98-pro-native-dialog]::backdrop{background:#223c5147!important}
-      :root.soft98-pro-light [data-soft98-pro-dialog-panel]{box-shadow:0 20px 60px #16283936,0 1px #fff inset!important}
+      :root.soft98-pro-light :is(pre,code){background:var(--s98p-bg-2)!important;color:var(--s98p-text)!important}
+      :root.soft98-pro-light ::selection{background:var(--s98p-day-action-wash);color:var(--s98p-text)}
+      :root.soft98-pro-light [data-soft98-pro-dialog-panel]{box-shadow:0 20px 60px #22222636,0 1px #fff inset!important}
       @media(max-width:560px){:root.soft98-pro-theme [data-soft98-pro-nav-item=icon]{width:clamp(32px,9vw,40px);margin-inline:1px}}
       @media(max-width:560px){:root.soft98-pro-theme [data-soft98-pro-surface=tab-list]{gap:2px 4px;padding-inline:6px!important}:root.soft98-pro-theme [data-soft98-pro-surface=tab-list]>:is(li,div){flex:1 1 calc(50% - 4px)!important}:root.soft98-pro-theme [data-soft98-pro-surface=tab-list] :is([role=tab],[data-toggle=tab]){width:100%!important;padding-inline:7px!important}}
       @keyframes soft98-pro-neon{to{--s98p-neon-hue:515deg}}
@@ -1415,17 +1697,67 @@
     return { luminance: 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2], alpha: match[4] === undefined ? 1 : Number(match[4]) };
   }
 
+  function semanticCallout(node) {
+    // Recognize semantic notices first; these conventional aliases cover older article markup.
+    if (node.matches('blockquote[role="alert"],[role="note"][aria-live="assertive"],.quote-danger')) return "danger";
+    if (node.matches(".alert-secondary") || (node.matches("div,section,aside") &&
+        Array.prototype.some.call(node.children, child => child.matches('[itemscope][itemtype$="/FAQPage"]')))) return "notice";
+    if (node.matches('blockquote,[role="note"],.quote')) return "quote";
+    return "";
+  }
+
+  function legacyCallout(node, style) {
+    if (!node.matches("div,section,aside,p") || !node.closest("article,main,[role=dialog]")) return "";
+    if (style.color === "rgb(137, 137, 137)" && style.borderTopColor === "rgb(63, 63, 63)" &&
+        style.backgroundImage.includes("rgb(39, 39, 39), rgb(36, 36, 36)")) return "quote";
+    if (style.backgroundColor === "rgb(23, 23, 23)" && style.borderTopColor === "rgb(33, 33, 33)" &&
+        style.color === "rgb(183, 183, 183)") return "notice";
+    return "";
+  }
+
   function applyProThemeHeuristics(root) {
     if (!settings.pro) return;
     const element = asElement(root) || document;
-    const surfaces = [];
-    if (element.matches && element.matches("header,nav,main,article,aside,section,footer,form,table,[role]")) surfaces.push(element);
-    if (element.querySelectorAll) surfaces.push(...element.querySelectorAll("header,nav,main,article,aside,section,footer,form,table,[role],div"));
+    if (document.body?.classList.contains("night-mode")) {
+      // Match the site's blanket night-mode filter, not the generated article class.
+      const selector = "article img";
+      const images = [...element.querySelectorAll(selector)];
+      if (element.matches?.(selector)) images.unshift(element);
+      for (const image of images) {
+        if (image.style.filter) image.removeAttribute("data-s98p-stock-artwork-filter");
+      }
+      const dimmed = images.filter(image => !image.style.filter && !image.hasAttribute("data-s98p-stock-artwork-filter") && !isOwnedInterface(image) &&
+        /^saturate\(1\.2\)brightness\(0?\.8\)$/.test(getComputedStyle(image).filter.replace(/\s/g, "")));
+      for (const image of dimmed) image.setAttribute("data-s98p-stock-artwork-filter", "");
+    }
+    const surfaceSelector = "header,nav,main,article,aside,section,footer,form,table,[role],div,blockquote,.quote,.quote-danger,.alert-secondary";
+    const surfaces = [...element.querySelectorAll(surfaceSelector)];
+    if (element.matches?.(surfaceSelector)) surfaces.unshift(element);
     for (const node of surfaces) {
-      if (node.closest("#soft98-pro-control,#soft98-extension-recommendation,#soft98-ad-blocker-taunt")) continue;
+      if (node.closest("#soft98-pro-control,#soft98-extension-recommendation,#soft98-ad-blocker-taunt,[data-soft98-pro-search]")) continue;
+      const semantic = semanticCallout(node);
+      const tagged = node.getAttribute("data-soft98-pro-callout");
+      if (semantic || tagged) {
+        if (semantic && semantic !== tagged) node.setAttribute("data-soft98-pro-callout", semantic);
+        continue;
+      }
       const box = visibleBox(node);
       if (box.width < 120 || box.height < 28 || box.width * box.height < 4200) continue;
-      const background = colorMetrics(getComputedStyle(node).backgroundColor);
+      const style = getComputedStyle(node);
+      const legacy = legacyCallout(node, style);
+      if (legacy) {
+        node.setAttribute("data-soft98-pro-callout", legacy);
+        continue;
+      }
+      const backgroundColor = style.backgroundColor;
+      const background = colorMetrics(backgroundColor);
+      if (/^rgb\((37|38|39|43|66), \1, \1\)$/.test(backgroundColor) &&
+          (node.matches("main,aside,article,section,blockquote,:is(main,article,[role=dialog]) :is(div,footer),[role=tabpanel]") ||
+            node.matches("div:not([role=dialog]):has(> :is(main,article,aside)),aside footer") ||
+            (backgroundColor === "rgb(39, 39, 39)" && node.matches("div:not([role=dialog])")))) {
+        if (!node.hasAttribute("data-soft98-pro-surface")) node.setAttribute("data-soft98-pro-surface", "raised");
+        continue;
+      }
       if (!background || background.alpha < 0.45 || (document.documentElement.classList.contains("soft98-pro-light")
         ? background.luminance > 0.24 : background.luminance < 0.55)) continue;
       node.setAttribute("data-soft98-pro-surface", node.matches("nav,[role=navigation]") ? "nav" : "raised");
@@ -1453,6 +1785,11 @@
 
   function applyInteractiveSurfaceHeuristics() {
     const candidates = new Set();
+    const topbar = document.querySelector('nav:has([data-toggle="night-mode"]),header nav');
+    if (topbar) {
+      syncSiteSearch(topbar.querySelector('[data-toggle="search"]'));
+      markTopbar(topbar);
+    }
     for (const navigation of document.querySelectorAll("nav,[role=navigation]")) {
       const shell = navigation.parentElement;
       if (!shell || shell === document.body) continue;
@@ -1464,7 +1801,7 @@
       const navigationBox = visibleBox(navigation);
       if (navigationBox.width >= Math.min(1200, window.innerWidth * 0.72) && navigationBox.height <= 120) {
         for (const item of navigation.querySelectorAll("li > :is(a[href],button), :scope > button")) {
-          if (item.closest("[data-soft98-pro-menu]") || item.closest("li")?.parentElement.closest("li")) continue;
+          if (item.closest("[data-soft98-pro-menu],[data-soft98-pro-search]") || item.closest("li")?.parentElement.closest("li")) continue;
           const bounds = visibleBox(item);
           if (!bounds.height || bounds.height > 72) continue;
           item.setAttribute("data-soft98-pro-nav-item", item.textContent.trim() ? "label" : "icon");
@@ -1493,7 +1830,8 @@
       for (const candidate of owner.querySelectorAll("div,ul,ol,section")) candidates.add(candidate);
     }
     for (const candidate of candidates) {
-      if (candidate.closest("#soft98-pro-control")) continue;
+      if (candidate.matches("[data-s98p-topbar-shell],[data-s98p-topbar-drawer],[data-s98p-topbar-actions],[data-s98p-topbar-categories]") ||
+          candidate.closest("#soft98-pro-control,[data-soft98-pro-search]")) continue;
       const style = getComputedStyle(candidate);
       if (!/absolute|fixed/.test(style.position) && !candidate.matches("[role=menu],[role=listbox]")) continue;
       const interactive = candidate.querySelectorAll("a[href],button,[role=menuitem]").length;
@@ -1506,11 +1844,105 @@
       candidate.setAttribute("data-soft98-pro-surface", kind);
       candidate.setAttribute("data-soft98-pro-menu", "true");
       if (kind === "megamenu") organizeMegamenu(candidate);
+      if (kind === "megamenu" || candidate.matches("[data-s98p-topbar-categories] > li > *")) markCategoryMenuLinks(candidate);
       for (const column of candidate.querySelectorAll(":scope>div,:scope>ul,:scope>ol,:scope>section")) {
         if (column.querySelectorAll("a[href],button,[role=menuitem]").length >= 2) column.setAttribute("data-soft98-pro-menu-column", "true");
       }
     }
     applyTabSurfaceHeuristics();
+  }
+
+  function markTopbar(nav) {
+    nav.setAttribute("data-soft98-pro-nav-chrome", "");
+    nav.setAttribute("data-soft98-pro-wide-nav", "");
+    const shell = [nav, nav.parentElement].find((node) => node && /^(?:fixed|sticky)$/.test(getComputedStyle(node).position)) || nav;
+    shell.setAttribute("data-s98p-topbar-shell", "");
+    const brand = nav.querySelector(':scope > a[rel~="home"], :scope > [data-soft98-brand-compact]');
+    brand?.setAttribute("data-s98p-topbar-brand", "");
+    if (topbarNav !== nav) topbarNav?.removeAttribute("data-s98p-topbar-no-brand");
+    topbarNav = nav;
+    topbarBrand = brand;
+    syncTopbarBrandSpace();
+    const setStructure = (node, name) => {
+      if (!node) return;
+      node.setAttribute("data-s98p-topbar-" + name, "");
+      if (node.hasAttribute("data-soft98-pro-menu")) {
+        for (const key of ["surface", "menu", "mega-frame", "menu-column"]) node.removeAttribute("data-soft98-pro-" + key);
+      }
+      if (name === "categories") markCategoryControls(node);
+    };
+    const actions = nav.querySelector('[data-toggle="night-mode"],[data-toggle="search"]')?.closest("ul,ol");
+    setStructure(actions, "actions");
+    for (const toggle of nav.querySelectorAll(":scope > button[aria-controls], :scope > button[data-target]")) {
+      const id = toggle.getAttribute("aria-controls") || toggle.getAttribute("data-target")?.replace(/^#/, "");
+      const panel = id && document.getElementById(id);
+      if (panel?.parentElement !== nav) continue;
+      const categories = [...panel.querySelectorAll("ul,ol")].find((group) => group !== actions &&
+        [...group.children].filter((item) => item.querySelector(":scope > a[href], :scope > button")).length >= 2);
+      if (!categories) continue;
+      setStructure(panel, "drawer");
+      setStructure(categories, "categories");
+      toggle.setAttribute("data-s98p-topbar-toggle", "");
+    }
+    for (const group of nav.querySelectorAll(":scope > ul,:scope > ol")) {
+      if (group === actions || group.childElementCount < 2 || !group.querySelector(":scope > li > a[href]")) continue;
+      setStructure(group, "categories");
+    }
+  }
+
+  function syncTopbarBrandSpace() {
+    if (!topbarNav?.isConnected) return;
+    let hidden = false;
+    if (settings.pro && window.scrollY <= 0 && topbarBrand?.isConnected) {
+      const style = getComputedStyle(topbarBrand);
+      hidden = Number(style.opacity) <= 0.01 || style.visibility === "hidden";
+    }
+    topbarNav.toggleAttribute("data-s98p-topbar-no-brand", hidden);
+  }
+
+  function categoryIcon(control) {
+    const label = normalizedPersian(control.textContent.trim()).toLowerCase();
+    const path = control.pathname?.split("/")[1];
+    const byPath = { os: "desktop", software: "apps", mobile: "phone", plugins: "headphones", learning: "book", android: "androidOutline" };
+    if (control.host === "forum.soft98.ir") return "forums";
+    if (control.pathname === "/" && !control.hash) return "home";
+    if (!control.hash && Object.hasOwn(byPath, path)) return byPath[path];
+    if (/رفع.*مشکل|پشتیبانی|troubleshoot|support/u.test(label)) return "support";
+    if (/سیستم.?عامل|^systems?$|operatingsystems?/u.test(label)) return "desktop";
+    if (/اندروید|android/u.test(label)) return "androidOutline";
+    if (/^نرمافزار|software|اپلیکیشن/u.test(label)) return "apps";
+    if (/موبایل|mobile/u.test(label)) return "phone";
+    if (/پلاگین|افزونه|plug-?ins?|headphones/u.test(label)) return "headphones";
+    if (/آموزش|راهنما|learning|guides?|tutorials?/u.test(label)) return "book";
+    if (/انجمن|forums?/u.test(label)) return "forums";
+    return null;
+  }
+
+  function markCategoryControls(group) {
+    const dropdown = '[data-toggle="dropdown"],[aria-haspopup="menu"],[aria-haspopup="true"]';
+    for (const item of group.children) {
+      const hasMenu = Boolean(item.querySelector(`:scope > :is(${dropdown},[role="menu"])`));
+      // Some categories use a different trigger on desktop and in the compact drawer.
+      for (const control of item.querySelectorAll(":scope > :is(a[href],button)")) {
+        const category = categoryIcon(control);
+        const existing = control.querySelector(":scope > [data-s98p-category-icon]");
+        if (category && existing?.getAttribute("data-s98p-category-icon") !== category) {
+          const icon = existing || document.createElement("span");
+          icon.setAttribute("data-s98p-category-icon", category);
+          icon.setAttribute("aria-hidden", "true");
+          icon.innerHTML = PAGE_ICONS[category];
+          if (!existing) control.prepend(icon);
+        }
+        if (!hasMenu) continue;
+        const indicator = control.querySelector(":scope > [data-soft98-pro-nav-indicator]") || document.createElement("span");
+        if (indicator.hasAttribute("data-s98p-topbar-chevron")) continue;
+        indicator.setAttribute("data-soft98-pro-nav-indicator", "");
+        indicator.setAttribute("data-s98p-topbar-chevron", "");
+        indicator.setAttribute("aria-hidden", "true");
+        indicator.innerHTML = PAGE_ICONS.chevronDown;
+        if (!indicator.parentElement) control.append(indicator);
+      }
+    }
   }
 
   function organizeMegamenu(menu) {
@@ -1540,6 +1972,20 @@
     }
   }
 
+  function markCategoryMenuLinks(menu) {
+    if (!menu.hasAttribute("data-s98p-category-menu")) menu.setAttribute("data-s98p-category-menu", "");
+    for (const link of menu.querySelectorAll('a[href]:not([href^="#"],[role="button"])')) {
+      if (link.closest("[data-soft98-pro-mega-heading],[data-soft98-pro-platform-links]") ||
+          link.querySelector(":scope > [data-s98p-menu-arrow]")) continue;
+      const arrow = document.createElement("span");
+      arrow.setAttribute("data-s98p-menu-arrow", "");
+      arrow.setAttribute("aria-hidden", "true");
+      arrow.innerHTML = PAGE_ICONS.arrow;
+      link.setAttribute("data-s98p-menu-link", "");
+      link.append(arrow);
+    }
+  }
+
   function groupMegamenuPlatformLinks(row) {
     const nodes = [...row.childNodes].filter((node) => node.nodeType !== Node.COMMENT_NODE && node.textContent.trim());
     const [label, ...tail] = nodes;
@@ -1549,12 +1995,17 @@
     if (!tail.every((node, i) => i % 2 === 0 ? node.nodeType === Node.ELEMENT_NODE && node.matches("a[href]") :
       node.nodeType === Node.TEXT_NODE && node.data.trim() === "|")) return;
     const links = document.createElement("span");
+    const stock = [...row.childNodes];
     links.setAttribute("data-soft98-pro-platform-links", "");
     row.setAttribute("data-soft98-pro-platform-row", "");
-    label.data = label.data.replace(/\s*\(\s*$/, " ");
+    replaceStockText(label, label.data.replace(/\s*\(\s*$/, " "));
     label.after(links);
     links.append("(", ...tail, end);
-    end.data = ")";
+    replaceStockText(end, ")");
+    undoWithTheme(links, () => {
+      row.replaceChildren(...stock);
+      row.removeAttribute("data-soft98-pro-platform-row");
+    });
   }
 
   function tabTarget(trigger) {
@@ -1562,6 +2013,63 @@
     const hash = raw.includes("#") ? raw.slice(raw.indexOf("#")) : raw ? `#${raw}` : "";
     if (!/^#[A-Za-z][\w:.-]*$/.test(hash)) return null;
     return document.getElementById(hash.slice(1));
+  }
+
+  function syncSiteSearch(trigger) {
+    const panel = trigger && tabTarget(trigger);
+    const field = panel?.querySelector('input[type="search"]');
+    const form = field?.form;
+    if (!form || !panel.contains(form)) return null;
+    if (!panel.hasAttribute("data-soft98-pro-search")) {
+      undoWithTheme(panel, () => {
+        panel.removeAttribute("data-soft98-pro-search");
+        panel.removeAttribute("data-s98p-search-open");
+        panel.style.removeProperty("--s98p-search-left");
+        panel.style.removeProperty("--s98p-search-top");
+        for (const node of panel.querySelectorAll("[data-s98p-search-form],[data-s98p-search-results]")) {
+          node.removeAttribute("data-s98p-search-form");
+          node.removeAttribute("data-s98p-search-results");
+        }
+      });
+      panel.setAttribute("data-soft98-pro-search", "");
+      panel.removeAttribute("data-soft98-pro-surface");
+    }
+    form.setAttribute("data-s98p-search-form", "");
+    if (field.dir !== "auto") {
+      undoWithTheme(field, restoreStockAttributes(field, ["dir"]));
+      field.dir = "auto";
+    }
+    const reference = (field.getAttribute("data-autocomplete") || field.getAttribute("aria-controls") || "").replace(/^#/, "");
+    const results = (reference && document.getElementById(reference)) || form.querySelector(
+      ':scope > :is([role="listbox"],div:has([data-toggle="search-history-clear"]))'
+    );
+    if (results && form.contains(results)) results.setAttribute("data-s98p-search-results", "");
+    const clear = form.querySelector('button[data-toggle="search-clear"]');
+    if (clear && !clear.hasAttribute("data-s98p-search-clear")) {
+      const restoreClear = restoreStockAttributes(clear, ["aria-label", "title"]);
+      undoWithTheme(clear, () => {
+        restoreClear();
+        clear.removeAttribute("data-s98p-search-clear");
+      });
+      clear.setAttribute("data-s98p-search-clear", "");
+      clear.setAttribute("aria-label", text("clearSearch"));
+      clear.title = text("clearSearch");
+      decorateIcon(clear, "close");
+    }
+    const open = !panel.hidden && panel.getAttribute("aria-hidden") !== "true" &&
+      (trigger.getAttribute("aria-expanded") === "true" || trigger.classList.contains("active"));
+    panel.toggleAttribute("data-s98p-search-open", open);
+    if (open) {
+      const anchor = trigger.getBoundingClientRect();
+      const bar = trigger.closest("[data-s98p-topbar-shell]")?.getBoundingClientRect();
+      const width = document.documentElement.clientWidth;
+      const left = Math.max(8, Math.min(anchor.left, width - 8 - Math.min(520, width - 16)));
+      const values = { "--s98p-search-left": `${Math.round(left)}px`, "--s98p-search-top": `${Math.round(bar?.bottom ?? anchor.bottom) + 6}px` };
+      for (const [name, value] of Object.entries(values)) {
+        if (panel.style.getPropertyValue(name) !== value) panel.style.setProperty(name, value);
+      }
+    }
+    return { panel, field, open };
   }
 
   function applyTabSurfaceHeuristics() {
@@ -1639,7 +2147,7 @@
       if (main.closest("#soft98-pro-control,#soft98-extension-recommendation,#soft98-ad-blocker-taunt")) continue;
       let container = main.parentElement;
       for (let depth = 0; container && depth < 3; depth += 1, container = container.parentElement) {
-        const children = [...container.children];
+        const children = [...container.children].filter((child) => !child.hasAttribute("data-s98p-related-rail"));
         const primary = children.find((child) => child === main || child.contains(main));
         const secondary = children.find((child) => child !== primary && (child.matches("aside") || child.querySelector("aside")));
         if (children.length !== 2 || !primary || !secondary) continue;
@@ -1651,7 +2159,6 @@
         const direction = document.documentElement.dir || getComputedStyle(container).direction;
         container.setAttribute("data-soft98-pro-layout", "content-grid");
         container.setAttribute("data-soft98-pro-reading", direction === "rtl" ? "rtl" : "ltr");
-        if (container.parentElement?.matches("div")) container.parentElement.setAttribute("data-soft98-pro-page-surface", "");
         for (let wrapper = container.parentElement, depth = 0; wrapper && wrapper !== document.body && depth < 3; wrapper = wrapper.parentElement, depth += 1) {
           const max = Number.parseFloat(getComputedStyle(wrapper).maxWidth);
           if (wrapper === container.parentElement || (max >= 1100 && max <= 2200)) {
@@ -1671,10 +2178,213 @@
     return [...sidebar.querySelectorAll("header,a[href],button,form,img,iframe")].some((node) => isLiveSidebarCard(node, sidebar));
   }
 
+  function restoreDock(item) {
+    if (!item) return;
+    if (item.anchor.isConnected && item.node.parentNode === item.rail) item.anchor.replaceWith(item.node);
+    else item.anchor.remove();
+    item.rail.remove();
+  }
+
+  function dockContent(node, rail) {
+    const anchor = document.createComment("Soft98 Pro original position");
+    node.before(anchor);
+    rail.append(node);
+    return { node, anchor, rail };
+  }
+
+  function removeDownloadMirror(download) {
+    if (!download) return;
+    download.resize?.disconnect();
+    download.rail.remove();
+  }
+
+  function syncWideLayout() {
+    const enabled = settings.pro && settings.compactLayout && settings.wideColumns && relatedViewport.matches;
+    for (const [grid, state] of wideLayouts) {
+      if (enabled && grid.isConnected) continue;
+      restoreDock(state.related);
+      removeDownloadMirror(state.download);
+      grid.removeAttribute("data-s98p-wide-layout");
+      wideLayouts.delete(grid);
+    }
+    if (!enabled) return;
+    for (const [grid, sidebar] of contentGrids) {
+      const primary = grid.querySelector(':scope > [data-soft98-pro-column="primary"]');
+      if (!primary || !grid.isConnected || sidebar.parentElement !== grid) continue;
+      const state = wideLayouts.get(grid) || {};
+      if (state.related && (!state.related.anchor.isConnected || state.related.node.parentNode !== state.related.rail)) {
+        restoreDock(state.related);
+        state.related = null;
+      }
+      if (state.download && (!downloadsViewport.matches || !primary.contains(state.download.source) || state.download.rail.parentNode !== sidebar)) {
+        removeDownloadMirror(state.download);
+        state.download = null;
+      }
+      if (!state.related) {
+        const related = primary.querySelector("[data-soft98-pro-related]");
+        if (related) {
+          const rail = document.createElement("aside");
+          rail.setAttribute("data-s98p-related-rail", "");
+          rail.setAttribute("aria-label", text("wideRelated"));
+          grid.append(rail);
+          state.related = dockContent(related, rail);
+        }
+      }
+      if (downloadsViewport.matches && !state.download) {
+        const lists = [...primary.querySelectorAll("article [role=tabpanel] dl[data-soft98-pro-download-group]")]
+          .filter((list) => list.querySelector("dd a[data-soft98-pro-download-row]") &&
+            [...list.querySelectorAll("dd > a[href]")].some((link) => downloadDestination(link)));
+        const list = lists.length === 1 && lists[0];
+        if (list) {
+          const rail = document.createElement("section");
+          rail.setAttribute("data-s98p-download-rail", "");
+          const header = document.createElement("header");
+          const title = document.createElement("h2");
+          title.setAttribute("data-soft98-pro-heading-divider", "");
+          title.textContent = text("articlePreview");
+          const mirror = document.createElement("dl");
+          mirror.setAttribute("data-soft98-pro-download-group", "");
+          header.append(title);
+          rail.append(header, mirror);
+          rail.setAttribute("aria-label", title.textContent);
+          sidebar.prepend(rail);
+          const resize = typeof ResizeObserver === "function" ? new ResizeObserver(scheduleContentGridUpdate) : null;
+          resize?.observe(list);
+          state.download = { source: list, rail, mirror, signature: "", resize };
+        }
+      }
+      if (state.download) syncDownloadMirror(state.download);
+      const right = state.download || hasSidebarContent(sidebar);
+      const mode = state.related ? (right ? "three" : "left") : state.download ? "right" : "";
+      if (mode) {
+        grid.setAttribute("data-s98p-wide-layout", mode);
+        wideLayouts.set(grid, state);
+      } else {
+        grid.removeAttribute("data-s98p-wide-layout");
+        wideLayouts.delete(grid);
+      }
+    }
+  }
+
+  function syncDownloadMirror(state) {
+    const rows = [];
+    const sourceHeadings = [];
+    for (const row of state.source.children) {
+      if (row.tagName === "DT") {
+        sourceHeadings.push(row);
+        const fallback = row.querySelector(":scope > [data-s98p-download-heading-fallback]");
+        const label = row.querySelector(":scope > [data-s98p-download-heading-label]");
+        rows.push(["heading", (fallback || label || row).textContent.trim(), Boolean(fallback)]);
+        continue;
+      }
+      if (row.tagName !== "DD" || row.hidden || row.style.display === "none") continue;
+      if (row.hasAttribute("data-s98p-rating")) {
+        rows.push(["rating", row.getAttribute("data-s98p-rating")]);
+        continue;
+      }
+      if (row.getAttribute("data-s98p-download-rule") === "show") {
+        rows.push(["divider"]);
+        continue;
+      }
+      const link = row.querySelector(":scope > a[href]:not([hidden])");
+      if (!link || isBadHref(link.getAttribute("href")) || !/^https?:$/i.test(link.protocol)) continue;
+      const title = link.querySelector(":scope > [data-soft98-pro-download-copy] > [data-soft98-pro-download-title]");
+      rows.push(["link", link.href, (title || link).textContent.trim(), link.target, link.rel,
+        link.getAttribute("download"), link.getAttribute("data-soft98-pro-inline-size")]);
+    }
+    const signature = JSON.stringify(rows);
+    const pairHeadings = () => {
+      [...state.mirror.children].filter(row => row.tagName === "DT").forEach((row, index) =>
+        mirroredDownloadHeadings.set(row, sourceHeadings[index]));
+    };
+    if (state.signature === signature) {
+      pairHeadings();
+      return;
+    }
+    state.signature = signature;
+    const fragment = document.createDocumentFragment();
+    for (const [kind, value, title, target, rel, download, size] of rows) {
+      const row = document.createElement(kind === "heading" ? "dt" : "dd");
+      if (kind === "heading") {
+        const label = document.createElement("span");
+        if (title) label.setAttribute("data-s98p-download-heading-fallback", "");
+        label.textContent = value;
+        row.append(label);
+      } else if (kind === "rating") {
+        row.textContent = `(${value}/5)`;
+      } else if (kind === "divider") {
+        row.append(document.createElement("hr"));
+      } else {
+        const link = document.createElement("a");
+        link.href = value;
+        link.textContent = title;
+        if (target) link.target = target;
+        if (rel) link.rel = rel;
+        if (download !== null) link.setAttribute("download", download);
+        if (size) link.setAttribute("data-soft98-pro-inline-size", size);
+        row.append(link);
+      }
+      fragment.append(row);
+    }
+    state.mirror.replaceChildren(fragment);
+    pairHeadings();
+  }
+
+  function updateDownloadMirrorOpacity() {
+    if (![...wideLayouts.values()].some(state => state.download)) return;
+    const viewport = controlViewport();
+    const bar = document.querySelector("[data-s98p-topbar-shell]")?.getBoundingClientRect();
+    const top = bar?.top <= viewport.top + 1 ? Math.max(viewport.top, bar.bottom) : viewport.top;
+    const visibleHeight = viewport.bottom - top;
+    const lead = Math.min(360, visibleHeight / 3);
+    const finalOpacity = .3;
+    const reappear = settings.downloadRailReappearsAfterSource === true;
+    for (const { download } of wideLayouts.values()) {
+      if (!download) continue;
+      const { source, rail } = download;
+      const box = source.getBoundingClientRect();
+      const viewHeight = Math.min(box.height, visibleHeight);
+      let opacity = 1;
+      let inactive = false;
+      if (viewHeight > 0 && box.right > viewport.left && box.left < viewport.right) {
+        const distance = Math.max(0, box.top - viewport.bottom, reappear ? top - box.bottom : 0);
+        inactive = distance === 0;
+        if (inactive) {
+          // Keep the fade pinned at zero after the box passes unless the return fade is enabled.
+          const travelled = Math.min(box.bottom, viewport.bottom) - (reappear ? Math.max(box.top, top) : box.top);
+          opacity = finalOpacity * (1 - Math.min(1, travelled / viewHeight));
+        } else if (distance < lead) {
+          // Ease out the first 70% before contact; the rest follows the visible overlap directly.
+          opacity = finalOpacity + (1 - finalOpacity) * (distance / lead) ** 2;
+        }
+      }
+      const value = opacity.toFixed(4);
+      if (rail.style.getPropertyValue("--s98p-download-rail-opacity") !== value) {
+        rail.style.setProperty("--s98p-download-rail-opacity", value);
+        gridStyles.set(rail, rail.getAttribute("style"));
+      }
+      const hidden = opacity === 0;
+      if (inactive && rail.contains(document.activeElement)) {
+        const current = document.activeElement;
+        const original = mirroredDownloadHeadings.get(current.closest("dt"));
+        const role = current.hasAttribute("data-s98p-download-toggle") ? "[data-s98p-download-toggle]" :
+          current.dataset.soft98ProDownloadManager === "section" ? "[data-soft98-pro-download-manager=section]" :
+          "[data-s98p-download-copy-all]";
+        const replacement = original?.querySelector(role) || source.querySelector("[data-s98p-download-toggle]");
+        replacement?.focus({ preventScroll: true });
+      }
+      if (rail.inert !== inactive) rail.inert = inactive;
+      rail.toggleAttribute("data-s98p-download-rail-inactive", inactive);
+      rail.toggleAttribute("data-s98p-download-rail-faded", hidden);
+    }
+  }
+
   function scheduleContentGridUpdate() {
     if (gridFrame) return;
     gridFrame = requestAnimationFrame(() => {
       gridFrame = 0;
+      syncTopbarBrandSpace();
+      updateDownloadMirrorOpacity();
       const enabled = settings.pro && settings.compactLayout && settings.expandMain && innerWidth > 820;
       const checkContents = sidebarContentsDirty;
       sidebarContentsDirty = false;
@@ -1686,7 +2396,7 @@
         }
         if (checkContents) grid.toggleAttribute("data-soft98-pro-sidebar-empty", !hasSidebarContent(sidebar));
         const empty = grid.hasAttribute("data-soft98-pro-sidebar-empty");
-        if (empty) {
+        if (empty || grid.hasAttribute("data-s98p-wide-layout")) {
           grid.removeAttribute("data-soft98-pro-main-wide");
           continue;
         }
@@ -1781,6 +2491,21 @@
     const button = trigger?.querySelector("button");
     if (!list?.matches("ul,ol") || !card.contains(list) || !button) return;
 
+    const listeners = new AbortController();
+    const restoreTrigger = restoreStockAttributes(trigger, ["aria-expanded"]);
+    const restoreButton = restoreStockAttributes(button, ["aria-expanded", "aria-controls", "aria-label"]);
+    const inert = list.inert;
+    undoWithTheme(list, () => {
+      listeners.abort();
+      disclosureAnimations.get(list)?.cancel();
+      disclosureAnimations.delete(list);
+      list.inert = inert;
+      list.removeAttribute("data-soft98-pro-utility-extra");
+      list.removeAttribute("data-soft98-pro-utility-motion");
+      restoreTrigger();
+      restoreButton();
+      utilityDisclosures.delete(card);
+    });
     const setExpanded = (open) => {
       trigger.setAttribute("aria-expanded", String(open));
       button.setAttribute("aria-expanded", String(open));
@@ -1806,7 +2531,7 @@
       });
       trigger.setAttribute("aria-expanded", String(open));
       button.setAttribute("aria-expanded", String(open));
-    }, true);
+    }, { capture: true, signal: listeners.signal });
   }
 
   function syncNativeNightMode() {
@@ -1829,8 +2554,13 @@
     for (const heading of document.querySelectorAll("section > header > :is(h2,h3,h4,h5,h6)")) {
       if (normalizedPersian(heading.textContent || "") !== "مطالبمشابه") continue;
       const card = heading.parentElement.parentElement;
-      if (card.querySelector(":scope > :is(ul,ol) > li > a[href]")) card.setAttribute("data-soft98-pro-related", "");
+      const links = card.querySelectorAll(":scope > :is(ul,ol) > li > a[href]");
+      if (links.length) {
+        card.setAttribute("data-soft98-pro-related", "");
+        for (const link of links) preparePostArtwork(link);
+      }
     }
+    syncWideLayout();
     const nav = document.querySelector('nav:has([data-toggle="night-mode"]),header nav');
     if (nav) {
       nav.setAttribute("data-soft98-pro-nav-chrome", "");
@@ -1846,6 +2576,9 @@
           toggle === "dropdown" && button.closest("li")?.querySelector('a[href*="feedback"]') ? "mail" :
           button.parentElement === nav && button.hasAttribute("aria-controls") ? "menu" : null;
         if (!kind) continue;
+        if (!stockEdits.has(button)) {
+          undoWithTheme(button, restoreStockAttributes(button, ["aria-label", "aria-pressed", "title", "data-html", "data-placement"]));
+        }
         decorateIcon(button, kind);
         button.setAttribute("data-soft98-pro-header-icon", "");
         if (toggle === "night-mode" || !button.hasAttribute("aria-label")) button.setAttribute("aria-label", text("navLabels." + (kind === "sun" ? "moon" : kind)));
@@ -1855,13 +2588,16 @@
           button.removeAttribute("data-html");
           button.removeAttribute("data-placement");
         }
-        if (kind === "search" && targetNode) targetNode.setAttribute("data-soft98-pro-search", "");
       }
       for (const link of nav.querySelectorAll('a[href]')) {
+        if (link.origin === location.origin && link.pathname === "/feedback.html") {
+          link.closest("[data-soft98-pro-menu]")?.setAttribute("data-s98p-contact-menu", "");
+        }
         if (normalizedPersian(link.textContent || "") === "تبلیغات") link.remove();
       }
     }
     if (location.pathname === "/feedback.html") {
+      document.querySelector("main form:has(textarea)")?.setAttribute("data-s98p-contact-form", "");
       for (const image of document.querySelectorAll("img[src]")) {
         const url = new URL(image.src, location.href);
         if (url.origin === location.origin && url.pathname === "/support.png") (image.closest("a") || image).remove();
@@ -1878,23 +2614,10 @@
     for (const list of document.querySelectorAll("aside, [data-soft98-pro-column=secondary]")) {
       for (const card of list.querySelectorAll(":scope > section:has(> header)")) {
         const content = [...card.children].filter((node) => !node.matches("header,hr,script,style"));
-        if (content.length && content.every((node) => !isLiveSidebarCard(node))) card.remove();
+        if (content.length && content.every((node) => !isLiveSidebarCard(node))) removeWithTheme(card);
       }
       for (const rule of list.querySelectorAll(":scope > hr")) {
-        if (!isLiveSidebarCard(rule.previousElementSibling) || !isLiveSidebarCard(rule.nextElementSibling)) rule.remove();
-      }
-    }
-    for (const image of document.querySelectorAll("[data-soft98-pro-search] img")) {
-      const label = ((image.alt || "") + " " + (image.closest("a")?.pathname || "") + " " + image.src).toLowerCase();
-      const kind = /firefox/.test(label) ? "firefox" : /google[- ]?chrome/.test(label) ? "chrome" :
-        /microsoft[- ]?edge/.test(label) ? "edge" : /winrar/.test(label) ? "winrar" :
-        /revo[- ]?uninstaller/.test(label) ? "revo" : /free[- ]?download[- ]?manager/.test(label) ? "freedownloadmanager" : "";
-      if (kind && !image.hasAttribute("data-soft98-pro-search-art")) {
-        const template = document.createElement("template");
-        template.innerHTML = PAGE_ICONS[kind];
-        image.src = template.content.firstElementChild.src;
-        image.removeAttribute("srcset");
-        image.setAttribute("data-soft98-pro-search-art", "");
+        if (!isLiveSidebarCard(rule.previousElementSibling) || !isLiveSidebarCard(rule.nextElementSibling)) removeWithTheme(rule);
       }
     }
     for (const node of document.querySelectorAll("nav a, nav button, nav i, aside a, main :is(a,button,[role=button],mark)")) {
@@ -1906,6 +2629,10 @@
     styleSiteDialogs();
     syncDownloadManagerEntry(nav);
     syncUtilityPlacement(nav);
+    for (const tile of pendingArtwork.keys()) {
+      if (!tile.isConnected) discardPostArtwork(tile);
+      else if (!artworkObserver && tile.getClientRects().length) loadPostArtwork(tile);
+    }
     renderSiteFooter();
     document.documentElement.setAttribute("data-soft98-pro-chrome", "");
     if (nav?.querySelector('[data-toggle="night-mode"]')) {
@@ -1929,61 +2656,190 @@
   function bindArticlePreview(trigger) {
     if (articlePreviewTriggers.has(trigger) || !nativeFetch) return;
     const article = trigger.closest("article");
-    const headline = article?.querySelector("header :is(h1,h2,h3) a[href]");
-    const candidate = [trigger, headline].find((link) => link?.href && link.origin === location.origin &&
-      /\/\d+[^/]*\.html$/i.test(link.pathname) && link.pathname !== location.pathname);
-    if (!candidate) return;
-    const destination = new URL(candidate.href);
-    destination.hash = "";
+    const candidates = [trigger, ...article.querySelectorAll("header :is(h1,h2,h3,h4) a[href]")];
     let started = false;
+    let observer, expiry;
+    const stopWatching = () => {
+      observer?.disconnect();
+      observer = undefined;
+      clearTimeout(expiry);
+    };
     const discover = async () => {
       if (started || !settings.pro) return;
+      const candidate = candidates.find((link) => link.origin === location.origin &&
+        !link.username && !link.password && /\/\d+[^/]*\.html$/i.test(link.pathname) && link.pathname !== location.pathname);
+      if (!candidate) {
+        if (observer) return;
+        // Stock listing links get their public destination on interaction, sometimes after pointerenter.
+        observer = new MutationObserver(discover);
+        for (const link of candidates) observer.observe(link, { attributes: true, attributeFilter: ["href"] });
+        expiry = setTimeout(stopWatching, 1500);
+        return;
+      }
+      stopWatching();
+      const destination = new URL(candidate.href);
+      destination.hash = "";
       started = true;
       const links = await readArticleLinks(destination.href);
-      if (links === null) started = false;
-      if (links?.length && trigger.isConnected) renderArticlePreview(trigger, links);
+      if (!links || !settings.pro || !trigger.isConnected) {
+        started = false;
+        return;
+      }
+      if (links.length) renderArticlePreview(trigger, links, () => { started = false; });
     };
     articlePreviewTriggers.add(trigger);
     trigger.addEventListener("pointerenter", discover);
     trigger.addEventListener("focus", discover);
   }
 
-  function renderArticlePreview(trigger, links) {
+  function renderArticlePreview(trigger, links, onRemove) {
     const wrap = document.createElement("span");
+    let movement;
+    wrap.setAttribute("data-soft98-pro-read-preview", "");
+    const makeLink = ({ label, href, hideReferrer }, action = false) => {
+      const link = document.createElement("a");
+      const caption = document.createElement("bdi");
+      caption.textContent = action ? text("articlePreviewDownload") : label;
+      link.append(caption);
+      link.href = href;
+      if (hideReferrer) link.rel = "noreferrer";
+      if (action) link.title = label;
+      decorateIcon(link, "download");
+      return link;
+    };
+    trigger.after(wrap);
+    undoWithTheme(wrap, () => { movement?.abort(); wrap.remove(); onRemove(); });
+    if (links.length === 1) {
+      wrap.append(makeLink(links[0], true));
+      return;
+    }
     const button = document.createElement("button");
     const panel = document.createElement("span");
     button.type = "button";
     button.textContent = text("articlePreview");
     button.setAttribute("aria-expanded", "false");
-    panel.hidden = true;
-    wrap.setAttribute("data-soft98-pro-read-preview", "");
+    decorateIcon(button, "download");
+    const nativePopover = typeof panel.showPopover === "function";
+    if (nativePopover) panel.popover = "auto";
+    else panel.hidden = true;
     panel.setAttribute("data-soft98-pro-preview-panel", "");
     panel.setAttribute("role", "region");
     panel.setAttribute("aria-label", text("articlePreview"));
-    for (const { label, href, hideReferrer } of links) {
-      const link = document.createElement("a");
-      link.textContent = label;
-      link.href = href;
-      if (hideReferrer) link.rel = "noreferrer";
-      panel.append(link);
+    let group, section;
+    for (const link of links) {
+      if (!section || group !== link.group) {
+        group = link.group;
+        section = document.createElement("span");
+        if (group) {
+          const heading = document.createElement("bdi");
+          heading.textContent = group;
+          section.append(heading);
+        }
+        panel.append(section);
+      }
+      section.append(makeLink(link));
     }
     wrap.append(button, panel);
-    trigger.after(wrap);
-    let hover;
-    const dismiss = () => {
-      clearTimeout(hover);
-      button.setAttribute("aria-expanded", "false");
-      panel.hidden = true;
+    const isOpen = () => nativePopover ? panel.matches(":popover-open") : !panel.hidden;
+    const close = () => {
+      if (isOpen()) {
+        if (nativePopover) panel.hidePopover();
+        else {
+          panel.hidden = true;
+          updatePanel();
+        }
+      }
     };
-    const open = () => {
-      button.setAttribute("aria-expanded", "true");
-      panel.hidden = false;
+    const positionPanel = () => {
+      if (!panel.isConnected) { movement?.abort(); return; }
+      const { clientWidth: width, clientHeight: height } = document.documentElement;
+      const anchor = button.getBoundingClientRect();
+      const topbar = document.querySelector("[data-s98p-topbar-shell]");
+      const topEdge = Math.max(8, (topbar?.getBoundingClientRect().bottom || 0) + 8);
+      if (anchor.bottom < topEdge || anchor.top > height) {
+        close();
+        return;
+      }
+      const above = Math.max(0, anchor.top - topEdge - 6);
+      const below = Math.max(0, height - anchor.bottom - 14);
+      const naturalHeight = Math.min(panel.scrollHeight + 2, 320);
+      const placeBelow = below >= Math.min(naturalHeight, 240) || below >= above;
+      panel.style.maxBlockSize = Math.max(40, placeBelow ? below : above) + "px";
+      const box = panel.getBoundingClientRect();
+      const left = getComputedStyle(button).direction === "rtl" ? anchor.right - box.width : anchor.left;
+      const top = placeBelow ? anchor.bottom + 6 : anchor.top - box.height - 6;
+      panel.style.left = Math.max(8, Math.min(left, width - box.width - 8)) + "px";
+      panel.style.top = Math.max(topEdge, Math.min(top, height - box.height - 8)) + "px";
     };
-    wrap.addEventListener("pointerenter", () => { hover = setTimeout(open, 320); });
-    wrap.addEventListener("pointerleave", () => { if (!wrap.contains(document.activeElement)) dismiss(); });
-    wrap.addEventListener("focusout", (event) => { if (!wrap.contains(event.relatedTarget)) dismiss(); });
-    wrap.addEventListener("keydown", (event) => { if (event.key === "Escape") { dismiss(); button.focus(); } });
-    button.addEventListener("click", () => { if (panel.hidden) open(); else dismiss(); });
+    const updatePanel = () => {
+      movement?.abort();
+      const open = isOpen();
+      panel.toggleAttribute("data-s98p-preview-open", open);
+      button.setAttribute("aria-expanded", String(open));
+      if (!open) return;
+      positionPanel();
+      if (!isOpen()) return;
+      movement = new AbortController();
+      const options = { passive: true, signal: movement.signal };
+      window.addEventListener("resize", positionPanel, options);
+      window.addEventListener("scroll", () => {
+        movement.abort();
+        if (panel.isConnected) close();
+      }, options);
+      if (!nativePopover) {
+        document.addEventListener("pointerdown", (event) => {
+          if (!wrap.contains(event.target)) close();
+        }, { capture: true, signal: movement.signal });
+        wrap.addEventListener("keydown", (event) => {
+          if (event.key !== "Escape") return;
+          event.preventDefault();
+          close();
+          button.focus({ preventScroll: true });
+        }, options);
+      }
+    };
+    if (nativePopover) {
+      button.popoverTargetElement = panel;
+      panel.addEventListener("toggle", updatePanel);
+    } else {
+      button.addEventListener("click", () => {
+        panel.hidden = !panel.hidden;
+        updatePanel();
+      });
+    }
+  }
+
+  function extractArticlePreviewLinks(html, destination) {
+    const template = document.createElement("template");
+    template.innerHTML = html;
+    const article = template.content.querySelector("main article, article");
+    if (!article) return [];
+    const declared = new Map();
+    for (const list of article.querySelectorAll("[role=tabpanel] dl[data-json]")) {
+      const links = [...list.querySelectorAll(":scope > dd > a[data-key]")];
+      const targets = Soft98DownloadLinks.declaredArticleLinks(list.getAttribute("data-json"), links.map(link => link.dataset.key));
+      if (!targets || links.some((link, index) => {
+        const current = directDownloadUrl(link.getAttribute("href"), destination);
+        return current && current.href !== directDownloadUrl(targets[index], destination)?.href;
+      })) continue;
+      links.forEach((link, index) => declared.set(link, targets[index]));
+    }
+    const seen = new Set();
+    const files = [];
+    for (const link of article.querySelectorAll("[role=tabpanel] dl > dd a:is([href],[data-key]), a[download][href]")) {
+      const raw = link.getAttribute("href");
+      const current = directDownloadUrl(raw, destination);
+      const value = current ? raw : declared.get(link);
+      const url = current || directDownloadUrl(value, destination);
+      if (!url || BLOCKED_URL.test(url.href) || seen.has(url.href)) continue;
+      seen.add(url.href);
+      let heading = link.closest("dd")?.previousElementSibling;
+      while (heading && heading.tagName !== "DT") heading = heading.previousElementSibling;
+      files.push({ href: url.href, hideReferrer: new URL(value, destination).hostname === "href.li" || link.relList.contains("noreferrer"),
+        label: linkLabel(link).slice(0, 160) || Soft98DownloadLinks.describe(url.href).name,
+        group: heading ? linkLabel(heading).slice(0, 120) : "" });
+    }
+    return files;
   }
 
   function readArticleLinks(destination) {
@@ -2003,17 +2859,7 @@
           if (bytes > 650000) { await reader.cancel(); return null; }
           html += decoder.decode(value, { stream: true });
         }
-        const doc = new DOMParser().parseFromString(html + decoder.decode(), "text/html");
-        const seen = new Set();
-        const article = doc.querySelector("main article, article");
-        if (!article) return null;
-        return [...article.querySelectorAll("[role=tabpanel] dl > dd a[href], a[download][href]")].flatMap((link) => {
-          const url = directDownloadUrl(link.getAttribute("href"), destination);
-          if (!url || seen.has(url.href)) return [];
-          seen.add(url.href);
-          return [{ href: url.href, hideReferrer: new URL(link.getAttribute("href"), destination).hostname === "href.li",
-            label: link.textContent.trim().slice(0, 140) || url.pathname.split("/").at(-1) }];
-        }).slice(0, 12);
+        return extractArticlePreviewLinks(html + decoder.decode(), destination);
       }).catch(() => null);
     if (articlePreviewCache.size >= 24) articlePreviewCache.delete(articlePreviewCache.keys().next().value);
     articlePreviewCache.set(destination, { time: Date.now(), result });
@@ -2038,33 +2884,38 @@
     }, true);
     document.addEventListener("click", (event) => {
       if (event.target.closest?.("[data-soft98-pro-download-notice]")) dialogRequested = true;
+      const search = event.target.closest?.('nav [data-toggle="search"]');
+      if (settings.pro && search) enqueueMicrotask(() => {
+        const state = syncSiteSearch(search);
+        if (state?.open) state.field.focus({ preventScroll: true });
+      });
     }, true);
     document.addEventListener("keydown", (event) => {
-      if (!settings.pro || event.key !== "F2" || event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey ||
-          event.target.closest?.("input,textarea,select,[contenteditable=true]")) return;
+      if (!settings.pro || event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey ||
+          (event.key !== "F2" && event.key !== "Escape")) return;
       const trigger = document.querySelector('nav [data-toggle="search"]');
       if (!trigger) return;
-      event.preventDefault();
-      const target = trigger.getAttribute("data-target") || "";
-      const panel = target.startsWith("#") ? document.getElementById(target.slice(1)) : null;
-      const input = panel?.querySelector('input[type="search"]');
-      if (input === document.activeElement) return;
-      const style = input && getComputedStyle(input);
-      if (input?.getClientRects().length && style.visibility === "visible" &&
-          !panel.closest('[hidden],[aria-hidden="true"]')) {
-        input.focus({ preventScroll: true });
-        if (document.activeElement === input) return;
+      const search = syncSiteSearch(trigger);
+      if (event.key === "Escape") {
+        if (!search?.open || !search.panel.contains(event.target)) return;
+        event.preventDefault();
+        trigger.click();
+        syncSiteSearch(trigger);
+        trigger.focus({ preventScroll: true });
+        return;
       }
-      trigger.click();
-      if (!input) return;
+      if (event.target.closest?.("input,textarea,select,[contenteditable=true]") && event.target !== search?.field) return;
+      event.preventDefault();
+      if (!search?.open) trigger.click();
+      if (!search) return;
       const deadline = performance.now() + 350;
       const focusedBeforeOpen = document.activeElement;
       const focusSearch = () => {
-        if (document.activeElement !== focusedBeforeOpen || !input.isConnected) return;
-        if (input.getClientRects().length) input.focus({ preventScroll:true });
-        if (document.activeElement !== input && performance.now() < deadline) requestAnimationFrame(focusSearch);
+        if (document.activeElement !== focusedBeforeOpen || !search.field.isConnected) return;
+        if (syncSiteSearch(trigger)?.open) search.field.focus({ preventScroll: true });
+        if (document.activeElement !== search.field && performance.now() < deadline) requestAnimationFrame(focusSearch);
       };
-      requestAnimationFrame(focusSearch);
+      focusSearch();
     });
     window.addEventListener("popstate", setDialogFromHash);
     window.addEventListener("hashchange", setDialogFromHash);
@@ -2151,7 +3002,9 @@
     heading.textContent = text("utilityTitle");
     const close = document.createElement("button");
     close.type = "button";
+    close.setAttribute("data-s98p-dialog-close", "");
     close.textContent = text("close");
+    decorateIcon(close, "close");
     close.addEventListener("click", () => dialog.close());
     header.append(heading, close);
     const item = document.createElement("li");
@@ -2170,7 +3023,10 @@
     document.body.append(dialog);
     proDialogs.set("utility", dialog);
     button.addEventListener("click", () => {
-      if (!dialog.open) dialog.showModal();
+      if (!dialog.open) {
+        button.focus({ preventScroll: true });
+        dialog.showModal();
+      }
       styleSiteDialogs();
     });
     dialog.addEventListener("click", (event) => {
@@ -2182,20 +3038,86 @@
   }
 
   function syncDownloadManagerEntry(nav) {
-    if (!IS_EXTENSION || !nav || nav.querySelector('[data-soft98-pro-download-manager="open"]')) return;
+    if (!IS_EXTENSION || !document.documentElement.hasAttribute("data-s98p-header-queue-available")) return;
+    if (headerDownloads?.button.isConnected && headerDownloads.panel.isConnected && nav?.contains(headerDownloads.button)) return;
+    headerDownloads?.dispose();
+    headerDownloads = null;
+    if (!nav) return;
     const list = nav.querySelector('[data-toggle="search"]')?.closest("li")?.parentElement;
     if (!list) return;
     const item = document.createElement("li");
     const button = document.createElement("button");
     button.type = "button";
-    button.dataset.soft98ProDownloadManager = "open";
+    button.dataset.soft98ProDownloadManager = "header";
     button.setAttribute("data-soft98-pro-nav-item", "icon");
     button.setAttribute("data-soft98-pro-header-icon", "");
-    button.setAttribute("aria-label", text("articlePreview"));
-    button.title = text("articlePreview");
+    button.setAttribute("aria-label", text("headerDownloads"));
+    button.setAttribute("aria-expanded", "false");
+    button.title = text("headerDownloads");
     decorateIcon(button, "download");
+    const panel = document.createElement("section");
+    panel.id = "soft98-pro-header-queue";
+    panel.hidden = true;
+    panel.tabIndex = -1;
+    panel.setAttribute("aria-label", text("headerDownloads"));
+    panel.setAttribute("data-soft98-pro-owned", "header-queue");
+    button.setAttribute("aria-controls", panel.id);
+    if (typeof panel.showPopover === "function") panel.setAttribute("popover", "manual");
+
+    const listeners = new AbortController();
+    const observe = { signal: listeners.signal };
+    const toggleFrame = () => document.dispatchEvent(new Event("soft98-pro:header-queue-toggle"));
+    function position() {
+      const anchor = button.getBoundingClientRect();
+      const width = document.documentElement.clientWidth;
+      const height = window.innerHeight;
+      const panelWidth = Math.min(390, width - 16);
+      const top = Math.max(8, anchor.bottom + 8);
+      const left = Math.max(8, Math.min(anchor.left, width - panelWidth - 8));
+      panel.style.setProperty("--queue-width", panelWidth + "px");
+      panel.style.setProperty("--queue-height", Math.max(0, Math.min(390, height - top - 8)) + "px");
+      panel.style.left = left + "px";
+      panel.style.top = top + "px";
+    }
+    function close(restoreFocus = false) {
+      if (panel.hidden) return;
+      if (panel.hasAttribute("popover")) panel.hidePopover();
+      panel.hidden = true;
+      button.setAttribute("aria-expanded", "false");
+      toggleFrame();
+      if (restoreFocus && button.isConnected) button.focus({ preventScroll: true });
+    }
+    button.addEventListener("click", event => {
+      if (!settings.pro || event.ctrlKey || event.metaKey || event.button !== 0 || event.defaultPrevented) return;
+      if (!panel.hidden) return close(true);
+      position();
+      panel.hidden = false;
+      button.setAttribute("aria-expanded", "true");
+      if (panel.hasAttribute("popover")) panel.showPopover();
+      toggleFrame();
+      panel.focus({ preventScroll: true });
+    }, observe);
+    document.addEventListener("pointerdown", event => {
+      if (!panel.hidden && !panel.contains(event.target) && !button.contains(event.target)) close();
+    }, { ...observe, capture: true });
+    document.addEventListener("keydown", event => {
+      if (event.key !== "Escape" || panel.hidden) return;
+      event.preventDefault();
+      event.stopPropagation();
+      close(true);
+    }, { ...observe, capture: true });
+    document.addEventListener("soft98-pro:header-queue-close", () => close(true), observe);
+    window.addEventListener("resize", () => { if (!panel.hidden) position(); }, observe);
+    window.addEventListener("scroll", () => { if (!panel.hidden) position(); }, { ...observe, passive: true });
     item.append(button);
     list.append(item);
+    document.body.append(panel);
+    headerDownloads = { button, panel, close, dispose() {
+      close();
+      listeners.abort();
+      item.remove();
+      panel.remove();
+    } };
   }
 
   function renderSiteFooter() {
@@ -2225,6 +3147,9 @@
         element.href = destination;
         element.target = "_blank";
         element.rel = "noopener noreferrer";
+      } else if (key === "downloads") {
+        element.type = "button";
+        element.dataset.soft98ProDownloadManager = "open";
       } else {
         element.type = "button";
         element.addEventListener("click", key === "top" ? () => {
@@ -2245,8 +3170,10 @@
     const resources = node("div", "s98p-footer-links");
     resources.append(node("strong", "", "resources"), action("source", "github", EXTENSION_REPO),
       action("releases", "history", EXTENSION_REPO + "/releases"));
+    if (IS_EXTENSION) resources.append(action("downloads", "download"));
     const support = node("div", "s98p-footer-links");
-    support.append(node("strong", "", "support"), action("report", "external", EXTENSION_REPO + "/issues"));
+    support.append(node("strong", "", "support"), action("community", "message", COMMUNITY_URL),
+      action("report", "external", EXTENSION_REPO + "/issues"));
     main.append(brand, resources, support);
     const end = node("div", "s98p-footer-end");
     const version = node("bdi", "s98p-footer-version");
@@ -2265,6 +3192,17 @@
       getComputedStyle(node).display !== "none" && node.getAttribute("aria-hidden") !== "true" && node.getClientRects().length));
   }
 
+  function styleDialogPanel(content) {
+    content.setAttribute("data-soft98-pro-dialog-panel", "");
+    const heading = content.querySelector("h1,h2,h3,h4,h5,h6");
+    if (heading && heading.parentElement !== content) heading.parentElement.setAttribute("data-soft98-pro-dialog-header", "");
+    const tail = content.lastElementChild;
+    if (tail && heading && !tail.contains(heading) && (tail.matches("footer") ||
+        (tail.childElementCount && [...tail.children].every((node) => node.matches("button,a[href],[role=button]"))))) {
+      tail.setAttribute("data-s98p-dialog-footer", "");
+    }
+  }
+
   function styleSiteDialogs() {
     const active = new Map(proDialogs);
     siteReadOnlyDialogs.clear();
@@ -2276,9 +3214,7 @@
       const panel = frame?.firstElementChild;
       if (!panel) continue;
       target.setAttribute("data-soft98-pro-dialog", "");
-      panel.setAttribute("data-soft98-pro-dialog-panel", "");
-      const heading = panel.querySelector("h1,h2,h3,h4,h5,h6");
-      if (heading && heading.parentElement !== panel) heading.parentElement.setAttribute("data-soft98-pro-dialog-header", "");
+      styleDialogPanel(panel);
       if (trigger.querySelector('[data-soft98-pro-page-icon="bell"]')) {
         target.setAttribute("data-soft98-pro-dialog", "notice");
         active.set("download-notice", target);
@@ -2295,8 +3231,21 @@
       const heading = content?.querySelector("h1,h2,h3,h4,h5,h6");
       if (!heading) continue;
       if (!target.hasAttribute("data-soft98-pro-dialog")) target.setAttribute("data-soft98-pro-dialog", "");
-      content.setAttribute("data-soft98-pro-dialog-panel", "");
-      if (heading.parentElement !== content) heading.parentElement.setAttribute("data-soft98-pro-dialog-header", "");
+      styleDialogPanel(content);
+    }
+    const openModal = [...document.querySelectorAll('[role=dialog][data-soft98-pro-dialog]:not([aria-hidden=true])')].find(dialogVisible);
+    if (openModal) {
+      const level = Number.parseInt(getComputedStyle(openModal).zIndex, 10);
+      for (const backdrop of document.body.children) {
+        if (backdrop.id || backdrop.childElementCount || backdrop.textContent.trim() || backdrop === openModal) continue;
+        const style = getComputedStyle(backdrop);
+        const z = Number.parseInt(style.zIndex, 10);
+        if (style.position !== "fixed" || !(z < level && z >= level - 30)) continue;
+        const box = backdrop.getBoundingClientRect();
+        if (box.width >= document.documentElement.clientWidth * .95 && box.height >= innerHeight * .95) {
+          backdrop.setAttribute("data-s98p-site-backdrop", "");
+        }
+      }
     }
     const hash = /^#s98p-dialog=(utility|download-notice|help-[a-z\d-]{2,47})$/.exec(location.hash)?.[1] || "";
     const open = [...active].find(([key, node]) => (key !== "download-notice" || dialogRequested || hash) && dialogVisible(node))?.[0] || "";
@@ -2344,8 +3293,7 @@
       if (!value || isBadHref(value)) return null;
       const original = new URL(value, base);
       const url = settings.pro ? unwrapReferrerLink(original) || original : original;
-      if (url.protocol !== "https:" || url.username || url.password || url.port ||
-          !/\.(?:zip|rar|7z|exe|msi|msix|appx|dmg|apk|iso|deb|rpm|tar|gz|xz|bz2|bin|img|pkg|001)$/i.test(url.pathname)) return null;
+      if (url.username || url.password || !Soft98DownloadLinks.articleFile(url)) return null;
       if (/^\?\d+$/.test(url.search) && (url.hostname === "soft98.ir" || url.hostname.endsWith(".soft98.ir"))) url.search = "";
       return url;
     } catch (_error) {
@@ -2366,32 +3314,84 @@
     return current || directDownloadUrl(savedHref.get(link));
   }
 
+  function recoverDeclaredArticleLinks(list) {
+    if (document.readyState === "loading" || !list.hasAttribute("data-json")) return;
+    const links = [...list.querySelectorAll(":scope > dd > a[data-key]")];
+    if (!links.length) return;
+    const unresolved = links.map(link => !normalizeHref(link) || link.href === location.href);
+    if (!unresolved.some(Boolean)) return;
+    const declared = Soft98DownloadLinks.declaredArticleLinks(list.getAttribute("data-json"), links.map(link => link.dataset.key));
+    if (!declared) return;
+    const normalized = declared.map((href) => {
+      const url = new URL(href);
+      return unwrapReferrerLink(url) || url;
+    });
+    if (normalized.some(url => BLOCKED_URL.test(url.href) || url.href === location.href) ||
+        !normalized.some(url => Soft98DownloadLinks.articleFile(url)) ||
+        links.some((link, index) => !unresolved[index] && normalizeHref(link) !== normalized[index].href)) return;
+    links.forEach((link, index) => {
+      if (!unresolved[index]) return;
+      link.href = normalized[index].href;
+      if (normalized[index].href !== declared[index]) link.relList.add("noreferrer");
+      link.setAttribute(DATA_STATE, "restored");
+      stats.linksRestored++;
+    });
+  }
+
+  function markDownloadRecovery(list, pane) {
+    const row = list.parentElement;
+    const frame = row?.parentElement;
+    // Match only the site's self-referencing download gate, never general hidden content.
+    if (!pane || !list.hasAttribute("data-json") || !list.querySelector("dd a[data-key]") || !frame?.id ||
+        row.getAttribute("data-target") !== "#" + frame.id || frame === pane || !pane.contains(frame)) return;
+    for (const [node, type] of [[frame, "frame"], [row, "row"]]) {
+      if (node.hasAttribute("data-soft98-pro-download-recovery")) continue;
+      const style = getComputedStyle(node);
+      if (style.display === "none" || style.contentVisibility === "hidden" || style.pointerEvents === "none" ||
+          style.visibility === "hidden" || Number(style.opacity) === 0 ||
+          (/^(?:hidden|clip)$/.test(style.overflowY) && (style.height === "0px" || style.maxHeight === "0px"))) {
+        node.setAttribute("data-soft98-pro-download-recovery", type);
+      }
+    }
+  }
+
+  function repairStockDownloadLists() {
+    const active = new Set([...document.querySelectorAll('article :is([role=tab],[data-toggle=tab])[aria-selected=true]')].map(tabTarget));
+    for (const pane of document.querySelectorAll('article [role=tabpanel]:has(dl[data-json] a[data-key])')) {
+      const enabled = settings.blockAds && settings.patchScripts && pane.getAttribute("aria-hidden") !== "true" &&
+        (active.has(pane) || pane.matches('.active,[aria-hidden="false"]'));
+      pane.toggleAttribute("data-s98p-stock-download-pane", enabled);
+      if (!enabled) continue;
+      for (const list of pane.querySelectorAll("dl[data-json]:has(> dd > a[data-key])")) {
+        recoverDeclaredArticleLinks(list);
+        markDownloadRecovery(list, pane);
+      }
+    }
+  }
+
   function enhanceDownloadSections() {
     const panes = new Set();
-    for (const list of document.querySelectorAll("article [role=tabpanel] dl:has(> dt):has(> dd > a[href])")) {
+    let sourceIndex = 0;
+    const listSelector = "dl:has(> dt):has(> dd > a:is([href],[data-key]))";
+    const sourceLists = document.querySelectorAll("article [role=tabpanel] " + listSelector);
+    const mirrorLists = document.querySelectorAll("[data-s98p-download-rail] " + listSelector);
+    for (const list of [...sourceLists, ...mirrorLists]) {
       if (!list.hasAttribute("data-soft98-pro-download-group") &&
-          ![...list.querySelectorAll(":scope > dd > a[href]")].some((link) => directDownloadUrl(link.getAttribute("href")) ||
+          ![...list.querySelectorAll(":scope > dd > a:is([href],[data-key])")].some((link) => directDownloadUrl(link.getAttribute("href")) ||
+            (list.hasAttribute("data-json") && link.hasAttribute("data-key")) ||
             /^(?:دانلود|download)/i.test(normalizedPersian(link.textContent || "")))) continue;
       list.setAttribute("data-soft98-pro-download-group", "");
+      if (list.closest("article [role=tabpanel]")) recoverDeclaredArticleLinks(list);
+      markDownloadDividers(list);
       const pane = list.closest("[role=tabpanel]");
-      panes.add(pane);
-      const row = list.parentElement;
-      const frame = row?.parentElement;
-      // Soft98 wraps its keyed list in a self-referencing gate. Do not touch unrelated hidden content.
-      if (list.hasAttribute("data-json") && list.querySelector("dd a[data-key]") && frame?.id &&
-          row.getAttribute("data-target") === "#" + frame.id && frame !== pane && pane.contains(frame)) {
-        for (const [node, type] of [[frame, "frame"], [row, "row"]]) {
-          if (node.hasAttribute("data-soft98-pro-download-recovery")) continue;
-          const style = getComputedStyle(node);
-          if (style.display === "none" || style.contentVisibility === "hidden" || style.pointerEvents === "none" ||
-              style.visibility === "hidden" || Number(style.opacity) === 0) {
-            node.setAttribute("data-soft98-pro-download-recovery", type);
-          }
-        }
-      }
+      if (pane) panes.add(pane);
+      markDownloadRecovery(list, pane);
       let heading;
       let entries = [];
-      const finish = () => { if (heading && entries.length) enhanceDownloadHeading(heading, entries); };
+      const mirror = Boolean(list.closest("[data-s98p-download-rail]"));
+      const listIndex = mirror ? null : sourceIndex++;
+      const titles = new Map();
+      const finish = () => { if (heading && entries.length) enhanceDownloadHeading(heading, entries, mirror, listIndex, titles); };
       for (const item of list.children) {
         if (item.tagName === "DT") {
           finish();
@@ -2402,7 +3402,8 @@
           if (icon) decorateIcon(label, icon);
         } else if (item.tagName === "DD") {
           entries.push(item);
-          const links = item.querySelectorAll(":scope > a[href]");
+          const links = item.querySelectorAll(":scope > a:is([href],[data-key])");
+          if (!links.length) enhanceDownloadRating(item);
           if (links.length !== 1) continue;
           const [link] = links;
           item.setAttribute("data-soft98-pro-download-entry", "");
@@ -2428,6 +3429,64 @@
     }
   }
 
+  function enhanceDownloadRating(row) {
+    if (row.hasAttribute("data-s98p-rating") || row.querySelector("a,button,input,hr")) return;
+    const number = row.textContent.normalize("NFKC")
+      .replace(/[\u0660-\u0669\u06f0-\u06f9]/g, digit => String(digit.charCodeAt(0) & 15))
+      .replace(/\u066b/g, ".");
+    const match = /^\s*\(?\s*([0-5](?:\.\d+)?)\s*\/\s*5\s*\)?\s*$/.exec(number);
+    if (!match || Number(match[1]) > 5) return;
+    const score = Number(match[1]);
+    const format = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 2 });
+    const original = document.createElement("span");
+    original.setAttribute("data-s98p-rating-original", "");
+    original.append(...row.childNodes);
+    const rating = localizeElement(document.createElement("span"));
+    rating.setAttribute("data-s98p-rating-display", "");
+    rating.setAttribute("role", "img");
+    const name = text("userRating");
+    const value = text("userRatingScore", { score: format.format(score), total: format.format(5) });
+    rating.setAttribute("aria-label", `${name}: ${value}`);
+    const label = document.createElement("span");
+    label.setAttribute("data-s98p-rating-label", "");
+    label.textContent = name;
+    const stars = document.createElement("span");
+    stars.setAttribute("data-s98p-stars", "");
+    stars.setAttribute("aria-hidden", "true");
+    for (let index = 0; index < 5; index++) {
+      const star = document.createElement("span");
+      star.style.setProperty("--s98p-star-fill", `${Math.max(0, Math.min(1, score - index)) * 100}%`);
+      star.innerHTML = PAGE_ICONS.star + PAGE_ICONS.starFill;
+      stars.append(star);
+    }
+    const badge = document.createElement("bdi");
+    badge.setAttribute("data-s98p-rating-value", "");
+    badge.textContent = value;
+    rating.append(label, stars, badge);
+    row.setAttribute("data-s98p-rating", String(score));
+    row.append(original, rating);
+  }
+
+  function markDownloadDividers(list) {
+    let previousContent = false;
+    let pending;
+    for (const item of list.children) {
+      const separator = item.matches("dd") && item.children.length === 1 &&
+        item.firstElementChild.matches('hr,[role="separator"]:not([aria-orientation="vertical"])') && !item.textContent.trim();
+      if (separator) {
+        item.setAttribute("data-s98p-download-rule", "skip");
+        if (previousContent && !pending) pending = item;
+      } else if (item.matches("dt")) {
+        previousContent = Boolean(item.textContent.trim());
+        pending = null;
+      } else if (item.matches("dd") && (item.textContent.trim() || item.querySelector("a,button,input,img"))) {
+        if (pending) pending.setAttribute("data-s98p-download-rule", "show");
+        previousContent = true;
+        pending = null;
+      }
+    }
+  }
+
   function directSectionLinks(entries) {
     const urls = new Set();
     for (const item of entries) {
@@ -2440,24 +3499,74 @@
     return [...urls];
   }
 
-  function enhanceDownloadHeading(heading, entries) {
+  function savedDownloadSections() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(DOWNLOAD_SECTIONS_KEY) || "[]");
+      return new Map(Array.isArray(raw) ? raw.filter(entry =>
+        Array.isArray(entry) && typeof entry[0] === "string" && typeof entry[1] === "boolean").slice(-250) : []);
+    } catch (_error) { return new Map(); }
+  }
+
+  function enhanceDownloadHeading(heading, entries, mirror, listIndex, titles) {
+    let section = mirror && downloadSectionModels.get(mirroredDownloadHeadings.get(heading));
+    if (mirror && !section) return;
     let state = downloadHeadings.get(heading);
     if (!state?.controls.isConnected) {
-      heading.querySelectorAll(":scope > [data-soft98-pro-download-actions]").forEach((node) => node.remove());
+      heading.querySelectorAll(":scope > :is([data-soft98-pro-download-actions],[data-s98p-download-toggle])").forEach((node) => node.remove());
+      if (!heading.hasAttribute("data-soft98-pro-download-heading") && getComputedStyle(heading).display === "none") {
+        const stock = document.createElement("span");
+        stock.setAttribute("data-s98p-hidden-download-heading", "");
+        stock.append(...heading.childNodes);
+        const title = document.createElement("span");
+        title.setAttribute("data-s98p-download-heading-fallback", "");
+        title.textContent = text("articlePreview");
+        heading.append(stock, title);
+      }
+      let label = heading.querySelector(":scope > span:not([data-s98p-hidden-download-heading])");
+      if (!label) {
+        label = document.createElement("span");
+        label.append(...heading.childNodes);
+        heading.append(label);
+        const created = label;
+        undoWithTheme(created, () => created.replaceWith(...created.childNodes));
+      }
+      label.setAttribute("data-s98p-download-heading-label", "");
       const controls = localizeElement(document.createElement("span"));
       controls.setAttribute("data-soft98-pro-download-actions", "");
-      const toggle = downloadButton("chevron");
+      const toggle = downloadButton("minus");
+      toggle.setAttribute("data-s98p-download-toggle", "");
       const copy = downloadButton("copy");
-      copy.append(text("downloadCopyAll"));
-      controls.append(copy, toggle);
+      copy.setAttribute("data-s98p-download-copy-all", "");
+      const copyLabel = document.createElement("span");
+      copyLabel.textContent = text("downloadCopyAll");
+      copy.append(copyLabel);
+      setDownloadHint(copy, text("downloadCopyAllHint"), true);
+      controls.append(copy);
+      let review;
+      if (IS_EXTENSION) {
+        review = downloadButton("download");
+        review.dataset.soft98ProDownloadManager = "section";
+        const reviewLabel = document.createElement("span");
+        reviewLabel.textContent = text("downloadAll");
+        review.append(reviewLabel);
+        setDownloadHint(review, text("downloadAllHint"), true);
+        controls.append(review);
+      }
       heading.setAttribute("data-soft98-pro-download-heading", "");
-      heading.append(controls);
-      state = { controls, toggle, copy, entries: [], collapsed: false };
+      heading.append(controls, toggle);
+      state = { controls, toggle, copy, review, label, mirror, entries: [] };
       downloadHeadings.set(heading, state);
       toggle.addEventListener("click", (event) => {
         event.stopPropagation();
-        state.collapsed = !state.collapsed;
-        syncDownloadCollapse(state);
+        const section = state.section;
+        if (!section) return;
+        const collapsed = !downloadViewCollapsed(state);
+        const saved = savedDownloadSections();
+        saved.delete(section.key);
+        saved.set(section.key, collapsed);
+        try { localStorage.setItem(DOWNLOAD_SECTIONS_KEY, JSON.stringify([...saved].slice(-250))); } catch (_error) {}
+        section.preference = collapsed;
+        applyDownloadSectionState(section, collapsed, { animate: true, linkViews: true });
       });
       copy.addEventListener("click", async (event) => {
         event.stopPropagation();
@@ -2472,8 +3581,45 @@
         }
       });
     }
+    if (!mirror) {
+      const title = state.label.textContent.trim();
+      const normalized = normalizedPersian(title);
+      const occurrence = titles.get(normalized) || 0;
+      titles.set(normalized, occurrence + 1);
+      const key = JSON.stringify([location.pathname, "article", listIndex, normalized, occurrence]);
+      let targets = Soft98DownloadLinks.headingOS(title);
+      if (!targets.length) {
+        const labels = entries.flatMap(row => [...row.querySelectorAll(":scope > a:is([href],[data-key])")]
+          .map(link => linkLabel(link.querySelector("[data-soft98-pro-download-title]") || link)));
+        targets = Soft98DownloadLinks.groupedPlatformOS(title, labels);
+      }
+      const defaultCollapsed = Boolean(downloadDeviceOS && targets.length && !targets.includes(downloadDeviceOS));
+      section = downloadSectionModels.get(heading);
+      if (section?.key !== key) {
+        const saved = savedDownloadSections();
+        const legacyKey = listIndex === 0 ? JSON.stringify([location.pathname, "rail", 0, normalized, occurrence]) : null;
+        const preference = saved.get(key) ?? saved.get(legacyKey);
+        const sidebarStartsCollapsed = /^(?:اطلاعاتبیشتر|moreinfo(?:rmation)?|additionalinformation)$/i.test(normalized);
+        section = { key, legacyKey, preference, defaultCollapsed, sidebarStartsCollapsed, collapsed: preference ?? defaultCollapsed, views: new Set() };
+        downloadSectionModels.set(heading, section);
+      } else if (section.defaultCollapsed !== defaultCollapsed) {
+        section.defaultCollapsed = defaultCollapsed;
+        if (section.preference === undefined) applyDownloadSectionState(section, defaultCollapsed);
+      }
+    }
+    if (state.section !== section) {
+      state.section?.views.delete(state);
+      state.section = section;
+      for (const view of section.views) if (!view.toggle.isConnected) section.views.delete(view);
+      section.views.add(state);
+    }
+    const toggleFirst = settings.downloadHeaderLayout === "toggle";
+    heading.dataset.s98pDownloadHeaderLayout = toggleFirst ? "toggle" : "actions";
+    if (toggleFirst && state.toggle.nextElementSibling !== state.controls) state.controls.before(state.toggle);
+    else if (!toggleFirst && state.controls.nextElementSibling !== state.toggle) state.toggle.before(state.controls);
+    heading.dataset.s98pDownloadHeaderButtons = settings.downloadHeaderButtons === "text" ? "text" : "icons";
     state.entries = entries;
-    const ids = entries.map((row) => {
+    const ids = entries.filter((row) => !row.hasAttribute("data-s98p-download-rule")).map((row) => {
       if (!row.id) {
         let id;
         do { id = `soft98-pro-download-row-${++downloadRowId}`; } while (document.getElementById(id));
@@ -2484,17 +3630,97 @@
     if (state.toggle.getAttribute("aria-controls") !== ids) state.toggle.setAttribute("aria-controls", ids);
     const noLinks = !directSectionLinks(entries).length;
     if (state.copy.hidden !== noLinks) state.copy.hidden = noLinks;
+    if (state.review && state.review.hidden !== noLinks) state.review.hidden = noLinks;
+    if (state.controls.hidden !== noLinks) state.controls.hidden = noLinks;
     syncDownloadCollapse(state);
   }
 
-  function syncDownloadCollapse(state) {
-    for (const row of state.entries) row.toggleAttribute("data-soft98-pro-download-collapsed", state.collapsed);
-    const expanded = String(!state.collapsed);
-    if (state.toggle.getAttribute("aria-expanded") === expanded) return;
-    const label = text(state.collapsed ? "downloadExpandGroup" : "downloadCollapseGroup");
+  function toggleDownloadHeading(event) {
+    if (!settings.pro || event.defaultPrevented || event.button !== 0) return;
+    const target = event.target;
+    const heading = target.closest?.("dt[data-soft98-pro-download-heading]");
+    if (!heading || heading.closest("[inert]") ||
+        target.closest('a,button,input,select,textarea,label,summary,[role="button"],[role="link"],[contenteditable]')) return;
+    downloadHeadings.get(heading)?.toggle.click();
+  }
+
+  function downloadViewCollapsed(state) {
+    return state.section.collapsed || (state.mirror && state.section.sidebarStartsCollapsed);
+  }
+
+  function applyDownloadSectionState(section, collapsed, { animate = false, linkViews = false } = {}) {
+    if (section.collapsed === collapsed && !(linkViews && section.sidebarStartsCollapsed)) return;
+    section.collapsed = collapsed;
+    if (linkViews) section.sidebarStartsCollapsed = false;
+    for (const view of section.views) {
+      if (view.toggle.isConnected) syncDownloadCollapse(view, animate);
+      else section.views.delete(view);
+    }
+    scheduleContentGridUpdate();
+  }
+
+  function syncDownloadCollapse(state, animate = false) {
+    const collapsed = downloadViewCollapsed(state);
+    const expanded = String(!collapsed);
+    const previous = state.toggle.getAttribute("aria-expanded");
+    if (animate && previous !== expanded) animateDownloadRows(state, collapsed);
+    else for (const row of state.entries) {
+      if (!downloadRowMotion.has(row)) row.toggleAttribute("data-soft98-pro-download-collapsed", collapsed);
+    }
+    if (previous === expanded) return;
+    const label = text(collapsed ? "downloadExpandGroup" : "downloadCollapseGroup");
+    const icon = collapsed ? "plus" : "minus";
+    state.toggle.dataset.s98pDownloadToggle = icon;
+    state.toggle.innerHTML = PAGE_ICONS[icon];
+    state.toggle.firstElementChild.setAttribute("aria-hidden", "true");
     state.toggle.setAttribute("aria-expanded", expanded);
-    state.toggle.setAttribute("aria-label", label);
-    state.toggle.title = label;
+    setDownloadHint(state.toggle, label, true);
+  }
+
+  const downloadRowMotion = new WeakMap();
+  const downloadRowDimensions = ["block-size", "padding-block-start", "padding-block-end", "margin-block-start", "margin-block-end",
+    "border-block-start-width", "border-block-end-width"];
+
+  function animateDownloadRows(state, collapsed) {
+    const to = collapsed ? 0 : 1;
+    const canAnimate = !matchMedia("(prefers-reduced-motion: reduce)").matches &&
+      typeof CSS.registerProperty === "function" && typeof Element.prototype.animate === "function";
+    const rows = state.entries.map(row => {
+      const motion = downloadRowMotion.get(row);
+      const current = motion ? Number(getComputedStyle(row).getPropertyValue("--s98p-download-row-progress")) : (row.hasAttribute("data-soft98-pro-download-collapsed") ? 0 : 1);
+      if (motion) motion.finish();
+      row.removeAttribute("data-soft98-pro-download-collapsed");
+      return { row, current };
+    });
+    const measured = rows.map(({ row, current }) => {
+      const size = row.getBoundingClientRect().height;
+      if (!canAnimate || !size || current === to) return { row, current };
+      const css = getComputedStyle(row);
+      return { row, current, dimensions: [size + "px", ...downloadRowDimensions.slice(1).map(key => css.getPropertyValue(key))] };
+    });
+    for (const { row, current, dimensions } of measured) {
+      if (!dimensions) {
+        row.toggleAttribute("data-soft98-pro-download-collapsed", collapsed);
+        continue;
+      }
+      const inert = row.inert;
+      row.inert = true;
+      row.setAttribute("data-s98p-download-row-motion", "");
+      dimensions.forEach((value, index) => row.style.setProperty("--s98p-row-" + downloadRowDimensions[index], value));
+      const animation = row.animate([{ "--s98p-download-row-progress": current, opacity: current },
+        { "--s98p-download-row-progress": to, opacity: to }], { duration: 240, easing: "cubic-bezier(.2,.7,.25,1)", fill: "both" });
+      const finish = () => {
+        if (downloadRowMotion.get(row)?.animation !== animation) return;
+        downloadRowMotion.delete(row);
+        row.toggleAttribute("data-soft98-pro-download-collapsed", collapsed);
+        row.removeAttribute("data-s98p-download-row-motion");
+        row.inert = inert;
+        for (const key of downloadRowDimensions) row.style.removeProperty("--s98p-row-" + key);
+        animation.cancel();
+      };
+      downloadRowMotion.set(row, { animation, finish });
+      animation.finished.then(finish, finish);
+    }
   }
 
   function downloadButton(icon) {
@@ -2505,17 +3731,557 @@
     return button;
   }
 
+  function setDownloadHint(button, label, iconOnly = false) {
+    if (button.dataset.s98pTooltip !== label) button.dataset.s98pTooltip = label;
+    if (iconOnly && button.getAttribute("aria-label") !== label) button.setAttribute("aria-label", label);
+  }
+
+  function installDownloadHints() {
+    const selector = "[data-s98p-tooltip]";
+    let tip, target, timer, oldDescription;
+    const dismiss = () => {
+      clearTimeout(timer);
+      if (tip) tip.removeAttribute("data-visible");
+      if (target && target.getAttribute("aria-describedby")?.split(/\s+/).includes(tip?.id)) {
+        if (oldDescription === null) target.removeAttribute("aria-describedby");
+        else target.setAttribute("aria-describedby", oldDescription);
+      }
+      target = null;
+    };
+    const reveal = (button, delay) => {
+      if (!settings.pro || target === button) return;
+      dismiss();
+      target = button;
+      oldDescription = button.getAttribute("aria-describedby");
+      timer = setTimeout(() => {
+        if (!settings.pro || !button.isConnected || !button.getClientRects().length) return dismiss();
+        if (!tip) {
+          tip = localizeElement(document.createElement("span"));
+          tip.id = "soft98-pro-download-tooltip";
+          tip.setAttribute("role", "tooltip");
+        }
+        if (!tip.isConnected) document.body.append(tip);
+        tip.textContent = button.dataset.s98pTooltip;
+        const view = controlViewport();
+        const anchor = button.getBoundingClientRect();
+        const { width, height } = tip.getBoundingClientRect();
+        const center = (anchor.left + anchor.right) / 2;
+        const left = Math.max(view.left + 8, Math.min(center - width / 2, view.right - width - 8));
+        const below = anchor.top < view.top + height + 15;
+        const top = below ? anchor.bottom + 8 : anchor.top - height - 8;
+        tip.style.left = `${left}px`;
+        tip.style.top = `${Math.max(view.top + 8, Math.min(top, view.bottom - height - 8))}px`;
+        tip.style.setProperty("--s98p-tip-arrow", `${Math.max(12, Math.min(center - left, width - 12))}px`);
+        tip.dataset.side = below ? "below" : "above";
+        tip.setAttribute("data-visible", "");
+        if (button.getAttribute("aria-label") !== tip.textContent) {
+          button.setAttribute("aria-describedby", [oldDescription, tip.id].filter(Boolean).join(" "));
+        }
+      }, delay);
+    };
+    document.addEventListener("pointerover", (event) => {
+      const button = event.target.closest?.(selector);
+      if (button && event.pointerType !== "touch") reveal(button, 350);
+    });
+    document.addEventListener("pointerout", (event) => {
+      if (target?.contains(event.target) && !(event.relatedTarget instanceof Node && target.contains(event.relatedTarget)) &&
+          !target.matches(":focus-visible")) dismiss();
+    });
+    document.addEventListener("focusin", (event) => {
+      if (event.target.matches?.(selector + ":focus-visible")) reveal(event.target, 120);
+    });
+    document.addEventListener("focusout", (event) => { if (target === event.target) dismiss(); });
+    document.addEventListener("pointerdown", dismiss, true);
+    document.addEventListener("keydown", (event) => { if (event.key === "Escape") dismiss(); });
+    window.addEventListener("scroll", dismiss, { capture: true, passive: true });
+    window.addEventListener("resize", dismiss);
+  }
+
+  function defaultFileAction() {
+    return settings.downloadRowAction === "internal" ? "internal" : "copy";
+  }
+
+  function createFileControls(link) {
+    const group = document.createElement("span");
+    group.className = "s98p-file-actions";
+    const action = downloadButton("copy");
+    do { action.id = `soft98-pro-file-${++downloadRowId}`; } while (document.getElementById(action.id));
+    action.dataset.soft98ProDownloadManager = "file";
+    action.setAttribute("aria-keyshortcuts", "Shift+F10 ContextMenu");
+    const more = downloadButton("dots");
+    more.dataset.s98pFileMore = "";
+    setDownloadHint(more, text("downloadFileActions"), true);
+    more.setAttribute("aria-haspopup", "menu");
+    more.setAttribute("aria-expanded", "false");
+    group.append(action, more);
+    const badge = document.createElement("button");
+    badge.type = "button";
+    badge.dataset.soft98ProDownloadManager = "open";
+    badge.dataset.s98pFileStatus = "";
+    badge.hidden = true;
+    badge.append(document.createElement("bdi"));
+    group.prepend(badge);
+    link.after(group);
+    return group;
+  }
+
+  function downloadByteLabel(size) {
+    const units = ["B", "KiB", "MiB", "GiB", "TiB"];
+    const power = size >= 1 ? Math.min(units.length - 1, Math.floor(Math.log(size) / Math.log(1024))) : 0;
+    return `${Intl.NumberFormat("en", { maximumFractionDigits: 1 }).format(size / 1024 ** power)} ${units[power]}`;
+  }
+
+  function managedPercent(state) {
+    return Number.isSafeInteger(state?.total) && state.total > 0 && Number.isSafeInteger(state.bytes)
+      ? Math.round(Math.min(1, Math.max(0, state.bytes / state.total)) * 100) : null;
+  }
+
+  function createManagedTransfer() {
+    const node = document.createElement("span");
+    node.setAttribute("data-s98p-download-transfer", "");
+    node.innerHTML = '<progress></progress><span><bdi dir="ltr"></bdi><span data-transfer-total><span></span><bdi dir="ltr"></bdi></span><small></small></span>';
+    const nodes = node.lastElementChild.children;
+    nodes[1].firstElementChild.textContent = text("downloadTransferTotal");
+    return { node, bar: node.firstElementChild, bytes: nodes[0], total: nodes[1], eta: nodes[2] };
+  }
+
+  function paintManagedTransfer(ui, state, active) {
+    const received = Number.isSafeInteger(state?.bytes) && state.bytes >= 0 ? state.bytes : null;
+    const total = Number.isSafeInteger(state?.total) && state.total >= 0 ? state.total : null;
+    const completed = state?.status === "complete";
+    const hasSize = received !== null && (received > 0 || active || completed || total > 0);
+    const progress = managedPercent(state);
+    ui.node.hidden = !hasSize && !active;
+    ui.bar.hidden = completed || (!active && (progress === null || !received));
+    ui.bar.setAttribute("aria-label", text("downloadTransferProgress"));
+    ui.bar.max = 100;
+    if (progress === null) ui.bar.removeAttribute("value");
+    else if (ui.bar.value !== progress) ui.bar.value = progress;
+    const receivedLabel = hasSize ? downloadByteLabel(received) : "";
+    if (ui.bytes.textContent !== receivedLabel) ui.bytes.textContent = receivedLabel;
+    ui.bytes.hidden = !hasSize;
+    ui.total.hidden = !hasSize || total === null || completed || total === received;
+    const totalLabel = ui.total.hidden ? "" : downloadByteLabel(total);
+    if (ui.total.lastElementChild.textContent !== totalLabel) ui.total.lastElementChild.textContent = totalLabel;
+    const eta = active && Number.isSafeInteger(state?.eta) && state.eta > 0 ? state.eta : null;
+    const duration = eta === null ? "" : eta >= 3600 ? new Intl.NumberFormat(LOCALE, { style: "unit", unit: "hour", maximumFractionDigits: 1 }).format(eta / 3600) :
+      eta >= 60 ? new Intl.NumberFormat(LOCALE, { style: "unit", unit: "minute" }).format(Math.ceil(eta / 60)) :
+        new Intl.NumberFormat(LOCALE, { style: "unit", unit: "second" }).format(eta);
+    const etaLabel = duration ? text("downloadTransferEta", { duration }) : "";
+    if (ui.eta.textContent !== etaLabel) ui.eta.textContent = etaLabel;
+    ui.eta.hidden = !duration;
+  }
+
+  function isActiveTransfer(state) {
+    return ["starting", "resuming", "downloading"].includes(state?.status);
+  }
+
+  function renderFileBadge(link, group) {
+    const badge = group.querySelector("[data-s98p-file-status]");
+    if (!link?.dataset || !badge) return;
+    const state = fileStates.get(link.dataset.s98pFileUrl);
+    const key = FILE_STATES.has(state?.status) ? state.status : "";
+    const row = downloadRows.get(link);
+    if (row && (row.transfer || key)) {
+      if (!row.transfer) {
+        row.transfer = createManagedTransfer();
+        row.copy.append(row.transfer.node);
+      }
+      paintManagedTransfer(row.transfer, key ? state : null, isActiveTransfer(state));
+      row.copy.toggleAttribute("data-s98p-managed-size", Boolean(key && !row.transfer.node.hidden));
+    }
+    if (badge.hidden !== !key) badge.hidden = !key;
+    if (!key) return;
+    badge.dataset.s98pManagedUrl = link.dataset.s98pFileUrl;
+    const progress = isActiveTransfer(state) ? managedPercent(state) : null;
+    const label = text("downloadBadge." + key);
+    const value = progress !== null ? `${progress}%` : label;
+    const valueNode = badge.querySelector("bdi") || document.createElement("bdi");
+    if (valueNode.parentNode !== badge || badge.childNodes.length !== 1) badge.replaceChildren(valueNode);
+    if (valueNode.textContent !== value) valueNode.textContent = value;
+    if (badge.dataset.s98pFileStatus !== key) badge.dataset.s98pFileStatus = key;
+    const title = progress !== null ? `${label} (${value})` : label;
+    setDownloadHint(badge, `${title}: ${text("controlOpenDownloads")}`, true);
+  }
+
+  function renderControlDownloads() {
+    const panel = document.querySelector('#soft98-pro-control [data-panel="downloads"]');
+    if (!panel || !downloadSnapshot) return;
+    const { counts, transfer, held } = downloadSnapshot;
+    const number = new Intl.NumberFormat(LOCALE);
+    const summary = panel.querySelector(".s98p-download-overview");
+    let showSummary = false;
+    for (const value of summary.querySelectorAll("[data-queue-count]")) {
+      const count = counts?.[value.dataset.queueCount];
+      const show = Number.isInteger(count) && count > 0 && count <= 160;
+      value.parentElement.hidden = !show;
+      value.textContent = show ? number.format(count) : "";
+      showSummary ||= show;
+    }
+    summary.hidden = !showSummary;
+    panel.querySelector("[data-queue-held]").hidden = held !== true;
+    const overview = panel.querySelector("[data-queue-overall]");
+    if (!overview.transfer) {
+      overview.transfer = createManagedTransfer();
+      overview.append(overview.transfer.node);
+    }
+    overview.hidden = !counts?.active;
+    paintManagedTransfer(overview.transfer, transfer, Boolean(counts?.active));
+    const list = panel.querySelector("[data-queue-files]");
+    const old = new Map([...list.children].map(item => [item.button.dataset.s98pManagedUrl, item]));
+    for (const [url, state] of fileStates) {
+      let entry = old.get(url);
+      old.delete(url);
+      if (!entry) {
+        entry = document.createElement("li");
+        entry.button = downloadButton("download");
+        entry.button.dataset.soft98ProDownloadManager = "open";
+        entry.button.dataset.s98pManagedUrl = url;
+        const name = document.createElement("bdi");
+        try {
+          const path = new URL(url).pathname.split("/").pop();
+          name.textContent = decodeURIComponent(path);
+        } catch (_error) { name.textContent = text("articlePreview"); }
+        entry.label = document.createElement("small");
+        entry.button.append(name, entry.label);
+        entry.transfer = createManagedTransfer();
+        entry.append(entry.button, entry.transfer.node);
+        list.append(entry);
+      }
+      const label = text("downloadBadge." + state.status);
+      const progress = isActiveTransfer(state) ? managedPercent(state) : null;
+      const value = progress !== null ? `${label} (${progress}%)` : label;
+      if (entry.label.textContent !== value) entry.label.textContent = value;
+      paintManagedTransfer(entry.transfer, state, isActiveTransfer(state));
+    }
+    for (const entry of old.values()) entry.remove();
+    panel.querySelector("[data-queue-empty]").hidden = fileStates.size > 0;
+  }
+
+  function closeFileMenu(restoreFocus = false) {
+    if (!fileMenu) return;
+    const { node, invoker, more } = fileMenu;
+    fileMenu = null;
+    more.setAttribute("aria-expanded", "false");
+    more.removeAttribute("aria-controls");
+    node.remove();
+    if (restoreFocus && invoker.isConnected) invoker.focus({ preventScroll: true });
+  }
+
+  function openFileMenu(group, invoker, point) {
+    if (!point && fileMenu?.more === group.lastElementChild) return closeFileMenu(true);
+    closeFileMenu();
+    const owner = group.querySelector("[data-s98p-file-command]");
+    const more = group.lastElementChild;
+    const node = document.createElement("div");
+    node.id = "soft98-pro-file-menu";
+    node.dataset.owner = owner.id;
+    node.className = "s98p-file-menu";
+    localizeElement(node);
+    node.setAttribute("role", "menu");
+    node.setAttribute("aria-label", text("downloadFileActions"));
+    const commands = document.createElement("div");
+    commands.setAttribute("role", "group");
+    for (const [key, { icon, label }] of Object.entries(FILE_ACTIONS)) {
+      const button = downloadButton(icon);
+      button.tabIndex = -1;
+      button.setAttribute("role", "menuitem");
+      button.dataset.s98pFileCommand = key;
+      button.append(text(label));
+      commands.append(button);
+    }
+    const preferences = document.createElement("div");
+    preferences.setAttribute("role", "group");
+    const defaultToggle = downloadButton("settings");
+    defaultToggle.tabIndex = -1;
+    defaultToggle.setAttribute("role", "menuitemcheckbox");
+    const useInternal = defaultFileAction() === "internal";
+    defaultToggle.dataset.s98pFileDefault = useInternal ? "copy" : "internal";
+    defaultToggle.setAttribute("aria-checked", String(useInternal));
+    defaultToggle.append(text("downloadDefaultInternal"));
+    preferences.append(defaultToggle);
+    node.append(commands, preferences);
+    document.body.append(node);
+    fileMenu = { node, invoker, more };
+    more.setAttribute("aria-controls", node.id);
+    more.setAttribute("aria-expanded", "true");
+    const view = controlViewport();
+    const bounds = invoker.getBoundingClientRect();
+    node.style.maxHeight = `${Math.max(0, view.height - 16)}px`;
+    node.style.maxWidth = `${Math.max(0, view.width - 16)}px`;
+    const { width, height } = node.getBoundingClientRect();
+    const x = point?.clientX ?? (RTL ? bounds.left : bounds.right - width);
+    const y = point?.clientY ?? (bounds.bottom + height + 8 <= view.bottom ? bounds.bottom + 4 : bounds.top - height - 4);
+    node.style.left = `${Math.max(view.left + 8, Math.min(x, view.right - width - 8))}px`;
+    node.style.top = `${Math.max(view.top + 8, Math.min(y, view.bottom - height - 8))}px`;
+    node.querySelector('button[role="menuitem"]').focus({ preventScroll: true });
+  }
+
+  function openDownloadConfirmation() {
+    const root = document.documentElement;
+    const raw = root.dataset.s98pDownloadConfirmation;
+    delete root.dataset.s98pDownloadConfirmation;
+    if (!settings.pro || !IS_EXTENSION || document.querySelector("dialog[data-s98p-download-confirm][open]")) return;
+    const files = parseDownloadConfirmation(raw);
+    if (!files) return;
+    const dialog = localizeElement(document.createElement("dialog"));
+    dialog.dataset.s98pDownloadConfirm = "";
+    dialog.setAttribute("aria-labelledby", "soft98-pro-download-confirm-title");
+    dialog.setAttribute("aria-describedby", "soft98-pro-download-confirm-summary");
+    dialog.innerHTML = `<form method="dialog">
+      <header>
+        <span data-s98p-download-confirm-mark aria-hidden="true">${PAGE_ICONS.folder}</span>
+        <h2 id="soft98-pro-download-confirm-title">${escapeHtml(text("downloadConfirmTitle"))}</h2>
+        <button type="button" data-s98p-download-confirm-close aria-label="${escapeHtml(text("close"))}">${PAGE_ICONS.close}</button>
+      </header>
+      <div data-s98p-download-choices>
+        <label data-s98p-download-choice-search>
+          <span aria-hidden="true">${PAGE_ICONS.search}</span>
+          <input type="search" dir="auto" maxlength="260" placeholder="${escapeHtml(text("downloadConfirmSearch"))}"
+            aria-label="${escapeHtml(text("downloadConfirmSearch"))}">
+        </label>
+        <div data-s98p-download-choice-tools>
+          <label><input type="checkbox" data-s98p-download-choice-all> ${escapeHtml(text("downloadConfirmVisible"))}</label>
+          <div role="group" aria-label="${escapeHtml(text("downloadConfirmFilter"))}" data-s98p-download-choice-filters>
+            ${["all", "selected", "unselected"].map((key, index) =>
+              `<button type="button" data-choice-filter="${key}" aria-pressed="${index === 0}">${escapeHtml(text("downloadConfirmFilters." + key))}</button>`).join("")}
+          </div>
+        </div>
+        <div data-s98p-download-choice-list></div>
+        <span data-s98p-download-choice-empty role="status" hidden>${escapeHtml(text("downloadConfirmEmpty"))}</span>
+      </div>
+      <p id="soft98-pro-download-confirm-summary" aria-live="polite" aria-atomic="true"><span></span><bdi dir="ltr"></bdi></p>
+      <footer>
+        <button type="button" value="cancel" autofocus>${escapeHtml(text("downloadConfirmCancel"))}</button>
+        <button type="submit" value="start" data-s98p-download-confirm-start>${PAGE_ICONS.download}${escapeHtml(text("downloadConfirmStart"))}</button>
+      </footer>
+    </form>`;
+    const list = dialog.querySelector("[data-s98p-download-choice-list]");
+    const empty = dialog.querySelector("[data-s98p-download-choice-empty]");
+    const search = dialog.querySelector('input[type="search"]');
+    const all = dialog.querySelector("[data-s98p-download-choice-all]");
+    const filters = [...dialog.querySelectorAll("[data-choice-filter]")];
+    const start = dialog.querySelector("[data-s98p-download-confirm-start]");
+    const summary = dialog.querySelector("#soft98-pro-download-confirm-summary");
+    const normalize = value => value.normalize("NFKC").toLowerCase().replace(/[ـ\u200c\u200d]/gu, "");
+    const number = new Intl.NumberFormat(LOCALE);
+    const rows = files.map(({ name, type, size }, index) => {
+      const row = document.createElement("label");
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.checked = true;
+      input.value = String(index);
+      input.dataset.s98pDownloadChoice = "";
+      const label = document.createElement("bdi");
+      label.textContent = name;
+      label.title = name;
+      const details = document.createElement("span");
+      if (type) {
+        const kind = document.createElement("bdi");
+        kind.dir = "ltr";
+        kind.textContent = type;
+        details.append(kind);
+      }
+      const bytes = document.createElement("bdi");
+      bytes.dir = "ltr";
+      bytes.textContent = downloadByteLabel(size);
+      details.append(bytes);
+      row.append(input, label, details);
+      list.append(row);
+      return { row, input, size, term: normalize(name + " " + type) };
+    });
+    let filter = "all";
+    function update() {
+      const words = normalize(search.value).trim().split(/\s+/).filter(Boolean);
+      let available = 0, visibleChecked = 0, count = 0, total = 0;
+      for (const { row, input, size, term } of rows) {
+        const checked = input.checked;
+        row.hidden = !words.every(word => term.includes(word)) ||
+          (filter === "selected" && !checked) || (filter === "unselected" && checked);
+        if (!row.hidden) {
+          available++;
+          if (checked) visibleChecked++;
+        }
+        if (checked) { count++; total += size; }
+      }
+      all.disabled = available === 0;
+      all.checked = available > 0 && visibleChecked === available;
+      all.indeterminate = visibleChecked > 0 && visibleChecked < available;
+      empty.hidden = available > 0;
+      list.hidden = available === 0;
+      start.disabled = count === 0;
+      summary.firstElementChild.textContent = text("downloadConfirmSelection", { selected: number.format(count), total: number.format(files.length) });
+      summary.lastElementChild.textContent = downloadByteLabel(total);
+    }
+    search.addEventListener("input", update);
+    search.addEventListener("keydown", event => { if (event.key === "Enter" && !event.isComposing) event.preventDefault(); });
+    all.addEventListener("change", () => {
+      for (const { row, input } of rows) if (!row.hidden) input.checked = all.checked;
+      update();
+      if (all.disabled) filters.find(button => button.dataset.choiceFilter === filter).focus();
+    });
+    list.addEventListener("change", (event) => {
+      const hadFocus = event.target === document.activeElement;
+      update();
+      if (hadFocus && event.target.closest("label").hidden) {
+        (rows.find(({ row }) => !row.hidden)?.input || filters.find(button => button.dataset.choiceFilter === filter)).focus({ preventScroll: true });
+      }
+    });
+    for (const button of filters) {
+      button.addEventListener("click", () => {
+        filter = button.dataset.choiceFilter;
+        for (const choice of filters) choice.setAttribute("aria-pressed", String(choice === button));
+        update();
+      });
+    }
+    for (const control of dialog.querySelectorAll('[data-s98p-download-confirm-close],button[value="cancel"]')) {
+      control.addEventListener("click", () => dialog.close("cancel"));
+    }
+    for (const icon of dialog.querySelectorAll("svg")) icon.setAttribute("aria-hidden", "true");
+    dialog.addEventListener("submit", event => { if (event.submitter !== start || start.disabled) event.preventDefault(); });
+    dialog.addEventListener("click", (event) => { if (event.target === dialog) dialog.close(); });
+    dialog.addEventListener("close", () => dialog.remove(), { once: true });
+    update();
+    document.body.append(dialog);
+    dialog.showModal();
+  }
+
+  function installFileActions() {
+    document.addEventListener("soft98-pro:download-confirmation", openDownloadConfirmation);
+    const rowControls = (target) => target?.closest?.("dd[data-soft98-pro-download-entry]")?.querySelector(":scope > .s98p-file-actions");
+    document.addEventListener("contextmenu", (event) => {
+      if (!settings.pro || settings.downloadRowContextMenu === false) return;
+      const group = rowControls(event.target);
+      if (!group || event.defaultPrevented || !group.getClientRects().length) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const invoker = event.target.closest?.("a,button") || group.lastElementChild;
+      openFileMenu(group, invoker, event.clientX || event.clientY ? event : null);
+    }, true);
+    document.addEventListener("click", async (event) => {
+      const target = event.target.closest?.("button");
+      if (!event.isTrusted || !target) return;
+      if (target.hasAttribute("data-s98p-file-more")) {
+        openFileMenu(target.parentElement, target);
+        return;
+      }
+      const inMenu = fileMenu?.node.contains(target);
+      const preset = inMenu && target.dataset.s98pFileDefault;
+      if (Object.hasOwn(FILE_ACTIONS, preset)) {
+        closeFileMenu(true);
+        writeSettings({ ...settings, downloadRowAction: preset });
+        showDownloadToast("downloadDefaultSaved");
+        return;
+      }
+      const group = inMenu ? fileMenu.more.parentElement : target.closest(".s98p-file-actions");
+      const command = group && target.dataset.s98pFileCommand;
+      if (!command) return;
+      const link = group.previousElementSibling;
+      if (inMenu) closeFileMenu(true);
+      if (command !== "copy") return;
+      const url = link?.matches("a[data-soft98-pro-download-row]") && downloadDestination(link);
+      if (!url) return showDownloadToast("downloadNoDirectLinks", true);
+      try {
+        await navigator.clipboard.writeText(url.href);
+        showDownloadToast("downloadFileCopied");
+      } catch (_error) { showDownloadToast("downloadCopyFailed", true); }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.defaultPrevented) return;
+      if (fileMenu?.node.contains(event.target)) {
+        if (event.key === "Escape" || event.key === "Tab") {
+          closeFileMenu(true);
+          if (event.key === "Escape") event.preventDefault();
+          return;
+        }
+        const items = [...fileMenu.node.querySelectorAll("button")];
+        const index = items.indexOf(event.target);
+        const next = { ArrowDown: (index + 1) % items.length, ArrowUp: (index - 1 + items.length) % items.length,
+          Home: 0, End: items.length - 1 }[event.key];
+        if (next === undefined) return;
+        items[next].focus();
+      } else {
+        const target = event.target.closest?.(".s98p-file-actions :is([data-s98p-file-command],[data-s98p-file-more])");
+        const rightClick = event.key === "ContextMenu" || (event.shiftKey && event.key === "F10");
+        const group = event.key === "ArrowDown" && target ? target.parentElement :
+          rightClick && settings.downloadRowContextMenu !== false ? rowControls(event.target) : null;
+        if (!settings.pro || !group || !group.getClientRects().length) return;
+        openFileMenu(group, target || event.target);
+      }
+      event.preventDefault();
+    });
+    document.addEventListener("pointerdown", (event) => {
+      if (fileMenu && !fileMenu.node.contains(event.target) && !fileMenu.more.parentElement.contains(event.target)) closeFileMenu();
+    }, true);
+    window.addEventListener("scroll", (event) => {
+      if (fileMenu && !(event.target instanceof Node && fileMenu.node.contains(event.target))) closeFileMenu();
+    }, { capture: true, passive: true });
+    window.addEventListener("resize", () => closeFileMenu());
+    document.addEventListener("soft98-pro:download-snapshot", () => {
+      try {
+        const root = document.documentElement;
+        const raw = root.getAttribute("data-soft98-pro-download-snapshot");
+        root.removeAttribute("data-soft98-pro-download-snapshot");
+        const snapshot = JSON.parse(raw);
+        if (!Array.isArray(snapshot?.files)) return;
+        downloadSnapshot = snapshot;
+        const previous = fileStates;
+        fileStates = new Map(snapshot.files.slice(0, 160).filter(state =>
+          typeof state?.url === "string" && state.url.startsWith("https://") && FILE_STATES.has(state.status)).map(state => [state.url, state]));
+        const completed = [...fileStates].filter(([url, current]) =>
+          current.status === "complete" && previous.has(url) && !["complete", "missing", "interrupted", "review", "canceled"].includes(previous.get(url).status)).length;
+        if (completed) showDownloadToast(completed === 1 ? "downloadFileCompleted" : "downloadFilesCompleted", false, {
+          count: new Intl.NumberFormat(LOCALE).format(completed),
+        });
+        for (const group of document.querySelectorAll(".s98p-file-actions")) renderFileBadge(group.previousElementSibling, group);
+        renderControlDownloads();
+      } catch (_error) {}
+    });
+    document.addEventListener("soft98-pro:file-result", () => {
+      const root = document.documentElement;
+      const result = root.getAttribute("data-soft98-pro-file-result");
+      root.removeAttribute("data-soft98-pro-file-result");
+      const message = { review: "downloadReviewOpened", starting: "downloadFileStarting", waiting: "downloadFileWaiting",
+        held: "downloadFileHeld", duplicate: "downloadFileDuplicate", failed: "downloadFileFailed" }[result];
+      if (message) showDownloadToast(message, result === "failed");
+    });
+  }
+
+  function parseDownloadConfirmation(raw) {
+    try {
+      if (!raw || raw.length > 16000) return null;
+      const files = JSON.parse(raw);
+      if (!Array.isArray(files) || !files.length || files.length > Soft98DownloadLinks.MAX_BATCH || !files.every(file =>
+        typeof file?.name === "string" && file.name.length > 0 && file.name.length <= 260 &&
+        typeof file.type === "string" && /^(?:[A-Z0-9]{1,8})?$/.test(file.type) &&
+        Number.isSafeInteger(file.size) && file.size >= 0 && file.size < Soft98DownloadLinks.MAX_REVIEW_MB * 1000000)) return null;
+      return files;
+    } catch (_error) {}
+    return null;
+  }
+
   function prepareDownloadRow(link, icon, url) {
     const previous = downloadRows.get(link);
+    let group;
     if (IS_EXTENSION) {
-      const existing = link.nextElementSibling?.matches('[data-soft98-pro-download-manager="file"]') && link.nextElementSibling;
-      if (url && !existing) {
-        const button = downloadButton("plus");
-        button.dataset.soft98ProDownloadManager = "file";
-        button.title = text("downloadQueueFile");
-        button.setAttribute("aria-label", button.title);
-        link.after(button);
-      } else if (!url && existing) existing.remove();
+      const existing = link.nextElementSibling?.matches(".s98p-file-actions") && link.nextElementSibling;
+      if (url?.protocol === "https:" && !url.port) {
+        if (link.dataset.s98pFileUrl !== url.href) link.dataset.s98pFileUrl = url.href;
+        group = existing || createFileControls(link);
+        const button = group.querySelector("[data-soft98-pro-download-manager=file]");
+        if (!existing) document.dispatchEvent(new Event("soft98-pro:download-snapshot-request"));
+        const action = defaultFileAction();
+        if (button.dataset.s98pFileCommand !== action) {
+          button.dataset.s98pFileCommand = action;
+          const { icon: actionIcon, label } = FILE_ACTIONS[action];
+          button.innerHTML = PAGE_ICONS[actionIcon];
+          button.firstElementChild.setAttribute("aria-hidden", "true");
+          setDownloadHint(button, text(label), true);
+        }
+      } else if (existing) {
+        existing.remove();
+        delete link.dataset.s98pFileUrl;
+      }
     }
     const direct = url || /^(?:دانلود|download)/i.test(normalizedPersian(link.textContent || ""));
     decorateIcon(link, direct && icon === "link" ? "download" : icon);
@@ -2527,16 +4293,14 @@
       check.innerHTML = PAGE_ICONS.check;
       glyph.append(check);
     }
-    if (previous?.copy.parentNode === link && previous.title.parentNode === previous.copy && previous.url === url?.href) return;
-    const originalSize = link.getAttribute("data-soft98-pro-inline-size");
-    if (previous) {
-      previous.meta.remove();
-      if (link.contains(previous.title)) previous.title.replaceWith(...previous.title.childNodes);
-      if (link.contains(previous.copy)) previous.copy.replaceWith(...previous.copy.childNodes);
+    if (previous?.copy.parentNode === link && previous.title.parentNode === previous.copy && previous.url === url?.href) {
+      if (group) renderFileBadge(link, group);
+      return;
     }
-    for (const existing of link.querySelectorAll(":scope > [data-soft98-pro-download-copy]")) existing.replaceWith(...existing.childNodes);
-    for (const existing of link.querySelectorAll(":scope > [data-soft98-pro-download-meta]")) existing.remove();
-    for (const existing of link.querySelectorAll(":scope > [data-soft98-pro-download-title]")) existing.replaceWith(...existing.childNodes);
+    const originalSize = link.getAttribute("data-soft98-pro-inline-size");
+    // A rebuilt link can carry markup from an earlier runtime; remove its metrics before reusing the title.
+    for (const node of link.querySelectorAll("[data-soft98-pro-download-meta],[data-s98p-download-transfer]")) node.remove();
+    for (const node of link.querySelectorAll("[data-soft98-pro-download-copy],[data-soft98-pro-download-title]")) node.replaceWith(...node.childNodes);
     const title = document.createElement("span");
     const meta = document.createElement("span");
     const copy = document.createElement("span");
@@ -2544,19 +4308,19 @@
     meta.setAttribute("data-soft98-pro-download-meta", "");
     copy.setAttribute("data-soft98-pro-download-copy", "");
     for (const child of [...link.childNodes]) {
-      if (child.matches?.("[data-soft98-pro-page-icon],.soft98-pro-link-badge")) continue;
+      if (child.matches?.("[data-soft98-pro-page-icon]")) continue;
       title.append(child);
     }
     const inlineSize = extractInlineDownloadSize(title) || previous?.inlineSize || originalSize;
     if (inlineSize) {
-      meta.textContent = inlineSize;
+      paintDownloadMetadata(meta, inlineSize);
       link.setAttribute("data-soft98-pro-inline-size", inlineSize);
     }
     link.setAttribute("data-soft98-pro-download-row", "");
     copy.append(title, meta);
-    const badge = link.querySelector(":scope > .soft98-pro-link-badge");
-    link.insertBefore(copy, badge);
+    link.append(copy);
     downloadRows.set(link, { copy, title, meta, url: url?.href, inlineSize });
+    if (group) renderFileBadge(link, group);
     if (url && !url.search && (url.origin === location.origin || url.hostname.endsWith(".soft98.ir")) && "IntersectionObserver" in window) {
       downloadObserver ||= new IntersectionObserver((entries) => {
         for (const entry of entries) {
@@ -2582,7 +4346,7 @@
       const value = node.data;
       const from = Math.max(0, start - offset);
       const to = Math.min(value.length, end - offset);
-      if (to > from) node.deleteData(from, to - from);
+      if (to > from) replaceStockText(node, value.slice(0, from) + value.slice(to));
       offset += value.length;
     }
     return match[2];
@@ -2599,21 +4363,14 @@
     }
     const show = (data) => {
       if (downloadRows.get(link) !== row || !data) return;
-      const locale = RTL ? "fa-IR-u-ca-persian" : "en";
       let size = row.inlineSize;
       if (Number.isSafeInteger(data.bytes) && data.bytes > 0) {
         const units = ["byte", "kilobyte", "megabyte", "gigabyte", "terabyte"];
         const index = Math.min(units.length - 1, Math.floor(Math.log10(data.bytes) / 3));
+        const locale = RTL ? "fa-IR-u-nu-latn" : "en";
         size = new Intl.NumberFormat(locale, { style: "unit", unit: units[index], maximumFractionDigits: 1 }).format(data.bytes / 1000 ** index);
       }
-      const date = Number.isFinite(data.modified) ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }).format(data.modified) : null;
-      row.meta.replaceChildren();
-      for (const item of [size, date].filter(Boolean)) {
-        if (row.meta.childNodes.length) row.meta.append(" · ");
-        const value = document.createElement("bdi");
-        value.textContent = item;
-        row.meta.append(value);
-      }
+      paintDownloadMetadata(row.meta, size, data.modified);
     };
     const cached = downloadCache.get(row.url);
     if (cached && Date.now() - cached.checked < (cached.bytes || cached.modified ? 86400000 : 3600000)) return show(cached);
@@ -2638,7 +4395,24 @@
     downloadProbes.get(row.url).then(show);
   }
 
+  function paintDownloadMetadata(host, size, modified) {
+    host.replaceChildren();
+    if (size) {
+      const value = document.createElement("bdi");
+      value.textContent = size.replace(/[\u0660-\u0669\u06f0-\u06f9]/g, digit => String(digit.charCodeAt(0) & 15))
+        .replace(/\u066b/g, ".").replace(/\u066c/g, ",");
+      host.append(value);
+    }
+    if (Number.isFinite(modified) && Math.abs(modified) <= 8.64e15) {
+      const date = document.createElement("time");
+      date.dateTime = new Date(modified).toISOString();
+      date.textContent = new Intl.DateTimeFormat(RTL ? "fa-IR-u-ca-persian" : "en", { dateStyle: "medium", timeZone: "UTC" }).format(modified);
+      host.append(date);
+    }
+  }
+
   function applyPagePreferences() {
+    bindSearchHint();
     const rtlPage = document.documentElement.dir === "rtl" || /^fa\b/i.test(document.documentElement.lang);
     const latestCards = new Set();
     for (const list of document.querySelectorAll("ul[role=tablist],ol[role=tablist]")) {
@@ -2647,9 +4421,15 @@
       if (!tab) continue;
       const card = list.closest("section,article,[data-soft98-pro-surface=tab-card]") || list.parentElement?.parentElement;
       if (!card || card.closest("main,aside,#soft98-pro-control")) continue;
-      const header = list.parentElement?.matches("[data-soft98-pro-tab-header]") ? list.parentElement : list;
+      let header = list;
+      while (header.parentElement && header.parentElement !== card) header = header.parentElement;
       header.setAttribute("data-soft98-pro-latest-header", "tabs");
       list.setAttribute("data-soft98-pro-latest-tabs", "");
+      for (const trigger of list.querySelectorAll("[aria-controls]")) {
+        const label = normalizedPersian(trigger.textContent || "");
+        const topic = { مطالبنرمافزار: "software", مطالباندروید: "android", اخباروب: "news", اخبازتکنولوژی: "news" }[label];
+        if (topic && trigger.getAttribute("data-s98p-latest-topic") !== topic) trigger.setAttribute("data-s98p-latest-topic", topic);
+      }
       bindContentTabs(list);
       latestCards.add(card);
     }
@@ -2680,7 +4460,7 @@
             decorateIcon(link, icon);
           }
           for (const section of panel.children) {
-            if (section !== header && section.querySelectorAll("li a[href]").length >= 3) {
+            if (section !== header && !section.hasAttribute("data-s98p-news-reveal") && section.querySelectorAll("li a[href]").length >= 3) {
               section.setAttribute("data-soft98-pro-news-body", "");
             }
           }
@@ -2691,6 +4471,7 @@
     }
     for (const card of latestCards) {
       card.setAttribute("data-soft98-pro-latest", "");
+      bindNewsCollapse(card);
       for (const row of card.querySelectorAll("li a[href]")) {
         if (row.matches("[role=tab]")) continue;
         row.setAttribute("data-soft98-pro-news-link", "");
@@ -2715,9 +4496,17 @@
     }
     if (latestCards.size > 1) {
       const cards = [...latestCards];
+      const onlyNews = node => latestCards.has(node) || (node.matches("div,section") && !node.hasAttribute("role") &&
+        ![...node.childNodes].some(child => child.nodeType === Node.TEXT_NODE && child.textContent.trim()) &&
+        [...node.children].every(onlyNews));
       for (let frame = cards[0].parentElement, depth = 0; frame && frame !== document.body && depth < 4; frame = frame.parentElement, depth += 1) {
         if (cards.every((card) => frame.contains(card)) && !frame.querySelector("main")) {
           frame.setAttribute("data-soft98-pro-latest-frame", "");
+          const dedicated = onlyNews(frame);
+          frame.toggleAttribute("data-s98p-news-group", dedicated);
+          if (frame.parentElement && frame.parentElement !== document.body) {
+            frame.parentElement.toggleAttribute("data-s98p-news-group", dedicated && frame.parentElement.childElementCount === 1 && onlyNews(frame.parentElement));
+          }
           if (frame.parentElement?.children.length === 1 && frame.parentElement.matches("div")) {
             frame.parentElement.setAttribute("data-soft98-pro-page-surface", "");
           }
@@ -2751,6 +4540,159 @@
       normalizeLabel(node, rtlPage);
     }
     syncPageVisibility();
+  }
+
+  function bindSearchHint() {
+    if (new URLSearchParams(location.search).get("do") !== "search") return;
+    for (const form of document.querySelectorAll(":is(main,[role=main]) form")) {
+      const field = form.querySelector('input[name="story"]:not([type=hidden]),input[type=search]');
+      if (!field) continue;
+      for (const hint of form.querySelectorAll('div,p,aside,[role="alert"],[role="note"]')) {
+        if (hint.hasAttribute("data-s98p-search-hint") ||
+            hint.querySelector("div,p,aside,form,table,input,button,a[href]") || hint.textContent.length > 240) continue;
+        const label = normalizedPersian(hint.textContent).replace(/[\p{P}\p{M}]/gu, "");
+        if (!/^برایجستو?جویبهتر/.test(label) ||
+            !/(?:ورژن|نسخه).*توضیحاتفارسی/.test(label) || !/فقطنامنرمافزار/.test(label)) continue;
+        hint.setAttribute("data-s98p-search-hint", "");
+        const button = document.createElement("button");
+        button.type = "button";
+        button.lang = "fa";
+        button.dir = "rtl";
+        button.setAttribute("data-s98p-search-hint-dismiss", "");
+        button.textContent = catalogValue("fa", "runtime", "acknowledgeSearchHint");
+        hint.append(button);
+        undoWithTheme(button, () => {
+          button.remove();
+          hint.removeAttribute("data-s98p-search-hint");
+        });
+        button.addEventListener("click", () => {
+          field.focus({ preventScroll: true });
+          writeSettings({ ...settings, hideSearchHint: true });
+        });
+      }
+    }
+  }
+
+  function readNewsCollapsed() {
+    try {
+      return (localStorage.getItem(NEWS_COLLAPSE_KEY) ??
+        localStorage.getItem(NEWS_COLLAPSE_KEY + ".news") ??
+        localStorage.getItem(NEWS_COLLAPSE_KEY + ".tabs")) === "true";
+    } catch (_error) { return false; }
+  }
+
+  function setNewsCollapsed(value) {
+    newsCollapsed = value;
+    try { localStorage.setItem(NEWS_COLLAPSE_KEY, String(value)); } catch (_error) {}
+    syncNewsPanels();
+  }
+
+  function hideLatestNews() {
+    const focused = newsControls?.contains(document.activeElement);
+    writeSettings({ ...settings, showLatest: false });
+    const launcher = controlPanel?.wrap.querySelector("button:is([data-role=toggle],[data-role=restore]):not([hidden])");
+    if (focused && !controlPanel?.wrap.hidden) launcher?.focus({ preventScroll: true });
+    const action = document.createElement("a");
+    const useCenter = settings.controlCenter !== false;
+    action.href = "#soft98-pro-control";
+    action.textContent = text(useCenter ? "newsOpenAppearance" : "newsUndoHide");
+    action.addEventListener("click", (event) => {
+      event.preventDefault();
+      const toast = action.closest("[data-soft98-pro-copy-toast]");
+      if (toast) dismissProToast(toast);
+      if (useCenter) renderControlPanel()?.openAppearance();
+      else writeSettings({ ...settings, showLatest: true });
+    });
+    const message = document.createDocumentFragment();
+    message.append(text("newsHidden"), " ", action);
+    showProToast(message, { tone: "info", duration: 6500 });
+  }
+
+  function syncNewsPanels() {
+    const panels = [];
+    for (const [card, panel] of newsPanels) {
+      if (!card.isConnected || panel.reveal.parentElement !== card) {
+        newsPanels.delete(card);
+        continue;
+      }
+      const collapsed = settings.pro && newsCollapsed;
+      card.toggleAttribute("data-s98p-news-collapsed", collapsed);
+      panel.reveal.inert = collapsed;
+      panels.push(panel);
+    }
+    if (!panels.length || !settings.pro) {
+      newsControls?.remove();
+      return;
+    }
+    const owner = panels.find(panel => panel.kind === "news" && panel.header.getClientRects().length) ??
+      panels.find(panel => panel.header.getClientRects().length) ?? panels.find(panel => panel.kind === "news") ?? panels[0];
+    if (!newsControls) {
+      newsControls = document.createElement("div");
+      newsControls.setAttribute("data-s98p-news-controls", "");
+      const close = downloadButton("close");
+      close.setAttribute("data-s98p-news-hide", "");
+      close.setAttribute("aria-label", text("hideNews"));
+      close.title = text("hideNews");
+      close.addEventListener("click", hideLatestNews);
+      const toggle = downloadButton("chevronDown");
+      toggle.setAttribute("data-s98p-news-toggle", "");
+      toggle.addEventListener("click", () => setNewsCollapsed(!newsCollapsed));
+      newsControls.append(close, toggle);
+    }
+    if (newsControls.parentElement !== owner.header) {
+      const active = document.activeElement;
+      owner.header.append(newsControls);
+      if (newsControls.contains(active)) active.focus({ preventScroll: true });
+    }
+    const toggle = newsControls.lastElementChild;
+    const expanded = String(!newsCollapsed);
+    if (toggle.getAttribute("aria-expanded") !== expanded) toggle.setAttribute("aria-expanded", expanded);
+    toggle.setAttribute("aria-controls", panels.map(panel => panel.reveal.id).join(" "));
+    const label = text(newsCollapsed ? "expandNews" : "collapseNews");
+    toggle.setAttribute("aria-label", label);
+    toggle.title = label;
+  }
+
+  function bindNewsCollapse(card) {
+    if (newsPanels.get(card)?.reveal.parentElement === card) return;
+    let header = card.querySelector(":scope > [data-soft98-pro-latest-header]");
+    if (!header || !header.nextElementSibling) return;
+    const stockHeader = header;
+    const kind = header.getAttribute("data-soft98-pro-latest-header");
+    if (header.matches("[role=tablist],ul,ol")) {
+      const toolbar = document.createElement("div");
+      toolbar.setAttribute("data-s98p-news-toolbar", "");
+      toolbar.setAttribute("data-soft98-pro-latest-header", kind);
+      header.before(toolbar);
+      toolbar.append(header);
+      header = toolbar;
+    }
+    header.setAttribute("data-s98p-news-toolbar", "");
+    const reveal = document.createElement("div");
+    reveal.setAttribute("data-s98p-news-reveal", "");
+    do { reveal.id = `soft98-pro-news-panel-${++downloadRowId}`; } while (document.getElementById(reveal.id));
+    const content = document.createElement("div");
+    content.setAttribute("data-s98p-news-content", "");
+    while (header.nextSibling) content.append(header.nextSibling);
+    reveal.append(content);
+    header.after(reveal);
+    const listeners = new AbortController();
+    undoWithTheme(reveal, () => {
+      listeners.abort();
+      if (newsControls?.parentElement === header) newsControls.remove();
+      reveal.replaceWith(...content.childNodes);
+      if (stockHeader !== header) header.replaceWith(stockHeader);
+      else header.removeAttribute("data-s98p-news-toolbar");
+      card.removeAttribute("data-s98p-news-collapsed");
+      newsPanels.delete(card);
+    });
+    const expandFromTab = (event) => {
+      if (!newsCollapsed || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey ||
+          !event.target.closest?.("[role=tab],[data-toggle=tab]")) return;
+      if (event.type === "click" ? event.button === 0 : event.key === "Enter" || event.key === " ") setNewsCollapsed(false);
+    };
+    for (const event of ["click", "keydown"]) header.addEventListener(event, expandFromTab, { capture: true, signal: listeners.signal });
+    newsPanels.set(card, { header, reveal, kind });
   }
 
   function newsShortcutIcon(link) {
@@ -2835,21 +4777,30 @@
   }
 
   function syncPageVisibility() {
+    document.documentElement.toggleAttribute("data-s98p-hide-news", settings.pro && !settings.showLatest);
+    document.documentElement.toggleAttribute("data-s98p-hide-search-hint", settings.pro && settings.hideSearchHint);
     for (const [list, { tabs, panes, listeners, original, originalPaneHidden }] of contentTabs) {
       if (settings.pro && list.isConnected && tabs.every((tab) => list.contains(tab)) &&
           panes.every((pane, i) => tabTarget(tabs[i]) === pane)) continue;
       listeners.abort();
+      const selected = !settings.pro && list.isConnected
+        ? panes.findIndex(pane => pane.getAttribute("data-soft98-pro-content-pane") === "active") : -1;
+      const paneActive = selected >= 0 && panes.some(pane => pane.classList.contains("active"));
+      const paneShow = paneActive && panes.some(pane => pane.classList.contains("show"));
+      const tabActive = selected >= 0 && original.some(tab => tab.active);
       panes.forEach((pane, i) => {
         pane.removeAttribute("data-soft98-pro-content-pane");
-        if (originalPaneHidden[i] !== null) pane.setAttribute("aria-hidden", originalPaneHidden[i]);
+        if (originalPaneHidden[i] !== null) pane.setAttribute("aria-hidden", selected >= 0 ? String(i !== selected) : originalPaneHidden[i]);
+        if (paneActive) pane.classList.toggle("active", i === selected);
+        if (paneShow) pane.classList.toggle("show", i === selected);
       });
       tabs.forEach((tab, i) => {
-        const { selected, tabIndex, active } = original[i];
-        for (const [attr, value] of [["aria-selected", selected], ["tabindex", tabIndex]]) {
+        const { selected: originalSelection, tabIndex, active } = original[i];
+        for (const [attr, value] of [["aria-selected", selected >= 0 && originalSelection !== null ? String(i === selected) : originalSelection], ["tabindex", tabIndex]]) {
           if (value === null) tab.removeAttribute(attr);
           else tab.setAttribute(attr, value);
         }
-        tab.classList.toggle("active", active);
+        tab.classList.toggle("active", tabActive ? i === selected : active);
       });
       contentTabs.delete(list);
     }
@@ -2867,6 +4818,7 @@
         hiddenPageDisplays.delete(node);
       }
     }
+    syncNewsPanels();
   }
 
   function downloadIcon(node) {
@@ -2944,6 +4896,12 @@
     } else shell.querySelectorAll(":scope > [data-soft98-pro-password-actions]").forEach((node) => node.remove());
     shell.append(controls);
     passwordActions.set(container, { input, controls, listeners });
+    undoWithTheme(shell, () => {
+      passwordActions.get(container)?.listeners.abort();
+      passwordActions.delete(container);
+      shell.querySelectorAll(":scope > [data-soft98-pro-password-actions]").forEach(node => node.remove());
+      shell.replaceWith(...shell.childNodes);
+    });
   }
 
   function showPasswordCopied(container) {
@@ -3054,7 +5012,7 @@
         /\((?=[^()\p{Script=Arabic}]*[A-Za-z])[^()\p{Script=Arabic}]+\)|[A-Za-z][A-Za-z0-9]*(?:(?:[ .+/_-]+|, +)[A-Za-z0-9]+)*/gu
       )] : [];
       if (!runs.length) {
-        if (value !== original) textNode.nodeValue = value;
+        replaceStockText(textNode, value);
         continue;
       }
       const fragment = document.createDocumentFragment();
@@ -3069,7 +5027,15 @@
         cursor = run.index + run[0].length;
       }
       fragment.append(value.slice(cursor));
+      const parts = [...fragment.childNodes];
+      const expected = parts.map(part => part.textContent);
       textNode.replaceWith(fragment);
+      undoWithTheme(parts[0], () => {
+        if (!parts.every((part, index) => part.textContent === expected[index] &&
+            (!index || parts[index - 1].nextSibling === part))) return;
+        parts[0].replaceWith(textNode);
+        for (const part of parts.slice(1)) part.remove();
+      });
     }
   }
 
@@ -3090,8 +5056,8 @@
         for (const item of items) {
           const link = item.matches("a[href]") ? item : item.querySelector(":scope > a[href]");
           if (!link || link.children.length < 2) continue;
-          const children = [...link.children];
-          const media = children.find(isCompactMediaNode);
+          const children = [...link.children].filter((node) => !node.hasAttribute("data-s98p-post-art"));
+          const media = children.find((node) => node.hasAttribute("data-s98p-stock-utility-art")) || children.find(isCompactMediaNode);
           const copy = children.find((node) => node !== media && node.textContent.trim());
           if (!media || !copy) continue;
           rows.push({ link, copy, media });
@@ -3108,26 +5074,83 @@
           bindUtilityDisclosure(card);
           heading.closest("header").setAttribute("data-soft98-pro-utility-header", "");
           const clean = (heading.textContent || "").normalize("NFKC").replace(/\u0640/g, "").replace(/\s+/gu, " ").trim();
-          if (clean !== heading.textContent) heading.textContent = clean;
+          if (clean !== heading.textContent && heading.childNodes.length === 1 && heading.firstChild.nodeType === Node.TEXT_NODE) {
+            replaceStockText(heading.firstChild, clean);
+          }
         }
         for (const row of rows) {
           row.link.setAttribute("data-soft98-pro-list-row", "true");
           row.copy.setAttribute("data-soft98-pro-list-copy", "true");
           if (utilityCard) {
-            row.media.setAttribute("data-soft98-pro-utility-icon", "");
-            themeUtilityIcon(row.media, row.link);
+            preparePostArtwork(row.link, row.media);
           }
         }
       }
     }
   }
 
-  function themeUtilityIcon(icon, link) {
-    const path = link.origin === location.origin && /^https?:$/.test(link.protocol)
-      ? link.pathname.toLowerCase().replaceAll("%2b", "+") : "";
-    const kind = Object.hasOwn(UTILITY_PATH_ICONS, path) ? UTILITY_PATH_ICONS[path] : "desktop";
-    decorateIcon(icon, kind);
-    icon.setAttribute("data-soft98-pro-utility-art", "ready");
+  function preparePostArtwork(link, original) {
+    const destination = Soft98PostArtwork.destination(link.href, location.origin);
+    const previous = artworkRows.get(link);
+    if (previous?.destination === destination && previous.original === original && previous.tile.parentElement === link) return;
+    if (previous) {
+      discardPostArtwork(previous.tile);
+      previous.tile.remove();
+      previous.original?.removeAttribute("data-s98p-stock-utility-art");
+    }
+    if (!original && !link.querySelector(":scope > [data-s98p-related-copy]")) {
+      const copy = document.createElement("span");
+      copy.setAttribute("data-s98p-related-copy", "");
+      copy.append(...link.childNodes);
+      link.append(copy);
+    }
+    const tile = document.createElement("span");
+    tile.setAttribute("data-s98p-post-art", "");
+    tile.setAttribute("aria-hidden", "true");
+    tile.innerHTML = PAGE_ICONS[destination ? "desktop" : "folder"];
+    original?.setAttribute("data-s98p-stock-utility-art", "");
+    if (original) original.before(tile);
+    else link.prepend(tile);
+    artworkRows.set(link, { destination, original, tile });
+    undoWithTheme(tile, () => {
+      discardPostArtwork(tile);
+      tile.remove();
+      original?.removeAttribute("data-s98p-stock-utility-art");
+      artworkRows.delete(link);
+    });
+    if (destination) {
+      pendingArtwork.set(tile, destination);
+      artworkObserver?.observe(tile);
+    }
+  }
+
+  function discardPostArtwork(tile) {
+    artworkObserver?.unobserve(tile);
+    pendingArtwork.delete(tile);
+  }
+
+  function loadPostArtwork(tile) {
+    const destination = pendingArtwork.get(tile);
+    discardPostArtwork(tile);
+    if (!destination || !tile.isConnected) return;
+    const hint = Soft98PostArtwork.imageUrl(tile.parentElement.getAttribute("data-image"), destination);
+    function show(url, onError) {
+      const image = document.createElement("img");
+      image.alt = "";
+      image.referrerPolicy = "no-referrer";
+      image.decoding = "async";
+      image.addEventListener("load", () => { if (tile.isConnected) tile.append(image); }, { once: true });
+      if (onError) image.addEventListener("error", onError, { once: true });
+      image.src = url;
+    }
+    void postArtwork.get(destination).then((url) => {
+      if (!tile.isConnected) return;
+      if (!url) { if (hint) show(hint); return; }
+      show(url, () => {
+        postArtwork.unavailable(destination);
+        if (hint && hint !== url && tile.isConnected) show(hint);
+      });
+    });
   }
 
 
@@ -3253,18 +5276,6 @@
     ctx.closePath();
   }
 
-  function applyLinkBadges() {
-    if (!settings.pro || !settings.linkBadges) return;
-    for (const link of trackedLinks) {
-      if (!document.contains(link) || link.querySelector(".soft98-pro-link-badge")) continue;
-      const badge = document.createElement("span");
-      badge.className = "soft98-pro-link-badge";
-      badge.textContent = text("ready");
-      localizeElement(badge);
-      link.appendChild(badge);
-    }
-  }
-
   function restoreOriginalLogo() {
     for (const [logo, original] of originalLogos) {
       if (original.attributes) {
@@ -3303,7 +5314,8 @@
       const inNavigation = Boolean(link.closest("nav,[role=navigation]"));
       const hasGraphic = Boolean(image || background.startsWith("url("));
       const isCompactBrand = candidate.node.hasAttribute("data-soft98-brand-compact") || /\/navbar-brand\.[a-z]+(?:[?"')]|$)/i.test(assetSignals) ||
-        (inNavigation && hasGraphic && box.width > 0 && box.height > 0 && box.height <= 64 && (link.rel === "home" || link.children.length > 0));
+        (inNavigation && hasGraphic && (link.rel === "home" || link.hasAttribute("data-s98p-topbar-brand") ||
+          (box.width > 0 && box.height > 0 && box.height <= 64 && link.children.length > 0)));
       if (isCompactBrand) {
         compact.push({ ...candidate, compact: true });
         continue;
@@ -3314,7 +5326,8 @@
       const areaScore = box.width * box.height > 10000 ? 5 : box.width * box.height > 1400 ? 2 : 0;
       const homeScore = /\bhome\b/i.test(link.rel || "") ? 2 : 0;
       const brandScore = /soft\s*98|سافت[\s\u200c]*(?:98|۹۸|٩٨)|logo/i.test(`${linkSignals} ${imageSignals}`) ? 8 : 0;
-      const primaryAssetScore = /\/(?:logo|wordmark)[^/)]*\.(?:avif|png|webp|gif|svg)/i.test(assetSignals) ? 10 : 0;
+      const primaryAssetScore = originalLogos.has(candidate.node) ||
+        /\/(?:logo|wordmark)[^/)]*\.(?:avif|png|webp|gif|svg)/i.test(assetSignals) ? 10 : 0;
       const imageScore = image ? 3 : 0;
       candidates.push({ ...candidate, score: shapeScore + areaScore + homeScore + brandScore + primaryAssetScore + imageScore });
     }
@@ -3330,7 +5343,8 @@
   }
 
   function enhanceLogo() {
-    if ((!successAnnounced && !settings.pro) || !settings.pirateLogo) return restoreOriginalLogo();
+    if (linkdoni) return;
+    if (!settings.pro) return restoreOriginalLogo();
     for (const logo of originalLogos.keys()) {
       if (!logo.isConnected) originalLogos.delete(logo);
     }
@@ -3339,8 +5353,9 @@
 
   function applyLogo(candidate) {
     const logo = candidate.node;
-    const dark = settings.pro && (settings.darkDesign || settings.rgbMode);
-    const variant = dark ? "pirateDark" : "light";
+    const darkBackdrop = settings.darkDesign || settings.rgbMode;
+    const variant = settings.pirateLogo ? (darkBackdrop ? "pirateDark" : "light") :
+      `stock${candidate.compact ? "Compact" : ""}${darkBackdrop ? "Dark" : "Light"}`;
     const source = BRAND_ASSETS[variant];
     if (!source) return;
     const branded = logo.getAttribute("data-soft98-brand-variant") === variant;
@@ -3352,7 +5367,10 @@
       logo.removeAttribute("srcset");
       logo.removeAttribute("sizes");
       logo.setAttribute("src", source);
-      logo.setAttribute("alt", text("product"));
+      const originalAlt = originalLogos.get(logo).attributes.find(([name]) => name === "alt")[1];
+      const alt = settings.pirateLogo ? text("product") : originalAlt;
+      if (alt === null) logo.removeAttribute("alt");
+      else logo.setAttribute("alt", alt);
     } else {
       if (!originalLogos.has(logo)) {
         originalLogos.set(logo, {
@@ -3509,6 +5527,25 @@
     surface.dataset.align = alignRight ? "right" : "left";
   }
 
+  function placeHeaderMenu(menu, trigger, wrap, viewport) {
+    const { margin } = controlBounds(viewport);
+    const anchor = trigger.getBoundingClientRect();
+    const origin = wrap.getBoundingClientRect();
+    const gap = 6;
+    const width = Math.min(246, viewport.width - 2 * margin);
+    const above = Math.max(0, anchor.top - viewport.top - margin - gap);
+    const below = Math.max(0, viewport.bottom - margin - anchor.bottom - gap);
+    menu.style.width = `${width}px`;
+    menu.style.maxHeight = `${Math.min(220, Math.max(above, below))}px`;
+    const height = menu.getBoundingClientRect().height;
+    const opensBelow = below >= height || below >= above;
+    const aligned = menu.dir === "rtl" ? anchor.left : anchor.right - width;
+    const left = Math.max(viewport.left + margin, Math.min(aligned, viewport.right - margin - width));
+    menu.style.left = `${left - origin.left}px`;
+    menu.style.top = `${(opensBelow ? anchor.bottom + gap : anchor.top - gap - height) - origin.top}px`;
+    menu.style.bottom = "auto";
+  }
+
   function controlPatchCount() {
     return stats.patches.reduce((total, entry) => total + (Array.isArray(entry && entry.patches) ? entry.patches.length : 0), 0);
   }
@@ -3566,6 +5603,8 @@
   }
 
   function syncControlSettings(wrap) {
+    if (settings.controlCenter === false && wrap.dataset.open === "true") controlPanel?.close();
+    wrap.hidden = settings.controlCenter === false;
     wrap.dataset.theme = settings.rgbMode && settings.pro ? "rgb" : settings.darkDesign && settings.pro ? "dark" : "light";
     const brand = wrap.dataset.theme === "light" ? BRAND_ASSETS.light : BRAND_ASSETS.pirateDark;
     if (brand) {
@@ -3574,6 +5613,14 @@
       }
     }
     for (const input of wrap.querySelectorAll(".s98p-switch input")) input.checked = Boolean(settings[input.name]);
+    const action = wrap.querySelector('select[name="downloadRowAction"]');
+    if (action) action.value = defaultFileAction();
+    const threshold = wrap.querySelector('input[name="downloadReviewMB"]');
+    if (threshold && threshold !== document.activeElement) threshold.value = Soft98DownloadLinks.reviewLimit(settings.downloadReviewMB);
+    for (const [name, { values }] of Object.entries(DOWNLOAD_HEADER_OPTIONS)) {
+      const select = wrap.querySelector(`select[name="${name}"]`);
+      if (select) select.value = Object.hasOwn(values, settings[name]) ? settings[name] : DEFAULT_SETTINGS[name];
+    }
     refreshControlTelemetry();
   }
 
@@ -3625,7 +5672,7 @@
     wrap.dataset.open = "false";
     const groups = {
       protection: ["blockAds", "patchScripts"],
-      experience: ["pro", "darkDesign", "rgbMode", "compactLayout", "expandMain", "quickNavigation", "showLatest", "hideAnnoyances", "utilityInHeader", "linkBadges", "pirateLogo"],
+      experience: ["pro", "darkDesign", "rgbMode", "compactLayout", "wideColumns", "expandMain", "quickNavigation", "showLatest", "hideAnnoyances", "utilityInHeader", "pirateLogo"],
       advanced: ["taunt", "soundFeedback", "diagnostics", "recommendExtension"],
       ...(IS_EXTENSION ? { downloads: [] } : {}),
     };
@@ -3651,7 +5698,7 @@
             <small>${escapeHtml(text("controlSubtitle"))}</small>
           </span>
           <span class="s98p-version" dir="ltr">${escapeHtml(VERSION)}</span>
-          <button type="button" data-role="options" aria-haspopup="menu" aria-expanded="false" aria-controls="soft98-pro-launcher-menu" aria-label="${escapeHtml(text("controlLauncherMenu"))}" title="${escapeHtml(text("controlLauncherMenu"))}"><span aria-hidden="true"></span></button>
+          <button type="button" data-role="options" aria-haspopup="menu" aria-expanded="false" aria-controls="soft98-pro-launcher-menu" aria-label="${escapeHtml(text("controlLauncherMenu"))}" title="${escapeHtml(text("controlLauncherMenu"))}"><span aria-hidden="true">${PAGE_ICONS.dots}</span></button>
           <button type="button" data-role="close" aria-label="${escapeHtml(text("close"))}" title="${escapeHtml(text("close"))}"><span aria-hidden="true"></span></button>
         </header>
         <section class="s98p-status" aria-live="polite">
@@ -3686,10 +5733,32 @@
               </div>
               ${keys.map(controlOptionMarkup).join("")}
               ${group === "downloads" ? `
-              <dl class="s98p-download-overview">
-                ${["active", "waiting", "finished"].map(key => `<div><dt>${escapeHtml(text("controlDownloadStates." + key))}</dt><dd data-queue-count="${key}">–</dd></div>`).join("")}
+              <dl class="s98p-download-overview" hidden>
+                ${["active", "waiting", "finished", "attention"].map(key => `<div hidden><dt>${escapeHtml(text("controlDownloadStates." + key))}</dt><dd data-queue-count="${key}"></dd></div>`).join("")}
               </dl>
+              <small data-queue-held hidden>${escapeHtml(text("controlDownloadHeld"))}</small>
+              <div data-queue-overall hidden></div>
+              <div class="s98p-download-page">
+                <strong>${escapeHtml(text("controlDownloadsOnPage"))}</strong>
+                <small data-queue-empty>${escapeHtml(text("controlDownloadsEmpty"))}</small>
+                <ul data-queue-files></ul>
+              </div>
               <button class="s98p-download-open" type="button" data-soft98-pro-download-manager="open">${PAGE_ICONS.download}${escapeHtml(text("controlOpenDownloads"))}</button>
+              <label class="s98p-download-default">
+                <span><strong>${escapeHtml(text("downloadDefaultAction"))}</strong><small>${escapeHtml(text("downloadDefaultDetail"))}</small></span>
+                <select name="downloadRowAction">
+                  ${Object.entries(FILE_ACTIONS).map(([key, { label }]) => `<option value="${key}">${escapeHtml(text(label))}</option>`).join("")}
+                </select>
+              </label>
+              ${controlOptionMarkup("downloadRowContextMenu")}
+              ${Object.entries(DOWNLOAD_HEADER_OPTIONS).map(([name, { label, values }]) => `
+                <label class="s98p-download-default"><strong>${escapeHtml(text(label))}</strong>
+                  <select name="${name}">${Object.entries(values).map(([value, title]) => `<option value="${value}">${escapeHtml(text(title))}</option>`).join("")}</select>
+                </label>`).join("")}
+              <label class="s98p-download-default">
+                <span><strong>${escapeHtml(text("downloadReviewLimit"))}</strong><small>${escapeHtml(text("downloadReviewLimitDetail"))}</small></span>
+                <input type="number" inputmode="numeric" dir="ltr" name="downloadReviewMB" min="1" max="${Soft98DownloadLinks.MAX_REVIEW_MB}" step="1" required value="${Soft98DownloadLinks.reviewLimit(settings.downloadReviewMB)}">
+              </label>
               ` : ""}
             </section>`)
             .join("")}
@@ -3717,9 +5786,10 @@
     const style = document.createElement("style");
     style.textContent = `
       #soft98-pro-control{--c-bg:rgba(246,250,251,.985);--c-bg-soft:#e7f0f2;--c-bg-raised:#fff;--c-border:#9ebac2;--c-border-soft:#ccdde1;--c-text:#11232a;--c-muted:#526b74;--c-accent:#087a63;--c-accent-2:#a56b13;--c-accent-soft:rgba(8,122,99,.11);--c-danger:#b84152;position:fixed;z-index:2147483647;width:42px;height:42px;direction:ltr;font-family:inherit!important;font-size:13px;line-height:1.6;font-weight:400;color:var(--c-text);letter-spacing:0;isolation:isolate}
+      #soft98-pro-control[hidden]{display:none!important}
       #soft98-pro-control[data-theme=dark],#soft98-pro-control[data-theme=rgb]{--c-bg:rgba(5,10,14,.985);--c-bg-soft:#0d1a21;--c-bg-raised:#14252d;--c-border:#41616c;--c-border-soft:#203943;--c-text:#f3f8f9;--c-muted:#a6bbc1;--c-accent:#70e1b2;--c-accent-2:#e0bd70;--c-accent-soft:rgba(112,225,178,.12);--c-danger:#ff8796}
-      #soft98-pro-control[data-theme=rgb]{--c-bg:rgba(2,3,4,.99);--c-bg-soft:#07090a;--c-bg-raised:#0c0f10;--c-border:color-mix(in srgb,var(--c-accent) 75%,#24292c);--c-border-soft:#24292c;--c-text:#d9dee0;--c-muted:#a1aab0;--c-accent:var(--s98p-neon,#70e1b2);--c-accent-2:var(--s98p-neon-2,#8c9bff);--c-accent-soft:color-mix(in srgb,var(--c-accent) 17%,transparent)}
-      #soft98-pro-control[data-theme=light]{color-scheme:light;--c-bg:#f5f9ff;--c-bg-soft:#e7efff;--c-bg-raised:#fff;--c-border:#9fb9eb;--c-border-soft:#d4e2f7;--c-text:#14284a;--c-muted:#3f587d;--c-accent:#165bd3;--c-accent-2:#087752;--c-accent-soft:#dceaff;--c-danger:#a6294b}
+      #soft98-pro-control[data-theme=rgb]{--c-bg:rgba(2,3,4,.99);--c-bg-soft:#07090a;--c-bg-raised:#0c0f10;--c-border:color-mix(in srgb,var(--c-accent) 75%,#24292c);--c-border-soft:#24292c;--c-accent:var(--s98p-neon,#70e1b2);--c-accent-2:var(--s98p-neon-2,#8c9bff);--c-accent-soft:color-mix(in srgb,var(--c-accent) 17%,transparent)}
+      #soft98-pro-control[data-theme=light]{color-scheme:light;--c-bg:var(--s98p-day-field);--c-bg-soft:var(--s98p-day-raised);--c-bg-raised:var(--s98p-day-paper);--c-border:var(--s98p-day-edge);--c-border-soft:var(--s98p-day-line);--c-text:var(--s98p-day-ink);--c-muted:var(--s98p-day-muted);--c-accent:var(--s98p-day-action);--c-accent-2:var(--s98p-day-warning);--c-accent-soft:var(--s98p-day-action-wash);--c-danger:var(--s98p-day-danger)}
       #soft98-pro-control:is([data-theme=dark],[data-theme=rgb]){color-scheme:dark}
       #soft98-pro-control[data-theme=light] form{box-shadow:0 0 0 1px #fff inset,0 0 0 4px #f8fcfbbf,0 18px 60px #15364740!important}
       #soft98-pro-control[data-theme=light] :is(.s98p-brand-mark,[data-role=toggle],.s98p-option-preview){box-shadow:0 5px 18px #15364722}
@@ -3729,7 +5799,7 @@
       #soft98-pro-control>[data-role=toggle] img{display:block;width:30px;height:30px;object-fit:contain;filter:none!important;pointer-events:none}
       #soft98-pro-control[data-dragging=true]{will-change:translate}
       #soft98-pro-control[data-dragging=true]>[data-role=toggle]{cursor:grabbing;transform:scale(1.04);transition:none;box-shadow:0 4px 12px #0004!important}
-      #soft98-pro-control>[data-role=toggle]:hover,#soft98-pro-control[data-open=true]>[data-role=toggle]{transform:translateY(-1px) scale(1.04);border-color:var(--c-accent)!important;background:var(--c-bg-raised)!important;box-shadow:0 14px 36px rgba(0,0,0,.38),0 0 0 4px var(--c-accent-soft)}
+      #soft98-pro-control>[data-role=toggle]:hover,#soft98-pro-control[data-open=true]>[data-role=toggle]{border-color:var(--c-accent)!important;background:var(--c-bg-raised)!important;box-shadow:0 14px 36px rgba(0,0,0,.38),0 0 0 4px var(--c-accent-soft)}
       #soft98-pro-control[data-theme=rgb]>[data-role=toggle]{border-color:transparent!important;background:linear-gradient(150deg,var(--c-bg-raised),var(--c-bg-soft)) padding-box,var(--s98p-neon-edge) border-box!important;box-shadow:0 14px 38px rgba(0,0,0,.55),0 0 26px var(--c-accent-soft)}
       #soft98-pro-control .s98p-dock-target{position:absolute;inset:-4px;box-sizing:border-box;border:2px dashed var(--c-accent);border-radius:50%;outline:3px solid var(--c-accent-soft);background:var(--c-accent-soft);pointer-events:none;z-index:-1;will-change:transform,opacity}
       #soft98-pro-control[data-gravity=true]>[data-role=toggle]{transform:none;scale:.9;border-color:var(--c-accent)!important;box-shadow:0 0 0 4px var(--c-accent-soft),0 4px 18px var(--c-accent-soft)!important}
@@ -3741,6 +5811,7 @@
       #soft98-pro-control form[data-opens=down]{transform-origin:left top}
       #soft98-pro-control form[data-align=right][data-opens=down]{transform-origin:right top}
       #soft98-pro-control form[inert]{pointer-events:none}
+      #soft98-pro-control[data-theme=light] form{background-image:none!important;box-shadow:0 0 0 1px var(--c-bg-raised) inset,0 14px 36px #21282026,0 3px 8px #21282014!important}
       #soft98-pro-control[data-theme=rgb] form{border-color:transparent!important;background:linear-gradient(135deg,color-mix(in srgb,var(--c-accent) 5%,var(--c-bg-soft)),var(--c-bg-soft) 50%,color-mix(in srgb,var(--c-accent-2) 4%,var(--c-bg-soft))) padding-box,var(--s98p-neon-edge) border-box!important;box-shadow:0 0 0 1px rgba(255,255,255,.035) inset,0 0 0 4px rgba(0,0,0,.72),0 32px 94px rgba(0,0,0,.72),0 0 32px var(--c-accent-soft)!important}
       #soft98-pro-control[data-theme=rgb] form::before,#soft98-pro-control[data-theme=rgb] .s98p-tabs [aria-selected=true]::after{background:var(--s98p-neon-line)}
       #soft98-pro-control .s98p-console-header{position:relative;display:grid;grid-template-columns:46px minmax(0,1fr) auto 30px 30px;align-items:center;gap:8px;padding:17px 15px 14px;border-bottom:1px solid var(--c-border-soft);background:linear-gradient(180deg,color-mix(in srgb,var(--c-bg-raised) 88%,transparent),color-mix(in srgb,var(--c-bg) 92%,transparent));color:var(--c-text)}
@@ -3756,7 +5827,7 @@
       #soft98-pro-control .s98p-version{padding:3px 7px;border:1px solid var(--c-border-soft);border-radius:999px;background:var(--c-bg-soft);color:var(--c-muted);font:600 10px/1.2 ui-monospace,monospace}
       #soft98-pro-control :is([data-role=close],[data-role=options]){position:relative;display:grid;place-items:center;width:30px;height:30px;margin:0;padding:0;border:0!important;border-radius:6px;background:transparent!important;background-image:none!important;color:var(--c-muted)!important;cursor:pointer}
       #soft98-pro-control :is([data-role=close],[data-role=options]):hover,#soft98-pro-control [data-role=options][aria-expanded=true]{background:var(--c-accent-soft)!important;color:var(--c-text)!important;transform:none!important}
-      #soft98-pro-control [data-role=options] span{width:3px;height:3px;border-radius:50%;background:currentColor;box-shadow:-5px 0 currentColor,5px 0 currentColor}
+      #soft98-pro-control [data-role=options] svg{display:block;width:20px;height:20px;pointer-events:none}
       #soft98-pro-control [data-role=close] span:before,#soft98-pro-control [data-role=close] span:after{content:"";position:absolute;top:14px;left:8px;width:14px;height:1.5px;border-radius:2px;background:currentColor}
       #soft98-pro-control [data-role=close] span:before{transform:rotate(45deg)}
       #soft98-pro-control [data-role=close] span:after{transform:rotate(-45deg)}
@@ -3773,9 +5844,32 @@
       #soft98-pro-control .s98p-metrics dt{margin:0;background:transparent!important;color:var(--c-muted)!important;font-size:10px;font-weight:500;white-space:normal}
       #soft98-pro-control .s98p-metrics dd{margin:0;background:transparent!important;color:var(--c-text)!important;font-size:18px;font-weight:750;line-height:1.15;font-variant-numeric:tabular-nums}
       #soft98-pro-control .s98p-tabs{display:grid;grid-template-columns:repeat(var(--tab-count,3),minmax(0,1fr));gap:3px;margin:11px 14px 0;padding:3px;border:1px solid var(--c-border-soft);border-radius:7px;background:var(--c-bg-soft)}
-      #soft98-pro-control .s98p-download-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin:4px 0}
+      #soft98-pro-control .s98p-download-overview{display:grid;grid-template-columns:repeat(auto-fit,minmax(68px,1fr));gap:5px;margin:4px 0}
+      #soft98-pro-control .s98p-download-overview[hidden],#soft98-pro-control .s98p-download-overview>div[hidden]{display:none!important}
+      #soft98-pro-control [data-queue-overall]{padding:5px 0}
+      #soft98-pro-control [data-queue-held]{color:var(--c-accent-2)}
+      #soft98-pro-control .s98p-download-page{display:grid;gap:4px;margin-block:6px;color:var(--c-text)}
+      #soft98-pro-control .s98p-download-page > small{color:var(--c-muted)}
+      #soft98-pro-control [data-queue-files]{display:grid;list-style:none;margin:0!important;padding:0!important}
+      #soft98-pro-control [data-queue-files] li{display:grid;gap:4px;margin:0;padding:7px 0;border-block-start:1px solid var(--c-border-soft)}
+      #soft98-pro-control [data-queue-files] button{display:grid;grid-template-columns:18px minmax(0,1fr);gap:2px 7px;padding:4px!important;text-align:start;background:transparent!important;border:0!important;color:var(--c-text)!important}
+      #soft98-pro-control [data-queue-files] button:hover{color:var(--c-accent)!important}
+      #soft98-pro-control [data-queue-files] button svg{width:17px;height:17px}
+      #soft98-pro-control [data-queue-files] bdi{overflow-wrap:anywhere}
+      #soft98-pro-control [data-queue-files] button small{grid-column:2;color:var(--c-muted)}
+      #soft98-pro-control [data-s98p-download-transfer]{display:grid;gap:3px;font-size:11px;color:var(--c-muted)}
+      #soft98-pro-control [data-s98p-download-transfer] progress{width:100%;height:4px;accent-color:var(--c-accent)}
+      #soft98-pro-control [data-s98p-download-transfer] > span{display:flex;flex-wrap:wrap;gap:4px 8px}
+      #soft98-pro-control [data-transfer-total]{display:inline-flex;gap:4px}
+      #soft98-pro-control [data-s98p-download-transfer] bdi{font-family:system-ui,sans-serif!important;font-variant-numeric:tabular-nums}
+      #soft98-pro-control :is([data-queue-overall],[data-queue-held],[data-queue-empty],[data-s98p-download-transfer],[data-s98p-download-transfer] *)[hidden]{display:none!important}
+      #soft98-pro-control .s98p-download-default{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;padding:8px;border:1px solid var(--c-border-soft);border-radius:6px;background:var(--c-bg-soft)}
+      #soft98-pro-control .s98p-download-default span{display:grid;gap:2px}
+      #soft98-pro-control .s98p-download-default small{color:var(--c-muted)}
+      #soft98-pro-control .s98p-download-default :is(select,input){width:100%;min-height:36px;padding:5px 8px;border:1px solid var(--c-border);border-radius:6px;background:var(--c-bg-raised);color:var(--c-text);font:inherit}
+      #soft98-pro-control .s98p-download-default :is(select,input):focus-visible{outline:2px solid var(--c-accent);outline-offset:1px}
       #soft98-pro-control .s98p-download-overview>div{display:grid;gap:4px;padding:8px;border:1px solid var(--c-border-soft);border-radius:6px;background:var(--c-bg-soft);text-align:center}
-      #soft98-pro-control .s98p-download-overview dt{font-size:11px;color:var(--c-muted)}
+      #soft98-pro-control .s98p-download-overview dt{font-size:11px;line-height:1.35;min-height:2.7em;display:grid;place-items:center;overflow-wrap:anywhere;color:var(--c-muted)}
       #soft98-pro-control .s98p-download-overview dd{margin:0;font-weight:700;font-size:18px;color:var(--c-accent);font-variant-numeric:tabular-nums}
       #soft98-pro-control .s98p-download-open{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:7px;border:1px solid var(--c-border);border-radius:6px;background:var(--c-bg-raised)!important;color:var(--c-text)!important;cursor:pointer}
       #soft98-pro-control .s98p-download-open svg{width:18px;height:18px;pointer-events:none}
@@ -3791,8 +5885,8 @@
       #soft98-pro-control .s98p-panel-intro strong{color:var(--c-text)!important;font-size:12px}
       #soft98-pro-control .s98p-panel-intro small{color:var(--c-muted)!important;font-size:10.5px;line-height:1.5}
       #soft98-pro-control .s98p-panel-intro>b{padding:4px 7px;border:1px solid var(--c-border-soft);border-radius:5px;background:var(--c-bg-soft)!important;color:var(--c-muted)!important;font-size:9.5px;font-weight:650;white-space:nowrap}
-      #soft98-pro-control .s98p-option{display:grid;grid-template-columns:minmax(0,1fr) 38px;align-items:center;gap:12px;min-height:56px;margin:0;padding:10px 11px;border:1px solid var(--c-border-soft);border-radius:7px;background:color-mix(in srgb,var(--c-bg-raised) 78%,transparent);box-shadow:0 1px 0 rgba(255,255,255,.025) inset;cursor:pointer;transition:border-color .16s ease,background-color .16s ease,transform .16s ease,box-shadow .18s ease}
-      #soft98-pro-control .s98p-option:hover{border-color:color-mix(in srgb,var(--c-accent) 38%,var(--c-border));background:var(--c-bg-raised);box-shadow:0 8px 22px rgba(0,0,0,.14);transform:translateY(-1px)}
+      #soft98-pro-control .s98p-option{display:grid;grid-template-columns:minmax(0,1fr) 38px;align-items:center;gap:12px;min-height:56px;margin:0;padding:10px 11px;border:1px solid var(--c-border-soft);border-radius:7px;background:color-mix(in srgb,var(--c-bg-raised) 78%,transparent);box-shadow:0 1px 0 rgba(255,255,255,.025) inset;cursor:pointer;transition:border-color .16s ease,background-color .16s ease,box-shadow .18s ease}
+      #soft98-pro-control .s98p-option:hover{border-color:color-mix(in srgb,var(--c-accent) 38%,var(--c-border));background:var(--c-bg-raised);box-shadow:0 8px 22px rgba(0,0,0,.14)}
       #soft98-pro-control .s98p-option-copy{display:grid;min-width:0;gap:2px;direction:inherit;unicode-bidi:plaintext;text-align:start}
       #soft98-pro-control .s98p-option-copy strong{color:var(--c-text)!important;font-size:12px;line-height:1.35}
       #soft98-pro-control .s98p-option-copy small{color:var(--c-muted)!important;font-size:10.5px;line-height:1.5}
@@ -3811,8 +5905,8 @@
       #soft98-pro-control .s98p-option-preview [data-preview-kind][hidden]{display:none!important}
       #soft98-pro-control .s98p-option-preview img{display:block;width:100%;aspect-ratio:16/9;max-height:var(--c-preview-height);box-sizing:border-box;object-fit:contain;margin-top:5px;border:1px solid var(--c-border-soft);border-radius:4px;background:var(--c-bg-soft);filter:none!important}
       #soft98-pro-control footer{display:grid;grid-template-columns:1fr auto;gap:8px;padding:11px 14px;border-top:1px solid var(--c-border-soft);background:color-mix(in srgb,var(--c-bg-soft) 88%,var(--c-bg))}
-      #soft98-pro-control footer button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;margin:0;padding:7px 12px;border:1px solid var(--c-border);border-radius:7px;background:var(--c-bg-raised)!important;color:var(--c-text)!important;font-size:11px;font-weight:650;line-height:1.4;cursor:pointer;transition:border-color .16s ease,background-color .16s ease,transform .16s ease}
-      #soft98-pro-control footer button:hover{border-color:var(--c-accent);color:var(--c-accent)!important;transform:translateY(-1px)}
+      #soft98-pro-control footer button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;margin:0;padding:7px 12px;border:1px solid var(--c-border);border-radius:7px;background:var(--c-bg-raised)!important;color:var(--c-text)!important;font-size:11px;font-weight:650;line-height:1.4;cursor:pointer;transition:border-color .16s ease,background-color .16s ease}
+      #soft98-pro-control footer button:hover{border-color:var(--c-accent);color:var(--c-accent)!important}
       #soft98-pro-control[data-theme=rgb] :is(footer button,.s98p-tabs button[aria-selected=true]){border-color:transparent!important;background:linear-gradient(var(--c-bg-raised),var(--c-bg-soft)) padding-box,var(--s98p-neon-edge) border-box!important}
       #soft98-pro-control .s98p-command-icon{position:relative;display:inline-block;flex:0 0 15px;width:15px;height:15px;color:currentColor}
       #soft98-pro-control .s98p-command-scan{border:1.5px solid currentColor;border-radius:50%}
@@ -3924,11 +6018,17 @@
     let menuTrigger = null;
     let panelAnimation = null;
     let panelDeadline = 0;
+    const layoutMenu = () => {
+      if (menu.hidden || !menuTrigger) return;
+      if (menuTrigger === options) placeHeaderMenu(menu, options, wrap, viewport);
+      else placeControlSurface(menu, position, viewport, 246, 220);
+    };
     const finishClose = () => {
       clearTimeout(panelDeadline);
       panelAnimation?.cancel();
       panelAnimation = null;
       if (wrap.dataset.open !== "true") form.hidden = true;
+      else if (menuTrigger === options) layoutMenu();
     };
     signal.addEventListener("abort", () => {
       clearTimeout(panelDeadline);
@@ -3946,7 +6046,7 @@
         delete wrap.dataset.gravity;
       }
       if (!form.hidden) placeControlSurface(form, position, viewport, 448, 720);
-      if (!menu.hidden) placeControlSurface(menu, position, viewport, 246, 220);
+      layoutMenu();
     };
     const updateLauncher = () => {
       toggle.hidden = requested.tucked;
@@ -3961,6 +6061,7 @@
       menuTrigger = null;
     };
     const setOpen = (open, moveFocus = false) => {
+      if (open && settings.controlCenter === false) return;
       if (!open) hidePreview();
       closeMenu();
       const changing = open !== (wrap.dataset.open === "true");
@@ -3993,14 +6094,18 @@
         panelDeadline = setTimeout(finishClose, open ? 330 : 270);
       } else if (!open) finishClose();
       if (open) {
-        if (controlSection === "downloads") document.dispatchEvent(new Event("soft98-pro:download-summary-request"));
+        if (controlSection === "downloads") {
+          renderControlDownloads();
+          document.dispatchEvent(new Event("soft98-pro:download-snapshot-request"));
+        }
         if (moveFocus) form.querySelector('[role="tab"][aria-selected="true"]').focus({ preventScroll: true });
         refreshControlTelemetry();
       }
     };
     const openMenu = (trigger, last = false) => {
+      hidePreview();
       menuTrigger = trigger;
-      options.setAttribute("aria-expanded", "true");
+      options.setAttribute("aria-expanded", String(trigger === options));
       menu.hidden = false;
       layout();
       menuItems[last ? menuItems.length - 1 : 0].focus();
@@ -4036,18 +6141,11 @@
       }
       for (const panel of form.querySelectorAll('[role="tabpanel"]')) panel.hidden = panel.getAttribute("data-panel") !== section;
       if (changed) scroller.scrollTop = sectionScroll.get(section) || 0;
-      if (section === "downloads") document.dispatchEvent(new Event("soft98-pro:download-summary-request"));
+      if (section === "downloads") {
+        renderControlDownloads();
+        document.dispatchEvent(new Event("soft98-pro:download-snapshot-request"));
+      }
     };
-    if (IS_EXTENSION) document.addEventListener("soft98-pro:download-summary", () => {
-      try {
-        const counts = JSON.parse(document.documentElement.getAttribute("data-soft98-pro-download-summary"));
-        const number = new Intl.NumberFormat(LOCALE);
-        for (const value of form.querySelectorAll("[data-queue-count]")) {
-          const count = counts?.[value.dataset.queueCount];
-          if (Number.isInteger(count) && count >= 0 && count <= 160) value.textContent = number.format(count);
-        }
-      } catch (_error) {}
-    }, { signal });
     form.addEventListener("submit", (event) => event.preventDefault(), { signal });
     toggle.addEventListener("pointerdown", (event) => {
       if (event.button !== 0 || !event.isPrimary || drag) return;
@@ -4176,6 +6274,7 @@
       }, { signal });
     }
     options.addEventListener("click", () => menu.hidden ? openMenu(options) : closeMenu(true), { signal });
+    form.addEventListener("scroll", () => { if (menuTrigger === options) closeMenu(true); }, { passive: true, signal });
     menu.addEventListener("keydown", (event) => {
       const current = menuItems.indexOf(event.target);
       let next;
@@ -4228,6 +6327,21 @@
     }, { signal });
     wrap.addEventListener("change", (event) => {
       const input = event.target;
+      if (input?.matches('select[name="downloadRowAction"]') && Object.hasOwn(FILE_ACTIONS, input.value)) {
+        writeSettings({ ...settings, downloadRowAction: input.value });
+        return;
+      }
+      if (input?.matches("select[name]") && Object.hasOwn(DOWNLOAD_HEADER_OPTIONS, input.name) &&
+          Object.hasOwn(DOWNLOAD_HEADER_OPTIONS[input.name].values, input.value)) {
+        writeSettings({ ...settings, [input.name]: input.value });
+        return;
+      }
+      if (input?.matches('input[name="downloadReviewMB"]')) {
+        const value = Number(input.value);
+        if (value === Soft98DownloadLinks.reviewLimit(value)) writeSettings({ ...settings, downloadReviewMB: value });
+        else input.value = Soft98DownloadLinks.reviewLimit(settings.downloadReviewMB);
+        return;
+      }
       if (!input?.matches(".s98p-switch input")) return;
       const next = { ...settings, [input.name]: input.checked };
       if (input.name === "darkDesign" && !input.checked) next.rgbMode = false;
@@ -4252,7 +6366,11 @@
     window.visualViewport?.addEventListener("resize", refreshViewport, { signal });
     window.visualViewport?.addEventListener("scroll", { handleEvent: refreshViewport }, { signal });
     document.body.appendChild(wrap);
-    controlPanel = { wrap, form, abort, open: () => setOpen(true) };
+    controlPanel = { wrap, form, abort, open: () => setOpen(true), close: () => setOpen(false), openAppearance: () => {
+      setOpen(true);
+      selectSection("experience", false);
+      form.querySelector('input[name="showLatest"]')?.focus();
+    } };
     updateLauncher();
     layout();
     if (wasOpen) setOpen(true);
@@ -4437,9 +6555,8 @@
       #soft98-pro-compatibility header small,#soft98-pro-compatibility [data-role=feedback]{color:var(--compat-muted)!important}
       #soft98-pro-compatibility code{display:block;overflow:hidden;padding:8px 10px;border:1px solid color-mix(in srgb,var(--compat-border) 42%,transparent);border-radius:6px;background:var(--compat-surface)!important;color:var(--compat-muted)!important;font:11px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;text-overflow:ellipsis;white-space:nowrap}
       #soft98-pro-compatibility [data-role=actions]{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
-      #soft98-pro-compatibility button{min-width:0;padding:8px;border:1px solid color-mix(in srgb,var(--compat-border) 34%,transparent);border-radius:6px;background:var(--compat-action)!important;color:var(--compat-text)!important;font:650 12px/1.35 system-ui;cursor:pointer;transition:transform .15s ease,border-color .15s ease,background-color .15s ease}
-      #soft98-pro-compatibility button:hover{border-color:var(--compat-border);transform:translateY(-1px)}
-      #soft98-pro-compatibility button:active{transform:translateY(0) scale(.98)}
+      #soft98-pro-compatibility button{min-width:0;padding:8px;border:1px solid color-mix(in srgb,var(--compat-border) 34%,transparent);border-radius:6px;background:var(--compat-action)!important;color:var(--compat-text)!important;font:650 12px/1.35 system-ui;cursor:pointer;transition:border-color .15s ease,background-color .15s ease}
+      #soft98-pro-compatibility button:hover{border-color:var(--compat-border)}
       #soft98-pro-compatibility button:focus-visible{outline:2px solid var(--compat-border);outline-offset:2px}
       @media(max-width:540px){#soft98-pro-compatibility [data-role=actions]{grid-template-columns:1fr}#soft98-pro-compatibility{inset-inline:12px;width:auto;bottom:12px}}
       @media(prefers-reduced-motion:reduce){#soft98-pro-compatibility,#soft98-pro-compatibility button{transition:none!important}}
@@ -4607,7 +6724,7 @@
   function neutralizeScript(script) {
     if (!isSoft98Script(script)) return;
     const src = script.src || script.getAttribute("src") || "";
-    if (SOFT98_SCRIPT.test(src) && !settings.patchScripts) return;
+    if (SOFT98_SCRIPT.test(src) && (!settings.patchScripts || BUILD_TARGET !== "extension")) return;
     script.setAttribute(DATA_PATCHED, "1");
     script.type = "javascript/blocked-by-soft98-ad-blocker";
     script.removeAttribute("src");
@@ -4744,16 +6861,28 @@
     if (!settings.pro || event.defaultPrevented || event.button !== (event.type === "auxclick" ? 1 : 0)) return;
     const link = event.target?.closest?.("a[data-soft98-pro-download-row]");
     if (!link?.querySelector("[data-soft98-pro-download-check]") || link.closest('[aria-disabled="true"],[inert]')) return;
-    clearTimeout(downloadFeedbackTimers.get(link));
-    link.setAttribute("data-soft98-pro-download-activated", "");
-    downloadFeedbackTimers.set(link, setTimeout(() => {
-      link.removeAttribute("data-soft98-pro-download-activated");
-      downloadFeedbackTimers.delete(link);
-    }, 1600));
+    const list = link.closest("dl[data-soft98-pro-download-group]");
+    const copies = [link];
+    for (const { download } of wideLayouts.values()) {
+      if (!download || (list !== download.source && list !== download.mirror)) continue;
+      const other = list === download.source ? download.mirror : download.source;
+      for (const candidate of other.querySelectorAll("dd > a[data-soft98-pro-download-row][href]")) {
+        if (candidate.href === link.href) copies.push(candidate);
+      }
+    }
+    for (const copy of copies) {
+      clearTimeout(downloadFeedbackTimers.get(copy));
+      copy.setAttribute("data-soft98-pro-download-activated", "");
+      downloadFeedbackTimers.set(copy, setTimeout(() => {
+        copy.removeAttribute("data-soft98-pro-download-activated");
+        downloadFeedbackTimers.delete(copy);
+      }, 1600));
+    }
   }
 
   function installObserver() {
     const observer = new MutationObserver((mutations) => {
+      noticeClearedArticle(mutations);
       for (const mutation of mutations) {
         if (mutation.type === "attributes") {
           if (mutation.attributeName === "style" && gridStyles.has(mutation.target) &&
@@ -4788,6 +6917,78 @@
       attributes: true,
       attributeFilter: ["href", "src", "class", "style", "onclick", "target", "aria-expanded", "aria-selected"],
     });
+  }
+
+  function initialContentTarget(search) {
+    const main = document.querySelector("main,[role=main]");
+    if (!main) return null;
+    const headings = main.querySelectorAll(search ?
+      "article > header :is(h2,h3):has(a[href]),article > :is(h2,h3):has(a[href])" :
+      "article > header h1,article > h1");
+    for (const heading of headings) {
+      if (!heading.textContent.trim() || heading.closest("aside,details,[hidden],[inert]") || !heading.getClientRects().length) continue;
+      const header = heading.closest("header");
+      return header?.closest("article") === heading.closest("article") ? header : heading;
+    }
+    return null;
+  }
+
+  function installInitialContentScroll() {
+    const search = new URLSearchParams(location.search).get("do") === "search";
+    const navigation = performance.getEntriesByType("navigation")[0];
+    if (linkdoni || location.hash || navigation?.type === "back_forward" || navigation?.type === "reload" ||
+        (!search && !/\/\d+[^/]*\.html$/i.test(location.pathname))) return;
+
+    const listeners = new AbortController();
+    const { signal } = listeners;
+    const startingPage = location.pathname + location.search;
+    let target, timer, frame = 0, started = false;
+    const stop = () => {
+      alignInitialContent = undefined;
+      clearTimeout(timer);
+      cancelAnimationFrame(frame);
+      layout.disconnect();
+      listeners.abort();
+    };
+    const update = () => {
+      if (!settings.pro || location.hash || location.pathname + location.search !== startingPage || (!started && scrollY > 1)) {
+        stop();
+        return;
+      }
+      if (!target?.isConnected || !target.getClientRects().length) target = initialContentTarget(search);
+      if (!target) {
+        if (document.readyState === "complete") stop();
+        return;
+      }
+      const topbar = document.querySelector('[data-s98p-topbar-shell],nav:has([data-toggle="night-mode"]),header nav');
+      const fixed = [topbar, topbar?.parentElement].find(node => node && /^(?:fixed|sticky)$/.test(getComputedStyle(node).position));
+      const delta = target.getBoundingClientRect().top - (fixed?.getBoundingClientRect().height || 0) - 12;
+      if (Math.abs(delta) > 1) window.scrollBy({ top: delta, behavior: "instant" });
+      if (!started) {
+        started = true;
+        // The lead content can still change height as styles and images load.
+        layout.observe(document.body);
+        timer = setTimeout(stop, 2500);
+      }
+    };
+    const requestUpdate = () => {
+      if (!frame) frame = requestAnimationFrame(() => { frame = 0; update(); });
+    };
+    const layout = new ResizeObserver(requestUpdate);
+    alignInitialContent = update;
+    for (const type of ["pointerdown", "wheel", "touchstart", "hashchange", "popstate", "pagehide"]) {
+      window.addEventListener(type, stop, { capture: true, passive: true, once: true, signal });
+    }
+    window.addEventListener("keydown", event => {
+      if ([" ", "Tab", "ArrowDown", "ArrowUp", "PageUp", "PageDown", "Home", "End"].includes(event.key)) stop();
+    }, { capture: true, signal });
+    window.addEventListener("load", () => {
+      requestUpdate();
+      if (started) {
+        clearTimeout(timer);
+        timer = setTimeout(stop, 250);
+      }
+    }, { once: true, signal });
   }
 
   function resetDocumentHandles() {
@@ -4857,11 +7058,14 @@
     window.addEventListener("soft98-pro:compatibility", receiveExtensionCompatibility);
     window.addEventListener("soft98-pro:upstream-payload", receiveExtensionPatchedScript);
     if (IS_EXTENSION) {
+      document.addEventListener("soft98-pro:settings-received", receiveExtensionSettings);
+      installFileActions();
       window.__Soft98AdBlockerExtension = true;
       document.documentElement.setAttribute("data-soft98-ad-blocker", VERSION);
       window.dispatchEvent(new CustomEvent("soft98-ad-blocker:extension-ready", { detail: { version: VERSION } }));
     }
     installStyle();
+    for (const viewport of [relatedViewport, downloadsViewport]) viewport.addEventListener("change", () => schedule(document));
     installScrollDetectorFirewall();
     resetDocumentHandles();
     installEvalHijack();
@@ -4869,21 +7073,31 @@
     receiveExtensionPatchedScript();
     installProStyle();
     installClickRepair();
+    installDownloadHints();
+    document.addEventListener("click", toggleDownloadHeading);
     document.addEventListener("click", showDownloadActivation, true);
     document.addEventListener("auxclick", showDownloadActivation, true);
     setPersistentStyle("soft98-pro-listing-style", LISTING_NAVIGATION_CSS);
     setPersistentStyle("soft98-pro-comments-style", COMMENTS_CSS);
-    installSoft98ListingNavigation({
+    installInitialContentScroll();
+    if (linkdoni) setPersistentStyle("soft98-pro-linkdoni-style", LINKDONI_CSS);
+    else installSoft98ListingNavigation({
       enabled: () => settings.pro && settings.quickNavigation,
       fetchPage: nativeFetch,
       label: text,
       locale: LOCALE,
-      afterRender: (title) => { originalTitle = title; schedule(document); },
+      afterRender: (title) => {
+        originalTitle = title;
+        for (const [key, { node }] of stockEdits) if (!node.isConnected) stockEdits.delete(key);
+        schedule(document);
+      },
     });
     schedule(document);
     installObserver();
     document.documentElement.setAttribute("data-soft98-runtime-ready", VERSION);
+    if (IS_EXTENSION) receiveExtensionSettings();
     onReady(() => {
+      rememberArticleFrame();
       renderControlPanel();
       inspectPageScripts();
       originalTitle = WARNING_TITLE.test(document.title) ? originalTitle : document.title;
@@ -4940,15 +7154,48 @@
     }
   }
 
-  exposePublicApi();
-  init();
-  bindSiteChromeEvents();
-  document.addEventListener("scroll", scheduleContentGridUpdate, { passive: true });
-  window.addEventListener("resize", () => {
-    sidebarContentsDirty = true;
-    scheduleContentGridUpdate();
-  }, { passive: true });
-  document.addEventListener("focusin", scheduleContentGridUpdate);
-  window.setTimeout(exposePublicApi, 0);
-  window.setTimeout(exposePublicApi, 1000);
+  function start() {
+    exposePublicApi();
+    init();
+    bindSiteChromeEvents();
+    document.addEventListener("scroll", scheduleContentGridUpdate, { passive: true });
+    document.addEventListener("transitionend", (event) => {
+      if (event.target === topbarBrand && event.propertyName === "opacity") syncTopbarBrandSpace();
+    });
+    window.visualViewport?.addEventListener("scroll", scheduleContentGridUpdate, { passive: true });
+    window.visualViewport?.addEventListener("resize", scheduleContentGridUpdate, { passive: true });
+    window.addEventListener("resize", () => {
+      sidebarContentsDirty = true;
+      scheduleContentGridUpdate();
+      syncNewsPanels();
+      if (settings.pro) syncSiteSearch(document.querySelector('nav [data-toggle="search"]'));
+    }, { passive: true });
+    document.addEventListener("focusin", scheduleContentGridUpdate);
+    window.addEventListener("storage", (event) => {
+      if (event.key === NEWS_COLLAPSE_KEY) {
+        newsCollapsed = readNewsCollapsed();
+        syncNewsPanels();
+      }
+      if (event.key !== DOWNLOAD_SECTIONS_KEY || !settings.pro) return;
+      const saved = savedDownloadSections();
+      for (const heading of document.querySelectorAll("article dt[data-soft98-pro-download-heading]")) {
+        const section = downloadSectionModels.get(heading);
+        if (!section) continue;
+        section.preference = saved.get(section.key) ?? saved.get(section.legacyKey);
+        applyDownloadSectionState(section, section.preference ?? section.defaultCollapsed);
+      }
+    });
+    window.setTimeout(exposePublicApi, 0);
+    window.setTimeout(exposePublicApi, 1000);
+  }
+
+  if (document.documentElement) start();
+  else {
+    const root = new MutationObserver(() => {
+      if (!document.documentElement) return;
+      root.disconnect();
+      start();
+    });
+    root.observe(document, { childList: true });
+  }
 })();

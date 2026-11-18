@@ -11,6 +11,8 @@
     [href$="/adv.html" i], [data-href$="/adv.html" i]
   ),
   a:has(> img[data-backup][alt="kaprila" i]),
+  a:has(> img[data-backup]:is([alt*="آسیاتک"],[alt*="آسیاتیک"])),
+  article a:has(> img:only-child[data-backup][src*="//img.soft98.ir/" i][src$=".gif" i]),
   section:has(> header):has(a > img[data-backup][alt="kaprila" i]):not(:has(article,form,dl,table))
 ) {
   display: none !important;

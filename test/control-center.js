@@ -17,16 +17,17 @@ const substitutions = {
   BRAND_ASSETS: "{}",
   MESSAGES: source("src/messages.json"),
   COMPATIBILITY: source("src/compatibility/soft98-scripts.json"),
-  PAGE_ICONS: "{}",
-  UTILITY_PATH_ICONS: "{}",
+  PAGE_ICONS: JSON.stringify({ dots: fs.readFileSync(require.resolve("@tabler/icons/outline/dots.svg"), "utf8") }),
   LISTING_NAVIGATION_CSS: '""',
   COMMENTS_CSS: '""',
   CHROME_CSS: '""',
+  APPEARANCE_CSS: JSON.stringify(source("src/appearance.css")),
+  LINKDONI_CSS: '""',
   EARLY_ADS_CSS: '""',
   OPTION_PREVIEWS: JSON.stringify({ rgbMode: { files: ["dark-on.webp", "rgb.webp", "rgb-still.webp"].map((file) =>
     "data:image/webp;base64," + fs.readFileSync(path.join(root, "docs", "assets", "settings", file)).toString("base64")), illustrated: false } }),
 };
-const runtime = ["src/patch-engine.js", "src/listing-navigation.js", "src/comments.js"].map(source).join("\n") + "\n" + source("src/runtime.js").replace(/__SOFT98_([A-Z_]+)__/g,
+const runtime = ["src/patch-engine.js", "src/listing-navigation.js", "src/comments.js", "src/download-links.js", "src/post-artwork.js"].map(source).join("\n") + "\n" + source("src/runtime.js").replace(/__SOFT98_([A-Z_]+)__/g,
   (token, name) => Object.hasOwn(substitutions, name) ? substitutions[name] : token);
 
 async function verify() {
@@ -47,6 +48,14 @@ async function verify() {
     const rect = node.getBoundingClientRect();
     return rect.width > 0 && rect.height > 0 && rect.left >= -1 && rect.top >= -1 &&
       rect.right <= doc.documentElement.clientWidth + 1 && rect.bottom <= doc.documentElement.clientHeight + 1;
+  };
+  const nearHeader = () => {
+    const anchor = role("options").getBoundingClientRect();
+    const rect = menu.getBoundingClientRect();
+    const aligned = menu.dir === "rtl" ? anchor.left : anchor.right - rect.width;
+    const left = Math.max(12, Math.min(aligned, doc.documentElement.clientWidth - rect.width - 12));
+    return fits(menu) && Math.abs(rect.left - left) < 1 &&
+      (Math.abs(rect.top - anchor.bottom - 6) < 1 || Math.abs(rect.bottom - anchor.top + 6) < 1);
   };
   const drag = (x, y, complete = true) => {
     const rect = toggle.getBoundingClientRect();
@@ -71,6 +80,18 @@ async function verify() {
   const openingOpacity = Number(win.getComputedStyle(form).opacity);
   check(openingOpacity > 0 && openingOpacity < 1, "Opening the panel skipped its intermediate frame");
   panelMotion.finish();
+  await panelMotion.finished;
+  const headerButton = role("options");
+  const directions = [form.dir, menu.dir];
+  check(headerButton.querySelectorAll('svg path:not([stroke="none"])').length === 3, "Header menu needs three visible dots");
+  for (const dir of ["ltr", "rtl"]) {
+    form.dir = menu.dir = dir;
+    headerButton.click();
+    check(nearHeader() && headerButton.getAttribute("aria-expanded") === "true", "Header menu is not anchored to its button in " + dir);
+    keyboard(doc.activeElement, "Escape");
+    check(menu.hidden && doc.activeElement === headerButton, "Closing the header menu did not restore focus");
+  }
+  [form.dir, menu.dir] = directions;
   const appearance = get('#soft98-pro-control [data-section="experience"]');
   appearance.click();
   check(!get('input[name="expandMain"]').checked && get('input[name="utilityInHeader"]').checked,
@@ -178,7 +199,7 @@ async function verify() {
   await wait(300);
   check(fits(form) && form.dataset.short === "true" && form.scrollHeight > form.clientHeight, "Small viewport panel is clipped or lacks a scrollbar");
   role("options").click();
-  check(!menu.hidden && fits(menu), "Menu overflows a short viewport");
+  check(!menu.hidden && nearHeader(), "Header menu is detached or overflowing in a short viewport");
   keyboard(doc.activeElement, "Escape");
   drag(doc.documentElement.clientWidth - 2, 95);
   check(toggle.hidden && !role("restore").hidden && fits(role("restore")), "Edge drag did not expose a recoverable tab");

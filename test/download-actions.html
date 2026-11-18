@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Download actions fixture</title>
+<style>
+  dialog button { appearance: auto !important; background: #272727 !important; box-shadow: inset -2px -2px #000 !important; }
+  #password-fixture > button { display: block; width: 100%; padding: 8px; border: 1px solid; }
+  #password-fixture > button + button { border-block-start-width: 0; }
+</style>
+<main>
+  <article>
+    <ul role="tablist"><li><a role="tab" data-toggle="tab" href="#downloads" aria-selected="true">Downloads</a></li></ul>
+    <section id="downloads" role="tabpanel" class="active">
+      <dl>
+        <dt>Windows</dt>
+        <dd><a href="https://files.example.test/tool.zip?sig=A%2Fb">Download tool size 64 MB</a></dd>
+        <dd><a href="https://files.example.test/installer.msi">Windows installer</a></dd>
+        <dt id="linux-section">لینوکـس</dt>
+        <dd id="linux-file"><a href="https://files.example.test/linux.deb">Linux package</a></dd>
+        <dt id="multi-section">Windows / macOS</dt>
+        <dd id="multi-file"><a href="https://files.example.test/multi.zip">Multi-platform package</a></dd>
+        <dt id="other-platforms">سایر پلتـفرم‌ها</dt>
+        <dd><a href="https://files.example.test/mac.dmg">دانلود نسخه Mac</a></dd>
+        <dd><a href="https://files.example.test/android.apk">دانلود نسخه Android</a></dd>
+      </dl>
+      <aside id="password-fixture">
+        <div data-toggle="copy"><span>پسورد فایل:</span><input readonly value="soft98.ir"></div>
+        <button type="button">Download help</button>
+        <button type="button" id="fixture-help-repair">Repair a downloaded file</button>
+      </aside>
+    </section>
+  </article>
+</main>
+<script>
+  Object.defineProperty(navigator, "userAgentData", { value: { platform: "Windows" } });
+  const fixture = window.fileActionsFixture = { messages: [], copied: [] };
+  Object.defineProperty(navigator, "clipboard", { value: { writeText: async (url) => fixture.copied.push(url) } });
+  window.browser = {
+    extension: { inIncognitoContext: false },
+    runtime: {
+      getURL: (path) => new URL("/dist/chromium/" + path, location.href).href,
+      getManifest: () => ({ manifest_version: 3 }),
+      onMessage: { addListener() {} },
+      sendMessage: async (message) => {
+        fixture.messages.push(message);
+        if (message.type === "soft98:download-file") {
+          if (message.confirmAll && fixture.nextResult !== "review") {
+            return { ok: true, result: "confirm", token: "token-for-one-approval", files: message.urls.map((url, index) => {
+              const name = new URL(url).pathname.split("/").pop();
+              return { name, type: name.split(".").at(-1).toUpperCase(), size: (index ? 8 : 64) * 1048576 };
+            }) };
+          }
+          return { ok: true, result: fixture.nextResult || "starting" };
+        }
+        if (message.type === "soft98:confirm-download-all") return { ok: true, result: "starting" };
+      },
+    },
+    storage: {
+      local: {
+        get(defaults, callback) { callback(defaults); },
+        set(next) { fixture.settings = next.soft98AdBlockerSettings; },
+      },
+      onChanged: { addListener() {} },
+    },
+  };
+</script>
+<script src="/dist/chromium/assets/runtime.page.js"></script>
+<script src="/dist/chromium/assets/bridge.js"></script>
+</html>

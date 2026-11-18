@@ -4,6 +4,8 @@
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const { decodePacker } = require("./decode-packer.js");
+const patchEngine = require("../src/patch-engine.js");
 
 for (const key of ["HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"]) delete process.env[key];
 
@@ -130,6 +132,11 @@ function appendSummary(report) {
     `| SHA-256 | \`${report.sha256}\` |`,
     `| Size | ${report.bytes.toLocaleString("en-US")} bytes |`,
     `| Catalog | ${report.catalogEntries.toLocaleString("en-US")} reviewed hashes |`,
+    ...(report.audit ? [
+      `| Patch audit | ${report.audit.passed ? "Passed" : "Review required"} |`,
+      `| Applied patches | ${report.audit.patches.length} |`,
+      `| Skipped stages | ${report.audit.failures.length} |`,
+    ] : []),
     `| Observed | \`${report.observedAt}\` |`,
     "",
   ].join("\n");
@@ -148,6 +155,7 @@ function writeOutputs(report) {
     bytes: report.bytes,
     observed_at: report.observedAt,
     changed: String(report.changes.length > 0),
+    ...(report.audit ? { audit_passed: String(report.audit.passed) } : {}),
   };
   fs.appendFileSync(process.env.GITHUB_OUTPUT, `${Object.entries(fields).map(([key, value]) => `${key}=${value}`).join("\n")}\n`, "utf8");
 }
@@ -156,7 +164,9 @@ async function main() {
   const pageUrl = option("--page", DEFAULT_PAGE);
   const scriptUrl = option("--script", "");
   const catalog = JSON.parse(fs.readFileSync(CATALOG_PATH, "utf8"));
-  const { source, ...observed } = await inspect(pageUrl, scriptUrl, { includeSource: process.argv.includes("--capture") });
+  const capture = process.argv.includes("--capture");
+  const audit = process.argv.includes("--audit");
+  const { source, ...observed } = await inspect(pageUrl, scriptUrl, { includeSource: capture || audit });
   const match = catalog.entries.find((entry) => entry.sha256 === observed.sha256) || null;
   const baseline = JSON.parse(fs.readFileSync(BASELINE_PATH, "utf8"));
   const status = match ? match.status : "unknown";
@@ -170,13 +180,27 @@ async function main() {
     catalogEntries: catalog.entries.length,
     match,
   };
+  if (audit) {
+    const input = source.toString("utf8").replace(/^\uFEFF/, "");
+    const result = patchEngine.patch(input, { evaluate: decodePacker });
+    report.audit = {
+      recognized: result.recognized,
+      packed: result.packed,
+      syntaxValid: !patchEngine.syntaxErrorFor(result.code),
+      patches: result.patches,
+      failures: result.failures.map(({ stage, message }) => ({ stage, message })),
+      matchesReviewedPatches: Boolean(match && JSON.stringify(match.patches) === JSON.stringify(result.patches)),
+    };
+    report.audit.passed = report.audit.recognized && report.audit.syntaxValid && report.audit.matchesReviewedPatches &&
+      !report.audit.failures.some(({ stage }) => stage === "unpack" || stage === "final-validation");
+  }
   fs.mkdirSync(path.dirname(REPORT_PATH), { recursive: true });
   fs.writeFileSync(REPORT_PATH, `${JSON.stringify(report, null, 2)}\n`, "utf8");
-  if (source) fs.writeFileSync(path.join(path.dirname(REPORT_PATH), "upstream-source.txt"), source);
+  if (capture) fs.writeFileSync(path.join(path.dirname(REPORT_PATH), "upstream-source.txt"), source);
   appendSummary(report);
   writeOutputs(report);
   console.log(JSON.stringify(report, null, process.argv.includes("--json") ? 2 : 0));
-  if (process.argv.includes("--check") && status !== "compatible") process.exitCode = 2;
+  if (process.argv.includes("--check") && (status !== "compatible" || (report.audit && !report.audit.passed))) process.exitCode = 2;
 }
 
 if (require.main === module) {

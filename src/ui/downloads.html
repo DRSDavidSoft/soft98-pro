@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" href="assets/icon-32.png" type="image/png">
+    <link id="manager-favicon" rel="icon" href="download-manager.svg">
     <link rel="stylesheet" href="typography.css">
     <link rel="stylesheet" href="theme.css">
     <script src="theme.js"></script>
@@ -11,45 +11,164 @@
     <title>Soft98 Pro</title>
   </head>
   <body>
+    <header class="masthead">
+      <div class="masthead-inner">
+        <div class="identity"><img id="manager-mark" src="download-manager.svg" alt="" width="40" height="40"><div><a id="pro-settings-link" href="options.html" target="_blank" rel="noopener">Soft98 Pro</a><h1 data-copy="title"></h1></div></div>
+        <div class="manager-tools">
+          <nav id="manager-nav" class="manager-nav">
+            <a id="queue-tab" href="#queue"></a>
+            <a id="settings-tab" href="#settings"></a>
+            <a id="expand-manager" href="downloads.html" target="_blank" rel="noopener"></a>
+          </nav>
+          <button id="open-guide" type="button" aria-haspopup="dialog" aria-controls="guide" aria-expanded="false"></button>
+        </div>
+      </div>
+    </header>
     <main class="workspace">
-      <header class="masthead">
-        <a href="options.html">Soft98 Pro</a>
-        <h1 data-copy="title"></h1>
-      </header>
-      <section class="composer" aria-labelledby="add-title">
-        <h2 id="add-title" data-copy="addTitle"></h2>
-        <form id="composer">
-          <label for="urls" data-copy="urls"></label>
-          <textarea id="urls" dir="ltr" rows="4" required aria-describedby="url-help"></textarea>
-          <small id="url-help" data-copy="urlHelp"></small>
-          <details>
-            <summary data-copy="saveOptions"></summary>
-            <label for="filename" data-copy="path"></label>
-            <input id="filename" dir="ltr" type="text" maxlength="240" placeholder="Tools/file.zip">
-            <label class="check"><input id="save-as" type="checkbox"><span data-copy="saveAs"></span></label>
-          </details>
-          <button id="add" type="submit" class="primary" disabled></button>
-        </form>
-        <output id="feedback" role="status"></output>
-      </section>
-      <section class="queue" aria-labelledby="queue-title">
+      <section id="queue-view" class="queue" aria-labelledby="queue-title">
         <header class="queue-header">
-          <div><h2 id="queue-title" data-copy="queue"></h2><p id="counts"></p></div>
+          <div><h2 id="queue-title" data-copy="queue"></h2>
+            <dl id="counts" hidden>
+              <div hidden><dt data-copy="active"></dt><dd id="count-active"></dd></div>
+              <div hidden><dt data-copy="waiting"></dt><dd id="count-waiting"></dd></div>
+              <div hidden><dt data-copy="finished"></dt><dd id="count-finished"></dd></div>
+            </dl>
+          </div>
           <div class="controls">
-            <label class="limit"><span data-copy="parallel"></span><select id="limit" disabled></select></label>
-            <button id="hold" type="button" disabled></button>
+            <button id="open-import" type="button" class="primary" aria-haspopup="dialog"></button>
+            <button id="hold" type="button" disabled hidden></button>
           </div>
         </header>
         <div class="filters">
           <label class="search"><span class="visually-hidden" data-copy="search"></span><input id="search" type="search"></label>
-          <label><span class="visually-hidden" data-copy="filter"></span><select id="filter"></select></label>
-          <button id="clear" type="button" disabled></button>
+          <label class="visually-hidden" for="filter" data-copy="filter"></label><select id="filter"></select>
         </div>
         <p id="notice" role="status"></p>
-        <p id="empty" class="empty"></p>
         <ul id="jobs" class="jobs"></ul>
+        <div id="queue-empty" class="queue-empty">
+          <span id="empty-icon" class="file-mark" aria-hidden="true"></span>
+          <p id="empty"></p>
+          <button id="empty-action" type="button" hidden></button>
+        </div>
       </section>
+      <section id="settings-view" class="settings" aria-labelledby="settings-title" hidden>
+        <h2 id="settings-title" data-copy="settings"></h2>
+        <div id="appearance-settings" class="settings-group">
+          <h3 data-copy="appearance"></h3>
+          <div class="setting-row">
+            <span id="theme-label" data-copy="appearanceTheme"></span>
+            <div id="appearance-theme" class="segmented" role="group" aria-labelledby="theme-label"></div>
+          </div>
+          <div class="setting-row">
+            <span id="accent-label" data-copy="appearanceAccent"></span>
+            <div id="appearance-accent" class="accent-swatches" role="group" aria-labelledby="accent-label"></div>
+          </div>
+          <div class="setting-row"><label for="appearance-rgb" data-copy="appearanceRgb"></label><input id="appearance-rgb" name="rgbMode" type="checkbox" role="switch"></div>
+          <h3 data-copy="controlCenter"></h3>
+          <div class="setting-row"><label for="control-center-visible" data-copy="controlCenterVisible"></label><input id="control-center-visible" name="controlCenter" type="checkbox" role="switch"></div>
+          <div class="setting-row"><label for="control-center-sound" data-copy="controlCenterSound"></label><input id="control-center-sound" name="soundFeedback" type="checkbox" role="switch"></div>
+        </div>
+        <h3 data-copy="title"></h3>
+        <div class="setting-row"><label for="limit" data-copy="parallel"></label><select id="limit" disabled></select></div>
+        <div class="setting-row">
+          <label for="native-notifications" data-copy="nativeNotifications"></label>
+          <div class="setting-actions">
+            <input id="native-notifications" type="checkbox" disabled>
+            <button id="test-notification" type="button"></button>
+          </div>
+        </div>
+        <div class="setting-row"><label for="date-calendar" data-copy="dateCalendar"></label><select id="date-calendar" disabled></select></div>
+        <div class="setting-row"><label for="table-direction" data-copy="tableDirection"></label><select id="table-direction" disabled></select></div>
+        <div class="setting-row"><span data-copy="history"></span><button id="clear" type="button" disabled></button></div>
+        <fieldset class="sound-settings">
+          <legend><span id="sound-icon" aria-hidden="true"></span><span data-copy="downloadSounds"></span></legend>
+          <div class="setting-row">
+            <label for="download-sounds" data-copy="soundAutomatic"></label>
+            <input id="download-sounds" type="checkbox" role="switch" disabled>
+          </div>
+          <div class="setting-row">
+            <label for="sound-volume" data-copy="soundVolume"></label>
+            <div class="sound-level">
+              <input id="sound-volume" type="range" min="0" max="100" step="1" value="40" disabled>
+              <output id="sound-level" for="sound-volume" aria-hidden="true"></output>
+            </div>
+          </div>
+          <div class="setting-row">
+            <label for="sound-cue" data-copy="soundEvent"></label>
+            <div class="setting-actions sound-actions">
+              <select id="sound-cue"></select>
+              <button id="preview-sound" type="button"></button>
+            </div>
+          </div>
+        </fieldset>
+      </section>
+      <output id="feedback" role="status"></output>
     </main>
+    <dialog id="import" aria-labelledby="import-title">
+      <form id="composer">
+        <header class="import-bar">
+          <h2 id="import-title" data-copy="importTitle"></h2>
+          <button id="close-import" class="icon-button" type="button"></button>
+        </header>
+        <div class="import-inputs">
+          <label class="visually-hidden" for="import-url" data-copy="urls"></label>
+          <input id="import-url" dir="ltr" type="url" maxlength="4096" placeholder="https://" autofocus>
+          <button id="add-url" type="button"></button>
+          <button id="paste-links" type="button"></button>
+          <button id="choose-file" type="button"></button>
+          <input id="import-file" type="file" accept=".txt,text/plain" hidden>
+        </div>
+        <div class="import-filters">
+          <label class="search"><span class="visually-hidden" data-copy="search"></span><input id="import-search" type="search"></label>
+          <select id="import-type" aria-label=""></select>
+          <button id="select-import" type="button" data-copy="selectVisible"></button>
+          <button id="clear-import" type="button" data-copy="deselectAll"></button>
+          <button id="probe-import" type="button" hidden></button>
+        </div>
+        <div class="import-grid" dir="ltr" tabindex="0" role="region" aria-labelledby="import-title">
+          <table id="import-table" dir="ltr">
+            <colgroup><col class="checkbox-col"><col data-column="name"><col data-column="type"><col data-column="size"><col data-column="date"></colgroup>
+            <thead><tr><th scope="col" aria-label="" id="check-column">✓</th><th scope="col" data-column="name"></th><th scope="col" data-column="type"></th><th scope="col" data-column="size"></th><th scope="col" data-column="date"></th></tr></thead>
+            <tbody id="import-links"></tbody>
+          </table>
+          <p id="import-empty" class="empty" dir="auto" data-copy="importEmpty"></p>
+        </div>
+        <p id="import-notice" role="status"></p>
+        <section class="import-save">
+          <button id="save-options" type="button" aria-expanded="false" aria-controls="save-fields"></button>
+          <div id="save-fields" class="import-disclosure" inert>
+            <div class="import-disclosure-clip">
+              <div class="import-save-fields">
+                <label for="filename" data-copy="path"></label>
+                <input id="filename" dir="ltr" type="text" maxlength="240" placeholder="Tools/file.zip">
+                <label class="check"><input id="save-as" type="checkbox"><span data-copy="saveAs"></span></label>
+              </div>
+            </div>
+          </div>
+        </section>
+        <footer class="import-bar">
+          <span id="import-count" aria-live="polite"></span>
+          <button id="add" type="submit" class="primary" disabled></button>
+        </footer>
+      </form>
+    </dialog>
+    <dialog id="guide" class="guide" aria-labelledby="guide-title">
+      <div class="guide-body">
+        <header class="import-bar"><h2 id="guide-title" data-copy="managerGuide"></h2><button id="close-guide" class="icon-button" type="button"></button></header>
+        <dl>
+          <div><dt data-copy="importOpen"></dt><dd data-copy="guideImport"></dd></div>
+          <div><dt data-copy="queue"></dt><dd data-copy="guideQueue"></dd></div>
+          <div><dt data-copy="settings"></dt><dd data-copy="guideSettings"></dd></div>
+        </dl>
+      </div>
+    </dialog>
+    <div id="manager-menu" class="context-menu" role="menu" popover="manual"></div>
+    <script src="download-links.js"></script>
+    <script src="download-ui-catalog.js"></script>
+    <script src="download-view.js"></script>
+    <script src="download-select.js"></script>
+    <script src="download-import.js"></script>
+    <script src="assets/download-audio.js"></script>
     <script src="downloads.js"></script>
   </body>
 </html>

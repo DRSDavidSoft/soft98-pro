@@ -46,9 +46,14 @@ function value(pathName, fallback = null) {
 }
 
 function assetLink(name) {
-  return phase === "release" && status === "success"
-    ? `${repoUrl}/releases/download/v${VERSION}/${encodeURIComponent(name)}`
-    : `${runUrl}#artifacts`;
+  if (phase === "release" && status === "success") {
+    return `${repoUrl}/releases/download/v${VERSION}/${encodeURIComponent(name)}`;
+  }
+  const direct = name === "soft98-pro.user.js" ? process.env.USERSCRIPT_ARTIFACT_URL
+    : name.startsWith("soft98-pro-chromium-") ? process.env.CHROMIUM_ARTIFACT_URL
+    : name.startsWith("soft98-pro-firefox-") ? process.env.FIREFOX_ARTIFACT_URL
+    : process.env.METADATA_ARTIFACT_URL;
+  return direct || `${runUrl}#artifacts`;
 }
 
 if (!fs.existsSync(RELEASE_FILE)) {
@@ -66,7 +71,7 @@ if (!fs.existsSync(RELEASE_FILE)) {
   const upstreamValue = upstream
     ? `${upstream.status === "compatible" ? "✅" : "⚠️"} \`${upstream.sha256.slice(0, 12)}\` · ${upstream.status}`
     : "Not checked in this job";
-  const heading = phase === "release" ? "Release published" : "Build verified";
+  const heading = phase === "release" ? "Release published" : status === "success" ? "Preview build verified" : "Preview build not verified";
   const retention = phase === "release" ? "Durable GitHub Release assets" : `${process.env.ARTIFACT_RETENTION_DAYS || 14} day Actions artifacts`;
   const markdown = [
     "<div align=\"center\">",
@@ -104,6 +109,16 @@ if (!fs.existsSync(RELEASE_FILE)) {
     "|---|---:|---|",
     ...rows,
     "",
+    ...(phase === "build" ? [
+      "### 🧪 Try this build before release",
+      "",
+      "- 🧩 **Chrome / Edge / Brave:** extract the Chromium ZIP, open your browser’s extensions page, enable Developer mode, then use **Load unpacked** on the folder containing `manifest.json`.",
+      "- 🦊 **Firefox:** in `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on** and select the Firefox ZIP. The add-on is removed on restart.",
+      "- 📜 **Userscript:** import the downloaded `.user.js` file into your userscript manager. Use either the extension or the userscript on the same site.",
+      "",
+      "Sign in to GitHub to download Actions artifacts. These builds are for testing and are not published releases.",
+      "",
+    ] : []),
     "<details>",
     "<summary><strong>🔐 Verify a downloaded package</strong></summary>",
     "",
@@ -112,7 +127,7 @@ if (!fs.existsSync(RELEASE_FILE)) {
     "$expected = (Select-String -Path .\\SHA256SUMS.txt -Pattern (Split-Path $archive -Leaf)).Line.Split()[0]",
     "$actual = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()",
     "if ($actual -ne $expected) { throw \"SHA-256 mismatch\" }",
-    `gh attestation verify $archive --repo ${repository}`,
+    ...(phase === "release" ? [`gh attestation verify $archive --repo ${repository}`] : []),
     "```",
     "",
     "</details>",

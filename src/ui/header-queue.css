@@ -1,0 +1,99 @@
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  margin: 0;
+  background: var(--panel);
+  color: var(--ink);
+  font: 13px/var(--ui-line) var(--ui-font);
+}
+header, footer { background: color-mix(in srgb, var(--page) 82%, var(--panel)); }
+header {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 32px;
+  align-items: start;
+  gap: 9px;
+  min-block-size: 72px;
+  padding: 11px 12px 9px;
+  border-block-end: 1px solid var(--line);
+}
+h1 { margin: 0; font-size: 15px; line-height: 1.45; overflow-wrap: anywhere; }
+.heading { min-inline-size: 0; }
+.queue-mark, .file-mark, .icon-button {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--field);
+  color: var(--muted);
+}
+.queue-mark { inline-size: 36px; block-size: 36px; color: var(--mint); }
+.file-mark { inline-size: 32px; block-size: 32px; }
+.icon-button { inline-size: 32px; block-size: 32px; padding: 0; cursor: pointer; }
+svg { display: block; inline-size: 17px; block-size: 17px; }
+.queue-mark svg { inline-size: 20px; block-size: 20px; }
+.counts { display: flex; flex-wrap: wrap; gap: 3px 10px; margin-block-start: 3px; font-size: 11px; color: var(--muted); }
+.counts span { display: inline-flex; align-items: baseline; gap: 4px; }
+.counts strong { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.counts span[data-count=active] strong { color: var(--progress-color); }
+main { position: relative; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+#status {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+#status svg { inline-size: 29px; block-size: 29px; color: var(--sky); }
+#held { margin: 0; padding: 7px 12px; border-block-end: 1px solid var(--line); color: var(--amber); font-size: 12px; }
+#items { margin: 0; padding: 4px 7px 7px; list-style: none; }
+#items li + li { border-block-start: 1px solid color-mix(in srgb, var(--line) 68%, transparent); }
+.row {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 14px;
+  align-items: start;
+  gap: 8px;
+  min-block-size: 54px;
+  padding: 8px 6px;
+  border-radius: 5px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.row > span:last-child { align-self: center; color: var(--muted); }
+.row > span:last-child svg { inline-size: 14px; block-size: 14px; }
+:dir(rtl) .row > span:last-child svg { transform: scaleX(-1); }
+.row-copy { min-inline-size: 0; display: grid; gap: 3px; }
+.row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: start; font-weight: 650; }
+.facts { display: flex; align-items: center; flex-wrap: wrap; column-gap: 8px; color: var(--muted); font-size: 11px; }
+.facts bdi { font-variant-numeric: tabular-nums; }
+.facts .transfer-state { color: var(--muted); }
+li[data-group=active] .transfer-state { color: var(--progress-color); }
+li[data-state=complete] .transfer-state { color: var(--success,var(--mint)); }
+li:is([data-state=interrupted],[data-state=review],[data-state=missing]) .transfer-state { color: var(--amber); }
+progress { display: block; inline-size: 100%; block-size: 5px; margin-block: 3px 2px; accent-color: var(--progress-color); }
+progress[value] { appearance: none; overflow: hidden; border: 0; border-radius: 5px; background: var(--line); }
+progress[value]::-webkit-progress-bar { background: var(--line); }
+progress[value]::-webkit-progress-value { border-radius: 5px; background: var(--progress-color); }
+progress[value]::-moz-progress-bar { border-radius: 5px; background: var(--progress-color); }
+footer { padding: 7px 8px 8px; border-block-start: 1px solid var(--line); }
+#full-manager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-block-size: 32px;
+  gap: 8px;
+  padding-inline: 8px;
+  border-radius: 5px;
+  color: var(--sky);
+  text-decoration: none;
+  font-weight: 650;
+}
+a:hover, .icon-button:hover { background: var(--button-hover); }
+a:focus-visible, .icon-button:focus-visible { outline: 2px solid var(--sky); outline-offset: -2px; }

@@ -1,5 +1,1293 @@
+:root.soft98-pro-theme {
+  --s98p-topbar-height: 58px;
+  --s98p-topbar-base: #0a1116;
+  --s98p-topbar-bg: linear-gradient(165deg,
+    color-mix(in srgb,var(--s98p-elevated) 92%,var(--s98p-topbar-base)),
+    color-mix(in srgb,var(--s98p-nav) 85%,var(--s98p-topbar-base)));
+  --s98p-topbar-line: var(--s98p-border-soft);
+  --s98p-topbar-hover: var(--s98p-soft);
+  --s98p-topbar-active: var(--s98p-elevated);
+  --s98p-topbar-shadow: 0 10px 28px #0006;
+}
+
+:root.soft98-pro-light {
+  --s98p-topbar-bg: var(--s98p-day-paper);
+  --s98p-topbar-active: var(--s98p-day-action-wash);
+  --s98p-topbar-shadow: var(--s98p-day-shadow);
+}
+
+:root.soft98-pro-rgb {
+  --s98p-topbar-base: #060708;
+  --s98p-topbar-shadow: inset 0 -1px var(--s98p-neon-soft);
+}
+
+:root.soft98-pro-theme [data-s98p-topbar-shell] {
+  background: var(--s98p-topbar-bg) !important;
+  border: 0 !important;
+  border-block-end: 1px solid var(--s98p-topbar-line) !important;
+  border-radius: 0 !important;
+  box-shadow: var(--s98p-topbar-shadow) !important;
+  backdrop-filter: none !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-search] {
+  position: fixed !important;
+  inset: var(--s98p-search-top,calc(var(--s98p-topbar-height) + 6px)) auto auto var(--s98p-search-left,8px) !important;
+  box-sizing: border-box;
+  inline-size: min(520px,calc(100vw - 16px)) !important;
+  block-size: 48px !important;
+  overflow: visible !important;
+  padding: 4px !important;
+  border: 1px solid var(--s98p-border-soft) !important;
+  border-radius: 8px !important;
+  background: var(--s98p-nav) !important;
+  transition: opacity .15s ease !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-search]:not([data-s98p-search-open]) {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-search][data-s98p-search-open] {
+  z-index: 40 !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-search]::before { content: none !important; }
+
+:root.soft98-pro-theme [data-s98p-search-form] {
+  position: relative;
+  display: flex;
+  align-items: center;
+  inline-size: 100% !important;
+  block-size: 100% !important;
+  margin: 0;
+}
+
+:root.soft98-pro-theme [data-s98p-search-form] input[type="search"] {
+  box-sizing: border-box;
+  flex: 1;
+  min-inline-size: 0;
+  block-size: 100%;
+  margin: 0;
+  padding: 4px 12px !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  outline-offset: -2px !important;
+  text-align: start !important;
+}
+
+:root.soft98-pro-theme [data-s98p-search-form] input[type="search"]:dir(ltr) { direction: ltr !important; }
+:root.soft98-pro-theme [data-s98p-search-form] input[type="search"]:dir(rtl) { direction: rtl !important; }
+:root.soft98-pro-theme [data-s98p-search-form]:has([data-s98p-search-clear]) input[type="search"] { padding-inline-end: 37px !important; }
+:root.soft98-pro-theme [data-s98p-search-form]:has([data-s98p-search-clear]) input[type="search"]::-webkit-search-cancel-button { display: none; }
+
+:root.soft98-pro-theme [data-s98p-search-clear] {
+  position: absolute;
+  inset: 4px auto 4px 4px !important;
+  inline-size: 30px !important;
+  block-size: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 5px;
+  background: transparent !important;
+  color: var(--s98p-muted) !important;
+  transform: none !important;
+}
+
+:root.soft98-pro-theme [data-s98p-search-form]:has(input[type="search"]:dir(ltr)) [data-s98p-search-clear] {
+  inset-inline: auto !important;
+  left: auto !important;
+  right: 4px !important;
+}
+
+:root.soft98-pro-theme [data-s98p-search-clear]:is(:hover,:focus-visible) { background: var(--s98p-soft) !important; }
+:root.soft98-pro-theme [data-s98p-search-clear] [data-soft98-pro-page-icon] {
+  position: absolute;
+  inset: 0;
+  inline-size: 17px !important;
+  block-size: 17px !important;
+  margin: auto !important;
+  background: transparent !important;
+}
+
+:root.soft98-pro-theme [data-s98p-search-clear] svg { inline-size: 16px; block-size: 16px; }
+
+:root.soft98-pro-theme [data-s98p-search-results] {
+  --s98p-search-thumb: color-mix(in srgb,var(--s98p-muted) 55%,var(--s98p-surface));
+  position: absolute !important;
+  inset: calc(100% + 7px) 0 auto !important;
+  box-sizing: border-box;
+  inline-size: 100% !important;
+  block-size: auto !important;
+  min-block-size: 0 !important;
+  max-block-size: min(420px,60dvh,calc(100dvh - 128px)) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--s98p-search-thumb) transparent;
+  border: 1px solid var(--s98p-border-soft) !important;
+  border-radius: 8px !important;
+  background: var(--s98p-surface) !important;
+  box-shadow: var(--s98p-topbar-shadow) !important;
+}
+
+:root.soft98-pro-theme [data-s98p-search-results] a[href] { color: var(--s98p-text) !important; }
+:root.soft98-pro-theme [data-s98p-search-results] a[href]:is(:hover,:focus-visible) {
+  background-color: var(--s98p-soft) !important;
+  color: var(--s98p-link) !important;
+  outline-offset: -2px !important;
+}
+
+:root.soft98-pro-theme [data-s98p-search-results] img {
+  box-sizing: border-box;
+  object-fit: contain;
+  padding: 3px;
+  border-color: var(--s98p-border-soft) !important;
+  border-radius: 5px;
+  background: var(--s98p-surface-2) !important;
+  mix-blend-mode: normal;
+}
+
+:root.soft98-pro-theme [data-s98p-search-results] > :has(a[href] img) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--s98p-search-thumb) transparent;
+}
+
+@media (max-width: 820px) {
+  :root.soft98-pro-theme [data-soft98-pro-search] {
+    inset-inline: 8px !important;
+    inline-size: calc(100% - 16px) !important;
+  }
+}
+
+:root.soft98-pro-theme [data-s98p-search-hint] {
+  display: flex !important;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  background: color-mix(in srgb,var(--s98p-link) 8%,var(--s98p-surface)) !important;
+  border-color: color-mix(in srgb,var(--s98p-link) 30%,var(--s98p-border-soft)) !important;
+  color: var(--s98p-text) !important;
+}
+
+:root.soft98-pro-theme[data-s98p-hide-search-hint] [data-s98p-search-hint] { display: none !important; }
+
+:root.soft98-pro-theme [data-s98p-search-hint] > [data-s98p-search-hint-dismiss] {
+  flex: none;
+  min-block-size: 34px;
+  margin-inline-start: auto;
+  padding: 3px 10px;
+  border: 1px solid var(--s98p-border) !important;
+  border-radius: 6px;
+  background: var(--s98p-control-bg) !important;
+  color: var(--s98p-text) !important;
+  cursor: pointer;
+}
+
+:root.soft98-pro-theme [data-s98p-search-hint] > [data-s98p-search-hint-dismiss]:is(:hover,:focus-visible) {
+  background: var(--s98p-control-hover) !important;
+  border-color: var(--s98p-control-edge) !important;
+}
+
+:root:not(.soft98-pro-theme) [data-soft98-pro-read-preview] { display: none !important; }
+
+:root.soft98-pro-theme [data-soft98-pro-read-preview] {
+  display: inline-flex;
+  margin-inline-start: 6px;
+  vertical-align: middle;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-read-preview] > :is(a,button) {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-block-size: 36px;
+  padding-inline: 11px;
+  border: 1px solid var(--s98p-border) !important;
+  border-radius: 6px;
+  background: var(--s98p-control-bg) !important;
+  color: var(--s98p-text) !important;
+  font: inherit;
+  text-decoration: none !important;
+  cursor: pointer;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-read-preview] > :is(a,button):is(:hover,:focus-visible,[aria-expanded=true]) {
+  background: var(--s98p-control-hover) !important;
+  border-color: var(--s98p-accent) !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-preview-panel]:not([data-s98p-preview-open]) { display: none; }
+
+:root.soft98-pro-theme [data-soft98-pro-preview-panel][data-s98p-preview-open] {
+  position: fixed;
+  z-index: 10001;
+  inset: auto;
+  margin: 0;
+  display: grid;
+  gap: 3px;
+  box-sizing: border-box;
+  inline-size: min(320px, calc(100vw - 24px));
+  max-block-size: min(320px, calc(100dvh - 24px));
+  padding: 6px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--s98p-border);
+  border-radius: 8px;
+  background: var(--s98p-elevated);
+  box-shadow: 0 12px 28px #0005;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-preview-panel] > span {
+  display: grid;
+  gap: 2px;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-preview-panel] > span + span {
+  padding-block-start: 5px;
+  border-block-start: 1px solid var(--s98p-border-soft);
+}
+
+:root.soft98-pro-theme [data-soft98-pro-preview-panel] > span > bdi {
+  padding: 5px 8px 3px;
+  color: var(--s98p-muted);
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-preview-panel] a {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-block-size: 38px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  color: var(--s98p-text) !important;
+  text-decoration: none !important;
+  overflow-wrap: anywhere;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-preview-panel] a:is(:hover,:focus-visible) {
+  background: var(--s98p-control-hover);
+  color: var(--s98p-link) !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] {
+  box-sizing: border-box;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px;
+  min-block-size: var(--s98p-topbar-height);
+  padding: 0 12px !important;
+  margin-inline: auto !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome]:not([data-s98p-topbar-shell]) {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] > [data-s98p-topbar-brand] {
+  flex: 0 0 96px !important;
+  inline-size: 96px !important;
+  min-inline-size: 0 !important;
+  max-inline-size: none !important;
+  margin: 0 !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-drawer],
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] :is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) {
+  box-sizing: border-box;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  min-inline-size: 0;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] > [data-s98p-topbar-drawer] {
+  flex: 1 1 auto;
+  align-items: center;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-actions] {
+  --s98p-topbar-icon-size: 40px;
+  flex: 0 0 auto !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 1px !important;
+  align-self: center !important;
+  margin-inline-start: auto !important;
+  border-inline-start: 1px solid var(--s98p-topbar-line) !important;
+  padding-inline-start: 8px !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-categories] {
+  --s98p-topbar-label-height: 40px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px !important;
+  border: 0 !important;
+  list-style: none;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] :is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] :is(
+  [data-s98p-topbar-toggle],
+  [data-s98p-topbar-actions] > li > :is(a,button),
+  [data-s98p-topbar-categories] > li > :is(a,button)
+) {
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 40px;
+  padding-block: 0 !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: var(--s98p-text) !important;
+  -webkit-text-fill-color: currentColor !important;
+  font-weight: 600;
+  text-shadow: none !important;
+  transform: none !important;
+  transition: background-color .15s ease, color .15s ease !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] :is([data-s98p-topbar-toggle],[data-s98p-topbar-actions] > li > :is(a,button)) {
+  inline-size: var(--s98p-topbar-icon-size,40px);
+  block-size: 40px;
+  flex: none;
+  padding-inline: 0 !important;
+  text-align: center;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-categories] > li > :is(a,button) {
+  position: relative;
+  padding-inline: 9px !important;
+  font-family: inherit;
+  font-size: .875rem;
+  min-block-size: var(--s98p-topbar-label-height);
+  block-size: var(--s98p-topbar-label-height);
+  line-height: var(--s98p-topbar-label-height) !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-actions] > li > :is(a,button) svg {
+  inline-size: 19px;
+  block-size: 19px;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] :is(
+  [data-s98p-topbar-toggle], [data-s98p-topbar-actions] > li > :is(a,button), [data-s98p-topbar-categories] > li > :is(a,button)
+):is(:hover,:focus-visible) {
+  background: var(--s98p-topbar-hover) !important;
+  color: var(--s98p-text) !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] :is(
+  [data-s98p-topbar-toggle], [data-s98p-topbar-actions] > li > :is(a,button), [data-s98p-topbar-categories] > li > :is(a,button)
+):is([aria-expanded=true],[aria-current=page],:active) {
+  background: var(--s98p-topbar-active) !important;
+  box-shadow: none !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] :is([data-s98p-topbar-toggle],[data-s98p-topbar-actions] > li > :is(a,button),
+  [data-s98p-topbar-categories] > li > :is(a,button)):focus-visible {
+  outline: 2px solid var(--s98p-focus,var(--s98p-link)) !important;
+  outline-offset: -2px !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-soft98-pro-nav-indicator] {
+  inset-block-end: 3px;
+  inset-inline-start: calc(50% - 3px);
+  inline-size: 6px;
+  block-size: 2px;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-categories] > li > :is(a,button):has(> [data-s98p-topbar-chevron]) {
+  padding-inline-end: 25px !important;
+}
+
+:root:not(.soft98-pro-theme) [data-s98p-category-icon] {
+  display: none !important;
+}
+
+:root.soft98-pro-theme [data-s98p-topbar-categories] > li > :is(a,button):has(> [data-s98p-category-icon]) {
+  padding-inline-start: 31px !important;
+}
+
+:root.soft98-pro-theme [data-s98p-topbar-categories] > li > :is(a,button):has(> [data-s98p-category-icon])::before {
+  content: none !important;
+}
+
+:root.soft98-pro-theme [data-s98p-topbar-categories] > li > :is(a,button) > [data-s98p-category-icon] {
+  position: absolute;
+  inset-block: 0;
+  inset-inline: 9px auto;
+  display: grid;
+  place-items: center;
+  inline-size: 16px;
+  block-size: 16px;
+  margin-block: auto;
+  color: var(--s98p-muted);
+  pointer-events: none;
+}
+
+[data-s98p-category-icon] svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+:root.soft98-pro-theme [data-s98p-topbar-categories] > li > :is(a,button):has(> [data-s98p-topbar-chevron])::after {
+  content: none !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-categories] > li > :is(a,button) > [data-s98p-topbar-chevron] {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  inset-block: 0;
+  inset-inline: auto 7px;
+  inline-size: 15px;
+  block-size: 15px;
+  margin-block: auto;
+  color: var(--s98p-faint);
+  background: transparent !important;
+  pointer-events: none;
+}
+
+[data-s98p-topbar-chevron] svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+:root.soft98-pro-theme [data-s98p-topbar-categories] > li > :is(a,button):is(:hover,:focus-visible,[aria-expanded=true]) > [data-s98p-topbar-chevron] {
+  color: var(--s98p-text);
+}
+
+:root.soft98-pro-theme [data-s98p-topbar-categories] > li > [aria-expanded=true] > [data-s98p-topbar-chevron] {
+  rotate: 180deg;
+}
+
+:root.soft98-pro-rgb [data-soft98-pro-nav-chrome] :is([data-s98p-topbar-toggle],[data-s98p-topbar-actions] > li > :is(a,button),
+  [data-s98p-topbar-categories] > li > :is(a,button)):is([aria-expanded=true],[aria-current=page],:active) {
+  background: color-mix(in srgb,var(--s98p-neon) 12%,var(--s98p-topbar-active)) !important;
+}
+
+@media (min-width: 992px) {
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] > [data-s98p-topbar-toggle] { display: none !important; }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome][data-s98p-topbar-no-brand] > [data-s98p-topbar-brand] {
+    display: none !important;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1599px) {
+  :root.soft98-pro-theme [data-s98p-topbar-categories] > li > :is(a,button):has(> [data-s98p-category-icon]) {
+    padding-inline-start: 25px !important;
+  }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-categories] > li > :is(a,button):has(> [data-s98p-topbar-chevron]) {
+    padding-inline-end: 21px !important;
+  }
+  :root.soft98-pro-theme [data-s98p-topbar-categories] > li > :is(a,button) > [data-s98p-category-icon] {
+    inset-inline-start: 6px;
+    inline-size: 15px;
+    block-size: 15px;
+  }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-categories] > li > :is(a,button) > [data-s98p-topbar-chevron] {
+    inset-inline-end: 4px;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1359px) {
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-categories] {
+    --s98p-topbar-label-height: 27px;
+    row-gap: 0 !important;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1249px) {
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome][data-s98p-topbar-no-brand] {
+    gap: 4px;
+    padding-inline: 6px !important;
+  }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome][data-s98p-topbar-no-brand] [data-s98p-topbar-actions] {
+    --s98p-topbar-icon-size: clamp(28px,calc(31px + (100vw - 1025px) / 9),40px);
+    gap: 0 !important;
+    padding-inline-start: 4px !important;
+  }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome][data-s98p-topbar-no-brand] [data-s98p-topbar-categories] {
+    gap: 1px !important;
+  }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome][data-s98p-topbar-no-brand] [data-s98p-topbar-categories] > li > :is(a,button) {
+    font-size: .8125rem !important;
+    padding-inline: 4px !important;
+  }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome][data-s98p-topbar-no-brand] [data-s98p-topbar-categories] > li > :is(a,button):has(> [data-s98p-category-icon]) {
+    padding-inline-start: 19px !important;
+  }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome][data-s98p-topbar-no-brand] [data-s98p-topbar-categories] > li > :is(a,button):has(> [data-s98p-topbar-chevron]) {
+    padding-inline-end: 14px !important;
+  }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome][data-s98p-topbar-no-brand] [data-s98p-topbar-categories] > li > :is(a,button) > [data-s98p-category-icon] {
+    inset-inline-start: 3px;
+    inline-size: 13px;
+    block-size: 13px;
+  }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome][data-s98p-topbar-no-brand] [data-s98p-topbar-categories] > li > :is(a,button) > [data-s98p-topbar-chevron] {
+    inset-inline-end: 2px;
+    inline-size: 10px;
+    block-size: 10px;
+  }
+}
+
+@media (min-width: 1360px) and (max-width: 1599px) {
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] {
+    inline-size: 100% !important;
+    max-inline-size: min(calc(100% - 24px),calc(var(--s98p-page-width,1280px) + 96px)) !important;
+  }
+}
+
+@media (max-width: 991px) {
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] { max-inline-size: none !important; }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] > [data-s98p-topbar-drawer] {
+    background: var(--s98p-topbar-bg) !important;
+    border-block-start: 0 !important;
+    box-shadow: var(--s98p-topbar-shadow) !important;
+  }
+  :root.soft98-pro-theme [data-s98p-topbar-drawer] [data-s98p-topbar-categories] { padding: 6px 8px !important; }
+  :root.soft98-pro-theme [data-s98p-topbar-drawer] [data-s98p-topbar-categories] > li > :is(a,button) {
+    justify-content: flex-start;
+    text-align: start !important;
+  }
+}
+
+@media (max-width: 560px) {
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] { gap: 4px; padding-inline: 6px !important; }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] > [data-s98p-topbar-brand] {
+    flex-basis: 68px !important;
+    inline-size: 68px !important;
+    background-size: contain !important;
+  }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-actions] {
+    --s98p-topbar-icon-size: clamp(25px,calc((100vw - 151px) / 7),38px);
+    gap: 0 !important;
+    padding-inline-start: 4px !important;
+  }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] [data-s98p-topbar-toggle] { inline-size: 34px; }
+}
+
+@media (max-width: 350px) {
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] { gap: 3px; padding-inline: 4px !important; }
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] > [data-s98p-topbar-brand] {
+    flex-basis: 62px !important;
+    inline-size: 62px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root.soft98-pro-theme [data-soft98-pro-nav-chrome] :is([data-s98p-topbar-toggle],[data-soft98-pro-nav-item]) { transition: none !important; }
+}
+
 :root.soft98-pro-theme [data-soft98-pro-latest] {
   --s98p-latest-header-size: 3.5rem;
+  align-self: start;
+}
+
+:root.soft98-pro-theme [data-s98p-news-toolbar] {
+  display: flex !important;
+  align-items: center;
+  gap: 5px;
+}
+
+:root.soft98-pro-theme [data-s98p-news-toolbar] > [data-soft98-pro-latest-tabs] {
+  flex: 1;
+  min-inline-size: 0;
+  inline-size: auto !important;
+}
+
+:root.soft98-pro-theme [data-s98p-news-controls] {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-end: 6px;
+}
+
+:root.soft98-pro-theme [data-s98p-news-controls] > button {
+  flex: none;
+  display: grid;
+  place-items: center;
+  inline-size: 32px;
+  block-size: 32px;
+  padding: 0;
+  border: 1px solid var(--s98p-border) !important;
+  border-radius: 6px;
+  background: var(--s98p-control-bg) !important;
+  color: var(--s98p-text) !important;
+}
+
+:root:not(.soft98-pro-theme) [data-s98p-news-controls] { display: none !important; }
+:root.soft98-pro-theme[data-s98p-hide-news] [data-s98p-news-group] { display: none !important; }
+:root.soft98-pro-theme [data-s98p-news-controls] > button:is(:hover,:focus-visible) { background: var(--s98p-control-hover) !important; color: var(--s98p-accent) !important; }
+[data-s98p-news-controls] svg { inline-size: 17px; block-size: 17px; pointer-events: none; }
+[data-s98p-news-toggle] svg { transition: rotate .24s ease; }
+[data-s98p-news-toggle][aria-expanded="true"] svg { rotate: 180deg; }
+
+:root.soft98-pro-theme [data-s98p-news-reveal] {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows .26s cubic-bezier(.22,.65,.27,1);
+}
+
+:root.soft98-pro-theme [data-s98p-news-collapsed] > [data-s98p-news-reveal] { grid-template-rows: 0fr; }
+:root.soft98-pro-theme [data-s98p-news-content] { min-block-size: 0; overflow: clip; }
+
+:root.soft98-pro-theme [data-s98p-download-rule="skip"] { display: none !important; }
+:root.soft98-pro-theme [data-s98p-download-rule="show"]:not([data-soft98-pro-download-collapsed]) {
+  padding: 4px 12px !important;
+  background: transparent !important;
+}
+:root.soft98-pro-theme [data-s98p-download-rule="show"] > :is(hr,[role=separator]) {
+  display: block;
+  block-size: 1px !important;
+  margin: 0 !important;
+  border: 0 !important;
+  background: var(--s98p-border) !important;
+}
+
+:root.soft98-pro-compact [data-soft98-pro-layout="content-grid"][data-s98p-wide-layout] {
+  direction: ltr !important;
+  --s98p-left-track: minmax(220px,clamp(235px,17vw,310px));
+  --s98p-right-track: minmax(245px,clamp(260px,23vw,415px));
+}
+:root.soft98-pro-compact [data-s98p-wide-layout="left"][data-soft98-pro-reading] { grid-template-columns: var(--s98p-left-track) minmax(0,1fr) !important; }
+:root.soft98-pro-compact [data-s98p-wide-layout="right"][data-soft98-pro-reading] { grid-template-columns: minmax(0,1fr) var(--s98p-right-track) !important; }
+:root.soft98-pro-compact [data-s98p-wide-layout="three"][data-soft98-pro-reading] { grid-template-columns: var(--s98p-left-track) minmax(0,1fr) var(--s98p-right-track) !important; }
+:root.soft98-pro-compact [data-s98p-wide-layout][data-soft98-pro-reading="rtl"] > * { direction: rtl; }
+:root.soft98-pro-compact [data-s98p-wide-layout][data-soft98-pro-reading="ltr"] > * { direction: ltr; }
+:root.soft98-pro-compact [data-s98p-wide-layout] > [data-s98p-related-rail] { grid-area: 1 / 1; min-width: 0; }
+:root.soft98-pro-compact [data-s98p-wide-layout][data-soft98-pro-reading] > [data-soft98-pro-column="primary"] { grid-column: 2 !important; }
+:root.soft98-pro-compact [data-s98p-wide-layout="right"][data-soft98-pro-reading] > [data-soft98-pro-column="primary"] { grid-column: 1 !important; }
+:root.soft98-pro-compact [data-s98p-wide-layout="three"][data-soft98-pro-reading] > [data-soft98-pro-column="secondary"] { grid-column: 3 !important; }
+:root.soft98-pro-compact [data-s98p-wide-layout="right"][data-soft98-pro-reading] > [data-soft98-pro-column="secondary"] { grid-column: 2 !important; }
+:root.soft98-pro-compact :is([data-s98p-wide-layout="three"],[data-s98p-wide-layout="right"]) > [data-soft98-pro-column="secondary"] {
+  position: static !important;
+  inline-size: 100% !important;
+  block-size: auto !important;
+  overflow: visible !important;
+  visibility: visible !important;
+}
+:root.soft98-pro-compact [data-s98p-wide-layout="left"] > [data-soft98-pro-column="secondary"] { display: none !important; }
+:root.soft98-pro-theme :is([data-soft98-pro-content-frame],[data-soft98-pro-layout="content-grid"],[data-soft98-pro-column],[data-s98p-related-rail]):not([data-soft98-pro-utility-card],[data-soft98-pro-related],[data-s98p-download-rail]) {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+:root.soft98-pro-theme [data-s98p-wide-layout] > :is([data-s98p-related-rail],[data-soft98-pro-column="secondary"]:has(> [data-s98p-download-rail])) {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+:root.soft98-pro-theme [data-s98p-related-rail] > [data-soft98-pro-related] { margin: 0 !important; min-inline-size: 0; }
+:root.soft98-pro-theme [data-s98p-download-rail] {
+  margin: 0 0 18px !important;
+  min-inline-size: 0;
+  opacity: var(--s98p-download-rail-opacity,1);
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb,var(--s98p-text) 53%,var(--s98p-surface)) transparent;
+  transition: none !important;
+}
+@media (forced-colors: active) {
+  :root.soft98-pro-theme [data-s98p-download-rail] {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
+}
+:root.soft98-pro-theme [data-s98p-download-rail-inactive] { pointer-events: none; }
+:root.soft98-pro-theme [data-s98p-download-rail-faded] { visibility: hidden; }
+:root.soft98-pro-compact [data-s98p-wide-layout] > [data-soft98-pro-column="secondary"]:has(> [data-s98p-download-rail]:only-child) {
+  align-self: stretch;
+}
+:root.soft98-pro-compact [data-s98p-wide-layout] [data-s98p-download-rail]:only-child {
+  position: sticky;
+  inset-block-start: calc(var(--s98p-topbar-height) + 14px);
+  max-block-size: calc(100dvh - var(--s98p-topbar-height) - 28px);
+}
+:root.soft98-pro-theme [data-s98p-wide-layout] [data-s98p-download-rail]:only-child { overflow-y: auto; }
+:root.soft98-pro-theme [data-s98p-download-rail] > dl {
+  float: none !important;
+  box-sizing: border-box;
+  inline-size: 100% !important;
+  max-inline-size: none !important;
+  margin: 0 !important;
+  padding: 4px 10px 10px !important;
+}
+:root.soft98-pro-theme [data-s98p-hidden-download-heading],
+:root.soft98-pro-theme [data-s98p-download-rail] [data-s98p-download-heading-fallback] { display: none !important; }
+:root.soft98-pro-theme [data-s98p-download-rail] [data-soft98-pro-download-row] { padding-inline: 8px !important; }
+
+:root:not(.soft98-pro-theme) :is([data-soft98-pro-download-actions],[data-s98p-download-toggle],[data-s98p-rating-display]) { display: none !important; }
+
+:root.soft98-pro-theme [data-soft98-pro-download-heading] {
+  display: grid !important;
+  grid-template: "label . toggle" auto / minmax(0,max-content) minmax(0,1fr) auto;
+  align-items: center;
+  gap: 6px 9px;
+  padding: 8px !important;
+  cursor: pointer;
+}
+:root.soft98-pro-theme [data-soft98-pro-download-heading]:has(> [data-soft98-pro-download-actions]:not([hidden])) {
+  grid-template: "label . actions toggle" auto / minmax(0,max-content) minmax(0,1fr) auto auto;
+}
+:root.soft98-pro-theme [data-soft98-pro-download-heading][data-s98p-download-header-layout="toggle"]:has(> [data-soft98-pro-download-actions]:not([hidden])) {
+  grid-template: "label toggle . actions" auto / minmax(0,max-content) auto minmax(0,1fr) auto;
+}
+:root.soft98-pro-theme [data-s98p-download-rail] [data-soft98-pro-download-heading]:has(> [data-s98p-download-heading-fallback]) {
+  grid-template: ". actions toggle" auto / minmax(0,1fr) auto auto;
+}
+:root.soft98-pro-theme [data-s98p-download-rail] [data-soft98-pro-download-heading][data-s98p-download-header-layout="toggle"]:has(> [data-s98p-download-heading-fallback]) {
+  grid-template: "toggle . actions" auto / auto minmax(0,1fr) auto;
+}
+:root.soft98-pro-theme [data-s98p-download-heading-label] {
+  grid-area: label;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+:root.soft98-pro-theme :is(article [role=tabpanel],[data-s98p-download-rail]) [data-soft98-pro-download-group] > [data-soft98-pro-download-heading] > [data-s98p-download-heading-label][data-soft98-pro-icon-host]::before,
+:root.soft98-pro-theme :is(article [role=tabpanel],[data-s98p-download-rail]) [data-soft98-pro-download-group] > [data-soft98-pro-download-heading] > [data-s98p-download-heading-label][data-soft98-pro-icon-host]::after {
+  content: none !important;
+  display: none !important;
+}
+:root.soft98-pro-theme [data-soft98-pro-download-actions] {
+  display: inline-flex;
+  grid-area: actions;
+  justify-self: start;
+  align-items: center;
+  gap: 5px;
+  max-inline-size: 100%;
+  direction: inherit;
+}
+:root.soft98-pro-theme :is([data-soft98-pro-download-actions],[data-soft98-pro-download-actions] > button)[hidden] { display: none !important; }
+:root.soft98-pro-theme [data-s98p-download-toggle] { grid-area: toggle; }
+:root.soft98-pro-theme [data-soft98-pro-download-heading] :is([data-s98p-download-toggle],[data-soft98-pro-download-actions] > button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-block-size: 32px;
+  min-inline-size: 32px;
+  padding: 4px 8px;
+  border: 1px solid var(--s98p-border-soft) !important;
+  border-radius: 6px;
+  background: var(--s98p-surface-2) !important;
+  color: var(--s98p-text) !important;
+  font: inherit;
+  line-height: 1.35;
+  cursor: pointer;
+}
+:root.soft98-pro-theme [data-soft98-pro-download-heading] :is([data-s98p-download-toggle],[data-soft98-pro-download-actions] > button):is(:hover,:focus-visible) {
+  background: var(--s98p-soft) !important;
+  border-color: var(--s98p-border) !important;
+}
+:root.soft98-pro-theme [data-soft98-pro-download-heading] button svg { inline-size: 16px; block-size: 16px; flex: none; pointer-events: none; }
+:root.soft98-pro-theme [data-s98p-download-header-buttons="icons"] [data-soft98-pro-download-actions] button > span { display: none; }
+:root.soft98-pro-theme [data-s98p-download-header-buttons="icons"] [data-soft98-pro-download-actions] button { padding-inline: 4px; }
+:root.soft98-pro-theme [data-s98p-download-header-buttons="text"] [data-soft98-pro-download-actions] button > span {
+  font-size: .8rem;
+  white-space: nowrap;
+}
+
+@property --s98p-download-row-progress {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 1;
+}
+
+:root.soft98-pro-theme :is(article,[data-s98p-download-rail]) [data-soft98-pro-download-group] > dd[data-s98p-download-row-motion] {
+  box-sizing: border-box !important;
+  overflow: clip !important;
+  min-block-size: 0 !important;
+  max-block-size: none !important;
+  block-size: calc(var(--s98p-row-block-size) * var(--s98p-download-row-progress)) !important;
+  padding-block-start: calc(var(--s98p-row-padding-block-start) * var(--s98p-download-row-progress)) !important;
+  padding-block-end: calc(var(--s98p-row-padding-block-end) * var(--s98p-download-row-progress)) !important;
+  margin-block-start: calc(var(--s98p-row-margin-block-start) * var(--s98p-download-row-progress)) !important;
+  margin-block-end: calc(var(--s98p-row-margin-block-end) * var(--s98p-download-row-progress)) !important;
+  border-block-start-width: calc(var(--s98p-row-border-block-start-width) * var(--s98p-download-row-progress)) !important;
+  border-block-end-width: calc(var(--s98p-row-border-block-end-width) * var(--s98p-download-row-progress)) !important;
+}
+
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] {
+  inset: 0;
+  box-sizing: border-box;
+  inline-size: min(620px, calc(100vw - 28px));
+  max-block-size: calc(100dvh - 28px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--s98p-border);
+  border-radius: 8px;
+  background: var(--s98p-surface) !important;
+  color: var(--s98p-text) !important;
+  box-shadow: 0 18px 56px #0005;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm]::backdrop { background: #08101869; backdrop-filter: blur(6px); }
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] > form { margin: 0; padding: 0; }
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] > form > header {
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  border-block-end: 1px solid var(--s98p-border-soft);
+  background: linear-gradient(180deg,var(--s98p-elevated),var(--s98p-surface-2)) !important;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] [data-s98p-download-confirm-mark] {
+  display: grid;
+  place-items: center;
+  inline-size: 34px;
+  block-size: 34px;
+  border: 1px solid color-mix(in srgb,var(--s98p-link) 32%,var(--s98p-border-soft));
+  border-radius: 6px;
+  background: color-mix(in srgb,var(--s98p-link) 9%,var(--s98p-surface-2));
+  color: var(--s98p-link) !important;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] h2 {
+  min-inline-size: 0;
+  margin: 0;
+  color: var(--s98p-text) !important;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] [data-s98p-download-choices] {
+  display: grid;
+  gap: 10px;
+  padding: 12px 16px 0;
+}
+
+:root.soft98-pro-theme [data-s98p-download-choice-search] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-inline: 10px;
+  border: 1px solid var(--s98p-border);
+  border-radius: 6px;
+  background: var(--s98p-bg-2);
+  color: var(--s98p-muted);
+}
+
+:root.soft98-pro-theme [data-s98p-download-choice-search]:focus-within {
+  outline: 2px solid var(--s98p-accent);
+  outline-offset: -1px;
+}
+
+:root.soft98-pro-theme [data-s98p-download-choice-search] input {
+  flex: 1;
+  min-inline-size: 0;
+  min-block-size: 38px;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--s98p-text) !important;
+  font: inherit;
+}
+
+:root.soft98-pro-theme [data-s98p-download-choice-search] input:placeholder-shown {
+  direction: inherit;
+  text-align: start;
+}
+
+:root.soft98-pro-theme [data-s98p-download-choice-search] svg { display: block; inline-size: 18px; block-size: 18px; }
+
+:root.soft98-pro-theme [data-s98p-download-choice-tools] {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+:root.soft98-pro-theme [data-s98p-download-choice-tools] > label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: var(--s98p-muted);
+  cursor: pointer;
+}
+
+:root.soft98-pro-theme [data-s98p-download-choice-filters] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--s98p-border-soft);
+  border-radius: 7px;
+  background: var(--s98p-bg-2);
+}
+
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] [data-choice-filter] {
+  min-block-size: 30px;
+  min-inline-size: 0;
+  padding: 3px 9px;
+  border-color: transparent !important;
+  background: transparent !important;
+}
+
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] [data-choice-filter][aria-pressed=true] {
+  border-color: var(--s98p-border) !important;
+  background: var(--s98p-control-hover) !important;
+  color: var(--s98p-link) !important;
+}
+
+:root.soft98-pro-theme [data-s98p-download-choice-list] {
+  box-sizing: border-box;
+  max-block-size: min(300px, 37dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--s98p-border-soft);
+  border-radius: 7px;
+  background: var(--s98p-bg-2);
+}
+
+:root.soft98-pro-theme [data-s98p-download-choice-list] > label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-block-size: 44px;
+  margin: 0;
+  padding: 6px 10px;
+  border-block-end: 1px solid var(--s98p-border-soft);
+  cursor: pointer;
+}
+
+:root.soft98-pro-theme [data-s98p-download-choice-list] > label:has(input:checked) {
+  background: color-mix(in srgb,var(--s98p-accent) 9%,var(--s98p-surface));
+}
+
+:root.soft98-pro-theme [data-s98p-download-choice-list] > label:is(:hover,:focus-within) { background: var(--s98p-control-hover); }
+:root.soft98-pro-theme [data-s98p-download-choice-list] > label > bdi { overflow-wrap: anywhere; }
+:root.soft98-pro-theme [data-s98p-download-choice-list] > label > span {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 4px 7px;
+  color: var(--s98p-muted);
+  font-size: .85em;
+  font-variant-numeric: tabular-nums;
+}
+:root.soft98-pro-theme [data-s98p-download-choice-list] [dir=ltr] { white-space: nowrap; }
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] input[type=checkbox] { accent-color: var(--s98p-accent); }
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] [hidden] { display: none !important; }
+:root.soft98-pro-theme [data-s98p-download-choice-empty] { padding: 18px 10px; color: var(--s98p-muted); text-align: center; }
+
+@media (max-width: 480px) {
+  :root.soft98-pro-theme [data-s98p-download-choice-list] > label { grid-template-columns: auto minmax(0,1fr); }
+  :root.soft98-pro-theme [data-s98p-download-choice-list] > label > span { grid-column: 2; justify-content: start; }
+}
+
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] p {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 14px 16px;
+  color: var(--s98p-text) !important;
+}
+:root.soft98-pro-theme #soft98-pro-download-confirm-summary > bdi {
+  padding: 3px 8px;
+  border: 1px solid var(--s98p-border-soft);
+  border-radius: 5px;
+  background: var(--s98p-surface-2);
+  font-variant-numeric: tabular-nums;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] > form > footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 16px;
+  border-block-start: 1px solid var(--s98p-border-soft);
+  background: color-mix(in srgb,var(--s98p-surface-2) 56%,var(--s98p-surface)) !important;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] button {
+  appearance: none !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-inline-size: 58px;
+  min-block-size: 38px;
+  margin: 0 !important;
+  padding: 6px 12px;
+  border: 1px solid var(--s98p-border) !important;
+  border-radius: 6px;
+  background: var(--s98p-surface-2) !important;
+  color: var(--s98p-text) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  font: inherit;
+  font-weight: 650;
+  line-height: 1.35;
+  cursor: pointer;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] button:hover { background: var(--s98p-soft) !important; }
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] button:focus-visible {
+  outline: 2px solid var(--s98p-focus,var(--s98p-accent)) !important;
+  outline-offset: 2px;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] button[data-s98p-download-confirm-close] {
+  display: grid;
+  place-items: center;
+  min-inline-size: 0;
+  min-block-size: 0;
+  inline-size: 38px;
+  block-size: 38px;
+  padding: 0;
+  color: var(--s98p-muted) !important;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] button[data-s98p-download-confirm-close]:is(:hover,:focus-visible) {
+  color: var(--s98p-text) !important;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] [data-s98p-download-confirm-start] {
+  --download-start-ink: var(--s98p-accent);
+  background: color-mix(in srgb,var(--download-start-ink) 15%,var(--s98p-surface)) !important;
+  border-color: color-mix(in srgb,var(--download-start-ink) 55%,var(--s98p-border)) !important;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] [data-s98p-download-confirm-start]:hover {
+  background: color-mix(in srgb,var(--download-start-ink) 24%,var(--s98p-surface)) !important;
+  border-color: var(--download-start-ink) !important;
+}
+:root.soft98-pro-theme.soft98-pro-light dialog[data-s98p-download-confirm] [data-s98p-download-confirm-start] {
+  --download-start-ink: var(--s98p-day-success);
+  color: var(--download-start-ink) !important;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] [data-s98p-download-confirm-start]:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+:root.soft98-pro-theme dialog[data-s98p-download-confirm] :is(button,[data-s98p-download-confirm-mark]) svg {
+  display: block;
+  inline-size: 17px;
+  block-size: 17px;
+  flex: none;
+  pointer-events: none;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-download-group] > [data-s98p-rating] {
+  display: block !important;
+  block-size: auto !important;
+  max-block-size: none !important;
+  box-sizing: border-box;
+  padding: 7px 8px !important;
+}
+:root.soft98-pro-theme [data-soft98-pro-download-group] > [data-s98p-rating][data-soft98-pro-download-collapsed] { display: none !important; }
+:root.soft98-pro-theme [data-soft98-pro-download-group] > [data-s98p-rating]::before,
+:root.soft98-pro-theme [data-soft98-pro-download-group] > [data-s98p-rating]::after,
+:root.soft98-pro-theme [data-s98p-rating-original] { content: none !important; display: none !important; }
+:root.soft98-pro-theme [data-s98p-rating-display] {
+  --s98p-rating-ink: #ffc776;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 9px;
+  padding: 7px 9px;
+  border: 1px solid var(--s98p-border-soft);
+  border-radius: 7px;
+  background: var(--s98p-surface-2);
+  color: var(--s98p-text);
+  font-size: .85em;
+}
+:root.soft98-pro-light [data-s98p-rating-display] { --s98p-rating-ink: #995315; }
+[data-s98p-rating-label] { margin-inline-end: auto; font-weight: 650; }
+[data-s98p-stars] { display: flex; gap: 2px; direction: ltr; }
+[data-s98p-stars] > span { position: relative; display: block; inline-size: 14px; block-size: 14px; color: var(--s98p-faint); }
+[data-s98p-stars] svg { display: block; inline-size: 100%; block-size: 100%; }
+[data-s98p-stars] svg + svg {
+  position: absolute;
+  inset: 0;
+  clip-path: inset(0 calc(100% - var(--s98p-star-fill)) 0 0);
+  color: var(--s98p-rating-ink);
+}
+[data-s98p-rating-value] {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--s98p-bg-2);
+  color: var(--s98p-rating-ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+#soft98-pro-download-tooltip {
+  position: fixed;
+  z-index: 2147483002;
+  box-sizing: border-box;
+  max-inline-size: min(310px,calc(100vw - 16px));
+  padding: 6px 10px;
+  border: 1px solid var(--s98p-border);
+  border-radius: 7px;
+  background: color-mix(in srgb,var(--s98p-elevated) 96%,transparent);
+  color: var(--s98p-text);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 6px 18px #0003;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  text-align: start;
+  line-height: 1.65;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .14s ease,visibility 0s linear .14s;
+}
+.soft98-pro-theme #soft98-pro-download-tooltip[data-visible] { opacity: 1; visibility: visible; transition-delay: 0s; }
+#soft98-pro-download-tooltip::before {
+  content: "";
+  position: absolute;
+  left: var(--s98p-tip-arrow);
+  inline-size: 6px;
+  block-size: 6px;
+  background: var(--s98p-elevated);
+  border: solid var(--s98p-border);
+  border-width: 0 1px 1px 0;
+  translate: -50% 0;
+}
+#soft98-pro-download-tooltip[data-side="above"]::before { bottom: -4px; rotate: 45deg; }
+#soft98-pro-download-tooltip[data-side="below"]::before { top: -4px; rotate: 225deg; }
+@media (prefers-reduced-motion: reduce) {
+  #soft98-pro-download-tooltip, .soft98-pro-theme .s98p-file-actions [data-s98p-file-more] { transition: none !important; }
+}
+
+:root.soft98-pro-theme [data-s98p-dialog-footer] {
+  background: var(--s98p-elevated) !important;
+  color: var(--s98p-text) !important;
+  border-block-start-color: var(--s98p-border) !important;
+}
+
+#soft98-pro-header-queue[hidden],
+:root:not(.soft98-pro-theme) #soft98-pro-header-queue { display: none !important; }
+:root.soft98-pro-theme #soft98-pro-header-queue:not([hidden]) {
+  position: fixed;
+  z-index: 2147483600;
+  inset: auto;
+  box-sizing: border-box;
+  inline-size: var(--queue-width, 390px);
+  block-size: var(--queue-height, 390px);
+  max-inline-size: none;
+  max-block-size: none;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--s98p-border);
+  border-radius: 8px;
+  background: var(--s98p-surface);
+  box-shadow: 0 13px 36px #080d1559;
+  animation: s98p-header-queue-in .15s ease-out both;
+}
+#soft98-pro-header-queue:focus { outline: none; }
+#soft98-pro-header-queue > iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+@keyframes s98p-header-queue-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  :root.soft98-pro-theme #soft98-pro-header-queue:not([hidden]) { animation: none; }
+}
+:root.soft98-pro-theme [data-s98p-site-backdrop] { opacity: 0 !important; transition: none !important; }
+:root.soft98-pro-theme [data-soft98-pro-dialog]:not(dialog) {
+  background: transparent !important;
+  backdrop-filter: none !important;
+  transform: none !important;
+  animation: none !important;
+  transition: none !important;
+  isolation: isolate;
+}
+:root.soft98-pro-theme [data-soft98-pro-dialog]:not(dialog)::before {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+}
+:root.soft98-pro-theme [data-soft98-pro-dialog]:not(dialog)::before,
+:root.soft98-pro-theme dialog[data-soft98-pro-native-dialog]::backdrop {
+  background-color: var(--s98p-dialog-shade, #060a1080);
+  backdrop-filter: blur(7px);
+  transform: none !important;
+  transition: none !important;
+  animation: s98p-dialog-tint-in .18s ease-out both;
+}
+:root.soft98-pro-light { --s98p-dialog-shade: #22222659; }
+/* Keep the backdrop's blurred layer fully composited; fade only its tint. */
+@keyframes s98p-dialog-tint-in {
+  from { background-color: color-mix(in srgb,var(--s98p-dialog-shade,#060a1080) 42%,transparent); }
+  to { background-color: var(--s98p-dialog-shade,#060a1080); }
+}
+:root.soft98-pro-theme [data-soft98-pro-dialog-header] > [data-s98p-dialog-close],
+:root.soft98-pro-theme [data-s98p-dialog-footer] > button[data-dismiss] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: none;
+  min-block-size: 36px;
+  margin: 0;
+  padding: 4px 11px;
+  border: 1px solid var(--s98p-border) !important;
+  border-radius: 7px;
+  background: var(--s98p-surface-2) !important;
+  color: var(--s98p-text) !important;
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background-color .14s ease, border-color .14s ease;
+}
+:root.soft98-pro-theme [data-soft98-pro-dialog-header] > [data-s98p-dialog-close]:is(:hover,:focus-visible),
+:root.soft98-pro-theme [data-s98p-dialog-footer] > button[data-dismiss]:is(:hover,:focus-visible) {
+  background: var(--s98p-soft) !important;
+  border-color: var(--s98p-accent) !important;
+}
+:root.soft98-pro-theme [data-s98p-dialog-close] > [data-soft98-pro-page-icon] {
+  inline-size: 16px; block-size: 16px; margin: 0; background: transparent !important;
+}
+:root.soft98-pro-theme [data-s98p-dialog-close] svg { inline-size: 16px; block-size: 16px; }
+@media(prefers-reduced-motion:reduce) {
+  :root.soft98-pro-theme [data-s98p-news-reveal], [data-s98p-news-toggle] svg { transition: none; }
+  :root.soft98-pro-theme [data-soft98-pro-dialog]:not(dialog)::before, :root.soft98-pro-theme dialog[data-soft98-pro-native-dialog]::backdrop { animation: none; }
 }
 
 :root.soft98-pro-theme [data-soft98-pro-latest-header]:is([data-soft98-pro-tab-header],[data-soft98-pro-latest-tabs],[data-soft98-pro-latest-header="news"]) {
@@ -69,6 +1357,9 @@
 }
 
 :root.soft98-pro-theme article [data-soft98-pro-content-pane="active"] [data-soft98-pro-download-recovery] {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
   visibility: visible !important;
   opacity: 1 !important;
   pointer-events: auto !important;
@@ -85,16 +1376,22 @@
 }
 
 :root.soft98-pro-theme [data-soft98-pro-tech-news] {
-  --s98p-news-row-accent: color-mix(in srgb,var(--s98p-accent) 8%,var(--s98p-surface));
+  --s98p-news-hover: color-mix(in srgb,var(--s98p-text) 9%,var(--s98p-surface));
 }
 
 :root.soft98-pro-theme [data-soft98-pro-tech-news] [data-soft98-pro-latest-header="news"] {
-  justify-content: space-between;
+  display: grid !important;
+  grid-template-columns: auto auto minmax(0,1fr);
+  grid-template-areas: "controls shares title";
+  direction: ltr;
   gap: 8px;
   padding-inline: 10px !important;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-tech-news] [data-soft98-pro-news-title] {
+  grid-area: title;
+  justify-self: end;
+  direction: rtl;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -116,13 +1413,21 @@
 }
 
 :root.soft98-pro-theme [data-soft98-pro-tech-news] [data-soft98-pro-news-actions] {
+  grid-area: shares;
+  justify-self: start;
   display: flex !important;
   flex-wrap: wrap;
-  justify-content: end;
+  justify-content: flex-start;
   gap: 3px;
   padding: 0 !important;
   margin: 0 !important;
   list-style: none;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-tech-news] [data-s98p-news-controls] {
+  grid-area: controls;
+  direction: rtl;
+  margin-inline: 0 !important;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-news-actions] li {
@@ -190,13 +1495,9 @@
 }
 
 :root.soft98-pro-theme [data-soft98-pro-news-actions] a[data-soft98-pro-news-link]:is(:hover,:focus-visible) {
-  background: var(--s98p-control-hover);
-  border-color: var(--s98p-control-edge);
-  color: var(--s98p-link) !important;
-}
-
-:root.soft98-pro-theme [data-soft98-pro-news-actions] a[data-soft98-pro-news-shortcut]:is(:hover,:focus-visible) {
-  background: var(--s98p-control-hover) !important;
+  background: var(--s98p-news-hover) !important;
+  border-color: var(--s98p-border-soft);
+  color: var(--s98p-text) !important;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-tech-news] [data-soft98-pro-news-body] {
@@ -235,14 +1536,28 @@
   margin: 0 !important;
 }
 
-:root.soft98-pro-theme.soft98-pro-light [data-soft98-pro-tech-news] li:nth-child(odd) > a[data-soft98-pro-news-story] {
-  background-color: #f0f5ff !important;
+:root.soft98-pro-theme [data-soft98-pro-latest][data-soft98-pro-tech-news] li > a[data-soft98-pro-news-link][data-soft98-pro-news-story]:is(:hover,:focus-visible) {
+  background-color: var(--s98p-news-hover) !important;
+  color: var(--s98p-text) !important;
+  outline-offset: -2px !important;
 }
 
-:root.soft98-pro-theme [data-soft98-pro-latest][data-soft98-pro-tech-news] li > a[data-soft98-pro-news-link][data-soft98-pro-news-story]:is(:hover,:focus-visible) {
-  background-color: var(--s98p-news-row-accent) !important;
-  color: var(--s98p-link) !important;
-  outline-offset: -2px !important;
+:root.soft98-pro-theme nav [data-soft98-pro-menu][data-s98p-contact-menu] {
+  background: var(--s98p-surface) !important;
+}
+
+:root.soft98-pro-theme [data-s98p-contact-form] :is(button,input)[type=submit] {
+  background: var(--s98p-surface-2) !important;
+  border-color: var(--s98p-border) !important;
+  color: var(--s98p-text) !important;
+}
+
+:root.soft98-pro-theme [data-s98p-contact-form] :is(button,input)[type=submit]:is(:hover,:focus-visible) {
+  background: var(--s98p-soft) !important;
+}
+
+:root.soft98-pro-theme [data-s98p-contact-form] [data-soft98-pro-heading-divider]::before {
+  background: var(--s98p-faint) !important;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-tech-news] a[data-soft98-pro-news-story]::before {
@@ -269,6 +1584,16 @@
 }
 
 @media (max-width: 420px) {
+  :root.soft98-pro-theme [data-s98p-news-controls] {
+    gap: 3px;
+    margin-inline-end: 4px;
+  }
+
+  :root.soft98-pro-theme [data-s98p-news-controls] > button {
+    inline-size: 27px;
+    block-size: 30px;
+  }
+
   :root.soft98-pro-theme [data-soft98-pro-latest-tabs][data-soft98-pro-surface="tab-list"] :is([role="tab"],[data-toggle="tab"]) {
     gap: 4px;
     padding-inline: 3px !important;
@@ -281,66 +1606,79 @@
 }
 
 :root.soft98-pro-light {
-  --s98p-bg: #eef4ff;
-  --s98p-bg-2: #f3f7ff;
-  --s98p-nav: #f9fbff;
-  --s98p-surface-2: #eaf2ff;
-  --s98p-elevated: #e4efff;
-  --s98p-soft: #dbe8ff;
-  --s98p-text: #14284a;
-  --s98p-muted: #365071;
-  --s98p-faint: #536a8b;
-  --s98p-border: #a9c0e5;
-  --s98p-border-soft: #d8e5f8;
-  --s98p-accent: #1460dc;
-  --s98p-accent-2: #097552;
-  --s98p-link: #1455be;
-  --s98p-control-bg: linear-gradient(180deg, #fff, #edf4ff);
-  --s98p-control-hover: linear-gradient(180deg, #f3f8ff, #deebff);
-  --s98p-control-edge: #8db2ee;
-  --s98p-light-shadow: 0 10px 30px #225abb13, 0 1px 4px #173b6a0a;
+  color-scheme: light;
+  --s98p-bg: var(--s98p-day-canvas);
+  --s98p-bg-2: var(--s98p-day-field);
+  --s98p-nav: var(--s98p-day-paper);
+  --s98p-surface: var(--s98p-day-paper);
+  --s98p-surface-2: var(--s98p-day-raised);
+  --s98p-elevated: var(--s98p-day-raised);
+  --s98p-soft: var(--s98p-day-hover);
+  --s98p-text: var(--s98p-day-ink);
+  --s98p-muted: var(--s98p-day-muted);
+  --s98p-faint: var(--s98p-day-faint);
+  --s98p-border: var(--s98p-day-edge);
+  --s98p-border-soft: var(--s98p-day-line);
+  --s98p-accent: var(--s98p-day-action);
+  --s98p-accent-2: var(--s98p-day-warning);
+  --s98p-focus: var(--s98p-choice-light,var(--s98p-day-focus));
+  --s98p-link: var(--s98p-day-info);
+  --s98p-danger: var(--s98p-day-danger);
+  --s98p-control-bg: var(--s98p-surface);
+  --s98p-control-hover: var(--s98p-soft);
+  --s98p-control-edge: var(--s98p-border);
+  --s98p-control-shadow: 0 1px 2px #22222612;
 }
 
-:root.soft98-pro-light body {
-  background: linear-gradient(135deg, #e6f1ff 0, #f7fbff 44%, #eafaf4 100%) #eef4ff !important;
-  background-attachment: fixed !important;
-}
-
-:root.soft98-pro-light [data-soft98-pro-surface="nav-shell"] {
-  background: #f8fbfff2 !important;
-  border-block-end: 1px solid #c9dcf5 !important;
-  box-shadow: 0 8px 28px #2b61af22 !important;
+:root.soft98-pro-light [data-soft98-pro-surface="nav-shell"]:not([data-s98p-topbar-shell]) {
+  background: var(--s98p-topbar-bg) !important;
+  border-block-end: 1px solid var(--s98p-topbar-line) !important;
+  box-shadow: var(--s98p-topbar-shadow) !important;
 }
 
 :root.soft98-pro-light [data-soft98-pro-nav-group] {
-  border-color: #d6e5fa;
+  border-color: var(--s98p-border-soft);
 }
 
-:root.soft98-pro-light nav :is([data-soft98-pro-nav-item],[data-soft98-pro-mega-trigger],[data-toggle="dropdown"])[aria-expanded="true"],
-:root.soft98-pro-light nav li:has(> [data-soft98-pro-mega-trigger][aria-expanded="true"]) > :is(a,button),
-:root.soft98-pro-light nav li:has(> [data-soft98-pro-mega-trigger][aria-expanded="true"]) > :is(a,button) > :is(span,b,strong,i,svg) {
-  color: #123f92 !important;
-  -webkit-text-fill-color: #123f92 !important;
+:root.soft98-pro-light [data-s98p-topbar-categories] [data-s98p-category-icon]:is([data-s98p-category-icon="desktop"],[data-s98p-category-icon="apps"]) {
+  color: var(--s98p-day-info) !important;
 }
 
-:root.soft98-pro-light nav :is([data-soft98-pro-nav-item],[data-soft98-pro-mega-trigger],[data-toggle="dropdown"])[aria-expanded="true"]:not(#soft98-pro-control *),
-:root.soft98-pro-light nav li:has(> [data-soft98-pro-mega-trigger][aria-expanded="true"]) > :is(a,button):not(#soft98-pro-control *) {
-  background: #d6e7ff !important;
-  background-image: none !important;
-  border-color: #8bb5f1 !important;
-  box-shadow: 0 1px #ffffffb3 inset, 0 -3px #2568dc inset !important;
-  --s98p-text: #123f92;
+:root.soft98-pro-light [data-s98p-topbar-categories] :is([data-s98p-category-icon="phone"],[data-s98p-category-icon="androidOutline"]) {
+  color: var(--s98p-day-success) !important;
+}
+
+:root.soft98-pro-light [data-s98p-topbar-categories] [data-s98p-category-icon="headphones"] {
+  color: var(--s98p-day-related) !important;
+}
+
+:root.soft98-pro-light [data-s98p-topbar-categories] :is([data-s98p-category-icon="book"],[data-s98p-category-icon="support"]) {
+  color: var(--s98p-day-warning) !important;
+}
+
+:root.soft98-pro-light nav :is([data-soft98-pro-nav-item],[data-soft98-pro-mega-trigger],[data-toggle="dropdown"])[aria-expanded="true"]:not(:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li > :is(a,button)),
+:root.soft98-pro-light nav li:has(> [data-soft98-pro-mega-trigger][aria-expanded="true"]):not(:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li) > :is(a,button),
+:root.soft98-pro-light nav li:has(> [data-soft98-pro-mega-trigger][aria-expanded="true"]):not(:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li) > :is(a,button) > :is(span,b,strong,i,svg) {
+  color: var(--s98p-accent) !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+:root.soft98-pro-light nav :is([data-soft98-pro-nav-item],[data-soft98-pro-mega-trigger],[data-toggle="dropdown"])[aria-expanded="true"]:not(#soft98-pro-control *,:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li > :is(a,button)),
+:root.soft98-pro-light nav li:has(> [data-soft98-pro-mega-trigger][aria-expanded="true"]):not(:is([data-s98p-topbar-actions],[data-s98p-topbar-categories]) > li) > :is(a,button):not(#soft98-pro-control *) {
+  background: var(--s98p-topbar-active) !important;
+  border-color: var(--s98p-border) !important;
+  box-shadow: inset 0 -2px var(--s98p-accent) !important;
   transition: box-shadow .16s ease !important;
   opacity: 1 !important;
 }
 
 :root.soft98-pro-light nav li:has(> [data-soft98-pro-mega-trigger][aria-expanded="true"]) > :is(a,button)::before {
-  color: #123f92 !important;
-  -webkit-text-fill-color: #123f92 !important;
+  color: var(--s98p-accent) !important;
+  -webkit-text-fill-color: currentColor !important;
 }
 
 :root.soft98-pro-light nav [aria-expanded="true"] > [data-soft98-pro-nav-indicator] {
-  background: #1459bf;
+  background: var(--s98p-accent);
 }
 
 :root.soft98-pro-light nav [data-soft98-pro-menu] :is(a[href],button) {
@@ -354,57 +1692,133 @@
 }
 
 :root.soft98-pro-light article > :is([data-soft98-pro-article-header],[data-soft98-pro-article-meta]) {
-  --s98p-article-band: linear-gradient(100deg,#e9f2ff,#f5faff 65%,#e4f7ef);
+  --s98p-article-band: var(--s98p-day-raised);
+  --s98p-heading-mark: var(--s98p-faint);
 }
 
-:root.soft98-pro-light [data-soft98-pro-surface="tab-list"] :is([role="tab"],[data-toggle="tab"]):is([aria-selected="true"],[aria-expanded="true"],[data-soft98-pro-tab-active="true"]:not([aria-selected="false"],[aria-expanded="false"])) {
-  background: linear-gradient(135deg,#e6efff,#d3e4ff) !important;
-  color: #124baf !important;
+:root.soft98-pro-light article > [data-soft98-pro-article-header] :is(h1,h2,h3,a) {
+  color: var(--s98p-text) !important;
+}
+
+:root.soft98-pro-light article > [data-soft98-pro-article-meta] a[href]:not(:hover,:focus-visible) {
+  color: var(--s98p-muted) !important;
+}
+
+:root.soft98-pro-light article > [data-soft98-pro-article-meta] {
+  border-block-end-color: var(--s98p-border-soft) !important;
+}
+
+:root.soft98-pro-light [data-soft98-pro-heading-divider]::before {
+  background: var(--s98p-heading-mark,var(--s98p-day-action)) !important;
+  box-shadow: none !important;
+}
+
+:root.soft98-pro-light [data-soft98-pro-utility-card] > [data-soft98-pro-utility-header] {
+  background: var(--s98p-day-raised) !important;
+  border-color: var(--s98p-border-soft) !important;
+}
+
+:root.soft98-pro-light [data-soft98-pro-tech-news] [data-soft98-pro-latest-header="news"] {
+  background: var(--s98p-day-raised) !important;
+}
+
+:root.soft98-pro-light [data-soft98-pro-page-surface][data-soft98-pro-latest-frame] {
+  box-shadow: var(--s98p-day-shadow) !important;
+}
+
+:root.soft98-pro-light [data-soft98-pro-tech-news] [data-soft98-pro-news-title] > [data-soft98-pro-page-icon] {
+  --icon-color: var(--s98p-day-warning);
+}
+
+:root.soft98-pro-light [data-soft98-pro-surface="tab-list"] :is([role="tab"],[data-toggle="tab"]) {
+  --tab-ink: var(--s98p-accent);
+}
+
+:root.soft98-pro-light [data-soft98-pro-latest-tabs] [data-s98p-latest-topic="software"] {
+  --tab-ink: var(--s98p-day-info);
+}
+
+:root.soft98-pro-light [data-soft98-pro-latest-tabs] [data-s98p-latest-topic="android"] {
+  --tab-ink: var(--s98p-day-success);
+}
+
+:root.soft98-pro-light [data-soft98-pro-latest-tabs] [data-s98p-latest-topic="news"] {
+  --tab-ink: var(--s98p-day-related);
+}
+
+:root.soft98-pro-light [data-soft98-pro-latest-tabs] [data-s98p-latest-topic] :is(i,svg) {
+  color: var(--tab-ink) !important;
+}
+
+:root.soft98-pro-light [data-soft98-pro-surface="tab-list"] :is([role="tab"],[data-toggle="tab"]):is([aria-selected="true"],[aria-expanded="true"],.active,.active>[data-toggle="tab"],[data-soft98-pro-tab-active="true"]:not([aria-selected="false"],[aria-expanded="false"])) {
+  background: var(--s98p-soft) !important;
+  color: var(--s98p-text) !important;
+  border-color: var(--s98p-border-soft) !important;
+  box-shadow: inset 0 -2px var(--tab-ink) !important;
 }
 
 :root.soft98-pro-light [data-soft98-pro-download-group] [data-soft98-pro-download-row][data-soft98-pro-icon-host="download"] {
-  color: #096547 !important;
-  background-color: #e9f8ef !important;
+  color: var(--s98p-day-success) !important;
 }
 
-:root.soft98-pro-light [data-soft98-pro-download-group] [data-soft98-pro-download-row][data-soft98-pro-icon-host="download"]:is(:hover,:focus-visible) {
-  background-color: #d9f2e3 !important;
+:root.soft98-pro-light [data-soft98-pro-download-group] > dd[data-soft98-pro-download-entry]:is(:hover,:focus-within):has(> [data-soft98-pro-icon-host="download"]) {
+  background: var(--s98p-day-success-wash) !important;
+}
+
+:root.soft98-pro-light [data-soft98-pro-download-group] [data-soft98-pro-download-row][data-soft98-pro-icon-host]:not([data-soft98-pro-icon-host="download"]) {
+  color: var(--s98p-link) !important;
+}
+
+:root.soft98-pro-light [data-soft98-pro-download-row] :is([data-soft98-pro-download-copy],[data-soft98-pro-download-title]) {
+  color: inherit !important;
+}
+
+:root.soft98-pro-light [data-soft98-pro-page-icon="download"] {
+  --icon-color: var(--s98p-day-success);
+}
+
+:root.soft98-pro-light [data-soft98-pro-page-icon="lock"] { --icon-color: var(--s98p-day-warning); }
+
+:root.soft98-pro-light .s98p-file-actions button[data-s98p-file-status="complete"] {
+  --file-status-color: var(--s98p-day-success);
+}
+
+:root.soft98-pro-light.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status="review"] {
+  --file-status-color: var(--s98p-day-warning);
+}
+
+:root.soft98-pro-light.soft98-pro-theme .s98p-file-actions button[data-s98p-file-status="interrupted"] {
+  --file-status-color: var(--s98p-day-danger);
+}
+
+:root.soft98-pro-theme :is([data-soft98-pro-mega-frame],[data-s98p-topbar-categories] > li > [data-soft98-pro-menu]) {
+  background: var(--s98p-topbar-bg) var(--s98p-surface) !important;
+  border: 1px solid var(--s98p-border-soft) !important;
+  border-radius: 8px !important;
+  box-shadow: var(--s98p-topbar-shadow) !important;
+  backdrop-filter: none !important;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-mega-frame] {
-  --mega-ink: #e9f1ff;
-  --mega-tint: #81adff;
-  --mega-mint: #72e2af;
-  --mega-edge: #405471;
-  --mega-tile: #1b283c;
-  --mega-tile-highlight: #22334d;
-  --mega-surface: linear-gradient(145deg, #23344bf8, #101a28fa 68%);
-  --mega-shadow: 0 24px 52px #080e18a3, 0 1px #ffffff23 inset;
-  padding: 16px !important;
-  background: var(--mega-surface) !important;
-  border: 1px solid var(--mega-edge) !important;
-  border-block-start: 3px solid var(--mega-tint) !important;
-  box-shadow: var(--mega-shadow) !important;
-  backdrop-filter: blur(24px) saturate(135%);
-}
-
-:root.soft98-pro-light [data-soft98-pro-mega-frame] {
-  --mega-ink: #14284a;
-  --mega-tint: #195ac6;
-  --mega-mint: #087752;
-  --mega-edge: #c1d7fa;
-  --mega-tile: #f7faff;
-  --mega-tile-highlight: #eaf2ff;
-  --mega-surface: linear-gradient(155deg, #fffffffa, #e6f0fff2 64%, #def5edf6);
-  --mega-shadow: 0 24px 48px #16366e36, 0 1px #fff inset;
+  padding: 14px 16px 16px !important;
+  max-block-size: calc(100dvh - var(--s98p-topbar-height) - 12px);
+  overscroll-behavior: contain;
+  background:
+    linear-gradient(175deg,color-mix(in srgb,var(--s98p-elevated) 96%,transparent),
+      color-mix(in srgb,var(--s98p-nav) 97%,transparent)) !important;
+  box-shadow: inset 0 1px color-mix(in srgb,var(--s98p-text) 8%,transparent),var(--s98p-topbar-shadow) !important;
+  backdrop-filter: blur(18px) !important;
 }
 
 :root.soft98-pro-rgb [data-soft98-pro-mega-frame] {
-  --mega-tint: var(--s98p-accent);
-  --mega-mint: var(--s98p-accent-2);
-  --mega-tile: #121618;
-  --mega-tile-highlight: #1b2023;
-  --mega-surface: linear-gradient(155deg, #14191ef7, #080a0bf5) #080a0b;
+  background: linear-gradient(155deg,#14191ef7,#080a0bf5) #080a0b !important;
+}
+
+@media (min-width: 992px) {
+  :root.soft98-pro-theme [data-s98p-topbar-categories] > li > [data-soft98-pro-mega-frame] {
+    max-inline-size: min(1080px,calc(100vw - 28px));
+    margin-inline: auto !important;
+  }
 }
 
 :root.soft98-pro-rgb [data-soft98-pro-surface="tab-list"] :is([role="tab"],[data-toggle="tab"]):is(
@@ -437,7 +1851,7 @@
 :root.soft98-pro-theme [data-soft98-pro-mega-frame] [data-soft98-pro-mega-grid] {
   display: grid !important;
   grid-template-columns: repeat(auto-fit,minmax(min(178px,100%),1fr));
-  gap: 10px;
+  gap: 12px 16px;
   align-items: start;
   width: 100% !important;
   margin: 0 !important;
@@ -448,88 +1862,116 @@
   width: auto !important;
   max-width: none !important;
   min-width: 0;
-  padding: 9px !important;
-  background: var(--mega-tile) !important;
-  border: 1px solid var(--mega-edge) !important;
-  border-radius: 7px;
-  box-shadow: 0 1px #ffffff32 inset, 0 4px 12px #14203715;
-}
-
-:root.soft98-pro-light [data-soft98-pro-mega-frame] [data-soft98-pro-mega-group] {
-  background: linear-gradient(165deg,#fff 62%,#edf4ff) !important;
-  box-shadow: 0 1px #fff inset, 0 6px 16px #234c8c19;
-}
-
-:root.soft98-pro-theme [data-soft98-pro-mega-frame] [data-soft98-pro-mega-group]:nth-child(even) {
-  --mega-tint: var(--mega-mint);
+  padding: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-mega-frame] [data-soft98-pro-mega-heading] {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 0 6px 6px !important;
+  gap: 8px;
+  min-block-size: 37px;
+  padding: 4px 9px !important;
   margin: 0 0 5px !important;
-  border-block-end: 1px solid var(--mega-edge) !important;
-  color: var(--mega-tint) !important;
+  background: color-mix(in srgb,var(--s98p-topbar-active) 78%,var(--s98p-nav)) !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  color: var(--s98p-text) !important;
   font-size: 13px !important;
   font-weight: 750;
   overflow-wrap: anywhere;
 }
 
-:root.soft98-pro-light [data-soft98-pro-mega-frame] [data-soft98-pro-mega-heading] {
-  padding: 6px 8px !important;
-  border: 0 !important;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--mega-tint) 12%, #fff) !important;
-}
-
 :root.soft98-pro-theme [data-soft98-pro-mega-frame] [data-soft98-pro-mega-heading]::before {
   content: "";
-  inline-size: 7px;
-  block-size: 7px;
+  inline-size: 3px;
+  block-size: 14px;
   flex: none;
-  border-radius: 2px;
-  rotate: 45deg;
-  background: var(--mega-tint);
+  border-radius: 3px;
+  background: var(--s98p-link);
   pointer-events: none;
 }
 
-:root.soft98-pro-theme [data-soft98-pro-mega-frame] [data-soft98-pro-mega-group] a[href] {
-  display: block;
-  padding: 5px 7px !important;
-  border-radius: 4px;
-  color: var(--mega-ink) !important;
+:root.soft98-pro-theme [data-s98p-category-menu] :is(a[href],button,li:has(> a[href]),[data-soft98-pro-platform-row])::before,
+:root.soft98-pro-theme [data-s98p-category-menu] :is(a[href],button,li:has(> a[href]),[data-soft98-pro-platform-row])::after {
+  content: none !important;
+  display: none !important;
+}
+
+:root.soft98-pro-theme [data-s98p-category-menu] [data-s98p-menu-link] {
+  display: block !important;
+  position: relative;
+  min-block-size: 32px;
+  padding: 6px 9px !important;
+  padding-inline-end: 32px !important;
+  border: 0 !important;
+  border-radius: 6px;
+  color: var(--s98p-muted) !important;
   outline-offset: -2px !important;
   white-space: normal !important;
   overflow-wrap: anywhere;
+  transition: background-color .14s ease,color .14s ease;
+}
+
+[data-s98p-menu-arrow] { display: none !important; }
+
+:root.soft98-pro-theme [data-s98p-category-menu] [data-s98p-menu-arrow] {
+  position: absolute;
+  inset-inline-end: 7px;
+  inset-block: 0;
+  display: grid !important;
+  place-items: center;
+  inline-size: 19px;
+  color: var(--s98p-link) !important;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .14s ease;
+}
+
+:root.soft98-pro-theme [data-s98p-menu-arrow] svg { inline-size: 15px; block-size: 15px; display: block; }
+:root.soft98-pro-theme [data-s98p-menu-arrow]:dir(ltr) svg { scale: -1 1; }
+:root.soft98-pro-theme [data-s98p-menu-link]:is(:hover,:focus-visible) > [data-s98p-menu-arrow] { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  :root.soft98-pro-theme [data-s98p-category-menu] :is([data-s98p-menu-link],[data-s98p-menu-arrow]) { transition: none !important; }
 }
 
 :root.soft98-pro-theme [data-soft98-pro-mega-frame] [data-soft98-pro-mega-heading] a[href] {
   padding: 2px 0 !important;
-  border-inline-start-width: 0 !important;
-  color: var(--mega-tint) !important;
+  min-block-size: 0;
+  color: var(--s98p-text) !important;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-mega-frame] [data-soft98-pro-mega-heading] a[href]:is(:hover,:focus-visible) {
   padding-inline: 0 !important;
-  background: var(--mega-tile-highlight) !important;
-  color: var(--mega-tint) !important;
+  background: transparent !important;
+  color: var(--s98p-link) !important;
   box-shadow: none !important;
 }
 
-:root.soft98-pro-theme [data-soft98-pro-mega-frame] [data-soft98-pro-mega-group] a[href]:not(:where([data-soft98-pro-mega-heading] *)):is(:hover,:focus-visible) {
-  background: var(--mega-tile-highlight) !important;
-  color: var(--mega-tint) !important;
-  border-inline-start: 2px solid var(--mega-tint) !important;
-  padding-inline-start: 5px !important;
-  box-shadow: 0 1px #ffffff21 inset;
+:root.soft98-pro-theme [data-s98p-category-menu] [data-s98p-menu-link]:is(:hover,:focus-visible) {
+  background: color-mix(in srgb,var(--s98p-link) 11%,var(--s98p-topbar-hover)) !important;
+  color: var(--s98p-text) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+:root.soft98-pro-theme [data-s98p-category-menu] a[href]:focus-visible {
+  outline: 2px solid var(--s98p-link) !important;
+}
+
+:root.soft98-pro-theme [data-s98p-topbar-categories] > li:has(> [data-s98p-category-menu]:is(:hover,:focus-within)) > :is(a,button) {
+  background: var(--s98p-topbar-active) !important;
+  color: var(--s98p-text) !important;
+  -webkit-text-fill-color: currentColor !important;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-mega-group] [data-soft98-pro-platform-row] {
   display: block;
   box-sizing: border-box;
-  padding-inline: 6px !important;
+  padding: 6px 9px !important;
   white-space: normal !important;
 }
 
@@ -572,6 +2014,188 @@
   outline-offset: -4px !important;
 }
 
+:root.soft98-pro-theme [data-soft98-pro-callout] {
+  --callout-accent: var(--s98p-link);
+  --callout-icon: url("__CALLOUT_ICON_info__");
+  --callout-inset: 14px;
+  --callout-badge: 28px;
+  position: relative;
+  box-sizing: border-box;
+  max-inline-size: 100%;
+  padding: 12px var(--callout-inset) !important;
+  padding-inline-start: calc(var(--callout-inset) + var(--callout-badge) + 10px) !important;
+  border: 1px solid color-mix(in srgb, var(--callout-accent) 26%, var(--s98p-border-soft)) !important;
+  border-radius: var(--s98p-radius) !important;
+  background: color-mix(in srgb, var(--callout-accent) 6%, var(--s98p-surface-2)) !important;
+  box-shadow: none !important;
+  color: var(--s98p-text) !important;
+  text-shadow: none !important;
+  line-height: 1.75;
+  text-align: start;
+  overflow-wrap: anywhere;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout="quote"] {
+  --callout-accent: var(--s98p-accent);
+  --callout-icon: url("__CALLOUT_ICON_quote__");
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout="danger"] {
+  --callout-accent: var(--s98p-danger);
+  --callout-icon: url("__CALLOUT_ICON_alertTriangle__");
+}
+
+:root.soft98-pro-light :is([role="alert"],.alert):not([data-soft98-pro-callout]) {
+  background: var(--notice-fill,var(--s98p-day-warning-wash)) !important;
+  border-color: color-mix(in srgb,var(--notice-ink,var(--s98p-day-warning)) 32%,var(--notice-fill,var(--s98p-day-warning-wash))) !important;
+  color: var(--notice-ink,var(--s98p-day-warning)) !important;
+}
+
+:root.soft98-pro-light :is(.alert-primary,.alert-info) {
+  --notice-ink: var(--s98p-day-info);
+  --notice-fill: var(--s98p-day-info-wash);
+}
+
+:root.soft98-pro-light .alert-success {
+  --notice-ink: var(--s98p-day-success);
+  --notice-fill: var(--s98p-day-success-wash);
+}
+
+:root.soft98-pro-light .alert-danger {
+  --notice-ink: var(--s98p-day-danger);
+  --notice-fill: var(--s98p-day-danger-wash);
+}
+
+:root.soft98-pro-light [data-soft98-pro-callout] {
+  --callout-accent: var(--s98p-day-info);
+  --callout-fill: var(--s98p-day-info-wash);
+  background: var(--callout-fill) !important;
+}
+
+:root.soft98-pro-light [data-soft98-pro-callout="notice"]:has([data-soft98-pro-faq]) {
+  --callout-fill: color-mix(in srgb,var(--s98p-day-info-wash) 30%,var(--s98p-surface-2));
+}
+
+:root.soft98-pro-light [data-soft98-pro-callout="quote"] {
+  --callout-accent: var(--s98p-day-related);
+  --callout-fill: var(--s98p-day-related-wash);
+}
+
+:root.soft98-pro-light [data-soft98-pro-callout="danger"] {
+  --callout-accent: var(--s98p-day-danger);
+  --callout-fill: var(--s98p-day-danger-wash);
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout]::before {
+  content: "" !important;
+  display: block !important;
+  position: absolute;
+  inset-block: 11px auto;
+  inset-inline: var(--callout-inset) auto;
+  inline-size: var(--callout-badge);
+  block-size: var(--callout-badge);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--callout-accent) 13%, var(--s98p-surface)) !important;
+  border: 1px solid color-mix(in srgb, var(--callout-accent) 38%, var(--s98p-border-soft)) !important;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout]::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute;
+  inset-block: 11px auto;
+  inset-inline: var(--callout-inset) auto;
+  inline-size: var(--callout-badge);
+  block-size: var(--callout-badge);
+  background: var(--callout-accent) !important;
+  border: 0 !important;
+  mask: var(--callout-icon) center / 16px 16px no-repeat;
+  pointer-events: none;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout] > :is(h2,h3,h4,h5,h6),
+:root.soft98-pro-theme [data-soft98-pro-callout] > :first-child > :only-child:is(b,strong) {
+  color: color-mix(in srgb, var(--callout-accent) 66%, var(--s98p-text)) !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout] > :is(p,ul,ol):last-child {
+  margin-block-end: 0;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout] > hr {
+  border-color: color-mix(in srgb, var(--callout-accent) 25%, var(--s98p-border-soft)) !important;
+  opacity: 1;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout] a[href]:not([role="button"],[data-toggle],.btn,[data-soft98-pro-tone="action"]) {
+  color: var(--s98p-link) !important;
+  text-decoration: underline;
+  text-underline-offset: .18em;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout] pre {
+  max-inline-size: 100%;
+  overflow: auto;
+  background: var(--s98p-bg-2) !important;
+  border: 1px solid var(--s98p-border-soft) !important;
+  border-radius: 6px;
+  color: var(--s98p-text) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout] pre > code {
+  background: transparent !important;
+  color: inherit !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-faq] > summary > [data-soft98-pro-page-icon="chevron"] {
+  transition: rotate .24s cubic-bezier(.2,.8,.2,1);
+}
+
+:root.soft98-pro-theme [data-soft98-pro-faq][open]:not([data-soft98-pro-closing]) > summary > [data-soft98-pro-page-icon="chevron"] {
+  rotate: -90deg;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-faq]:dir(ltr) > summary > [data-soft98-pro-page-icon="chevron"] > svg {
+  transform: scaleX(-1);
+}
+
+:root.soft98-pro-theme [data-soft98-pro-faq]:dir(ltr)[open]:not([data-soft98-pro-closing]) > summary > [data-soft98-pro-page-icon="chevron"] {
+  rotate: 90deg;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout="notice"] :is(
+  [data-soft98-pro-faq] > p, [data-soft98-pro-faq] > :not(summary) > p, [data-soft98-pro-faq] [itemprop="text"] > p
+):first-of-type {
+  position: relative;
+  padding-inline-start: 1.85em !important;
+}
+
+:root.soft98-pro-theme [data-soft98-pro-callout="notice"] :is(
+  [data-soft98-pro-faq] > p, [data-soft98-pro-faq] > :not(summary) > p, [data-soft98-pro-faq] [itemprop="text"] > p
+):first-of-type::before {
+  content: "" !important;
+  position: absolute;
+  inset-inline: .4em auto;
+  inset-block: .36em auto;
+  inline-size: 1em;
+  block-size: 1em;
+  background: var(--s98p-accent) !important;
+  mask: url("__CALLOUT_ICON_check__") center / contain no-repeat;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root.soft98-pro-theme [data-soft98-pro-faq] > summary > [data-soft98-pro-page-icon="chevron"] { transition: none; }
+}
+
+@media (max-width: 560px) {
+  :root.soft98-pro-theme [data-soft98-pro-callout] { --callout-inset: 10px; }
+}
+
 :root.soft98-pro-theme :is(.list-group-item-light,[data-soft98-pro-help-action]):not(#soft98-pro-control *) {
   background-color: var(--s98p-surface-2) !important;
   background-image: none !important;
@@ -589,12 +2213,20 @@
   outline-offset: -3px !important;
 }
 
+:root.soft98-pro-theme :has(> [data-soft98-pro-password-shell]) > :is(a[href],button):is(:hover,:focus-visible):not(:disabled,[aria-disabled="true"]) {
+  position: relative;
+  z-index: 2;
+  background: var(--s98p-soft) !important;
+  color: var(--s98p-text) !important;
+  box-shadow: inset 0 0 0 1px var(--s98p-control-edge) !important;
+}
+
 :root.soft98-pro-theme [data-soft98-pro-help-action="install"]::after {
   content: none !important;
   display: none !important;
 }
 
-:root.soft98-pro-theme [data-soft98-pro-related] {
+:root.soft98-pro-theme :is([data-soft98-pro-related],[data-s98p-download-rail]) {
   background: var(--s98p-surface) !important;
   border: 1px solid var(--s98p-border-soft) !important;
   border-radius: 8px;
@@ -602,22 +2234,39 @@
   backdrop-filter: none !important;
 }
 
-:root.soft98-pro-theme [data-soft98-pro-related] > header {
+:root.soft98-pro-theme :is([data-soft98-pro-related],[data-s98p-download-rail]) > header {
   background: var(--s98p-surface-2) !important;
   border-block-end: 1px solid var(--s98p-border-soft) !important;
   color: var(--s98p-text) !important;
-  padding: 12px 16px !important;
+  display: flex;
+  align-items: center;
+  min-block-size: 46px;
+  box-sizing: border-box;
+  padding: 10px 13px !important;
 }
 
-:root.soft98-pro-theme [data-soft98-pro-related] > header :is(h2,h3,h4,h5,h6) {
+:root.soft98-pro-theme :is([data-soft98-pro-related],[data-s98p-download-rail]) > header :is(h2,h3,h4,h5,h6) {
   background: transparent !important;
   color: var(--s98p-text) !important;
-  margin: 0;
+  margin: 0 !important;
+  border: 0 !important;
+  font-size: .925rem !important;
+  line-height: 1.45 !important;
+}
+
+:root.soft98-pro-light [data-soft98-pro-related] > header {
+  --s98p-heading-mark: var(--s98p-day-related);
+  background: var(--s98p-day-raised) !important;
+}
+
+:root.soft98-pro-light [data-s98p-download-rail] > header {
+  --s98p-heading-mark: var(--s98p-day-success);
+  background: var(--s98p-day-raised) !important;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-related] > :is(ul,ol) {
   margin: 0;
-  padding: 5px 12px 8px;
+  padding: 4px 10px 10px !important;
   background: var(--s98p-surface) !important;
   list-style: none;
 }
@@ -632,11 +2281,69 @@
 }
 
 :root.soft98-pro-theme [data-soft98-pro-related] li > a {
-  display: block;
-  padding: 7px 6px;
+  display: block !important;
+  box-sizing: border-box;
+  block-size: auto !important;
+  min-block-size: 42px;
+  max-block-size: none !important;
+  padding: 7px 8px !important;
+  overflow: visible !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  line-height: 1.55;
   background: none !important;
   color: var(--s98p-muted) !important;
   transition: background-color .14s ease,color .14s ease;
+}
+
+:root:not(.soft98-pro-theme) [data-s98p-post-art],
+:root.soft98-pro-theme [data-s98p-stock-utility-art] {
+  display: none !important;
+}
+:root.soft98-pro-theme [data-s98p-post-art] {
+  display: inline-grid !important;
+  place-items: center;
+  flex: none;
+  box-sizing: border-box;
+  inline-size: 36px;
+  block-size: 36px;
+  overflow: hidden;
+  border: 1px solid var(--s98p-border-soft);
+  border-radius: 7px;
+  background: var(--s98p-surface-2) !important;
+  color: var(--s98p-faint);
+}
+:root.soft98-pro-theme [data-s98p-post-art] svg {
+  inline-size: 18px;
+  block-size: 18px;
+}
+:root.soft98-pro-theme [data-s98p-post-art]:has(> img) svg { display: none !important; }
+:root.soft98-pro-theme [data-s98p-post-art] img {
+  display: block;
+  inline-size: 30px;
+  block-size: 30px;
+  object-fit: contain;
+  margin: 0 !important;
+  border-radius: 4px;
+  box-shadow: none !important;
+  filter: none !important;
+}
+:root.soft98-pro-theme [data-soft98-pro-related] li > a:has(> [data-s98p-post-art]) {
+  display: grid !important;
+  grid-template-columns: 36px minmax(0,1fr);
+  align-items: center;
+  gap: 9px;
+}
+:root.soft98-pro-theme [data-soft98-pro-related] li > a:has(> [data-s98p-post-art])::before,
+:root.soft98-pro-theme [data-soft98-pro-related] li > a:has(> [data-s98p-post-art])::after {
+  content: none !important;
+  display: none !important;
+}
+
+:root.soft98-pro-theme [data-s98p-related-rail] [data-soft98-pro-related] li > a::before,
+:root.soft98-pro-theme [data-s98p-related-rail] [data-soft98-pro-related] li > a::after {
+  content: none !important;
+  display: none !important;
 }
 
 :root.soft98-pro-theme [data-soft98-pro-related] li > a::before {
@@ -663,10 +2370,14 @@
 }
 
 :root.soft98-pro-light [data-soft98-pro-footer] {
-  --foot-action: #1c57bf;
-  --foot-action-ink: #fff;
-  --foot-crest: #e0ecff;
-  --foot-crest-ink: #194d9d;
+  --foot-action: var(--s98p-day-action);
+  --foot-action-ink: var(--s98p-day-paper);
+  --foot-crest: var(--s98p-day-raised);
+  --foot-crest-ink: var(--s98p-day-action);
+}
+
+:root.soft98-pro-light [data-soft98-pro-footer] .s98p-footer-frame {
+  box-shadow: var(--s98p-day-shadow);
 }
 
 :root.soft98-pro-rgb [data-soft98-pro-footer] {
@@ -795,7 +2506,7 @@
 }
 
 :root.soft98-pro-theme.soft98-pro-light [data-soft98-pro-footer] .s98p-footer-brand > button:is(:hover,:focus-visible) {
-  background: #16489e !important;
+  background: var(--s98p-day-action-hover) !important;
 }
 
 :root.soft98-pro-rgb [data-soft98-pro-footer] .s98p-footer-brand > button {

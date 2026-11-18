@@ -4,6 +4,7 @@
 const fs = require("fs");
 const http = require("http");
 const path = require("path");
+const { soft98Url, fetchSoft98, jsonForScript, escapeHtmlAttribute } = require("../tools/tooling-security.js");
 
 const ROOT = path.resolve(__dirname, "..");
 const PORT = Number(process.env.PORT || 8798);
@@ -36,8 +37,8 @@ function safeJoin(base, requestPath) {
 
 function isSoft98Url(value) {
   try {
-    const url = new URL(value);
-    return /(?:^|\.)soft98\.ir$/i.test(url.hostname);
+    soft98Url(value);
+    return true;
   } catch (_error) {
     return false;
   }
@@ -71,19 +72,82 @@ http
   .createServer(async (request, response) => {
     try {
       const requestUrl = new URL(request.url, "http://127.0.0.1");
+      if (requestUrl.pathname === "/feedback.html") {
+        response.writeHead(200, { "content-type": "text/html; charset=utf-8" }).end(fs.readFileSync(path.join(ROOT, "test", "topbar.html")));
+        return;
+      }
+      if (requestUrl.pathname === "/test/302-initial-scroll.html") {
+        response.writeHead(200, { "content-type": "text/html; charset=utf-8" }).end(fs.readFileSync(path.join(ROOT, "test", "initial-content-scroll.html")));
+        return;
+      }
+      if (requestUrl.pathname === "/test/initial-content-scroll-delay.js") {
+        await new Promise(resolve => setTimeout(resolve, 800));
+        response.writeHead(200, { "content-type": "text/javascript; charset=utf-8" }).end("");
+        return;
+      }
+      if (requestUrl.pathname === "/fixtures/42-dialog.html") {
+        response.writeHead(302, { Location: "/test/42-dialog-current.html" }).end();
+        return;
+      }
+      if (requestUrl.pathname === "/test/42-dialog-current.html") {
+        response.writeHead(200, { "content-type": "text/html" }).end('<!doctype html><html><head>' +
+          '<meta property="og:type" content="article"><meta property="og:image" content="../src/assets/linux-penguin.svg?id=42">' +
+          '</head><body><article><h1>Current post</h1></article></body></html>');
+        return;
+      }
+      if (request.method === "HEAD" && /^\/test\/download-fixture\//.test(requestUrl.pathname)) {
+        const sizes = { "Artwork.part01.rar": 67108864, "Artwork.part02.rar": 48234496, "Notes.pdf": 94208, "Assets.zip": 12582912 };
+        const name = requestUrl.pathname.split("/").pop();
+        if (!Object.hasOwn(sizes, name)) { response.writeHead(404).end(); return; }
+        response.writeHead(200, { "Content-Length": sizes[name], "Last-Modified": "Wed, 21 Oct 2026 07:28:00 GMT",
+          "Content-Type": name.endsWith(".pdf") ? "application/pdf" : "application/octet-stream" });
+        response.end();
+        return;
+      }
       if (requestUrl.pathname === "/test/fallback/") {
         response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
         response.end("<!doctype html><title>Full-page fallback</title><p>Normal browser navigation completed.</p>");
         return;
       }
+      if (requestUrl.pathname === "/test/issue16-parser-delay.js") {
+        await new Promise(resolve => setTimeout(resolve, 350));
+        response.writeHead(200, { "content-type": "text/javascript; charset=utf-8" }).end("");
+        return;
+      }
+      if (requestUrl.pathname === "/test/issue16-startup.js") {
+        const etag = '"issue16-startup-v1"';
+        const headers = { "content-type": "text/javascript; charset=utf-8", "cache-control": "public, max-age=600", etag };
+        if (request.headers["if-none-match"] === etag) { response.writeHead(304, headers).end(); return; }
+        response.writeHead(200, headers).end(`(() => {
+          const mode = new URL(location.href).searchParams.get("startup");
+          if (!mode || performance.getEntriesByType("navigation")[0]?.type !== "reload") return;
+          window.issue16Original = document.querySelector("main article");
+          document.documentElement.dataset.issue16Startup = document.readyState;
+          const target = mode === "body" ? document.body : document.querySelector("main");
+          if (mode === "replacement") {
+            const replacement = document.createElement("p");
+            replacement.id = "startup-replacement";
+            replacement.textContent = "New article content";
+            target.replaceChildren(replacement);
+          } else {
+            target.replaceChildren();
+          }
+        })()`);
+        return;
+      }
+      if (requestUrl.pathname === "/page/3/") {
+        response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+        response.end("<!doctype html><title>Archive native fallback</title><p>Archive loaded by the browser.</p>");
+        return;
+      }
+      if (requestUrl.pathname === "/page/1/" ||
+          (requestUrl.pathname === "/index.php" && requestUrl.searchParams.get("story") === "Linux")) {
+        response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
+        response.end(fs.readFileSync(path.join(ROOT, "test", "linkdoni.html")));
+        return;
+      }
       if (requestUrl.pathname === "/proxy") {
-        const target = requestUrl.searchParams.get("url") || "";
-        if (!isSoft98Url(target)) throw new Error("Proxy target must be a Soft98 asset");
-        const upstream = await fetch(target, {
-          headers: {
-            "user-agent": "Mozilla/5.0 Soft98AdBlockerProof",
-          },
-        });
+        const { response: upstream, url: target } = await fetchSoft98(requestUrl.searchParams.get("url") || "");
         if (!upstream.ok) throw new Error(`Soft98 asset returned ${upstream.status}`);
         const contentType = upstream.headers.get("content-type") || TYPES[path.extname(new URL(target).pathname).toLowerCase()] || "application/octet-stream";
         response.setHeader("access-control-allow-origin", "*");
@@ -100,22 +164,17 @@ http
         return;
       }
       if (requestUrl.pathname === "/live") {
-        const target = requestUrl.searchParams.get("url") || DEFAULT_LIVE_URL;
         const proofView = requestUrl.searchParams.get("view") || "";
         const proofPanel = requestUrl.searchParams.get("panel") === "1";
         const proofOverlay = requestUrl.searchParams.get("proof") !== "0";
-        const upstream = await fetch(target, {
-          headers: {
-            "user-agent": "Mozilla/5.0 Soft98AdBlockerProof",
-          },
-        });
+        const { response: upstream, url: target } = await fetchSoft98(requestUrl.searchParams.get("url") || DEFAULT_LIVE_URL);
         if (!upstream.ok) throw new Error(`Soft98 returned ${upstream.status}`);
         const original = await upstream.text();
         const proofScript = `<script src="http://127.0.0.1:${PORT}/soft98-pro.user.js"></script><script>
             (function () {
-              var proofView = ${JSON.stringify(proofView)};
-              var proofPanel = ${JSON.stringify(proofPanel)};
-              var proofOverlay = ${JSON.stringify(proofOverlay)};
+              var proofView = ${jsonForScript(proofView)};
+              var proofPanel = ${jsonForScript(proofPanel)};
+              var proofOverlay = ${jsonForScript(proofOverlay)};
               function ready(callback) {
                 if (document.body) callback();
                 else document.addEventListener("DOMContentLoaded", callback, { once: true });
@@ -182,7 +241,12 @@ http
                   overlay.id = "soft98-proof-overlay";
                   overlay.dir = "ltr";
                   overlay.style.cssText = "position:fixed;z-index:2147483647;left:16px;bottom:16px;display:grid;gap:6px;max-width:560px;padding:12px 14px;border:1px solid #245a38;border-radius:8px;background:#08140d;color:#dbffe5;font:13px/1.45 ui-monospace,Consolas,monospace;box-shadow:0 10px 35px rgba(0,0,0,.35)";
-                  overlay.innerHTML = "<strong>Soft98 Pro live proof</strong><span>ads: " + ads + "</span><span>warnings: " + warnings + "</span><span>download links: " + links.length + "</span><span>first href: " + (first ? first.href : "none") + "</span>";
+                  ["Soft98 Pro live proof", "ads: " + ads, "warnings: " + warnings,
+                    "download links: " + links.length, "first href: " + (first ? first.href : "none")].forEach(function (text, index) {
+                    var line = document.createElement(index === 0 ? "strong" : "span");
+                    line.textContent = text;
+                    overlay.appendChild(line);
+                  });
                   (document.body || document.documentElement).appendChild(overlay);
                 }
                 if (proofPanel && window.Soft98AdBlocker && window.Soft98AdBlocker.openPanel) {
@@ -193,8 +257,8 @@ http
             })();
           </script>`;
         const withAssets = rewriteHtmlAssets(original, target);
-        const withBase = withAssets.replace(/<head([^>]*)>/i, `<head$1><base href="${target}">`);
-        const injected = /<\/body>/i.test(withBase) ? withBase.replace(/<\/body>/i, `${proofScript}</body>`) : `${withBase}${proofScript}`;
+        const withBase = withAssets.replace(/<head([^>]*)>/i, (_match, attributes) => `<head${attributes}><base href="${escapeHtmlAttribute(target)}">`);
+        const injected = /<\/body>/i.test(withBase) ? withBase.replace(/<\/body>/i, () => `${proofScript}</body>`) : `${withBase}${proofScript}`;
         response.writeHead(200, { "content-type": "text/html; charset=utf-8" });
         response.end(injected);
         return;

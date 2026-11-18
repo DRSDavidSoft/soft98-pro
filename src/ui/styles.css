@@ -319,7 +319,7 @@ a {
   font-weight: 720;
   text-decoration: none;
   cursor: pointer;
-  transition: transform 150ms ease, color 150ms ease, background-color 150ms ease, border-color 150ms ease, box-shadow 180ms ease;
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, box-shadow 180ms ease;
 }
 
 button:hover,
@@ -328,12 +328,11 @@ a:hover {
   background: var(--surface-3);
   color: var(--text);
   box-shadow: 0 9px 24px rgba(0, 0, 0, 0.24), 0 0 20px rgba(78, 225, 178, 0.07);
-  transform: translateY(-1px);
 }
 
 button:active,
 a:active {
-  transform: translateY(0) scale(0.98);
+  box-shadow: none;
 }
 
 button:focus-visible,

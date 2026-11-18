@@ -24,9 +24,9 @@
 
 ![Soft98 Pro dark mode running on Soft98](docs/assets/soft98-pro-dark.png)
 
-[Compare the download page before and after the redesign](docs/assets/comparison/README.md)
+[Compare stock Soft98 with Soft98 Pro and see each switch off and on](docs/assets/comparison/README.md)
 
-Soft98 Pro improves Soft98 with resilient ad blocking, anti-adblock patching, download-link recovery, warning cleanup, and a modern dark interface. It is available as both a userscript and browser extensions for Chrome, Edge, and Firefox.
+Soft98 Pro improves Soft98 with resilient ad blocking, anti-adblock patching, download-link recovery, warning cleanup, and a modern dark interface. It is available as both a userscript and a browser extension.
 
 Both formats are built from the shared runtime in [`src/runtime.js`](src/runtime.js), keeping blocking behavior, diagnostics, localization, theming, favicon status, and link recovery aligned.
 
@@ -37,6 +37,7 @@ Both formats are built from the shared runtime in [`src/runtime.js`](src/runtime
 - [Screenshot](#screenshot)
 - [Features](#features)
 - [Bundled Branding](#bundled-branding)
+- [Compatible Browsers](#compatible-browsers)
 - [Getting Started](#getting-started)
   - [Userscript setup](#userscript-quick-start)
   - [Browser extension setup](#extension-quick-start)
@@ -64,8 +65,10 @@ Both formats are built from the shared runtime in [`src/runtime.js`](src/runtime
 - **Expert control console:** provides live cleanup telemetry, reviewed-script status, and grouped protection, experience, and advanced controls directly on the page.
 - **RGB experience:** optionally adds a restrained animated spectral glass design with reduced-motion support.
 - **Quick browsing:** opt in under Appearance to stay on the same page while moving between software listings. Articles, downloads, and new-tab links keep their normal behavior.
-- **Download manager (extension):** check the queue in the control center's **Downloads** tab, or open the full manager from the Soft98 header or extension popup. Use the plus button beside a direct file link, then choose **Add to queue** to see live progress, size, speed, and time remaining. The original link still downloads normally.
+- **Download manager (extension):** the download-plus button queues a file without starting it. Use the arrow or right-click the button to queue, start, or copy a link just once, or to change the default. You can also change the default under **Control Center → Downloads**. The manager shows progress, speed, and time remaining; the original site link still works normally.
+- **Bulk imports and multipart archives:** [review pasted links or text files](docs/wiki/Download-Manager.md), sort and filter before downloading, see automatically fetched details, and follow grouped downloads with browser notifications.
 - **Discussions:** read threaded replies and use the original comment form in either Pro theme.
+- **Linkdoni:** expand or collapse each day's technology news and turn archive pages without reloading. The original search and article links still work.
 - **Bilingual interface:** uses Persian when the browser language is `fa` or the timezone is `Asia/Tehran`; otherwise it uses English.
 - **Status favicon:** generates a canvas favicon that reflects the current protection state.
 
@@ -78,6 +81,19 @@ Both formats are built from the shared runtime in [`src/runtime.js`](src/runtime
 
 The build converts both images to inlined PNG data URLs. After successful cleanup, the runtime heuristically identifies the live site logo and selects the light or pirate Pro variant for the active theme without relying on generated selectors or downloading external assets.
 
+<a id="compatible-browsers"></a>
+
+## 🌐 Compatible Browsers
+
+| Desktop browser | Extension package | Userscript manager |
+| --- | --- | --- |
+| Google Chrome | Chromium ZIP | Tampermonkey |
+| Microsoft Edge | Chromium ZIP | Tampermonkey |
+| Brave | Chromium ZIP | Tampermonkey |
+| Mozilla Firefox | Firefox ZIP | Violentmonkey or Tampermonkey |
+
+Use a current desktop version. The Firefox ZIP on GitHub is a temporary add-on and must be reloaded after a browser restart. Safari and mobile browsers are not verified.
+
 <a id="getting-started"></a>
 
 ## 🚀 Getting Started
@@ -88,7 +104,7 @@ Choose one installation path below. The userscript is the shortest setup; the ex
 
 ### ⚡ Userscript
 
-1. Install [Tampermonkey](https://tampermonkey.net) for Chrome or Edge, or [Violentmonkey](https://violentmonkey.github.io) for Firefox.
+1. Install [Tampermonkey](https://tampermonkey.net) or, on Firefox, [Violentmonkey](https://violentmonkey.github.io).
 2. Install [`soft98-pro.user.js`](https://github.com/DRSDavidSoft/soft98-pro/releases/latest/download/soft98-pro.user.js).
 3. Confirm the prompt in your userscript manager.
 4. Open [soft98.ir](https://soft98.ir).
@@ -103,9 +119,9 @@ Choose one installation path below. The userscript is the shortest setup; the ex
 2. Extract the archive.
 3. Follow the instructions for your browser.
 
-#### 🟦 Chrome or Edge
+#### 🟦 Chrome, Edge, or Brave
 
-1. Open `chrome://extensions` or `edge://extensions`.
+1. Open `chrome://extensions`, `edge://extensions`, or `brave://extensions`.
 2. Enable **Developer mode**.
 3. Select **Load unpacked**.
 4. Choose the extracted Chromium folder.
@@ -188,7 +204,7 @@ npm run screenshot:firefox
 
 - [`soft98-pro.user.js`](soft98-pro.user.js): root userscript for direct GitHub installation.
 - `dist/userscript/soft98-pro.user.js`: release copy of the userscript.
-- `dist/chromium/`: Manifest V3 build for Chrome and Edge.
+- `dist/chromium/`: Manifest V3 build for Chrome, Edge, and Brave.
 - `dist/firefox/`: Firefox build with the page-runtime bridge.
 - `dist/packages/*.zip`: release-ready installation archives.
 - `dist/release/latest.json`: machine-readable update metadata and direct package links.
@@ -224,6 +240,8 @@ Use `Soft98Pro.inspectedRoles()` in DevTools to see readable page roles alongsid
 <a id="documentation"></a>
 
 ## 📚 Documentation
+
+Questions, setup help, and chat: [Telegram community](https://t.me/PersianBlocker/1/27859). Please keep reproducible bug reports on [GitHub Issues](https://github.com/DRSDavidSoft/soft98-pro/issues).
 
 - [Wiki Home](docs/wiki/Home.md): overview and documentation navigation.
 - [Installation](docs/wiki/Installation.md): installation for every supported browser.

@@ -9,6 +9,7 @@ const { pipeline } = require("node:stream/promises");
 const terser = require("terser");
 const { writeReleaseNotes } = require("./changelog.js");
 const { illustration } = require("./preview-illustrations.js");
+const { downloadSounds } = require("./download-sounds.js");
 
 const ROOT = path.resolve(__dirname, "..");
 const SRC = path.join(ROOT, "src");
@@ -36,68 +37,47 @@ const RELEASE_BASE = "https://github.com/DRSDavidSoft/soft98-pro/releases/latest
 const BRAND_FILES = {
   light: path.join(SRC, "assets", "soft98-pro-logo-light.png"),
   pirateDark: path.join(SRC, "assets", "soft98-pro-logo-pirate-dark.png"),
+  stockLight: path.join(SRC, "assets", "soft98-stock-logo-light.png"),
+  stockDark: path.join(SRC, "assets", "soft98-stock-logo-dark.png"),
+  stockCompactLight: path.join(SRC, "assets", "soft98-stock-navbar-light.png"),
+  stockCompactDark: path.join(SRC, "assets", "soft98-stock-navbar-dark.png"),
 };
-const { siAndroid, siKaspersky, siDotnet, siOpenjdk, siRustdesk } = require("simple-icons");
+const { siAndroid } = require("simple-icons");
 const TABLER_ROOT = path.resolve(path.dirname(require.resolve("@tabler/icons/outline/download.svg")), "../..");
 const VAZIRMATN_ROOT = path.dirname(require.resolve("@fontsource-variable/vazirmatn/package.json"));
-const UTILITY_ASSETS = path.join(SRC, "assets", "utility");
-const UTILITY_CATALOG = JSON.parse(fs.readFileSync(path.join(SRC, "utility-artwork.json"), "utf8"));
-const UTILITY_NOTICES = ["PAPIRUS-LICENSE.txt", ...new Set(Object.values(UTILITY_CATALOG.artwork).map((art) => art.notice))];
 const ICON_NOTICE = `/*!
 Tabler Icons (https://github.com/tabler/tabler-icons)
 ${fs.readFileSync(path.join(TABLER_ROOT, "LICENSE"), "utf8").trim().replace(/\r\n/g, "\n")}
 
-Android, Kaspersky, .NET, OpenJDK and RustDesk paths from Simple Icons (https://simpleicons.org), CC0 1.0.
-VLC icon copyright (c) 1996-2010 VideoLAN. Use is permitted to identify VideoLAN
-and its products; no endorsement is implied. https://www.videolan.org/goodies.html
-Firefox and Free Download Manager artwork by Papirus contributors (GPL-3.0).
-Java Duke by Sun Microsystems (BSD-3-Clause); LeoMoon ParsiNegar artwork by LeoMoon Studios (MIT).
-Sources and license: https://github.com/DRSDavidSoft/soft98-pro/tree/main/src/assets/utility
-${UTILITY_NOTICES.slice(1).map((file) => fs.readFileSync(path.join(UTILITY_ASSETS, file), "utf8").trim()).join("\n\n")}
+Android path from Simple Icons (https://simpleicons.org), CC0 1.0.
 Platform marks belong to their respective owners.
+
+${fs.readFileSync(path.join(VAZIRMATN_ROOT, "LICENSE"), "utf8").trim().replace(/\r\n/g, "\n")}
 */`;
 const PAGE_ICONS = Object.fromEntries(Object.entries({
   windows: "filled/brand-windows", apple: "filled/brand-apple",
   devices: "outline/devices", download: "outline/download", link: "outline/link",
-  info: "outline/info-circle", help: "outline/help-circle", lock: "outline/lock", check: "outline/check", close: "outline/x", plus: "outline/plus",
-  chevron: "outline/chevron-left", copy: "outline/copy", select: "outline/select-all", eye: "outline/eye",
+  info: "outline/info-circle", help: "outline/help-circle", lock: "outline/lock", check: "outline/check", close: "outline/x", plus: "outline/plus", minus: "outline/minus", star: "outline/star", starFill: "filled/star",
+  chevron: "outline/chevron-left", chevronRight: "outline/chevron-right", chevronDown: "outline/chevron-down", copy: "outline/copy", select: "outline/select-all", eye: "outline/eye",
   archive: "outline/archive", web: "outline/world-www", remove: "outline/file-x",
+  quote: "outline/quote", alertTriangle: "outline/alert-triangle",
   photo: "outline/photo", document: "outline/file-text", shield: "outline/shield",
   play: "outline/player-play", music: "outline/music", desktop: "outline/device-desktop",
   folder: "outline/folder", author: "outline/user", date: "outline/calendar",
-  menu: "outline/menu-2", moon: "outline/moon", sun: "outline/sun",
+  home: "outline/home", apps: "outline/apps", phone: "outline/device-mobile",
+  androidOutline: "outline/brand-android", headphones: "outline/headphones",
+  book: "outline/book-2", support: "outline/lifebuoy", forums: "outline/messages",
+  menu: "outline/menu-2", dots: "outline/dots", moon: "outline/moon", sun: "outline/sun",
   bell: "outline/bell", mail: "outline/mail", search: "outline/search",
   grid: "outline/layout-grid", arrow: "outline/arrow-left", github: "outline/brand-github",
   settings: "outline/settings", history: "outline/history", external: "outline/external-link",
   news: "outline/news", rss: "outline/rss", twitter: "filled/brand-twitter", anchor: "outline/anchor", up: "outline/arrow-up",
+  message: "outline/brand-telegram",
   facebook: "filled/brand-facebook", instagram: "outline/brand-instagram",
-  ...UTILITY_CATALOG.genericIcons,
 }).map(([key, name]) => [key, fs.readFileSync(path.join(TABLER_ROOT, "icons", name + ".svg"), "utf8")
   .replace(/\s+class="[^"]*"/, "").replace(/>\s+</g, "><").replace(/\s+/g, " ").trim()]));
 PAGE_ICONS.android = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 1 26 22" fill="currentColor"><path d="${siAndroid.path}"/></svg>`;
-for (const [key, icon, fill] of [
-  ["kaspersky", siKaspersky, "#5ad8bc"], ["dotnet", siDotnet, "#aab5ff"],
-  ["java", siOpenjdk, "#ff9c68"], ["rustdesk", siRustdesk, "#94cef9"],
-]) PAGE_ICONS[key] = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${fill}"><path d="${icon.path}"/></svg>`;
 PAGE_ICONS.linux = fs.readFileSync(path.join(SRC, "assets", "linux-penguin.svg"), "utf8").trim();
-PAGE_ICONS.vlc = `<img alt="" width="26" height="28" src="${dataUrl(path.join(SRC, "assets", "vlc.png"))}">`;
-const utilityImages = Object.fromEntries(["firefox", "freedownloadmanager", "chrome", "edge", "winrar", "revo"]
-  .map((name) => [name, name + ".svg"]));
-for (const [key, info] of Object.entries(UTILITY_CATALOG.artwork)) utilityImages[key] = info.file;
-const utilityImage = (svg) => `<img alt="" width="32" height="32" src="data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}">`;
-for (const [name, file] of Object.entries(utilityImages)) {
-  PAGE_ICONS[name] = utilityImage(fs.readFileSync(path.join(UTILITY_ASSETS, file), "utf8"));
-}
-for (const [name, { text, background, foreground }] of Object.entries(UTILITY_CATALOG.tokens || {})) {
-  if (!/^[A-Z]{2,3}$/.test(text) || ![background, foreground].every((color) => /^#[\da-f]{6}$/i.test(color))) {
-    throw new Error("Invalid utility tile: " + name);
-  }
-  PAGE_ICONS[name] = utilityImage(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect x="1" y="1" width="30" height="30" rx="6" fill="${background}"/><path d="M7 24h18" stroke="${foreground}" opacity=".28"/><text x="16" y="19.5" text-anchor="middle" fill="${foreground}" font-family="sans-serif" font-weight="700" font-size="10">${text}</text></svg>`);
-}
-const UTILITY_PATH_ICONS = Object.fromEntries(UTILITY_CATALOG.rows.flatMap(({ paths, icon }) => {
-  if (!Object.hasOwn(PAGE_ICONS, icon)) throw new Error("Unknown utility icon: " + icon);
-  return paths.map((route) => [route, icon]);
-}));
 
 const EXTENSION_ICONS = Object.fromEntries([16, 32, 48, 64, 128].map((size) => [size, `assets/icon-${size}.png`]));
 const TOOLBAR_ICONS = { 16: EXTENSION_ICONS[16], 32: EXTENSION_ICONS[32] };
@@ -151,17 +131,22 @@ function sourceReplacements(target) {
   }));
   const replacements = {
     __SOFT98_BUILD_TARGET__: target,
-    __SOFT98_RECOMMEND_EXTENSION__: target === "extension" ? "false" : "true",
+    __SOFT98_RECOMMEND_EXTENSION__: target === "userscript" ? "true" : "false",
     __SOFT98_VERSION__: VERSION,
     __SOFT98_MESSAGES__: JSON.stringify(MESSAGES),
     __SOFT98_COMPATIBILITY__: JSON.stringify(COMPATIBILITY),
     __SOFT98_BRAND_ASSETS__: JSON.stringify(Object.fromEntries(Object.entries(BRAND_FILES).map(([key, file]) => [key, dataUrl(file)]))),
     __SOFT98_PAGE_ICONS__: JSON.stringify(PAGE_ICONS),
-    __SOFT98_UTILITY_PATH_ICONS__: JSON.stringify(UTILITY_PATH_ICONS),
     __SOFT98_OPTION_PREVIEWS__: JSON.stringify(previews),
     __SOFT98_LISTING_NAVIGATION_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "listing-navigation.css"), "utf8")),
     __SOFT98_COMMENTS_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "comments.css"), "utf8")),
-    __SOFT98_CHROME_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "chrome.css"), "utf8")),
+    __SOFT98_CHROME_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "chrome.css"), "utf8")
+      .replace(/__CALLOUT_ICON_(info|quote|alertTriangle|check)__/g, (_, icon) =>
+        `data:image/svg+xml;base64,${Buffer.from(PAGE_ICONS[icon]).toString("base64")}`)),
+    __SOFT98_APPEARANCE_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "appearance.css"), "utf8")),
+    __SOFT98_LINKDONI_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "linkdoni.css"), "utf8").replace(
+      "__SOFT98_LINKDONI_FONT__", "data:font/woff2;base64," +
+      fs.readFileSync(path.join(VAZIRMATN_ROOT, "files", "vazirmatn-arabic-wght-normal.woff2")).toString("base64"))),
     __SOFT98_EARLY_ADS_CSS__: JSON.stringify(fs.readFileSync(path.join(SRC, "early-ads.css"), "utf8")),
     __SOFT98_NAME__: MESSAGES.locales.en.manifest.name,
     __SOFT98_DESCRIPTION__: MESSAGES.locales.en.manifest.description,
@@ -190,7 +175,7 @@ function copyFile(from, to) {
 }
 
 function runtimeSource(target) {
-  const modules = [PATCH_ENGINE, path.join(SRC, "listing-navigation.js"), path.join(SRC, "comments.js"), RUNTIME];
+  const modules = [PATCH_ENGINE, ...["listing-navigation", "comments", "download-links", "linkdoni", "post-artwork"].map(name => path.join(SRC, name + ".js")), RUNTIME];
   return modules.map((file) => applyReplacements(fs.readFileSync(file, "utf8"), target)).join("\n");
 }
 
@@ -214,14 +199,14 @@ async function buildUserscript() {
   const result = await terser.minify(runtimeSource("userscript"), {
     compress: { passes: 2, unsafe: false },
     mangle: { keep_fnames: /soft98AdBlocker|patchSoft98Code/ },
-    format: { ascii_only: false, comments: false },
+    format: { ascii_only: true, comments: false },
   });
   if (result.error) throw result.error;
   const output = `${meta}\n\n${ICON_NOTICE}\n${result.code}\n`;
+  if (/[^\x00-\x7f]/.test(meta + result.code)) throw new Error("Userscript metadata and executable code must be ASCII-safe");
   fs.writeFileSync(USERSCRIPT_OUT, output, "utf8");
   mkdir(path.join(DIST, "userscript"));
   fs.writeFileSync(path.join(DIST, "userscript", "soft98-pro.user.js"), output, "utf8");
-  for (const notice of UTILITY_NOTICES) copyFile(path.join(UTILITY_ASSETS, notice), path.join(DIST, "userscript", notice));
 }
 
 function writeJson(target, value) {
@@ -233,21 +218,20 @@ function chromiumManifest() {
   return {
     manifest_version: 3,
     ...commonManifest,
-    permissions: ["storage", "tabs", "alarms", "scripting", "webRequest", "declarativeNetRequestWithHostAccess", "downloads"],
+    permissions: ["storage", "tabs", "alarms", "scripting", "webRequest", "downloads", "downloads.open", "notifications", "offscreen"],
+    optional_host_permissions: ["http://*/*", "https://*/*"],
     host_permissions: [
       "*://*.soft98.ir/*",
+      "https://*.82.ir.cdn.ir/*",
       "https://github.com/DRSDavidSoft/soft98-pro/releases/*",
       "https://api.github.com/repos/DRSDavidSoft/soft98-pro/releases/*",
       "https://release-assets.githubusercontent.com/*",
       "https://objects.githubusercontent.com/*",
     ],
     background: { service_worker: "assets/background.js" },
-    declarative_net_request: {
-      rule_resources: [{ id: "soft98_upstream_gateway", enabled: true, path: "rules.json" }],
-    },
+    web_accessible_resources: [{ resources: ["header-queue.html"], matches: ["*://*.soft98.ir/*"] }],
     action: { default_title: "__MSG_extensionName__", default_popup: "popup.html", default_icon: TOOLBAR_ICONS },
     options_page: "options.html",
-    web_accessible_resources: [{ resources: ["assets/upstream-gateway.js"], matches: ["*://*.soft98.ir/*"] }],
     content_scripts: [
       {
         matches: ["*://*.soft98.ir/*"],
@@ -283,16 +267,20 @@ function firefoxManifest() {
       "webRequest",
       "webRequestBlocking",
       "downloads",
+      "downloads.open",
+      "notifications",
       "*://*.soft98.ir/*",
+      "https://*.82.ir.cdn.ir/*",
       "https://github.com/DRSDavidSoft/soft98-pro/releases/*",
       "https://api.github.com/repos/DRSDavidSoft/soft98-pro/releases/*",
       "https://release-assets.githubusercontent.com/*",
       "https://objects.githubusercontent.com/*",
     ],
+    optional_permissions: ["http://*/*", "https://*/*"],
     background: { scripts: ["assets/release-client.js", "assets/background.js"], persistent: false },
     browser_action: { default_title: "__MSG_extensionName__", default_popup: "popup.html", default_icon: TOOLBAR_ICONS },
     options_ui: { page: "options.html", open_in_tab: true },
-    web_accessible_resources: ["assets/runtime.page.js", "assets/upstream-gateway.js"],
+    web_accessible_resources: ["assets/runtime.page.js", "assets/upstream-gateway.js", "header-queue.html"],
     content_scripts: [
       {
         matches: ["*://*.soft98.ir/*"],
@@ -307,9 +295,11 @@ function firefoxManifest() {
 function copyUi(target) {
   const catalog = JSON.parse(fs.readFileSync(path.join(SRC, "ui", "downloads.messages.json"), "utf8"));
   if (JSON.stringify(Object.keys(catalog.en).sort()) !== JSON.stringify(Object.keys(catalog.fa).sort())) throw new Error("Download catalogs must have identical keys");
-  const icons = Object.fromEntries(["download", "plus", "player-play", "player-pause", "x", "rotate-clockwise", "folder-open", "trash"].map((name) => [name,
+  const icons = Object.fromEntries(["download", "plus", "player-play", "player-pause", "x", "rotate-clockwise", "folder-open", "trash", "file-upload", "clipboard", "list-details", "settings", "dots", "external-link", "file", "file-zip", "file-text", "photo", "video", "music", "package", "link", "square-check", "square", "help-circle",
+    "chevron-down", "tag", "database", "calendar", "grip-vertical", "sort-ascending", "sort-descending", "arrow-left", "arrow-right",
+    "file-type-pdf", "table", "presentation", "terminal-2", "disc", "code", "device-mobile", "lock-open", "bell", "check", "sun", "moon", "volume", "chevron-right"].map((name) => [name,
     fs.readFileSync(path.join(TABLER_ROOT, "icons", "outline", `${name}.svg`), "utf8")]));
-  for (const file of ["popup.html", "options.html", "options.js", "styles.css"]) {
+  for (const file of ["options.html", "options.js", "styles.css"]) {
     const from = path.join(SRC, "ui", file);
     const to = path.join(target, file);
     if (file.endsWith(".js")) {
@@ -324,9 +314,14 @@ function copyUi(target) {
       copyFile(from, to);
     }
   }
-  for (const file of ["downloads.html", "downloads.css", "downloads-link.css", "typography.css", "theme.js", "theme.css"]) {
+  for (const file of ["downloads.html", "downloads.js", "downloads.css", "downloads-link.css", "download-import.js", "download-view.js", "download-select.js", "download-manager.svg", "typography.css", "theme.js", "theme.css",
+    "header-queue.html", "header-queue.css", "header-queue.js"]) {
     copyFile(path.join(SRC, "ui", file), path.join(target, file));
   }
+  copyFile(path.join(SRC, "appearance.css"), path.join(target, "appearance.css"));
+  const managerPage = fs.readFileSync(path.join(SRC, "ui", "downloads.html"), "utf8");
+  fs.writeFileSync(path.join(target, "popup.html"), managerPage.replace('<html lang="en">', '<html lang="en" data-compact-popup>'), "utf8");
+  copyFile(path.join(SRC, "download-links.js"), path.join(target, "download-links.js"));
   const previewDir = path.join(target, "assets", "previews");
   mkdir(previewDir);
   for (const [file, content] of PREVIEW_FILES) fs.writeFileSync(path.join(previewDir, file), content);
@@ -337,10 +332,7 @@ function copyUi(target) {
     const font = `vazirmatn-${subset}-wght-normal.woff2`;
     copyFile(path.join(VAZIRMATN_ROOT, "files", font), path.join(target, "assets", font));
   }
-  const downloads = fs.readFileSync(path.join(SRC, "ui", "downloads.js"), "utf8")
-    .replace("__SOFT98_DOWNLOAD_MESSAGES__", () => JSON.stringify(catalog))
-    .replace("__SOFT98_DOWNLOAD_ICONS__", () => JSON.stringify(icons));
-  fs.writeFileSync(path.join(target, "downloads.js"), downloads, "utf8");
+  fs.writeFileSync(path.join(target, "download-ui-catalog.js"), `const Soft98DownloadCatalog = ${JSON.stringify({ catalog, icons })};\n`, "utf8");
 }
 
 async function zipDirectory(source, output) {
@@ -372,24 +364,9 @@ async function zipDirectory(source, output) {
   }
 }
 
-function chromiumRules() {
-  return [{
-    id: 1,
-    priority: 1,
-    action: { type: "redirect", redirect: { extensionPath: "/assets/upstream-gateway.js" } },
-    condition: {
-      regexFilter: "^https?://([^/]+\\.)?soft98\\.ir/templates/.*/(application\\.min\\.packed|jquery(-v[^/?#]+)?(\\.min\\.packed)?)\\.js([?#].*)?$",
-      isUrlFilterCaseSensitive: false,
-      initiatorDomains: ["soft98.ir"],
-      resourceTypes: ["script"],
-    },
-  }];
-}
-
 async function buildTarget(name, manifest) {
   const target = path.join(DIST, name);
   mkdir(path.join(target, "assets"));
-  for (const notice of UTILITY_NOTICES) copyFile(path.join(UTILITY_ASSETS, notice), path.join(target, notice));
   for (const file of Object.values(EXTENSION_ICONS)) copyFile(path.join(SRC, file), path.join(target, file));
   for (const [locale, { manifest: copy }] of Object.entries(MESSAGES.locales)) {
     writeJson(path.join(target, "_locales", locale, "messages.json"), {
@@ -403,14 +380,24 @@ async function buildTarget(name, manifest) {
     ["user-origin.css", "early-ads.css"].map(file => fs.readFileSync(path.join(SRC, file), "utf8")).join("\n"));
   copyFile(path.join(SRC, "early-ads.css"), path.join(target, "assets", "early-ads.css"));
   await minifyFile(path.join(SRC, "release-client.js"), path.join(target, "assets", "release-client.js"));
-  await minifySource(runtimeSource("extension"), path.join(target, "assets", "runtime.page.js"));
+  await minifySource(runtimeSource(name === "chromium" ? "chromium" : "extension"), path.join(target, "assets", "runtime.page.js"));
   const backgroundPrefix = name === "chromium" ? 'importScripts("release-client.js");\n' : "";
   const queue = fs.readFileSync(path.join(SRC, "download-queue.js"), "utf8");
-  await minifySource(backgroundPrefix + queue + "\n" + applyReplacements(fs.readFileSync(path.join(SRC, "background.js"), "utf8"), "extension"), path.join(target, "assets", "background.js"));
+  const links = fs.readFileSync(path.join(SRC, "download-links.js"), "utf8");
+  const probe = fs.readFileSync(path.join(SRC, "download-probe.js"), "utf8");
+  const audio = fs.readFileSync(path.join(SRC, "download-audio.js"), "utf8");
+  const soundDir = path.join(target, "assets", "download-sounds");
+  mkdir(soundDir);
+  for (const [file, contents] of downloadSounds()) fs.writeFileSync(path.join(soundDir, file), contents);
+  await minifySource(audio, path.join(target, "assets", "download-audio.js"));
+  if (name === "chromium") {
+    copyFile(path.join(SRC, "download-audio-offscreen.html"), path.join(target, "download-audio-offscreen.html"));
+    await minifyFile(path.join(SRC, "download-audio-offscreen.js"), path.join(target, "assets", "download-audio-offscreen.js"));
+  }
+  await minifySource(backgroundPrefix + links + "\n" + audio + "\n" + queue + "\n" + probe + "\n" + applyReplacements(fs.readFileSync(path.join(SRC, "background.js"), "utf8"), "extension"), path.join(target, "assets", "background.js"));
   await minifyFile(path.join(SRC, "content", "bridge.js"), path.join(target, "assets", "bridge.js"));
-  await minifyFile(path.join(SRC, "content", "upstream-gateway.js"), path.join(target, "assets", "upstream-gateway.js"));
-  if (name === "chromium") writeJson(path.join(target, "rules.json"), chromiumRules());
   if (name === "firefox") {
+    await minifyFile(path.join(SRC, "content", "upstream-gateway.js"), path.join(target, "assets", "upstream-gateway.js"));
     await minifyFile(path.join(SRC, "content", "firefox-injector.js"), path.join(target, "assets", "firefox-injector.js"));
   }
   await zipDirectory(target, path.join(DIST, "packages", `soft98-pro-${name}-${VERSION}.zip`));

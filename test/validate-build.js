@@ -78,7 +78,7 @@ for (const [target, manifest, action] of [["firefox", firefox, firefox.browser_a
     assert.match(read(file).toString(), /href="typography\.css"/);
     assert.match(read(file).toString(), /href="theme\.css"/);
     assert.match(read(file).toString(), /src="theme\.js"/);
-    assert.match(read(file).toString(), /rel="icon" href="assets\/icon-32\.png"/);
+    assert.match(read(file).toString(), file === "options.html" ? /rel="icon" href="assets\/icon-32\.png"/ : /rel="icon" href="download-manager\.svg"/);
   }
   for (const [key, entry] of Object.entries(previews)) {
     const illustrated = entry === "illustration";
@@ -106,6 +106,12 @@ if (!chromium.permissions.includes("scripting")) throw new Error("Chromium build
 if (!chromium.permissions.includes("webRequest") || !firefox.permissions.includes("webRequest")) throw new Error("Extension builds must observe Soft98 script responses");
 
 const runtime = fs.readFileSync(path.join(DIST, "chromium", "assets", "runtime.page.js"), "utf8");
+const userscriptBytes = fs.readFileSync(path.join(DIST, "userscript", "soft98-pro.user.js"));
+const stripLicense = source => source.replace(/\/\*!\n[\s\S]*?\n\*\/\n/, "");
+const userscriptCode = stripLicense(userscriptBytes.toString("utf8"));
+if (/[^\x00-\x7f]/.test(userscriptCode) || stripLicense(new TextDecoder("windows-1252").decode(userscriptBytes)) !== userscriptCode) {
+  throw new Error("Userscript transport decoders disagree");
+}
 const userscript = fs.readFileSync(path.join(ROOT, "soft98-pro.user.js"), "utf8");
 assert.match(userscript, /rgbMode:\{files:\["data:image\/webp;base64,/);
 assert.ok(!userscript.includes("/docs/assets/settings/"), "The userscript must not load its previews remotely");
@@ -202,13 +208,38 @@ for (const file of ["README.md", "README.fa.md", "docs/wiki/fa/Installation.md"]
 }
 
 if (messages.schemaVersion !== 1 || !messages.locales.en || !messages.locales.fa) throw new Error("Bilingual message catalog is incomplete");
+const decodeUnicodeEscapes = source => source.replace(/\\u([0-9a-f]{4})/gi, (_, hex) => String.fromCharCode(Number.parseInt(hex, 16)));
+const decodedUserscript = decodeUnicodeEscapes(userscript);
 for (const phrase of [messages.locales.en.runtime.successLog, messages.locales.fa.runtime.successLog]) {
-  if (!runtime.includes(phrase) || !userscript.includes(phrase)) throw new Error(`Message catalog value was not inlined: ${phrase}`);
+  if (!runtime.includes(phrase) || !decodedUserscript.includes(phrase)) throw new Error(`Message catalog value was not inlined: ${phrase}`);
 }
 for (const placeholder of ["__SOFT98_VERSION__", "__SOFT98_MESSAGES__", "__SOFT98_BRAND_ASSETS__", "__SOFT98_COMPATIBILITY__", "__SOFT98_RECOMMEND_EXTENSION__"]) {
   if (runtime.includes(placeholder) || userscript.includes(placeholder)) throw new Error(`Unresolved build placeholder: ${placeholder}`);
 }
-if ((runtime.match(/data:image\/png;base64,/g) || []).length < 2) throw new Error("Both logo variants must be inlined into the runtime");
+const firefoxRuntime = fs.readFileSync(path.join(DIST, "firefox", "assets", "runtime.page.js"), "utf8");
+for (const file of [
+  "soft98-pro-logo-pirate-dark.png", "soft98-pro-logo-light.png",
+  "soft98-stock-logo-dark.png", "soft98-stock-logo-light.png",
+  "soft98-stock-navbar-dark.png", "soft98-stock-navbar-light.png",
+]) {
+  const bytes = fs.readFileSync(path.join(ROOT, "src", "assets", file));
+  const dataUrl = "data:image/png;base64," + bytes.toString("base64");
+  if (![runtime, firefoxRuntime, userscript].every(source => source.includes(dataUrl))) {
+    throw new Error(`${file} must be bundled in all delivery formats`);
+  }
+  const { width, height, data } = PNG.sync.read(bytes);
+  let left = width, top = height, right = -1, bottom = -1;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (!data[4 * (y * width + x) + 3]) continue;
+      left = Math.min(left, x);
+      top = Math.min(top, y);
+      right = Math.max(right, x);
+      bottom = Math.max(bottom, y);
+    }
+  }
+  assert.deepEqual([left, top, width - 1 - right, height - 1 - bottom], [2, 2, 2, 2], `${file} must have a tight transparent margin`);
+}
 if (!/pirateLogo:!0/.test(runtime) || !/pirateDark/.test(runtimeWithoutImages)) throw new Error("Pirate logo branding must be enabled and bundled");
 
 const release = JSON.parse(fs.readFileSync(path.join(DIST, "release", "latest.json"), "utf8"));
@@ -223,9 +254,6 @@ if (!background.includes("soft98-release-check") || !background.includes('origin
 if (!background.includes("soft98CompatibilityStatus") || !background.includes("crypto.subtle") || !background.includes("soft98:inspect-script")) {
   throw new Error("Background service-worker compatibility monitor is missing");
 }
-if (!background.includes("soft98:get-upstream-script") || !background.includes("soft98UpstreamSourceCache") || !background.includes("updateEnabledRulesets")) {
-  throw new Error("Background service-worker application gateway is missing");
-}
 const bridge = fs.readFileSync(path.join(DIST, "chromium", "assets", "bridge.js"), "utf8");
 const optionsUi = fs.readFileSync(path.join(DIST, "chromium", "options.js"), "utf8");
 if (!bridge.includes("data-soft98-pro-upstream-payload") || /soft98-pro-upstream-payload[^\n]{0,80}\.id/.test(bridge)) {
@@ -234,15 +262,12 @@ if (!bridge.includes("data-soft98-pro-upstream-payload") || /soft98-pro-upstream
 if (!optionsUi.includes("safeExternalUrl") || !optionsUi.includes("STRINGS.en.options.options")) {
   throw new Error("Extension options must sanitize update destinations and safely fall back to English labels");
 }
-if (!chromium.permissions.includes("declarativeNetRequestWithHostAccess") || !chromium.declarative_net_request) {
-  throw new Error("Chromium build must intercept parser-inserted Soft98 application scripts");
+if (chromium.permissions.some((permission) => permission.startsWith("declarativeNetRequest")) ||
+    chromium.declarative_net_request || fs.existsSync(path.join(DIST, "chromium", "assets", "upstream-gateway.js"))) {
+  throw new Error("Chromium must leave parser-inserted scripts in native loading order");
 }
-const gatewayRules = JSON.parse(fs.readFileSync(path.join(DIST, "chromium", "rules.json"), "utf8"));
-if (gatewayRules.length !== 1 || gatewayRules[0].action.redirect.extensionPath !== "/assets/upstream-gateway.js" || !/jquery/.test(gatewayRules[0].condition.regexFilter)) {
-  throw new Error("Chromium application gateway rules are incomplete");
-}
-if (!fs.existsSync(path.join(DIST, "chromium", "assets", "upstream-gateway.js")) || !fs.existsSync(path.join(DIST, "firefox", "assets", "upstream-gateway.js"))) {
-  throw new Error("Application gateway is not packaged for both browsers");
+if (!fs.existsSync(path.join(DIST, "firefox", "assets", "upstream-gateway.js"))) {
+  throw new Error("Firefox's application gateway is not packaged");
 }
 if (/radial-gradient|conic-gradient|createElement\(["']div["']\)[\s\S]{0,180}soft98-pro-ambient/.test(themeSource) || !/soft98-pro-neon/.test(themeSource)) {
   throw new Error("RGB mode must animate existing neon accents without an ambient radial layer");

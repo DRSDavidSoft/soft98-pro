@@ -5,6 +5,7 @@ const childProcess = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const { validate } = require("./changelog.js");
+const { syncGallery } = require("./comparison-gallery.js");
 
 const ROOT = path.resolve(__dirname, "..");
 const packageJson = require(path.join(ROOT, "package.json"));
@@ -45,6 +46,7 @@ function relative(file) {
 
 for (const file of required) if (!fs.existsSync(relative(file))) throw new Error(`Required repository file is missing: ${file}`);
 validate(fs.readFileSync(relative("CHANGELOG.md"), "utf8"), packageJson.version);
+syncGallery({ check: true });
 
 for (const file of ["README.md", "README.fa.md"]) {
   const source = fs.readFileSync(relative(file), "utf8");

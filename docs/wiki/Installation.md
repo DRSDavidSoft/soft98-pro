@@ -38,3 +38,7 @@ The extension also injects its PersianBlocker compatibility rule at browser USER
 Install `soft98-pro.user.js` with a userscript manager such as Tampermonkey or Violentmonkey.
 
 The userscript uses `releases/latest/download/soft98-pro.user.js` for both update metadata and installation. Keep automatic update checks enabled in the userscript manager.
+
+Use **only one** Soft98 Pro installation method per browser profile. The userscript asks to run at document start, but some managers can inject after the page's first paint. A short flash of the original theme can occur in that case; the extension loads its page runtime directly at document start.
+
+The `soft98-application.patched.js` asset is not an extension or a userscript. It replaces the original application-script reference in a site deployment you control and expects that page's original markup and load order. For regular browsing, install the browser ZIP or `soft98-pro.user.js` instead. See [support and troubleshooting](Diagnostics.md).
