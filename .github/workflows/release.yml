@@ -72,7 +72,16 @@ jobs:
       - name: "📦 Restore locked dependencies"
         run: npm ci --ignore-scripts
 
+      - name: "🌐 Install release acceptance browser"
+        id: browser
+        uses: browser-actions/setup-chrome@39ce663831f86d2ea36cbda0a8143709cdfcc410 # v2.2.0
+        with:
+          install-chromedriver: true
+
       - name: "✅ Build and run release acceptance suite"
+        env:
+          CHROME_PATH: ${{ steps.browser.outputs.chrome-path }}
+          SOFT98_QUEUE_CHROMEDRIVER: ${{ steps.browser.outputs.chromedriver-path }}
         run: npm run ci
 
       - name: "🧬 Verify current Soft98 compatibility"

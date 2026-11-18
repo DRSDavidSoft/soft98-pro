@@ -8,6 +8,7 @@ const net = require("net");
 const os = require("os");
 const path = require("path");
 const { PNG } = require("pngjs");
+const { devToolsPageUrl } = require("../tools/tooling-security.js");
 
 const ROOT = path.resolve(__dirname, "..");
 const PORT = Number(process.env.TEST_PORT || 8799);
@@ -91,8 +92,8 @@ class CdpClient {
     });
   }
 
-  static async connect(url) {
-    const socket = new WebSocket(url);
+  static async connect(url, debugPort) {
+    const socket = new WebSocket(devToolsPageUrl(url, debugPort));
     await new Promise((resolve, reject) => {
       socket.addEventListener("open", resolve, { once: true });
       socket.addEventListener("error", reject, { once: true });
@@ -1300,7 +1301,8 @@ async function verifyThemeRestore(client) {
       check(mode + " preserves the article URL and tab fragment", await run("location.href"), url);
       check(mode + " keeps the active tab and unsaved form text", await run('document.getElementById("stock-draft").value === "Keep this draft" && document.querySelector("#requirements").classList.contains("active")'), true);
       const scrollAfter = await run("scrollY");
-      check(mode + " preserves the scroll position", scrollAfter, scrollBefore);
+      const maximumScroll = await run("Math.max(0, document.documentElement.scrollHeight - innerHeight)");
+      check(mode + " preserves the scroll position within the restored document", scrollAfter, Math.min(scrollBefore, maximumScroll));
       check(mode + " does not turn off ad blocking", await run(`(() => {
         const ad = document.getElementById("kaprila_soft98_ir_related");
         return Soft98Pro.settings.blockAds && (!ad || getComputedStyle(ad).display === "none");
@@ -2248,7 +2250,7 @@ async function main() {
       "about:blank",
     ], { stdio: "ignore", windowsHide: true });
     const target = await waitForTargets(debugPort);
-    client = await CdpClient.connect(target.webSocketDebuggerUrl);
+    client = await CdpClient.connect(target.webSocketDebuggerUrl, debugPort);
     await client.send("Page.enable");
     await client.send("Runtime.enable");
     await client.send("Emulation.setTimezoneOverride", { timezoneId: "Asia/Tehran" });

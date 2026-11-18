@@ -291,10 +291,11 @@
   }
 
   function replaceStockText(node, value) {
-    const previous = node.data;
+    if (!node || node.nodeType !== Node.TEXT_NODE) return;
+    const previous = node.nodeValue;
     if (previous === value) return;
-    node.data = value;
-    undoWithTheme(node.parentElement || node, () => { if (node.data === value) node.data = previous; }, Symbol());
+    node.nodeValue = value;
+    undoWithTheme(node.parentElement || node, () => { if (node.nodeValue === value) node.nodeValue = previous; }, Symbol());
   }
 
   function removeWithTheme(node) {

@@ -1504,6 +1504,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error.message);
+  console.error(JSON.stringify({ error: error.message }));
   process.exitCode = 1;
 });

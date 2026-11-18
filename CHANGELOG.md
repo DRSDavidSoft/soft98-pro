@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-11-18
+
 ### Added
 
 - The search results tip now has a “Got it” button that remembers your choice.
@@ -30,6 +32,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Added [release screenshots and a visual overview](docs/changes/v1.2.3.md).
+
 - Download sections can be expanded or collapsed by clicking anywhere on their heading except the action buttons.
 
 - The sidebar download box starts fading before the in-article box arrives. The final 30% follows the scroll position and cannot intercept input. The sidebar stays hidden as you scroll farther down.
@@ -45,6 +49,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Light mode now pairs a soft stone backdrop with lighter cards and distinct heading surfaces. Color still marks focus, links, downloads, warnings, errors, and progress rather than tinting entire panels.
 
 ### Fixed
+
+- Kept text normalization scoped to visible text without interpreting it as markup.
 
 - Collapsed groups of downloads for other platforms when none match the device. More Information starts collapsed only in the sidebar and follows the main box after either copy is toggled.
 
@@ -241,7 +247,8 @@ Soft98 currently serves some download buttons as placeholders and fills in their
 
 - Unified extension and userscript maintenance in the Soft98 Pro repository.
 
-[Unreleased]: https://github.com/DRSDavidSoft/soft98-pro/compare/v1.2.2...HEAD
+[Unreleased]: https://github.com/DRSDavidSoft/soft98-pro/compare/v1.2.3...HEAD
+[1.2.3]: https://github.com/DRSDavidSoft/soft98-pro/compare/v1.2.2...v1.2.3
 [1.2.2]: https://github.com/DRSDavidSoft/soft98-pro/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/DRSDavidSoft/soft98-pro/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/DRSDavidSoft/soft98-pro/compare/v1.1.1...v1.2.0

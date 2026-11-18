@@ -63,12 +63,22 @@ function releaseNotes(markdown, version = VERSION) {
     "",
     publishedSection,
     "",
+    ...(version === "1.2.3" ? [
+      "## Compatibility Notes 🧭",
+      "",
+      "The current Soft98 application script was fetched and audited on November 18, 2026. Its reviewed hash is unchanged. This release fixes extension startup and link recovery; no new upstream revision is claimed.",
+      "",
+      "A userscript-only home-page clearing problem after ordinary reload remains under investigation in [#16](https://github.com/DRSDavidSoft/soft98-pro/issues/16). The reporter confirmed the extension works in that environment. Use the extension if affected, and do not run both formats together.",
+      "",
+      "The Firefox ZIP is an unsigned temporary add-on, not a signed store installation.",
+      "",
+    ] : []),
     ...(media.length ? [
       "## Screenshots 📸",
       "",
       ...media.map((file) => {
         const [page, theme] = file.slice(tag.length + 1, -4).split("-");
-        const title = `${page === "downloads" ? "Download Manager" : "Settings previews"} · ${theme} theme`;
+        const title = `${({ downloads: "Download Manager", settings: "Settings previews", anydesk: "Live AnyDesk download page" })[page] || "Soft98 Pro"} · ${theme} theme`;
         return `<img src="https://raw.githubusercontent.com/DRSDavidSoft/soft98-pro/${tag}/docs/assets/comparison/${file}" alt="${title}" width="455">`;
       }),
       "",
