@@ -2764,6 +2764,12 @@ async function main() {
         for (const [field, value] of Object.entries(helpPalette)) assertEqual("download help palette", field, value, true);
         assertEqual(name, "clean icon after expiry", await faviconPixel(client), idleDark);
         const toastContract = await evaluate(client, `(async () => {
+          const deadline = performance.now() + 4000;
+          while (!document.querySelector('[data-soft98-pro-password] input') ||
+            !document.querySelector('[data-soft98-pro-password-actions] button')) {
+            if (performance.now() >= deadline) throw new Error("Password controls did not return after theme restoration");
+            await new Promise(resolve => requestAnimationFrame(resolve));
+          }
           const source = document.querySelector('[data-soft98-pro-password]');
           const input = source.querySelector('input');
           const copy = document.querySelector('[data-soft98-pro-password-actions] button');
